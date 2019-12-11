@@ -53,7 +53,7 @@ class Problem:
         dict(string,any): stats of the current map to be used in the reward, episode_over, debug_info calculations
     """
     def get_stats(self, map):
-        raise NotImplementedError('get_graphics is not implemented')
+        raise NotImplementedError('get_stats is not implemented')
 
     """
     Get the current game reward between two stats

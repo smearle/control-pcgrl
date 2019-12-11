@@ -26,7 +26,9 @@ class PcgrlEnv(gym.Env):
         constant in gym_pcgrl.envs.reps.__init__.py
     """
     def __init__(self, prob="binary", rep = "narrow"):
+        self.rank = 0
         self._prob = PROBLEMS[prob]()
+        self._prob_str = prob
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self._iteration = 0
@@ -38,7 +40,7 @@ class PcgrlEnv(gym.Env):
         self.seed()
         self.viewer = None
 
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tools())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
@@ -92,6 +94,19 @@ class PcgrlEnv(gym.Env):
         return len(self._prob.get_tile_types())
 
     """
+    Get the number of tools that the agent can apply to the board.
+
+    Returns:
+        int: the number of tools
+    """
+    def get_num_tools(self):
+        if hasattr(self._prob, 'get_num_tools'):
+            return self._prob.get_num_tools()
+        else:
+            # if no tools are defined, assume agent can build any tile-type
+            return self.get_num_tiles()
+
+    """
     Adjust the used parameters by the problem or representation
 
     Parameters:
@@ -109,9 +124,11 @@ class PcgrlEnv(gym.Env):
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tools())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
+        if 'rank' in kwargs:
+            self.rank = kwargs['rank']
 
     """
     Advance the environment using a specific action
@@ -126,6 +143,8 @@ class PcgrlEnv(gym.Env):
         dictionary: debug information that might be useful to understand what's happening
     """
     def step(self, action):
+        if self.rank == 0:
+            self.render()
         self._iteration += 1
         #save copy of the old stats to calculate the reward
         old_stats = self._rep_stats
@@ -137,6 +156,10 @@ class PcgrlEnv(gym.Env):
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
 
         # calculate the values
+        # TODO: turn simcity one-hot zone encodings into integers
+        if 'simcity' in self._prob_str:
+            observation, _, _, _ = self._prob.env.step(action)
+            self._rep._map = observation
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
         reward = self._prob.get_reward(self._rep_stats, old_stats)

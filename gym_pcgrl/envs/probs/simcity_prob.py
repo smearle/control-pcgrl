@@ -10,17 +10,15 @@ class SimCityProblem(Problem):
         self._width = 16
         self._height = self._width
         self.tile_types = self.get_tile_types()
-        print(self._prob)
+        self._border_tile = "Land"
         self._prob = dict((i, s) for i, s in zip(self.tile_types, self._prob))
-        print(self._prob)
-        if not hasattr(self, 'env'):
-            self.env = self.init_env()
+        self.env = self.init_env()
 
     def init_env(self):
         size = self._width
         kwargs = {
             'render_gui': True,
-            'print_map': True,
+            'print_map': False,
                 }
         env = MicropolisEnv()
         env.setMapSize(size, **kwargs)
@@ -31,6 +29,12 @@ class SimCityProblem(Problem):
             self.env = self.init_env()
         tile_types = self.env.micro.map.zones
         return tile_types
+
+    def get_num_tools(self):
+        return self.env.num_tools
+
+    def step(self,a ):
+        print('opop')
 
     def get_stats(self, map):
         map_stats = {
@@ -53,3 +57,6 @@ class SimCityProblem(Problem):
         i = {
                 }
         return i
+
+    def render(self, mode):
+        self.env.render()

@@ -76,7 +76,6 @@ class Cropped(gym.Wrapper):
 
     def step(self, action):
         action = get_action(action)
-        self.env.render()
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
         return obs, reward, done, info
