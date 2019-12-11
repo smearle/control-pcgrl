@@ -69,6 +69,7 @@ def main(game, representation, experiment_desc, env_func, steps, n_cpu):
     else:
         env = DummyVecEnv([lambda: env_func(env_name)])
 
+   #print('ENV: {}'.format(env.observation_space))
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
     model.learn(total_timesteps=int(steps), tb_log_name=experiment) #, callback=callback)
     model.save(experiment)
@@ -77,7 +78,7 @@ if __name__ == '__main__':
     game = 'binary'
     representation = 'narrow'
     experiment = 'limited_centered'
-    n_cpu = 24
+    n_cpu = 1
     steps = 1e8
-    env = lambda game: wrappers.Cropped(game, 28, random_tile=False)
+    env = lambda game: wrappers.Cropped(game, 28, random_tile=False, render=True)
     main(game, representation, experiment, env, steps, n_cpu)

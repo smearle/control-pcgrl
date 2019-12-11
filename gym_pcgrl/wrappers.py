@@ -14,6 +14,26 @@ get_action = lambda a: a.item() if hasattr(a, "item") else a
 pdf = lambda x,mean,sigma: math.exp(-1/2 * math.pow((x-mean)/sigma,2))/math.exp(0)
 
 """
+Does not intervene.
+"""
+class Full(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.env = gym.make(game)
+        self.env.adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+        # ignore position information
+        self.observation_space = self.env.observation_space
+
+    def step(self, action):
+        action = get_action(action)
+        obs, reward, done, info = self.env.step(action)
+        return obs, reward, done, info
+
+    def reset(self):
+        obs = self.env.reset()
+        return obs
+
+"""
 Returns reward at the end of the episode
 """
 class LateReward(gym.Wrapper):
@@ -56,6 +76,7 @@ class Cropped(gym.Wrapper):
 
     def step(self, action):
         action = get_action(action)
+        self.env.render()
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
         return obs, reward, done, info

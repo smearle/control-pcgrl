@@ -5,6 +5,8 @@ import numpy as np
 import gym
 from gym import spaces
 
+import PIL
+
 """
 The PCGRL GYM Environment
 """
@@ -66,7 +68,7 @@ class PcgrlEnv(gym.Env):
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
-        
+
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
         return observation
@@ -166,6 +168,8 @@ class PcgrlEnv(gym.Env):
             from gym.envs.classic_control import rendering
             if self.viewer is None:
                 self.viewer = rendering.SimpleImageViewer()
+            if type(img) == PIL.Image.Image: # why does this happen?
+                img = np.array(img)
             self.viewer.imshow(img)
             return self.viewer.isopen
 
