@@ -30,6 +30,7 @@ def callback(_locals, _globals):
     # Print stats every 1000 calls
     if (n_steps + 1) % 1 == 0:
         # Evaluate policy training performance
+        print('log dir: {}'.format(log_dir))
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         pdb.set_trace()
         if len(x) > 0:
@@ -56,9 +57,38 @@ def Cnn(image, **kwargs):
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
 
+# TODO: have same init_scale
+from tensorflow.keras import layers
+def Cnn_keras(image, **kwargs):
+    '''
+    The same as Cnn, to control for changes resulting from use of keras.layers.
+    '''
+    activ = tf.nn.relu
+    layer_1 = layers.Conv2D(32, 3, 2, activation='relu')(image)
+    layer_2 = layers.Conv2D(64, 3, 2, activation='relu')(layer_1)
+    layer_3 = layers.Conv2D(64, 3, 1, activation='relu')(layer_2)
+    layer_3 = conv_to_fc(layer_3)
+    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+    return activ(conv_1(layer_1))
+
+def RecCnn(image, **kwargs):
+    '''
+    Like Cnn, but with an embedding layer, and weight-sharing b/w strided convs.
+    '''
+    activ = tf.nn.relu
+    x = layers.Conv2D(32, 1, 1, activation='relu')(image) # embedding
+    conv_1 = layers.Conv2D(32, 3, 1, padding='valid', activation='relu')
+    for i in range(5):
+        x = conv_1(x)
+    layer_3 = layers.Conv2D(64, 3, 1, activation='relu')(x)
+    layer_3 = conv_to_fc(layer_3)
+    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+    return activ(conv_1(layer_1))
+
+
 class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
+        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=RecCnn, feature_extraction="cnn")
 
 def main(game, representation, experiment_desc, env_func, steps, n_cpu):
     env_name = '{}-{}-v0'.format(game, representation)
@@ -72,7 +102,7 @@ def main(game, representation, experiment_desc, env_func, steps, n_cpu):
         env = DummyVecEnv([lambda: env_func(env_name, 0)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(steps), tb_log_name=experiment) #, callback=callback)
+    model.learn(total_timesteps=int(steps), tb_log_name=experiment, callback=callback)
     model.save(experiment)
 
 if __name__ == '__main__':
@@ -82,6 +112,6 @@ if __name__ == '__main__':
     n_cpu = 24
     steps = 1e8
 
-    env = lambda game, rank: wrappers.Cropped(game, 28, random_tile=False, render=True,
-            rank=rank)
+    env = lambda game, rank: wrappers.Cropped(game, 28, random_tile=False,
+            render=False, rank=rank)
     main(game, representation, experiment, env, steps, n_cpu)
