@@ -88,7 +88,7 @@ def RecCnn(image, **kwargs):
 
 class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=RecCnn, feature_extraction="cnn")
+        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
 def main(game, representation, experiment_desc, env_func, steps, n_cpu):
     env_name = '{}-{}-v0'.format(game, representation)
@@ -102,15 +102,16 @@ def main(game, representation, experiment_desc, env_func, steps, n_cpu):
         env = DummyVecEnv([lambda: env_func(env_name, 0)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(steps), tb_log_name=experiment, callback=callback)
+    model.learn(total_timesteps=int(steps), tb_log_name=experiment,)
+                #callback=callback)
     model.save(experiment)
 
 if __name__ == '__main__':
     game = 'binary'
     representation = 'narrow'
     experiment = 'limited_centered'
-    n_cpu = 24
+    n_cpu = 12
     steps = 1e8
-    env = lambda game, rank: wrappers.Cropped(game, 28, random_tile=False,
+    env = lambda game, rank: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=False,
             render=False, rank=rank)
     main(game, representation, experiment, env, steps, n_cpu)

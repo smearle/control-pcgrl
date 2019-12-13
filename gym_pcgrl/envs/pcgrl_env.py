@@ -153,7 +153,10 @@ class PcgrlEnv(gym.Env):
         if change:
             self._changes += 1
             self._heatmap[y][x] += 1.0
-        self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+            self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        else:
+            if True or 'binary' not in self._prob_str:
+                self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
 
         # calculate the values
         # TODO: turn simcity one-hot zone encodings into integers

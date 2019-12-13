@@ -16,7 +16,6 @@ get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) else get_pcgrl_e
 pdf = lambda x,mean,sigma: math.exp(-1/2 * math.pow((x-mean)/sigma,2))/math.exp(0)
 
 """
-<<<<<<< HEAD
 Does not intervene.
 """
 class Full(gym.Wrapper):
@@ -26,7 +25,8 @@ class Full(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
         # ignore position information
         self.observation_space = self.env.observation_space
-=======
+
+"""
 Return a Box instead of dictionary by stacking different similar objects
 
 Can be stacked as Last Layer
@@ -362,7 +362,7 @@ class PosGaussianImage(PosImage):
 """
 The wrappers we use for our experiment
 """
-class CoppedImagePCGRLWrapper(gym.Wrapper):
+class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
