@@ -111,7 +111,6 @@ if __name__ == '__main__':
     experiment = 'limited_centered'
     n_cpu = 24
     steps = 1e8
-
     env = lambda game, rank: wrappers.Cropped(game, 28, random_tile=False,
             render=False, rank=rank)
     main(game, representation, experiment, env, steps, n_cpu)
