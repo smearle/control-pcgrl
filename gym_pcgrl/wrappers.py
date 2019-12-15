@@ -130,6 +130,7 @@ class OneHotEncoding(gym.Wrapper):
         get_pcgrl_env(self.env).adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
+        print(self.env.observation_space, self.env.observation_space.spaces.keys())
         assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a {} key'.format(name)
         self.name = name
 

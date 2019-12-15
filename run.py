@@ -5,6 +5,7 @@ import gym
 import gym_pcgrl
 from gym_pcgrl import wrappers
 
+import stable_baselines
 from stable_baselines.common.policies import MlpPolicy, CnnPolicy, FeedForwardPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines.a2c.utils import conv, linear, conv_to_fc
@@ -110,8 +111,9 @@ if __name__ == '__main__':
     game = 'binary'
     representation = 'narrow'
     experiment = 'limited_centered'
-    n_cpu = 12
+    n_cpu = 32
     steps = 1e8
+   #env = lambda game, rank: wrappers.OneHotEncoding(game, 'map', random_tile=False,
     env = lambda game, rank: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=False,
             render=False, rank=rank)
     main(game, representation, experiment, env, steps, n_cpu)
