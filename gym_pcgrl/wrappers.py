@@ -1,5 +1,8 @@
 import gym
 import gym_pcgrl
+from baselines.bench import Monitor
+#from gym_city import envs
+#from envs import MicropolisMonitor
 
 import numpy as np
 import math
@@ -14,6 +17,12 @@ get_action = lambda a: a.item() if hasattr(a, "item") else a
 get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) else get_pcgrl_env(env.env)
 # for the guassian attention
 pdf = lambda x,mean,sigma: math.exp(-1/2 * math.pow((x-mean)/sigma,2))/math.exp(0)
+
+
+class Wrapper(gym.Wrapper):
+    def __init__(self, game, filename='./', **kwargs):
+        pass
+
 
 """
 Does not intervene.
@@ -366,6 +375,7 @@ The wrappers we use for our experiment
 class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
+        log_dir = kwargs['log_dir']
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
         env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
@@ -378,6 +388,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, ['map', 'heatmap'])
+        self.env = Monitor(self.env, log_dir)
         gym.Wrapper.__init__(self, self.env)
 
 """

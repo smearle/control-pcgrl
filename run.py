@@ -11,7 +11,9 @@ from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines.a2c.utils import conv, linear, conv_to_fc
 from stable_baselines.results_plotter import load_results, ts2xy
 from stable_baselines.bench import Monitor
+from stable_baselines.bench.monitor import LoadMonitorResultsError
 from stable_baselines import PPO2
+import stable_baselines
 
 import tensorflow as tf
 import numpy as np
@@ -32,10 +34,18 @@ def callback(_locals, _globals):
     if (n_steps + 1) % 1 == 0:
         # Evaluate policy training performance
         print('log dir: {}'.format(log_dir))
-        x, y = ts2xy(load_results(log_dir), 'timesteps')
-        pdb.set_trace()
+        try:
+            x, y = ts2xy(load_results(log_dir), 'timesteps')
+       #except LoadMonitorResultsError:
+        except:
+            pass
+            print('Saving model (no data to compare to)')
+            _locals['self'].save(log_dir + 'latest_model.pkl')
+            n_steps += 1
+            return True
+       #pdb.set_trace() # this was causing a Seg Fault here
         if len(x) > 0:
-            pdb.set_trace()
+           #pdb.set_trace()
             mean_reward = np.mean(y[-100:])
             print(x[-1], 'timesteps')
             print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
@@ -103,8 +113,9 @@ def main(game, representation, experiment_desc, env_func, steps, n_cpu):
         env = DummyVecEnv([lambda: env_func(env_name, 0)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(steps), tb_log_name=experiment,)
-                #callback=callback)
+    model.learn(total_timesteps=int(steps), tb_log_name=experiment,
+                 callback=callback,
+                 )
     model.save(experiment)
 
 if __name__ == '__main__':
@@ -115,5 +126,5 @@ if __name__ == '__main__':
     steps = 1e8
    #env = lambda game, rank: wrappers.OneHotEncoding(game, 'map', random_tile=False,
     env = lambda game, rank: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=False,
-            render=False, rank=rank)
+            rank=rank, render=False, log_dir=log_dir)
     main(game, representation, experiment, env, steps, n_cpu)
