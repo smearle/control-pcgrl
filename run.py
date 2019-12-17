@@ -33,7 +33,7 @@ def callback(_locals, _globals):
     # Print stats every 1000 calls
     if (n_steps + 1) % 1 == 0:
         # Evaluate policy training performance
-        print('log dir: {}'.format(log_dir))
+       #print('log dir: {}'.format(log_dir))
         try:
             x, y = ts2xy(load_results(log_dir), 'timesteps')
        #except LoadMonitorResultsError:
@@ -44,7 +44,7 @@ def callback(_locals, _globals):
             n_steps += 1
             return True
        #pdb.set_trace() # this was causing a Seg Fault here
-        if len(x) > 0:
+        if len(x) > 100:
            #pdb.set_trace()
             mean_reward = np.mean(y[-100:])
             print(x[-1], 'timesteps')
@@ -118,13 +118,20 @@ def main(game, representation, experiment_desc, env_func, steps, n_cpu):
                  )
     model.save(experiment)
 
-if __name__ == '__main__':
+
+def run():
     game = 'binary'
     representation = 'narrow'
     experiment = 'limited_centered'
-    n_cpu = 32
+    n_cpu = 48
     steps = 1e8
    #env = lambda game, rank: wrappers.OneHotEncoding(game, 'map', random_tile=False,
     env = lambda game, rank: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=False,
             rank=rank, render=False, log_dir=log_dir)
     main(game, representation, experiment, env, steps, n_cpu)
+
+
+if __name__ == '__main__':
+    run()
+
+

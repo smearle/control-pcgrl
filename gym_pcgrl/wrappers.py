@@ -1,6 +1,6 @@
 import gym
 import gym_pcgrl
-from baselines.bench import Monitor
+from stable_baselines.bench import Monitor
 #from gym_city import envs
 #from envs import MicropolisMonitor
 
@@ -378,16 +378,16 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         log_dir = kwargs['log_dir']
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
-        env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+        env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map', **kwargs)
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Cropping the heatmap similar to the map
-        env = Cropped(env, crop_size, 0, 'heatmap')
+        env = Cropped(env, crop_size, 0, 'heatmap', **kwargs)
         # Normalize the heatmap
-        env = Normalize(env, 'heatmap')
+        env = Normalize(env, 'heatmap', **kwargs)
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap'])
+        self.env = ToImage(env, ['map', 'heatmap'], **kwargs)
         self.env = Monitor(self.env, log_dir)
         gym.Wrapper.__init__(self, self.env)
 

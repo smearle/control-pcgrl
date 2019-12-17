@@ -129,7 +129,7 @@ class PcgrlEnv(gym.Env):
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
         if 'rank' in kwargs:
             self.rank = kwargs['rank']
-
+        self.render_gui = kwargs['render']
     """
     Advance the environment using a specific action
 
@@ -143,7 +143,7 @@ class PcgrlEnv(gym.Env):
         dictionary: debug information that might be useful to understand what's happening
     """
     def step(self, action):
-        if self.rank == 0:
+        if self.render_gui and self.rank == 0:
             self.render()
         self._iteration += 1
         #save copy of the old stats to calculate the reward
