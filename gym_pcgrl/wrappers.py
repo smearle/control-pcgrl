@@ -197,6 +197,51 @@ class LateReward(gym.Wrapper):
         return obs, reward, done, info
 
 """
+Transform the input space to a 3D map of values where the argmax value will be applied
+
+can be stacked
+"""
+class ActionMap(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert 'map' in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a map key'
+        self.old_obs = None
+        self.one_hot = len(self.env.observation_space['map'].shape) > 2
+        w, h, dim = 0, 0, 0
+        if self.one_hot:
+            h, w, dim = self.env.observation_space['map'].shape
+        else:
+            h, w = self.env.observation_space['map'].shape
+            dim = self.env.observation_space['map'].high.max()
+        self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
+
+    def reset(self):
+        self.old_obs = self.env.reset()
+        return self.old_obs
+
+    def step(self, action):
+        y, x, v = np.unravel_index(np.argmax(action), action.shape)
+        if 'pos' in self.old_obs:
+            o_x, o_y = self.old_obs['pos']
+            if o_x == x and o_y == y:
+                obs, reward, done, info = self.env.step(v)
+            else:
+                o_v = self.old_obs['map'][o_y][o_x]
+                if self.one_hot:
+                    o_v = o_v.argmax()
+                obs, reward, done, info = self.env.step(o_v)
+        else:
+            obs, reward, done, info = self.env.step([x, y, v])
+        self.old_obs = obs
+        return obs, reward, done, info
+
+"""
 Normalize a certain attribute by the max and min values of its observation_space
 
 can be stacked
@@ -235,6 +280,41 @@ class Normalize(gym.Wrapper):
     def transform(self, obs):
         test = obs[self.name]
         obs[self.name] = (test - self.low) / (self.high - self.low)
+        return obs
+
+"""
+Inverse the values a certain attribute of its observation_space
+
+can be stacked
+"""
+class Inverse(gym.Wrapper):
+    def __init__(self, game, name, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
+        self.name = name
+        self.low = self.env.observation_space[self.name].low
+        self.high = self.env.observation_space[self.name].high
+
+    def step(self, action):
+        action = get_action(action)
+        obs, reward, done, info = self.env.step(action)
+        obs = self.transform(obs)
+        return obs, reward, done, info
+
+    def reset(self):
+        obs = self.env.reset()
+        obs = self.transform(obs)
+        return obs
+
+    def transform(self, obs):
+        test = obs[self.name]
+        obs[self.name] = self.high - test + self.low
         return obs
 
 """
@@ -369,6 +449,10 @@ class PosGaussianImage(PosImage):
                     obs['pos'][obs_y][obs_x][1] *= value
         return obs
 
+################################################################################
+#   Final used wrappers for the experiments
+################################################################################
+
 """
 The wrappers we use for our experiment
 """
@@ -392,6 +476,40 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
 """
+This wrapper ignore location data, pretty useful with wide representation
+"""
+class ImagePCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, crop_size, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Normalize the heatmap
+        env = Normalize(self.pcgrl_env, 'heatmap')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, ['map', 'heatmap'])
+        gym.Wrapper.__init__(self, self.env)
+
+"""
+Similar to the previous wrapper but the input now is 3D map (height, width, num_tiles)
+"""
+class ActionMapImagePCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, crop_size, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Add the action map wrapper
+        env = ActionMap(self.pcgrl_env)
+        # Normalize the heatmap
+        env = Normalize(env, 'heatmap')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, ['map', 'heatmap'])
+        gym.Wrapper.__init__(self, self.env)
+
+"""
 Instead of cropping we are appending 1s in position layer
 """
 class PositionImagePCGRLWrapper(gym.Wrapper):
@@ -410,4 +528,23 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
             env = PosImage(env, pos_size)
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, ['map', 'pos', 'heatmap'])
+        gym.Wrapper.__init__(self, self.env)
+
+"""
+Flat input for fully connected layers
+"""
+class FlatPCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Normalize the heatmap
+        env = Normalize(self.pcgrl_env, 'heatmap')
+        # Normalize the position
+        if 'pos' in self.pcgrl_env.observation_space.spaces.keys():
+            env = Normalize(env, 'pos')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToFlat(env, ['map', 'heatmap', 'pos'])
         gym.Wrapper.__init__(self, self.env)

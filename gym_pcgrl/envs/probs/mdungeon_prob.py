@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.mdungeon.engine import State,BFSAgent,AStarAgent
 
 """
@@ -144,21 +144,21 @@ class MDungeonProblem(Problem):
         "dist-win": how close to the win state, "sol-length": length of the solution to win the level
     """
     def get_stats(self, map):
+        map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
-            "player": calc_certain_tile(map, ["player"]),
-            "exit": calc_certain_tile(map, ["exit"]),
-            "potions": calc_certain_tile(map, ["potion"]),
-            "treasures": calc_certain_tile(map, ["treasure"]),
-            "enemies": calc_certain_tile(map, ["goblin","ogre"]),
-            "regions": calc_num_regions(map, ["empty","player","exit","potion","treasure","goblin","ogre"]),
+            "player": calc_certain_tile(map_locations, ["player"]),
+            "exit": calc_certain_tile(map_locations, ["exit"]),
+            "potions": calc_certain_tile(map_locations, ["potion"]),
+            "treasures": calc_certain_tile(map_locations, ["treasure"]),
+            "enemies": calc_certain_tile(map_locations, ["goblin","ogre"]),
+            "regions": calc_num_regions(map, map_locations, ["empty","player","exit","potion","treasure","goblin","ogre"]),
             "col-potions": 0,
             "col-treasures": 0,
             "col-enemies": 0,
             "dist-win": self._width * self._height,
             "sol-length": 0
         }
-        if map_stats["player"] == 1:
-            if map_stats["regions"] == 1:
+        if map_stats["player"] == 1 and map_stats["exit"] == 1 and map_stats["regions"] == 1:
                 map_stats["dist-win"], map_stats["sol-length"], play_stats = self._run_game(map)
                 map_stats["col-potions"] = play_stats["col_potions"]
                 map_stats["col-treasures"] = play_stats["col_treasures"]
@@ -190,22 +190,21 @@ class MDungeonProblem(Problem):
         }
         #calculate the player reward (only one player)
         rewards["player"] = old_stats["player"] - new_stats["player"]
-        if rewards["player"] > 0 and new_stats["player"] == 0:
-            rewards["player"] *= -1
-        elif rewards["player"] < 0 and new_stats["player"] == 1:
+        if (rewards["player"] > 0 and new_stats["player"] == 0) or\
+           (rewards["player"] < 0 and new_stats["player"] == 1):
             rewards["player"] *= -1
         #calculate the exit reward (only one exit)
         rewards["exit"] = old_stats["exit"] - new_stats["exit"]
-        if rewards["exit"] > 0 and new_stats["exit"] == 0:
-            rewards["exit"] *= -1
-        elif rewards["exit"] < 0 and new_stats["exit"] == 1:
+        if (rewards["exit"] > 0 and new_stats["exit"] == 0) or\
+           (rewards["exit"] < 0 and new_stats["exit"] == 1):
             rewards["exit"] *= -1
         #calculate enemies reward (between 1 and max_enemies)
         rewards["enemies"] = old_stats["enemies"] - new_stats["enemies"]
-        if rewards["enemies"] < 0 and old_stats["enemies"] == 0:
+        if (rewards["enemies"] < 0 and old_stats["enemies"] == 0) or\
+           (rewards["enemies"] < 0 and new_stats["enemies"] == 0):
             rewards["enemies"] *= -1
         elif new_stats["enemies"] >= 1 and new_stats["enemies"] <= self._max_enemies and\
-                old_stats["enemies"] >= 1 and old_stats["enemies"] <= self._max_enemies:
+             old_stats["enemies"] >= 1 and old_stats["enemies"] <= self._max_enemies:
             rewards["enemies"] = 0
         #calculate potions reward (less than max potions)
         rewards["potions"] = old_stats["potions"] - new_stats["potions"]

@@ -2,7 +2,7 @@ import os
 from PIL import Image
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.sokoban.engine import State,BFSAgent,AStarAgent
 
 """
@@ -14,8 +14,8 @@ class SokobanProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 6
-        self._height = 6
+        self._width = 5
+        self._height = 5
         self._prob = {"empty":0.45, "solid":0.4, "player": 0.05, "crate": 0.05, "target": 0.05}
         self._border_tile = "solid"
 
@@ -29,7 +29,7 @@ class SokobanProblem(Problem):
             "target": 5,
             "regions": 5,
             "ratio": 1,
-            "dist-win": 0.1,
+            "dist-win": 0.01,
             "sol-length": 1
         }
 
@@ -106,20 +106,20 @@ class SokobanProblem(Problem):
 
         sol,solState,iters = bfsAgent.getSolution(state, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0.25, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
         if solState.checkWin():
-            return 0, len(sol)
-        return solState.getHeuristic(), 0
+            return 0, sol
+        return solState.getHeuristic(), []
 
     """
     Get the current stats of the map
@@ -131,17 +131,17 @@ class SokobanProblem(Problem):
         "dist-win": how close to the win state, "sol-length": length of the solution to win the level
     """
     def get_stats(self, map):
+        map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
-            "player": calc_certain_tile(map, ["player"]),
-            "crate": calc_certain_tile(map, ["crate"]),
-            "target": calc_certain_tile(map, ["target"]),
-            "regions": calc_num_regions(map, ["empty","player","crate","target"]),
+            "player": calc_certain_tile(map_locations, ["player"]),
+            "crate": calc_certain_tile(map_locations, ["crate"]),
+            "target": calc_certain_tile(map_locations, ["target"]),
+            "regions": calc_num_regions(map, map_locations, ["empty","player","crate","target"]),
             "dist-win": self._width * self._height * (self._width + self._height),
-            "sol-length": 0
+            "solution": []
         }
-        if map_stats["player"] == 1:
-            if map_stats["crate"] == map_stats["target"] and map_stats["regions"] == 1:
-                map_stats["dist-win"], map_stats["sol-length"] = self._run_game(map)
+        if map_stats["player"] == 1 and map_stats["crate"] == map_stats["target"] and map_stats["crate"] > 0 and map_stats["regions"] == 1:
+                map_stats["dist-win"], map_stats["solution"] = self._run_game(map)
         return map_stats
 
     """
@@ -167,23 +167,24 @@ class SokobanProblem(Problem):
         }
         #calculate the player reward
         rewards["player"] = old_stats["player"] - new_stats["player"]
-        if rewards["player"] > 0 and new_stats["player"] == 0:
-            rewards["player"] *= -1
-        elif rewards["player"] < 0 and new_stats["player"] == 1:
+        if (rewards["player"] > 0 and new_stats["player"] == 0) or\
+           (rewards["player"] < 0 and new_stats["player"] == 1):
             rewards["player"] *= -1
         #calculate crate reward (between 1 and max_crates)
         rewards["crate"] = old_stats["crate"] - new_stats["crate"]
-        if rewards["crate"] < 0 and old_stats["crate"] == 0:
+        if (rewards["crate"] < 0 and old_stats["crate"] == 0) or\
+           (rewards["crate"] > 0 and new_stats["crate"] == 0):
             rewards["crate"] *= -1
         elif new_stats["crate"] >= 1 and new_stats["crate"] <= self._max_crates and\
-                old_stats["crate"] >= 1 and old_stats["crate"] <= self._max_crates:
+             old_stats["crate"] >= 1 and old_stats["crate"] <= self._max_crates:
             rewards["crate"] = 0
         #calculate target reward (between 1 and max_crates)
         rewards["target"] = old_stats["target"] - new_stats["target"]
-        if rewards["target"] < 0 and old_stats["target"] == 0:
+        if (rewards["target"] < 0 and old_stats["target"] == 0) or\
+           (rewards["target"] > 0 and new_stats["target"] == 0):
             rewards["target"] *= -1
         elif new_stats["target"] >= 1 and new_stats["target"] <= self._max_crates and\
-                old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
+             old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
             rewards["target"] = 0
         #calculate regions reward
         rewards["regions"] = old_stats["regions"] - new_stats["regions"]
@@ -196,7 +197,7 @@ class SokobanProblem(Problem):
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - new_stats["dist-win"]
         #calculate solution length (more than min solution)
-        rewards["sol-length"] = new_stats["sol-length"] - old_stats["sol-length"]
+        rewards["sol-length"] = len(new_stats["solution"]) - len(old_stats["solution"])
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["crate"] * self._rewards["crate"] +\
@@ -218,7 +219,7 @@ class SokobanProblem(Problem):
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        return new_stats["sol-length"] >= self._target_solution
+        return len(new_stats["solution"]) >= self._target_solution
 
     """
     Get any debug information need to be printed
@@ -238,7 +239,7 @@ class SokobanProblem(Problem):
             "target": new_stats["target"],
             "regions": new_stats["regions"],
             "dist-win": new_stats["dist-win"],
-            "sol-length": new_stats["sol-length"]
+            "sol-length": len(new_stats["solution"])
         }
 
     """

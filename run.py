@@ -123,11 +123,12 @@ def run():
     game = 'binary'
     representation = 'narrow'
     experiment = 'limited_centered'
-    n_cpu = 48
-    steps = 1e8
-   #env = lambda game, rank: wrappers.OneHotEncoding(game, 'map', random_tile=False,
-    env = lambda game, rank: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=False,
-            rank=rank, render=False, log_dir=log_dir)
+    n_cpu = 24
+    steps = 5e7
+    if representation == 'wide':
+        env = lambda game: wrappers.ImagePCGRLWrapper(game, 28, random_tile=True)
+    else:
+        env = lambda game: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=True)
     main(game, representation, experiment, env, steps, n_cpu)
 
 
