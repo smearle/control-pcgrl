@@ -8,6 +8,7 @@ import numpy as np
 import math
 
 import pdb
+import os
 
 # render obs array as a string
 render = lambda obs:print('\n'.join(["".join([str(i) for i in obs[j,:,0]]) for j in range(obs.shape[0])]))
@@ -459,7 +460,6 @@ The wrappers we use for our experiment
 class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
-        log_dir = kwargs['log_dir']
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
         env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map', **kwargs)
@@ -472,6 +472,10 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         env = Normalize(env, 'heatmap', **kwargs)
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, ['map', 'heatmap'], **kwargs)
+        log_dir = kwargs['log_dir']
+        rank = kwargs['rank']
+        print('wrapper rank {}'.format(rank))
+        log_dir = os.path.join(log_dir, str(rank))
         self.env = Monitor(self.env, log_dir)
         gym.Wrapper.__init__(self, self.env)
 
@@ -481,6 +485,7 @@ This wrapper ignore location data, pretty useful with wide representation
 class ImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
+        print('wrapper rank {}'.format(kwargs['rank']))
         self.pcgrl_env.adjust_param(**kwargs)
         # Normalize the heatmap
         env = Normalize(self.pcgrl_env, 'heatmap')

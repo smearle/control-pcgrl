@@ -19,6 +19,9 @@ import tensorflow as tf
 import numpy as np
 
 import pdb
+import os
+import shutil
+
 
 log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
@@ -34,15 +37,14 @@ def callback(_locals, _globals):
     if (n_steps + 1) % 1 == 0:
         # Evaluate policy training performance
        #print('log dir: {}'.format(log_dir))
-        try:
-            x, y = ts2xy(load_results(log_dir), 'timesteps')
+        x, y = ts2xy(load_results(log_dir), 'timesteps')
        #except LoadMonitorResultsError:
-        except:
-            pass
-            print('Saving model (no data to compare to)')
-            _locals['self'].save(log_dir + 'latest_model.pkl')
-            n_steps += 1
-            return True
+       #except:
+       #    pass
+       #    print('Saving model (no data to compare to)')
+       #    _locals['self'].save(log_dir + 'latest_model.pkl')
+       #    n_steps += 1
+       #    return True
        #pdb.set_trace() # this was causing a Seg Fault here
         if len(x) > 100:
            #pdb.set_trace()
@@ -55,7 +57,9 @@ def callback(_locals, _globals):
                 best_mean_reward = mean_reward
                 # Example for saving best model
                 print("Saving new best model")
-                _locals['self'].save(log_dir + 'best_model.pkl')
+                _locals['self'].save(os.path.join(log_dir + 'best_model.pkl'))
+        else:
+            print('{} monitor entries'.format(len(x)))
     n_steps += 1
     # Returning False will stop training early
     return True
@@ -101,16 +105,27 @@ class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-def main(game, representation, experiment_desc, env_func, steps, n_cpu):
+def main(game, representation, experiment, steps, n_cpu):
     env_name = '{}-{}-v0'.format(game, representation)
-    experiment = '{}_{}_{}'.format(game, representation, experiment_desc)
-
+    global log_dir
+    log_dir = os.path.join("./runs", experiment)
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
+    else:
+        shutil.rmtree(log_dir)
+        os.mkdir(log_dir)
+    kwargs = {
+            'render': True,
+            'log_dir': log_dir,
+            'representation': representation,
+            }
     if(n_cpu > 1):
-        env_lst = [lambda: env_func(env_name, 0)]
-        env_lst += [lambda: env_func(env_name, i) for i in range(1, n_cpu)]
+        env_lst = [make_env(env_name, 0, **kwargs)]
+        for i in range(n_cpu-1):
+            env_lst += [make_env(env_name, i+1, **kwargs)]
         env = SubprocVecEnv(env_lst)
     else:
-        env = DummyVecEnv([lambda: env_func(env_name, 0)])
+        env = DummyVecEnv([lambda: env_func(env_name, 0, **kwargs)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
     model.learn(total_timesteps=int(steps), tb_log_name=experiment,
@@ -118,6 +133,15 @@ def main(game, representation, experiment_desc, env_func, steps, n_cpu):
                  )
     model.save(experiment)
 
+def make_env(game, rank, **kwargs):
+    def _thunk():
+        representation = kwargs['representation']
+        if representation == 'wide':
+            return wrappers.ImagePCGRLWrapper(game, 28, random_tile=True, rank=rank, **kwargs)
+        else:
+            return wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=True,
+                    rank=rank, **kwargs)
+    return _thunk
 
 def run():
     game = 'binary'
@@ -125,11 +149,9 @@ def run():
     experiment = 'limited_centered'
     n_cpu = 24
     steps = 5e7
-    if representation == 'wide':
-        env = lambda game: wrappers.ImagePCGRLWrapper(game, 28, random_tile=True)
-    else:
-        env = lambda game: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=True)
-    main(game, representation, experiment, env, steps, n_cpu)
+    experiment = '{}_{}_{}'.format(game, representation, experiment)
+   #os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    main(game, representation, experiment, steps, n_cpu)
 
 
 if __name__ == '__main__':

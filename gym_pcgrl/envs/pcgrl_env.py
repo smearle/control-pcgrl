@@ -26,7 +26,7 @@ class PcgrlEnv(gym.Env):
         constant in gym_pcgrl.envs.reps.__init__.py
     """
     def __init__(self, prob="binary", rep = "narrow"):
-        self.rank = 0
+        self.rank = None
         self._prob = PROBLEMS[prob]()
         self._prob_str = prob
         self._rep = REPRESENTATIONS[rep]()
@@ -127,9 +127,11 @@ class PcgrlEnv(gym.Env):
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tools())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
-        if 'rank' in kwargs:
+        if self.rank is None and 'rank' in kwargs:
             self.rank = kwargs['rank']
-        self.render_gui = kwargs['render']
+            print('rank {}'.format(self.rank))
+        if 'render' in kwargs:
+            self.render_gui = kwargs['render']
     """
     Advance the environment using a specific action
 
