@@ -66,6 +66,7 @@ class ToImage(gym.Wrapper):
         self.observation_space = gym.spaces.Box(low=0, high=max_value,shape=(self.shape[0], self.shape[1], depth))
 
     def step(self, action):
+        print('action {}'.format(action.shape))
         action = get_action(action)
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
