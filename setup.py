@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='gym_pcgrl',
-      version='0.3.5',
-      install_requires=['gym', 'numpy>=1.10', 'pillow',#'baselines',
+      version='0.3.6',
+      install_requires=['gym', 'numpy>=1.17', 'pillow',#'baselines',
           'stable_baselines',
           'opencv-python'],
       author="Ahmed Khalifa",
