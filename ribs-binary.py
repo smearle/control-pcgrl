@@ -1,3 +1,4 @@
+from pdb import set_trace as T
 import time
 import numpy as np
 from typing import Tuple
@@ -84,30 +85,47 @@ def unravel_index(
 
     return coord.flip(-1)
 
+#   if CUDA:
+#       m.cuda()
+#       m.to('cuda:0')
+
 class NNGoL(nn.Module):
   def __init__(self):
     super().__init__()
-    self.m = 1
-    self.l1 = Conv2d(1, 2 * self.m, 3, 1, 1, bias=True,
-                      padding_mode='circular')
+    self.m = 5
+    self.l1 = Conv2d(1, 2 * self.m, 3, 1, 1, bias=True)
     self.l2 = Conv2d(2 * self.m, self.m, 1, 1, 0, bias=True)
     self.l3 = Conv2d(self.m, 2, 1, 1, 0, bias=True)
     self.layers = [self.l1, self.l2, self.l3]
+    self.apply(init_weights)
 
   def forward(self, x):
-    x = self.l1(x)
-    x = torch.nn.functional.relu(x)
-    x = self.l2(x)
-    x = torch.nn.functional.relu(x)
-    x = self.l3(x)
-    x = torch.sigmoid(x)
-    x = torch.stack([unravel_index(x[i].argmax(),x[i].shape) for i in range(x.shape[0])])
+    with torch.no_grad():
+        x = self.l1(x)
+        x = torch.nn.functional.relu(x)
+        x = self.l2(x)
+        x = torch.nn.functional.relu(x)
+        x = self.l3(x)
+        x = torch.sigmoid(x)
+        x = torch.stack([unravel_index(x[i].argmax(),x[i].shape) for i in range(x.shape[0])])
     # axis 0 is batch
     # axis 0,0 is the 0 or 1 tile
     # axis 0,1 is the x value
     # axis 0,2 is the y value 
     
     return x
+
+def init_weights(m):
+    if type(m) == torch.nn.Linear:
+        torch.nn.init.xavier_uniform(m.weight)
+        m.bias.data.fill_(0.01)
+
+    if type(m) == torch.nn.Conv2d:
+        torch.nn.init.orthogonal_(m.weight)
+
+def set_nograd(nn):
+    for param in nn.parameters():
+        param.requires_grad = False
 
 
 def get_init_weights(nn):
@@ -116,8 +134,8 @@ def get_init_weights(nn):
   """
   init_weights = []
   for lyr in nn.layers:
-    init_weights.append(lyr.weight.view(-1).detach().numpy())
-    init_weights.append(lyr.bias.view(-1).detach().numpy())
+    init_weights.append(lyr.weight.view(-1).numpy())
+    init_weights.append(lyr.bias.view(-1).numpy())
   init_weights = np.hstack(init_weights)
 
   return init_weights
@@ -183,7 +201,7 @@ def set_weights(model, weights):
     return model
 
 
-def simulate(env, model, seed=None):
+def simulate(env, model, init_state, seed=None):
     """
     Function to run a single trajectory and return results.
 
@@ -203,19 +221,30 @@ def simulate(env, model, seed=None):
     total_reward = 0.0
     path_length = 0.0
     regions = 0.0
+    # Allow us to manually set the level-map on reset (using the "_old_map" attribute)
+    env._rep._random_start = False
+    env._rep._old_map = init_state
     obs = env.reset()
     done = False
     
+    n_step = 0
+    last_action = None
     while not done:
         # action = env.action_space.sample()
         in_tensor = torch.unsqueeze(torch.unsqueeze(torch.tensor(np.float32(obs['map'])),0), 0)
-        action = model(in_tensor)[0].detach().numpy()
+        action = model(in_tensor)[0].numpy()
         action = np.array([action[1],action[2],action[0]])
-        obs, reward, done, info = env.step(action)
-        total_reward += reward
+        # two identical actions means that we are caught in a loop, assuming we sample actions deterministically from the NN
+        done = (action == last_action).all() or n_step >= 100
         if done:
             path_length = env._rep_stats['path-length']
             regions = env._rep_stats['regions']
+            break
+        last_action = action
+        obs, reward, _, info = env.step(action)
+        env.render()
+        total_reward += reward
+        n_step += 1
     
     return total_reward, path_length, regions
 
@@ -223,25 +252,31 @@ def simulate(env, model, seed=None):
 from ribs.archives import GridArchive
 
 archive = GridArchive(
-    [10,10],  # 10 bins in each dimension.
+    [100,100],  # 10 bins in each dimension.
     [(1.0, 196.0),(1.0, 196.0)],  # path length and num rooms
 )
 
 model = NNGoL()
+set_nograd(model)
 initial_w = get_init_weights(model)
 emitters = [
     ImprovementEmitter(
         archive,
         initial_w.flatten(),
-        1.0,  # Initial step size.
+        0.1,  # Initial step size.
         batch_size=30,
     ) for _ in range(5)  # Create 5 separate emitters.
 ]
 
 optimizer = Optimizer(archive, emitters)
 
+# This is the initial map which will act as a seed to our NCAs
+init_state = np.random.randint(0, 2, (14, 14))
+#init_state = np.zeros((14, 14))
+#init_state[5:-5, 5:-5] = 1
+
 start_time = time.time()
-total_itrs = 2
+total_itrs = 1000
 # total_itrs = 500
 
 for itr in tqdm(range(1, total_itrs + 1)):
@@ -252,7 +287,7 @@ for itr in tqdm(range(1, total_itrs + 1)):
     objs, bcs = [], []
     for model_w in sols:
         set_weights(model, model_w)
-        obj, path_length, regions = simulate(env, model, seed)
+        obj, path_length, regions = simulate(env, model, init_state, seed)
         objs.append(obj)
         bcs.append([path_length, regions])
 
@@ -260,7 +295,7 @@ for itr in tqdm(range(1, total_itrs + 1)):
     optimizer.tell(objs, bcs)
 
     # Logging.
-    if itr % 25 == 0:
+    if itr % 1 == 0:
         df = archive.as_pandas(include_solutions=False)
         elapsed_time = time.time() - start_time
         print(f"> {itr} itrs completed after {elapsed_time:.2f} s")
