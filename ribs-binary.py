@@ -12,6 +12,7 @@ from tqdm import tqdm
 import gym
 from gym import envs
 import gym_pcgrl
+from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 # Use print to confirm access to local pcgrl gym
 # print([env.id for env in envs.registry.all() if "gym_pcgrl" in env.entry_point])
 
@@ -57,6 +58,7 @@ Set Parameters
 """
 env = gym.make("binary-wide-v0")
 seed = 1339
+CA_ACTION = True
 
 def unravel_index(
     indices: torch.LongTensor,
@@ -107,7 +109,8 @@ class NNGoL(nn.Module):
         x = torch.nn.functional.relu(x)
         x = self.l3(x)
         x = torch.sigmoid(x)
-        x = torch.stack([unravel_index(x[i].argmax(),x[i].shape) for i in range(x.shape[0])])
+        if not CA_ACTION:
+            x = torch.stack([unravel_index(x[i].argmax(),x[i].shape) for i in range(x.shape[0])])
     # axis 0 is batch
     # axis 0,0 is the 0 or 1 tile
     # axis 0,1 is the x value
@@ -230,19 +233,34 @@ def simulate(env, model, init_state, seed=None):
     n_step = 0
     last_action = None
     while not done:
-        # action = env.action_space.sample()
         in_tensor = torch.unsqueeze(torch.unsqueeze(torch.tensor(np.float32(obs['map'])),0), 0)
         action = model(in_tensor)[0].numpy()
-        action = np.array([action[1],action[2],action[0]])
-        # two identical actions means that we are caught in a loop, assuming we sample actions deterministically from the NN
-        done = (action == last_action).all() or n_step >= 100
-        if done:
-            path_length = env._rep_stats['path-length']
-            regions = env._rep_stats['regions']
-            break
-        last_action = action
-        obs, reward, _, info = env.step(action)
+        # Hack implementation of a cellular automata-like action. We only need to get stats at the end of the episode!
+        if not CA_ACTION:
+            action = np.array([action[1],action[2],action[0]])
+            # two identical actions means that we are caught in a loop, assuming we sample actions deterministically from the NN
+            done = (action == last_action).all() or n_step >= 100
+            if done:
+                path_length = env._rep_stats['path-length']
+                regions = env._rep_stats['regions']
+                reward = 0
+            else:
+                obs, reward, _, info = env.step(action)
+        # The standard single-build action.
+        else:
+            action = action.argmax(axis=0)
+            env._rep._map = action
+            obs = {'map': action}
+            reward = 0
+            done = (action == last_action).all() or n_step >= 100
+            if done:
+                stats = env._prob.get_stats(get_string_map(env._rep._map, env._prob.get_tile_types()))
+                path_length = stats['path-length']
+                regions = stats['regions']
+                # ad hoc reward
+                reward = -n_step
         env.render()
+        last_action = action
         total_reward += reward
         n_step += 1
     
@@ -263,7 +281,7 @@ emitters = [
     ImprovementEmitter(
         archive,
         initial_w.flatten(),
-        0.1,  # Initial step size.
+        1,  # Initial step size.
         batch_size=30,
     ) for _ in range(5)  # Create 5 separate emitters.
 ]
