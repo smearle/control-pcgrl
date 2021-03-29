@@ -4,6 +4,7 @@ import pickle
 import time
 from pdb import set_trace as T
 from random import randint
+import cv2
 from typing import Tuple
 
 import gym
@@ -88,12 +89,13 @@ def unravel_index(
 
 
 class NNGoL(nn.Module):
-    def __init__(self):
+    def __init__(self, n_tile_types):
         super().__init__()
-        self.m = 5
-        self.l1 = Conv2d(1, 2 * self.m, 3, 1, 1, bias=True)
-        self.l2 = Conv2d(2 * self.m, self.m, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(self.m, 2, 1, 1, 0, bias=True)
+        n_hid_1 = 15
+        n_hid_2 = 10
+        self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, 1, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_2, n_tile_types, 1, 1, 0, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 
@@ -163,8 +165,14 @@ def set_weights(nn, weights):
 
     return nn
 
+def get_one_hot_map(int_map, n_tile_types):
+    obs = (np.arange(n_tile_types) == int_map[...,None]-1).astype(int)
+    obs = obs.transpose(2, 0, 1)
 
-def simulate(env, model, init_states, seed=None):
+    return obs
+
+
+def simulate(env, model, n_tile_types, init_states, bc_names, static_trgs, seed=None):
     """
     Function to run a single trajectory and return results.
 
@@ -181,88 +189,99 @@ def simulate(env, model, init_states, seed=None):
     if seed is not None:
         env.seed(seed)
 
-    total_reward = 0.0
-    path_length = 0.0
-    regions = 0.0
     # Allow us to manually set the level-map on reset (using the "_old_map" attribute)
     env._rep._random_start = False
     n_init_states = init_states.shape[0]
-    # TODO: make bc collection general for any choice of bcs for some env
-    bcs_0 = np.empty(n_init_states)
-    bcs_1 = np.empty(n_init_states)
+    bcs = np.empty(shape=(len(bc_names), n_init_states))
+    total_reward = 0
     for (n_episode, init_state) in enumerate(init_states):
         env._rep._old_map = init_state
         obs = env.reset()
+        int_map = obs['map']
+        obs = get_one_hot_map(int_map, n_tile_types)
         done = False
 
         n_step = 0
-        last_action = None
+        last_int_map = None
         while not done:
-            in_tensor = torch.unsqueeze(
-                torch.unsqueeze(torch.tensor(np.float32(obs['map'])), 0), 0)
+#           in_tensor = torch.unsqueeze(
+#               torch.unsqueeze(torch.tensor(np.float32(obs['map'])), 0), 0)
+            in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
-            # Hack implementation of a cellular automata-like action. We only need to get stats at the end of the episode!
+            # The standard single-build action (why throw away all that information at the NCA's output, though? Not sure if this really works).
             if not CA_ACTION:
                 action = np.array([action[1], action[2], action[0]])
-                # two identical actions means that we are caught in a loop, assuming we sample actions deterministically from the NN
-                done = (action == last_action).all() or n_step >= 100
+                # two identical actions means that we are caught in a loop, assuming we sample actions deterministically from the NN (we do)
+                done = (action == last_int_map).all() or n_step >= 100
                 if done:
-                    path_length = env._rep_stats['path-length']
-                    regions = env._rep_stats['regions']
+                    bcs[0, n_episode] = env._rep_stats['path-length']
+                    bcs[1, n_episode] = env._rep_stats['regions']
                     reward = 0
                 else:
                     obs, reward, _, info = env.step(action)
-            # The standard single-build action.
+            # Hack implementation of a cellular automata-like action. We only need to get stats at the end of the episode!
             else:
-                action = action.argmax(axis=0)
-                env._rep._map = action
-                obs = {'map': action}
+                obs = action
+                int_map = action.argmax(axis=0)
+                env._rep._map = int_map
+#               obs = {'map': action}
                 reward = 0
-                done = (action == last_action).all() or n_step >= 100
+                done = (int_map == last_int_map).all() or n_step >= 100
                 if done:
                     stats = env._prob.get_stats(
-                        get_string_map(env._rep._map, env._prob.get_tile_types()))
-                    path_length = stats['path-length']
-                    regions = stats['regions']
-                    # ad hoc reward
+                        get_string_map(env._rep._map,
+                                       env._prob.get_tile_types()))
+                    # get BCs
+                    for i in range(len(bcs)):
+                        bc_name = bc_names[i]
+                        bcs[i, n_episode] = stats[bc_name]
+                    # ad hoc reward: shorter episodes are better
                     # reward = -n_step
-            bcs_0[n_episode] = path_length
-            bcs_1[n_episode] = regions
+
+                    # we want to hit each of our static targets exactly, penalize for anything else
+                    total_reward -= np.sum([abs(static_trgs[k] - stats[k]) for k in static_trgs])
             if RENDER:
                 env.render()
-            last_action = action
-#           total_reward += reward
+            last_int_map = int_map
             n_step += 1
-    bc_0 = bcs_0.mean()
-    bc_1 = bcs_1.mean()
-    reward = -(bcs_0.std() + bcs_1.std())
+    final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
+    # Reward is the average (per-BC) standard deviation from the mean BC vector.
+    # TODO: We want minimal variance along BCS *and* diversity in terms of the map. 
+    # Could implement this by summing pairwise hamming distances between all generated maps
+#   variance_penalty = -np.sum([bcs[i].std()
+#                     for i in range(bcs.shape[0])]) / bcs.shape[0]
+#   reward = total_reward + variance_penalty
+    reward = total_reward
 
-
-    return reward, bc_0, bc_1
+    return reward, final_bcs
 
 
 class EvoPCGRL():
     def __init__(self):
-        env_name = '{}-wide-v0'.format(PROBLEM)
-        self.env = gym.make(env_name)
+        self.init_env()
+        # get number of tile types from environment's observation space
+        # here we assume that all (x, y) locations in the observation space have the same upper/lower bound
+        self.n_tile_types = self.env.observation_space['map'].high[0, 0] + 1
+        assert self.env.observation_space['map'].low[0, 0] == 0
 
         # calculate the bounds of our behavioral characteristics
         # NOTE: We assume a square map for some of these (not ideal).
         # regions and path-length are applicable to all PCGRL problems
         self.bc_bounds = {
             # Upper bound: checkerboard
-            'regions': (0, self.env._prob._width * np.ceil(self.env._prob._height / 2)),
+            'regions':
+            (0, self.env._prob._width * np.ceil(self.env._prob._height / 2)),
 
             #     10101010
             #     01010101
             #     10101010
-            #     01010101
-            #     10101010
+            #     01010101 #     10101010
 
             # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
             # and "snake" along that one
             # Upper bound: zig-zag
-            'path-length': (0, np.ceil(self.env._prob._width / 2 + 1) * (self.env._prob._height)),
+            'path-length': (0, np.ceil(self.env._prob._width / 2 + 1) *
+                            (self.env._prob._height)),
 
             #     11111111
             #     00000001
@@ -270,27 +289,37 @@ class EvoPCGRL():
             #     10000000
             #     11111111
         }
+        self.static_targets = {}
+        if PROBLEM == 'zelda':
+            # TODO: add some fun zelda-specific BCs
+            self.bc_bounds.update({})
+            # metrics we always want to work toward
+            self.static_targets.update({
+                'player': 1,
+                'key': 1,
+                'door': 1,
+            })
 
-        if PROBLEM == 'binary':
+        if PROBLEM in ('binary', 'zelda'):
             self.bc_names = ['regions', 'path-length']
         else:
             raise Exception('{} problem is not supported'.format(PROBLEM))
 
         self.archive = GridArchive(
-#           [100, 100],  # 100 bins in each dimension.
+            #           [100, 100],  # 100 bins in each dimension.
             [100 for _ in self.bc_names],
-#           [(1.0, 196.0), (1.0, 196.0)],  # path length and num rooms
+            #           [(1.0, 196.0), (1.0, 196.0)],  # path length and num rooms
             [self.bc_bounds[bc_name] for bc_name in self.bc_names],
         )
 
-        self.model = NNGoL()
+        self.model = NNGoL(self.n_tile_types)
         set_nograd(self.model)
         initial_w = get_init_weights(self.model)
         emitters = [
             ImprovementEmitter(
                 self.archive,
                 initial_w.flatten(),
-                #FIXME: does this need to be so damn big?
+                # FIXME: does this need to be so damn big?
                 1,  # Initial step size.
                 batch_size=30,
             ) for _ in range(5)  # Create 5 separate emitters.
@@ -299,13 +328,12 @@ class EvoPCGRL():
         self.optimizer = Optimizer(self.archive, emitters)
 
         # This is the initial map which will act as a seed to our NCAs
-        self.init_states = np.random.randint(0, 2, (10, 14, 14))
-#       self.init_state = np.zeros((14, 14))
-#       self.init_state[5:-5, 5:-5] = 1
+#       self.init_states = np.random.randint(0, self.n_tile_types, (10, 14, 14))
+        self.init_states = np.zeros(shape=(1, 14, 14))
+        self.init_states[0, 5:-5, 5:-5] = 1
 
         self.start_time = time.time()
-        self.total_itrs = 10000
-        # total_itrs = 500
+        self.total_itrs = 1000
         self.n_itr = 1
 
     def evolve(self):
@@ -318,10 +346,16 @@ class EvoPCGRL():
             objs, bcs = [], []
             for model_w in sols:
                 set_weights(self.model, model_w)
-                obj, path_length, regions = simulate(self.env, self.model,
-                                                     self.init_states, seed)
+                obj, (bc_0, bc_1) = simulate(
+                    env=self.env,
+                    model=self.model,
+                    n_tile_types=self.n_tile_types,
+                    init_states=self.init_states,
+                    bc_names=list(self.bc_bounds.keys()),
+                    static_trgs=self.static_targets,
+                    seed=seed)
                 objs.append(obj)
-                bcs.append([path_length, regions])
+                bcs.append([bc_0, bc_1])
 
             # Send the results back to the optimizer.
             self.optimizer.tell(objs, bcs)
@@ -344,23 +378,52 @@ class EvoPCGRL():
                 self.env = ENV
             self.n_itr += 1
 
-    def restore(self):
-        self.env = gym.make("binary-wide-v0")
+    def init_env(self):
+        env_name = '{}-wide-v0'.format(PROBLEM)
+        self.env = gym.make(env_name)
 
     def visualize(self):
         archive = self.archive
         # # Visualize Result
-        # plt.figure(figsize=(8, 6))
-        # grid_archive_heatmap(archive, vmin=-300, vmax=300)
-        # plt.gca().invert_yaxis()  # Makes more sense if larger velocities are on top.
-        # plt.ylabel("Impact y-velocity")
-        # plt.xlabel("Impact x-position")
+        plt.figure(figsize=(8, 6))
+        grid_archive_heatmap(archive, vmin=-300, vmax=300)
+#       plt.gca().invert_yaxis()  # Makes more sense if larger velocities are on top.
+        plt.xlabel(self.bc_names[0])
+        plt.ylabel(self.bc_names[1])
+       #plt.show()
+        plt.savefig('{}.png'.format(SAVE_PATH))
 
         # Print table of results
         df = archive.as_pandas()
         # high_performing = df[df["objective"] > 200].sort_values("objective", ascending=False)
         print(df)
 
+    def infer(self):
+        self.init_env()
+        archive = self.archive
+        df = archive.as_pandas()
+        high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
+        rows = high_performing
+        models = np.array(rows.loc[:, "solution_0":])
+        bcs_0 = np.array(rows.loc[:, "behavior_0"])
+        bcs_1 = np.array(rows.loc[:, "behavior_1"])
+        i = 0
+
+        while True:
+#           model = self.archive.get_random_elite()[0]
+            model = models[np.random.randint(len(models))]
+            model = models[i]
+            init_nn = set_weights(self.model, model)
+#           init_states = (np.random.random(
+#               size=(1, 1, MAP_WIDTH, MAP_WIDTH)) < 0.2).astype(np.uint8)
+            _, _ = simulate(self.env, init_nn,
+                            self.n_tile_types, self.init_states, self.bc_names, self.static_targets, seed=None)
+            input("Mean behavior characteristics of generator:\n{}: {}\n{}: {}\nPress any key for next generator...".format(
+                self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i]))
+            i += 1
+
+            if i == len(models):
+                i = 0
 
 if __name__ == '__main__':
     """
@@ -387,12 +450,18 @@ if __name__ == '__main__':
         '-e',
         '--exp_name',
         help='Name of the experiment, for save files.',
-        default='EvoPCGRL_0',
+        default='0',
     )
     opts.add_argument(
         '-r',
         '--render',
         help='Render the environment.',
+        action='store_true',
+    )
+    opts.add_argument(
+        '-v',
+        '--visualize',
+        help='Visualize heatmap of the archive of individuals.',
         action='store_true',
     )
     opts = opts.parse_args()
@@ -403,17 +472,23 @@ if __name__ == '__main__':
     global PROBLEM
     PROBLEM = opts.problem
     CUDA = False
-    RENDER = opts.render
+    VISUALIZE = opts.visualize
     INFER = opts.infer
-    exp_name = '{}'.format(opts.exp_name)
+    exp_name = 'EvoPCGRL_{}_{}'.format(PROBLEM, opts.exp_name)
     SAVE_PATH = os.path.join('evo_runs', exp_name)
 
     try:
         evolver = pickle.load(open(SAVE_PATH, 'rb'))
-        if INFER:
+        if VISUALIZE:
+            evolver.visualize()
+        elif INFER:
+            global RENDER
+            RENDER = True
             evolver.infer()
-        evolver.restore()
-        evolver.evolve()
+        else:
+            RENDER = opts.render
+            evolver.init_env()
+            evolver.evolve()
     except FileNotFoundError as e:
         print(
             "Loading from an existing save-file failed. Evolving from scratch. The error was: {}"
