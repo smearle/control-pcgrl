@@ -91,8 +91,13 @@ def unravel_index(
 class NNGoL(nn.Module):
     def __init__(self, n_tile_types):
         super().__init__()
-        n_hid_1 = 15
-        n_hid_2 = 10
+        if PROBLEM == 'zelda':
+            n_hid_1 = 32
+            n_hid_2 = 16
+        if PROBLEM == 'binary':
+            n_hid_1 = 32
+            n_hid_2 = 16
+
         self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_2, n_tile_types, 1, 1, 0, bias=True)
@@ -201,8 +206,8 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
     bcs = np.empty(shape=(len(bc_names), n_init_states))
     final_levels = np.empty(shape=init_states.shape, dtype=np.uint8)
     batch_reward = 0
-    time_penalty = 0
-    targets_penalty = 0
+    batch_time_penalty = 0
+    batch_targets_penalty = 0
     for (n_episode, init_state) in enumerate(init_states):
         # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
         env._rep._map = init_state
@@ -211,7 +216,9 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
         if RENDER:
             env.render()
             if INFER:
-                time.sleep(5/30)
+#               time.sleep(10/30)
+#               input()
+                pass
         done = False
 
         n_step = 0
@@ -246,7 +253,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
                 if done:
                     final_levels[n_episode] = int_map
                     stats = env._prob.get_stats(
-                        get_string_map(env._rep._map,
+                        get_string_map(int_map,
                                        env._prob.get_tile_types()))
                     # get BCs
                     for i in range(len(bcs)):
@@ -255,22 +262,26 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
 
                     # TODO: reward calculation should depend on self.reward_names
                     # ad hoc reward: shorter episodes are better?
-                    time_penalty -= n_step
+                    time_penalty = n_step
+                    batch_time_penalty -= time_penalty
 
                     # we want to hit each of our static targets exactly, penalize for anything else
-                    targets_penalty -= np.sum([abs(static_targets[k] - stats[k]) for k in static_targets])
+                    # for ranges, we take our least distance to any element in the range
+                    targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
+                    batch_targets_penalty -= targets_penalty
 
             if RENDER:
                 env.render()
             if done and INFER:
                 time.sleep(5/30)
-                input()
+                print('stats: {}\n\ntime_penalty: {}\n targets_penalty: {}'.format(stats, time_penalty, targets_penalty))
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
-    targets_penalty = targets_penalty / N_INIT_STATES
-    time_penalty = time_penalty / N_INIT_STATES
-    batch_reward += targets_penalty
+    if N_INIT_STATES > 0:
+        batch_targets_penalty = 10 * batch_targets_penalty / N_INIT_STATES
+        batch_time_penalty = batch_time_penalty / N_INIT_STATES
+    batch_reward += batch_targets_penalty
     if N_INIT_STATES > 1:
         # Variance penalty is the negative average (per-BC) standard deviation from the mean BC vector.
         variance_penalty = - np.sum([bcs[i].std()
@@ -281,6 +292,9 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
         # ad hoc scaling :/
         diversity_bonus = 20 * diversity_bonus / (width * height)
         batch_reward = batch_reward + variance_penalty + diversity_bonus
+    else:
+        variance_penalty = None
+        diversity_bonus = None
 
     if not INFER:
         return batch_reward, final_bcs
@@ -296,17 +310,23 @@ class EvoPCGRL():
         # get number of tile types from environment's observation space
         # here we assume that all (x, y) locations in the observation space have the same upper/lower bound
         self.n_tile_types = self.env.observation_space['map'].high[0, 0] + 1
-        self.width = self.env._prob._width
-        self.height = self.env._prob._height
+        self.width = self.env.observation_space['map'].low.shape[0]
+        self.height = self.env.observation_space['map'].low.shape[1]
+
+        #FIXME why not?
+        # self.width = self.env._prob._width
 
         # TODO: maybe make these command-line arguments?
         # TODO: multi-objective compatibility?
         if PROBLEM in ('binary'):
+            pass
             self.bc_names = ['regions', 'path-length']
 #           self.reward_names = ['variance']
         elif PROBLEM in ('zelda'):
-            self.bc_names = ['nearest-enemy', 'path-length']
+#           pass
+            self.bc_names = ['nearest-enemy', 'path-length']#, 'n_walls']
 #           self.reward_names = ['static_targets']
+#       self.bc_names = BCS
 
         # calculate the bounds of our behavioral characteristics
         # NOTE: We assume a square map for some of these (not ideal).
@@ -352,7 +372,10 @@ class EvoPCGRL():
                 #     11111111
 
 
-                'nearest-enemy': (0, max(self.width, self.height)),
+               #'nearest-enemy': (0, max(self.width, self.height)),
+               #WTF
+                'nearest-enemy': (0, np.ceil(self.width / 2 + 1) *
+                                (self.height)),
             }
 
             # metrics we always want to work toward
@@ -361,6 +384,7 @@ class EvoPCGRL():
                 'key': 1,
                 'door': 1,
                 'regions': 1,
+                'enemies': (2, 5),
             }
 #           self.reward_bounds = {
 #               'variance': (-50, 0),
@@ -386,7 +410,7 @@ class EvoPCGRL():
             ImprovementEmitter(
                 self.archive,
                 initial_w.flatten(),
-                # FIXME: does this need to be so damn big?
+                # NOTE: Big step size, shit otherwise
                 1,  # Initial step size.
                 batch_size=30,
             ) for _ in range(5)  # Create 5 separate emitters.
@@ -400,7 +424,7 @@ class EvoPCGRL():
             self.init_states = np.zeros(shape=(1, self.width, self.height))
             self.init_states[0, 5:-5, 5:-5] = 1
         else:
-            self.init_states = np.random.randint(0, self.n_tile_types, (N_INIT_STATES, 14, 14))
+            self.init_states = np.random.randint(0, self.n_tile_types, (N_INIT_STATES, self.width, self.height))
 
         self.start_time = time.time()
         self.total_itrs = N_GENERATIONS
@@ -421,7 +445,7 @@ class EvoPCGRL():
                     model=self.model,
                     n_tile_types=self.n_tile_types,
                     init_states=self.init_states,
-                    bc_names=list(self.bc_bounds.keys()),
+                    bc_names=self.bc_names,
                     static_targets=self.static_targets,
                     seed=seed)
                 objs.append(obj)
@@ -491,7 +515,11 @@ class EvoPCGRL():
             high_performing = df.sort_values("behavior_1", ascending=False)
 #           high_performing = df.sort_values("objective", ascending=False)
         if PROBLEM == 'zelda':
-            high_performing = df.sort_values("objective", ascending=False)
+            # path lenth
+            high_performing = df.sort_values("behavior_1", ascending=False)
+            # nearest enemies
+#           high_performing = df.sort_values("behavior_0", ascending=False)
+#           high_performing = df.sort_values("objective", ascending=False)
         rows = high_performing
         models = np.array(rows.loc[:, "solution_0":])
         bcs_0 = np.array(rows.loc[:, "behavior_0"])
@@ -558,6 +586,13 @@ if __name__ == '__main__':
         default=10,
     )
     opts.add_argument(
+        '-bcs',
+        '--behavior_characteristics',
+        nargs='+',
+        help='A list of strings corresponding to the behavior characteristics that will act as the dimensions for our grid of elites during evolution.',
+        default=['regions','path-length'],
+    )
+    opts.add_argument(
         '-r',
         '--render',
         help='Render the environment.',
@@ -593,6 +628,8 @@ if __name__ == '__main__':
     global N_GENERATIONS
     global N_INIT_STATES
     global N_INFER_STEPS
+    global BCS
+    BCS = opts.behavior_characteristics
     N_GENERATIONS = opts.n_generations
     N_INIT_STATES = opts.n_init_states
     N_STEPS = opts.n_steps
@@ -612,12 +649,13 @@ if __name__ == '__main__':
         print('Loaded save file at {}'.format(SAVE_PATH))
         if VISUALIZE:
             evolver.visualize()
-        elif INFER:
+        if INFER:
             global RENDER
             RENDER = True
             N_STEPS = N_INFER_STEPS
             evolver.infer()
-        else:
+        if not (INFER or VISUALIZE):
+            # then we train
             RENDER = opts.render
             evolver.init_env()
             evolver.total_itrs = opts.n_generations
@@ -626,7 +664,7 @@ if __name__ == '__main__':
         if not INFER:
             RENDER = opts.render
             print(
-                "Loading from an existing save-file failed. Evolving from scratch. The error was: {}"
+                "Failed loading from an existing save-file. Evolving from scratch. The error was: {}"
                 .format(e))
             evolver = EvoPCGRL()
             evolver.evolve()

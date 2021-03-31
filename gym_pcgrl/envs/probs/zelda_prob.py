@@ -17,8 +17,8 @@ class ZeldaProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 11
-        self._height = 7
+        self._width = 14
+        self._height = 14
         self._prob = {"empty": 0.58, "solid":0.3, "player":0.02, "key": 0.02, "door": 0.02, "bat": 0.02, "scorpion": 0.02, "spider": 0.02}
         self._border_tile = "solid"
 
@@ -96,7 +96,10 @@ class ZeldaProblem(Problem):
             enemies.extend(map_locations["bat"])
             enemies.extend(map_locations["scorpion"])
             if len(enemies) > 0:
-                dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
+                # NOTE: for evo-pcgrl, we don't want these super-high nearest-enemy scores from when
+                # the player is cornered behind a key (it distorts our map of elites), so we make key passable
+                dikjstra,_ = run_dikjstra(p_x, p_y, map, ["key", "empty", "player", "bat", "spider", "scorpion"])
+#               dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
                 min_dist = self._width * self._height
                 for e_x,e_y in enemies:
                     if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
