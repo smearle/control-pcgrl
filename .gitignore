@@ -36,3 +36,6 @@ runs/
 
 # Saved models
 *.zip
+
+# ribs archives
+evo_runs/
