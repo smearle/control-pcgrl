@@ -4,8 +4,10 @@ import pickle
 import time
 from pdb import set_trace as T
 from random import randint
-import cv2
+# import cv2
 from typing import Tuple
+from datetime import datetime
+from pathlib import Path
 
 import gym
 import matplotlib.pyplot as plt
@@ -18,6 +20,7 @@ from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
 from torch.nn import Conv2d, CrossEntropyLoss
+from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
 
@@ -34,11 +37,18 @@ from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 conda create -n ribs-pt python=3.7
 conda install -c conda-forge notebook
 conda install pytorch torchvision torchaudio -c pytorch
+conda install tensorboard
 pip install 'ribs[all]' gym~=0.17.0 Box2D~=2.3.10 tqdm
 git clone https://github.com/amidos2006/gym-pcgrl.git
 cd gym-pcgrl  # Must run in project root folder for access to pcgrl modules
-"""
-"""
+
+/// Instructions ///
+To start TensorBoard run the following command:
+$ tensorboard --logdir=runs
+
+Then go to:
+http://localhost:6006
+
 /// Resources ///
 
 Sam's example code:
@@ -454,10 +464,16 @@ class EvoPCGRL():
             # Send the results back to the optimizer.
             self.optimizer.tell(objs, bcs)
 
+            # TensorBoard Logging.
+            df = self.archive.as_pandas(include_solutions=False)
+            elapsed_time = time.time() - self.start_time
+            writer.add_scalar('ArchiveSize', elapsed_time, itr)
+            writer.add_scalar('score/mean', df['objective'].mean(), itr)
+            writer.add_scalar('score/max', df['objective'].max(), itr)
+            writer.add_scalar('score/min', df['objective'].min(), itr)
+
             # Logging.
             if itr % 1 == 0:
-                df = self.archive.as_pandas(include_solutions=False)
-                elapsed_time = time.time() - self.start_time
                 print(f"> {itr} itrs completed after {elapsed_time:.2f} s")
                 print(f"  - Archive Size: {len(df)}")
                 print(f"  - Max Score: {df['objective'].max()}")
@@ -642,11 +658,11 @@ if __name__ == '__main__':
 #   N_INFER_STEPS = 100
 
     exp_name = 'EvoPCGRL_{}_{}-batch_{}-step_{}'.format(PROBLEM, N_INIT_STATES, N_STEPS, opts.exp_name)
-    SAVE_ROOT = 'evo_runs'
-    # Create Directory if it does not exist
-    if not os.path.isdir(SAVE_ROOT):
-        Path(SAVE_ROOT).mkdir(parents=True, exist_ok=True)
-    SAVE_PATH = os.path.join(SAVE_ROOT, exp_name)
+    SAVE_PATH = os.path.join('evo_runs', exp_name)
+
+    # Create TensorBoard Log Directory if does not exist
+    LOG_NAME = './runs/' + datetime.now().strftime("%Y%m%d-%H%M%S")+ '-' + exp_name
+    writer = SummaryWriter(LOG_NAME)
 
     try:
         evolver = pickle.load(open(SAVE_PATH, 'rb'))

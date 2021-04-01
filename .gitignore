@@ -39,3 +39,7 @@ runs/
 
 # ribs archives
 evo_runs/
+
+# VSCode
+.vscode/
+
