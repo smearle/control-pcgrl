@@ -642,7 +642,11 @@ if __name__ == '__main__':
 #   N_INFER_STEPS = 100
 
     exp_name = 'EvoPCGRL_{}_{}-batch_{}-step_{}'.format(PROBLEM, N_INIT_STATES, N_STEPS, opts.exp_name)
-    SAVE_PATH = os.path.join('evo_runs', exp_name)
+    SAVE_ROOT = 'evo_runs'
+    # Create Directory if it does not exist
+    if not os.path.isdir(SAVE_ROOT):
+        Path(SAVE_ROOT).mkdir(parents=True, exist_ok=True)
+    SAVE_PATH = os.path.join(SAVE_ROOT, exp_name)
 
     try:
         evolver = pickle.load(open(SAVE_PATH, 'rb'))
