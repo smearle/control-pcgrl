@@ -187,6 +187,98 @@ def get_one_hot_map(int_map, n_tile_types):
     return obs
 
 
+"""
+Behavior Characteristics Functions
+"""
+
+def get_entropy(int_map, env):
+    """
+    Function to calculate entropy of levels represented by integers
+    int_map (numpy array of ints): representation of level
+    env (gym-pcgrl environment instance): used to get the action space dims
+    returns the entropy of the level normalized roughly to a range of 0.0 to 1.0
+    """
+    max_val = 0.35 * env.action_space.nvec[2]
+    entropy = np.sum([((tile == int_map.flatten()).astype(int).sum() / len(int_map.flatten()))*np.log((tile == int_map.flatten()).astype(int).sum() / len(int_map.flatten())) for tile in range(len(np.unique(int_map.flatten())))])*-1
+    return entropy / max_val
+
+
+def get_counts(int_map, env):
+    """
+    Function to calculate the tile counts for all possible tiles
+    int_map (numpy array of ints): representation of level
+    env (gym-pcgrl environment instance): used to get the action space dims
+    returns a python list with tile counts for each tile normalized to a range of 0.0 to 1.0
+    """
+    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]  # for example 14*14=196
+    return [np.sum(int_map.flatten() == tile)/max_val for tile in range(env.action_space.nvec[2])]
+
+
+def get_emptiness(int_map, env):
+    """
+    Function to calculate how empty the level is
+    int_map (numpy array of ints): representation of level
+    env (gym-pcgrl environment instance): used to get the action space dims
+    returns an emptiness value normalized to a range of 0.0 to 1.0
+    """
+    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]  # for example 14*14=196
+    return np.sum(int_map.flatten() == 0)/max_val
+
+def get_hor_sym(int_map, env):
+    """
+    Function to get the horizontal symmetry of a level
+    int_map (numpy array of ints): representation of level
+    env (gym-pcgrl environment instance): used to get the action space dims
+    returns a symmetry float value normalized to a range of 0.0 to 1.0
+    """
+    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]/2  # for example 14*14/2=98
+    m = 0
+    if int(int_map.shape[0]%2==0:
+        m = np.sum((int_map[:int(int_map.shape[0]/2)] == np.flip(int_map[int(int_map.shape[0]/2):],0)).astype(int))
+        m = m/max_val
+    else:
+        m = np.sum((int_map[:int(int_map.shape[0]/2)] == np.flip(int_map[int(int_map.shape[0]/2)+1:],0)).astype(int))
+        m = m/max_val
+    return m
+
+def get_ver_sym(int_map, env):
+    """
+    Function to get the vertical symmetry of a level
+    int_map (numpy array of ints): representation of level
+    env (gym-pcgrl environment instance): used to get the action space dims
+    returns a symmetry float value normalized to a range of 0.0 to 1.0
+    """
+    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]/2  # for example 14*14/2=98
+    m = 0
+    if int(int_map.shape[1]%2==0:
+        m = np.sum((int_map[:,:int(int_map.shape[1]/2)] == np.flip(int_map[:,int(int_map.shape[1]/2):],1)).astype(int))
+        m = m/max_val
+    else:
+        m = np.sum((int_map[:,:int(int_map.shape[1]/2)] == np.flip(int_map[:,int(int_map.shape[1]/2)+1:],1)).astype(int))
+        m = m/max_val
+    return m
+
+# SYMMETRY
+def get_sym(int_map, env):
+    """
+    Function to get the vertical symmetry of a level
+    int_map (numpy array of ints): representation of level
+    env (gym-pcgrl environment instance): used to get the action space dims
+    returns a symmetry float value normalized to a range of 0.0 to 1.0
+    """
+    result = (get_ver_sym(int_map, env) + get_hor_sym(int_map, env))/2.0
+    return result
+
+# CO-OCCURRANCE
+def get_co(int_map, env):
+    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]*4
+    result = (np.sum((np.roll(int_map, 1, axis=0) == int_map).astype(int))+
+    np.sum((np.roll(int_map, -1, axis=0) == int_map).astype(int))+
+    np.sum((np.roll(int_map, 1, axis=1) == int_map).astype(int))+
+    np.sum((np.roll(int_map, -1, axis=1) == int_map).astype(int)))
+    return result/max_val
+
+
 def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, seed=None):
     """
     Function to run a single trajectory and return results.
@@ -269,6 +361,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
                     for i in range(len(bcs)):
                         bc_name = bc_names[i]
                         bcs[i, n_episode] = stats[bc_name]
+
 
                     # TODO: reward calculation should depend on self.reward_names
                     # ad hoc reward: shorter episodes are better?
