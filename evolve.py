@@ -233,7 +233,7 @@ def get_hor_sym(int_map, env):
     """
     max_val = env.action_space.nvec[0]*env.action_space.nvec[1]/2  # for example 14*14/2=98
     m = 0
-    if int(int_map.shape[0]%2==0:
+    if int(int_map.shape[0])%2==0:
         m = np.sum((int_map[:int(int_map.shape[0]/2)] == np.flip(int_map[int(int_map.shape[0]/2):],0)).astype(int))
         m = m/max_val
     else:
@@ -250,7 +250,7 @@ def get_ver_sym(int_map, env):
     """
     max_val = env.action_space.nvec[0]*env.action_space.nvec[1]/2  # for example 14*14/2=98
     m = 0
-    if int(int_map.shape[1]%2==0:
+    if int(int_map.shape[1])%2==0:
         m = np.sum((int_map[:,:int(int_map.shape[1]/2)] == np.flip(int_map[:,int(int_map.shape[1]/2):],1)).astype(int))
         m = m/max_val
     else:
