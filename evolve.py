@@ -292,10 +292,8 @@ def get_path_length(stats):
     return stats['path-length']
 
 def get_bc(bc_name, int_map, stats, env):
-    if bc_name == 'path-length':
-        return stats['path-length']
-    elif bc_name == 'regions':
-        return stats['regions']
+    if bc_name in stats.keys():
+        return stats[bc_name]
     elif bc_name == 'co-occurance':
         return get_co(int_map, env)
     elif bc_name == 'symmetry':
@@ -308,7 +306,7 @@ def get_bc(bc_name, int_map, stats, env):
         return get_emptiness(int_map, env)
     elif bc_name == 'entropy':
         return get_entropy(int_map, env)
-    else:  # TODO: Add enimieas and other stats as bc options 
+    else:  
         print('The BC {} is not recognized.'.format(bc_name))
         return 0.0
 
