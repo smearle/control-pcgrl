@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 import gym
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -636,6 +637,55 @@ class EvoPCGRL():
         objs = np.array(rows.loc[:, "objective"])
         i = 0
 
+        if GRID:
+            # Create figure
+            # fig1, f1_axes = plt.subplots(ncols=d, nrows=d, constrained_layout=True)
+
+            d = 4  # dimension of rows and columns
+            fig, axs = plt.subplots(d, d)
+
+            # Get the idx sets
+            df_sorted = np.sort(pd.unique(df['index_0']))
+            idx0_list = np.take(df_sorted, np.linspace(0, len(df_sorted)-1, d, dtype=int))
+            df_sorted = np.sort(pd.unique(df['index_1']))
+            idx1_list = np.take(df_sorted, np.linspace(0, len(df_sorted)-1, d, dtype=int))
+
+            # # Extract all pairs
+            # sample = df.sample(d*d-4)
+            # sample = sample.append(df.sort_values(by=['index_0']).iloc[[0, -1]])
+            # sample = sample.append(df.sort_values(by=['index_1']).iloc[[0, -1]])
+            # idx_list = df[['index_0','index_1']]
+
+            # Make list of ideal index values
+
+            # Find closest existing set
+
+            # Loop through index pairs
+            for i, idx0 in enumerate(idx0_list):
+            	for j, idx1 in enumerate(idx1_list):
+                    # get model
+                    ### RESUME HERE ###
+                    arr = np.array(df[(df['index_0'] == idx0) & (df['index_1'] == idx1)].loc[:,'solution_0':])
+                    axs[i,j].set_axis_off()
+                    if len(arr)!=0:
+                        model = arr[0]
+
+                        # initialize weights
+                        init_nn = set_weights(self.model, model)
+
+                        # run simulation
+                        _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
+                                        self.n_tile_types, self.init_states, self.bc_names, self.static_targets, seed=None)
+                        # Get image
+                        img = self.env.render(mode='rgb_array')
+                        axs[i,j].imshow(img)
+                        axs[i,j].set_axis_off()
+
+            fig.savefig('test_grid.png')
+            # simulate level creation
+            # Add each level image to plot
+            # Save figure to png file
+
         while True:
 #           model = self.archive.get_random_elite()[0]
 #           model = models[np.random.randint(len(models))]
@@ -723,7 +773,13 @@ if __name__ == '__main__':
         '--show_vis',
         help='Render visualizations in matplotlib rather than saving them to png.',
         action='store_true',
-        )
+    )
+    opts.add_argument(
+        '-g',
+        '--save_grid',
+        help='Save grid of levels to png.',
+        action='store_true',
+    )
 
     opts = opts.parse_args()
     global INFER
@@ -738,6 +794,7 @@ if __name__ == '__main__':
     global N_INIT_STATES
     global N_INFER_STEPS
     global BCS
+    global GRID
     BCS = opts.behavior_characteristics
     N_GENERATIONS = opts.n_generations
     N_INIT_STATES = opts.n_init_states
@@ -749,6 +806,7 @@ if __name__ == '__main__':
     INFER = opts.infer
     N_INFER_STEPS = N_STEPS
 #   N_INFER_STEPS = 100
+    GRID = opts.save_grid
 
     exp_name = 'EvoPCGRL_{}_{}-batch_{}-step_{}'.format(PROBLEM, N_INIT_STATES, N_STEPS, opts.exp_name)
     SAVE_PATH = os.path.join('evo_runs', exp_name)
