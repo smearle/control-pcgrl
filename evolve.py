@@ -530,6 +530,8 @@ class EvoPCGRL():
 
             # metrics we always want to work toward
             self.static_targets = {
+                'path-length': (np.ceil(self.width / 2 + 1) *
+                                (self.height)),
                 'player': 1,
                 'key': 1,
                 'door': 1,
