@@ -199,8 +199,14 @@ def get_entropy(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns the entropy of the level normalized roughly to a range of 0.0 to 1.0
     """
-    max_val = 0.35 * env.action_space.nvec[2]
-    entropy = np.sum([((tile == int_map.flatten()).astype(int).sum() / len(int_map.flatten()))*np.log((tile == int_map.flatten()).astype(int).sum() / len(int_map.flatten())) for tile in range(len(np.unique(int_map.flatten())))])*-1
+    n_classes = env.action_space.nvec[2]
+    max_val = -(1 / n_classes)*np.log(1 / n_classes)* n_classes
+    total = len(int_map.flatten())
+    entropy = 0.0
+    for tile in range(n_classes):
+        p = (tile == int_map.flatten()).astype(int).sum() / total
+        if p != 0:
+            entropy -= p*np.log(p)
     return entropy / max_val
 
 
@@ -278,6 +284,34 @@ def get_co(int_map, env):
     np.sum((np.roll(int_map, 1, axis=1) == int_map).astype(int))+
     np.sum((np.roll(int_map, -1, axis=1) == int_map).astype(int)))
     return result/max_val
+
+def get_regions(stats):
+    return stats['regions']
+
+def get_path_length(stats):
+    return stats['path-length']
+
+def get_bc(bc_name, int_map, stats, env):
+    if bc_name == 'path-length':
+        return stats['path-length']
+    elif bc_name == 'regions':
+        return stats['regions']
+    elif bc_name == 'co-occurance':
+        return get_co(int_map, env)
+    elif bc_name == 'symmetry':
+        return get_sym(int_map, env)
+    elif bc_name == 'symmetry-vertical':
+        return get_ver_sym(int_map, env)
+    elif bc_name == 'symmetry-horizontal':
+        return get_hor_sym(int_map, env)
+    elif bc_name == 'emptiness':
+        return get_emptiness(int_map, env)
+    elif bc_name == 'entropy':
+        return get_entropy(int_map, env)
+    else:  # TODO: Add enimieas and other stats as bc options 
+        print('The BC {} is not recognized.'.format(bc_name))
+        return 0.0
+
 
 
 def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, seed=None):
@@ -359,9 +393,10 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
                         get_string_map(int_map,
                                        env._prob.get_tile_types()))
                     # get BCs
-                    for i in range(len(bcs)):
+                    # Resume here. Use new BC function.
+                    for i in range(len(bc_names)):
                         bc_name = bc_names[i]
-                        bcs[i, n_episode] = stats[bc_name]
+                        bcs[i, n_episode] = get_bc(bc_name, int_map, stats, env)
 
 
                     # TODO: reward calculation should depend on self.reward_names
@@ -423,14 +458,15 @@ class EvoPCGRL():
         # TODO: maybe make these command-line arguments?
         # TODO: multi-objective compatibility?
         if PROBLEM in ('binary'):
-            pass
-            self.bc_names = ['regions', 'path-length']
+            # pass
+            # self.bc_names = ['regions', 'path-length']
+            self.bc_names = BCS
 #           self.reward_names = ['variance']
         elif PROBLEM in ('zelda'):
 #           pass
-            self.bc_names = ['nearest-enemy', 'path-length']#, 'n_walls']
+            # self.bc_names = ['nearest-enemy', 'path-length']#, 'n_walls']
 #           self.reward_names = ['static_targets']
-#       self.bc_names = BCS
+            self.bc_names = BCS
 
         # calculate the bounds of our behavioral characteristics
         # NOTE: We assume a square map for some of these (not ideal).
@@ -457,6 +493,12 @@ class EvoPCGRL():
                 #     11111111
                 #     10000000
                 #     11111111
+                'co-occurance': (0.0, 1.0),
+                'symmetry': (0.0, 1.0),
+                'symmetry-vertical': (0.0, 1.0),
+                'symmetry-horizontal': (0.0, 1.0),
+                'emptiness': (0.0, 1.0),
+                'entropy': (0.0, 1.0),
             }
 #           self.reward_bounds = {
 #               'variance': (-50, 0),
@@ -480,6 +522,12 @@ class EvoPCGRL():
                #WTF
                 'nearest-enemy': (0, np.ceil(self.width / 2 + 1) *
                                 (self.height)),
+                'co-occurance': (0.0, 1.0),
+                'symmetry': (0.0, 1.0),
+                'symmetry-vertical': (0.0, 1.0),
+                'symmetry-horizontal': (0.0, 1.0),
+                'emptiness': (0.0, 1.0),
+                'entropy': (0.0, 1.0),
             }
 
             # metrics we always want to work toward
