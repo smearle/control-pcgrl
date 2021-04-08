@@ -43,3 +43,8 @@ evo_runs/
 # VSCode
 .vscode/
 
+# Ignore PNG files
+*.png
+
+*.DS_Store
+
