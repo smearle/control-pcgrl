@@ -691,7 +691,7 @@ class EvoPCGRL():
                 print(f"  - Mean Score: {df['objective'].mean()}")
                 print(f"  - Min Score: {df['objective'].min()}")
             # Save checkpoint
-            if itr % 1 == 0:
+            if itr % 10 == 0:
                 global ENV
                 ENV = self.env
                 self.env = None
