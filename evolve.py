@@ -108,6 +108,9 @@ class NNGoL(nn.Module):
         if PROBLEM == 'binary':
             n_hid_1 = 32
             n_hid_2 = 16
+        if PROBLEM == 'mini':
+            n_hid_1 = 32
+            n_hid_2 = 16
 
         self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
@@ -465,6 +468,11 @@ class EvoPCGRL():
             # self.bc_names = ['nearest-enemy', 'path-length']#, 'n_walls']
 #           self.reward_names = ['static_targets']
             self.bc_names = BCS
+        elif PROBLEM in ('mini'):
+#           pass
+            # self.bc_names = ['nearest-enemy', 'path-length']#, 'n_walls']
+#           self.reward_names = ['static_targets']
+            self.bc_names = BCS
 
         # calculate the bounds of our behavioral characteristics
         # NOTE: We assume a square map for some of these (not ideal).
@@ -542,7 +550,46 @@ class EvoPCGRL():
 #               'variance': (-50, 0),
 #               'static_targets': (-20, 0),
 #               }
+        elif PROBLEM == 'mini':
+            self.bc_bounds = {
+                #TODO: adapt this zelda path! ???
+                # Upper bound: zig-zag
+                'path-length': (0, np.ceil(self.width / 2 + 1) *
+                                (self.height)),
 
+                #     11111111
+                #     00000001
+                #     11111111
+                #     10000000
+                #     11111111
+
+
+               #'nearest-enemy': (0, max(self.width, self.height)),
+               #WTF
+                'nearest-enemy': (0, np.ceil(self.width / 2 + 1) *
+                                (self.height)),
+                'co-occurance': (0.0, 1.0),
+                'symmetry': (0.0, 1.0),
+                'symmetry-vertical': (0.0, 1.0),
+                'symmetry-horizontal': (0.0, 1.0),
+                'emptiness': (0.0, 1.0),
+                'entropy': (0.0, 1.0),
+            }
+
+            # metrics we always want to work toward
+            self.static_targets = {
+                'path-length': (np.ceil(self.width / 2 + 1) *
+                                (self.height)),
+                'player': 1,
+                # 'key': 1,
+                'door': 1,
+                'regions': 1,
+                # 'enemies': (2, 5),
+            }
+#           self.reward_bounds = {
+#               'variance': (-50, 0),
+#               'static_targets': (-20, 0),
+#               }
 
         else:
             raise Exception('{} problem is not supported'.format(PROBLEM))
@@ -673,6 +720,12 @@ class EvoPCGRL():
             high_performing = df.sort_values("behavior_1", ascending=False)
 #           high_performing = df.sort_values("objective", ascending=False)
         if PROBLEM == 'zelda':
+            # path lenth
+            high_performing = df.sort_values("behavior_1", ascending=False)
+            # nearest enemies
+#           high_performing = df.sort_values("behavior_0", ascending=False)
+#           high_performing = df.sort_values("objective", ascending=False)
+        if PROBLEM == 'mini':
             # path lenth
             high_performing = df.sort_values("behavior_1", ascending=False)
             # nearest enemies
