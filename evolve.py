@@ -25,6 +25,9 @@ from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
 
+import ray
+
+
 import gym_pcgrl
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 
@@ -313,7 +316,18 @@ def get_bc(bc_name, int_map, stats, env):
         print('The BC {} is not recognized.'.format(bc_name))
         return 0.0
 
-
+@ray.remote
+def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_targets, seed):
+    set_weights(model, model_w)
+    obj, (bc_0, bc_1) = simulate(
+        env=env,
+        model=model,
+        n_tile_types=n_tile_types,
+        init_states=init_states,
+        bc_names=bc_names,
+        static_targets=static_targets,
+        seed=seed)
+    return obj, (bc_0, bc_1)
 
 def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, seed=None):
     """
@@ -637,18 +651,26 @@ class EvoPCGRL():
 
             # Evaluate the models and record the objectives and BCs.
             objs, bcs = [], []
-            for model_w in sols:
-                set_weights(self.model, model_w)
-                obj, (bc_0, bc_1) = simulate(
-                    env=self.env,
-                    model=self.model,
-                    n_tile_types=self.n_tile_types,
-                    init_states=self.init_states,
-                    bc_names=self.bc_names,
-                    static_targets=self.static_targets,
-                    seed=seed)
-                objs.append(obj)
-                bcs.append([bc_0, bc_1])
+            if THREADS:
+                futures = [multi_evo.remote(self.env, self.model, model_w, self.n_tile_types, self.init_states, self.bc_names, self.static_targets, seed) for model_w in sols]
+                results = ray.get(futures)
+                for result in results:
+                    obj, (bc_0, bc_1) = result
+                    objs.append(obj)
+                    bcs.append([bc_0, bc_1])
+            else:
+                for model_w in sols:
+                    set_weights(self.model, model_w)
+                    obj, (bc_0, bc_1) = simulate(
+                        env=self.env,
+                        model=self.model,
+                        n_tile_types=self.n_tile_types,
+                        init_states=self.init_states,
+                        bc_names=self.bc_names,
+                        static_targets=self.static_targets,
+                        seed=seed)
+                    objs.append(obj)
+                    bcs.append([bc_0, bc_1])
 
             # Send the results back to the optimizer.
             self.optimizer.tell(objs, bcs)
@@ -866,6 +888,12 @@ if __name__ == '__main__':
         help='Save grid of levels to png.',
         action='store_true',
     )
+    opts.add_argument(
+        '-m',
+        '--multi_thread',
+        help='Use multi-thread evolution process.',
+        action='store_true',
+    )
 
     opts = opts.parse_args()
     global INFER
@@ -881,6 +909,7 @@ if __name__ == '__main__':
     global N_INFER_STEPS
     global BCS
     global GRID
+    global THREADS
     BCS = opts.behavior_characteristics
     N_GENERATIONS = opts.n_generations
     N_INIT_STATES = opts.n_init_states
@@ -893,6 +922,9 @@ if __name__ == '__main__':
     N_INFER_STEPS = N_STEPS
 #   N_INFER_STEPS = 100
     GRID = opts.save_grid
+    THREADS = opts.multi_thread
+    if THREADS:
+        ray.init()
 
     exp_name = 'EvoPCGRL_{}_{}-batch_{}-step_{}'.format(PROBLEM, N_INIT_STATES, N_STEPS, opts.exp_name)
     SAVE_PATH = os.path.join('evo_runs', exp_name)
