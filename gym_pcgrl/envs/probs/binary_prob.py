@@ -26,10 +26,12 @@ class BinaryProblem(Problem):
             "path-length": 1
         }
 
+        self._max_path_length = np.ceil(self._width / 2) * self._height + np.floor(self._height)
+
     """
     Get a list of all the different tile names
 
-    Returns:
+    Returns:`
         string[]: that contains all the tile names
     """
     def get_tile_types(self):
@@ -117,7 +119,8 @@ class BinaryProblem(Problem):
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
+#       return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
+        return new_stats["regions"] == 1 and new_stats["path-length"] == self._max_path_length
 
     """
     Get any debug information need to be printed
