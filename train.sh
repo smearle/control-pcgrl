@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
-#SBATCH --gres=gpu:1
+##SBATCH --gres=gpu:1
 #SBATCH --time=120:00:00
 #SBATCH --mem=40GB
 #SBATCH --job-name=pcgrl
@@ -10,14 +10,28 @@
 #SBATCH --mail-user=sam.earle@nyu.edu
 #SBATCH --output=pcgrl_%j.out
 
-cd /scratch/se2161/pcgrl
+cd /scratch/se2161/gym-pcgrl
 #conda init bash
 source activate
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
+#python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "narrow"
+#python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "turtle"
+#python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "wide"
 
+#python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "narrow"
+#python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "turtle"
+#python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "wide"
+
+#python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "narrow"
+#python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "turtle"
+python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "wide"
+
+
+
+## OLD FUCKING TRASH GARBAGE
 
 ### BINARY ###
 
@@ -27,7 +41,6 @@ conda activate vanilla_pcgrl
 #python train_controllable.py --problem "binary_ctrl" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
-python train_controllable.py --problem "binary_ctrl" --conditionals "ALL" --representation "narrow"
 
 ## TURTLE
 
@@ -58,10 +71,10 @@ python train_controllable.py --problem "binary_ctrl" --conditionals "ALL" --repr
 
 ## NARROW
 
+
 #python train_controllable.py --problem "zelda_ctrl" --representation "narrow"
-python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" --representation "narrow"
+#python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" --representation "narrow"
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "path-length" --representation "narrow"
-#python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "narrow"
 
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "enemies" --representation "narrow"
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "enemies" "path-length" --representation "narrow"
@@ -89,7 +102,6 @@ python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enem
 
 ## NARROW
 
-#python train_controllable.py --problem "sokobangoal" --conditionals "player" "crate" "sol-length" --representation "narrow"
 
 ## TURTLE
 
