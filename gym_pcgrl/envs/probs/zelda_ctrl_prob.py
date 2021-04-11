@@ -101,7 +101,8 @@ class MultiGoalZeldaProblem(ZeldaProblem):
             # NOTE: BIG CONTROLLABILITY HACK!! We want to provide a reliable path-length signal when possible. So we compute it even on invalid maps,
             # take the least path-length, as with enemies above. And we're greedy, closest key, then closest door. No time for shortest overall path,
             # forget it.
-            if map_stats["key"] > 0 and map_stats["door"] > 0:
+            # (Turning the above off for now and hoping for the best!)
+            if map_stats["key"] == 1 and map_stats["door"] == 1:
                 d_x,d_y = map_locations["door"][0]
                 dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
                 min_key_dist = UPPER_DIST

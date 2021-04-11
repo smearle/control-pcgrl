@@ -13,7 +13,7 @@
 cd /scratch/se2161/pcgrl
 #conda init bash
 source activate
-conda activate pcgrl
+#conda activate pcgrl
 
 
 
@@ -22,19 +22,17 @@ conda activate pcgrl
 
 ## NARROW
 
-#python train.py --problem "binary_ctrl" --representation "narrow" --n_cpu 50
-#python train.py --problem "binary_ctrl" --representation "narrow" --n_cpu 30
+#python train.py --problem "binary_ctrl" --representation "narrow"
 #python train.py --problem "binary_ctrl" --conditionals "regions" --representation "narrow"
-#python train.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow" --n_cpu 50
-python train.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "narrow"
-#python train.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow" --n_cpu 50 --max_step -1
+#python train.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
+#python train.py --problem "binary_ctrl" --conditionals "ALL" --representation "narrow"
 
 ## TURTLE
 
 #python train.py --problem "binary_ctrl" --representation "turtle"
 #python train.py --problem "binary_ctrl" --conditionals "regions" --representation "turtle"
 #python train.py --problem "binary_ctrl" --conditionals "path-length" --representation "turtle"
-#python train.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "turtle"
+#python train.py --problem "binary_ctrl" --conditionals "ALL" --representation "turtle"
 
 
 ## WIDE
@@ -42,14 +40,14 @@ python train.py --problem "binary_ctrl" --conditionals "regions" "path-length" -
 #python train.py --problem "binary_ctrl" --representation "wide"
 #python train.py --problem "binary_ctrl" --conditionals "regions" --representation "wide" 
 #python train.py --problem "binary_ctrl" --conditionals "path-length" --representation "wide"
-#python train.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "wide"
+#python train.py --problem "binary_ctrl" --conditionals "ALL" --representation "wide"
 
 ## WIDE - CA
 
 #python train.py --problem "binary_ctrl" --representation "wide" --ca_action
 #python train.py --problem "binary_ctrl" --conditionals "regions" --representation "wide" --ca_action
 #python train.py --problem "binary_ctrl" --conditionals "path-length" --representation "wide" --ca_action
-#python train.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "wide" --ca_action
+#python train.py --problem "binary_ctrl" --conditionals "ALL" --representation "wide" --ca_action
 
 
 
@@ -59,11 +57,13 @@ python train.py --problem "binary_ctrl" --conditionals "regions" "path-length" -
 ## NARROW
 
 #python train.py --problem "zelda_ctrl" --representation "narrow"
-#python train.py --problem "zelda_ctrl" --conditionals "enemies" --representation "narrow"
+python train.py --problem "zelda_ctrl" --conditionals "nearest-enemy" --representation "narrow"
 #python train.py --problem "zelda_ctrl" --conditionals "path-length" --representation "narrow"
+#python train.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "narrow"
+
+#python train.py --problem "zelda_ctrl" --conditionals "enemies" --representation "narrow"
 #python train.py --problem "zelda_ctrl" --conditionals "enemies" "path-length" --representation "narrow"
-#python train.py --problem "zelda_ctrl" --conditionals "nearest-enemy" --representation "narrow"
-#python train.py --problem "zelda_ctrl" --conditionals "player" "key" "door" "enemies" "regions" "nearest-enemy" "path-length" --representation "narrow"
+#python train.py --problem "zelda_ctrl" --conditionals "ALL" --representation "narrow"
 
 ## TURTLE
 
