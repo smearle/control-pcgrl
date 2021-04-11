@@ -14,7 +14,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
                 'door': 3,
                 'regions': 5,
                 'enemies': 1,
-                'nearest-enemy':2,
+                'nearest-enemy':1,
                 'path-length': 1,
                 }
 

@@ -37,10 +37,11 @@ class BinaryCtrlProblem(BinaryProblem):
                                                                                             #   11111111
                 }
 
-        self.weights = self._rewards
-#       self.weights = {'regions': 5,
-#               'path-length': 1,
-#               }
+#       self.weights = self._rewards
+        self.weights = {
+            'regions': 5,
+            'path-length': 1,
+        }
 
     # We do these things in the ParamRew wrapper (note that max change and iterations 
     def get_episode_over(self, new_stats, old_stats):
