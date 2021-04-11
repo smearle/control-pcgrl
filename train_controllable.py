@@ -59,7 +59,7 @@ def callback(_locals, _globals):
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
-    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl"]:
+    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl"]:
         raise Exception("Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
     kwargs['n_cpu'] = n_cpu
     env_name = '{}-{}-v0'.format(game, representation)

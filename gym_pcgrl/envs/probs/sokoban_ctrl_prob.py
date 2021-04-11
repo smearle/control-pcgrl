@@ -23,7 +23,7 @@ class SokobanCtrlProblem(SokobanProblem):
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
                 'player': (1, self._width * self._height),
-                'crate': (1, self._width * self._height),
+                'crate': (1, self._width * self._height / 2 - max(self._width, self._height)),
                 'target': (1, self._width * self._height),
                 'ratio': (0, self._width * self._height),
                 'dist-win': (0, self._width * self._height * (self._width + self._height)),
@@ -42,8 +42,8 @@ class SokobanCtrlProblem(SokobanProblem):
         stats = super().get_stats(map)
         stats['sol-length'] = len(stats['solution'])
         stats['ratio'] = abs(stats['crate'] - stats['target'])
-        if stats['dist-win'] == self._width * self._height * (self._width + self._height):
-            stats['dist-win'] = 0
+#       if stats['dist-win'] == self._width * self._height * (self._width + self._height):
+#           stats['dist-win'] = 0
 
         return stats
 

@@ -7,6 +7,7 @@ from gym_pcgrl.envs.probs.sokoban_ctrl_prob import SokobanCtrlProblem
 from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
 from gym_pcgrl.envs.probs.zelda_ctrl_prob import ZeldaCtrlProblem
 from gym_pcgrl.envs.probs.smb_prob import SMBProblem
+from gym_pcgrl.envs.probs.smb_ctrl_prob import SMBCtrlProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
@@ -19,4 +20,5 @@ PROBLEMS = {
     "zelda": ZeldaProblem,
     "zelda_ctrl": ZeldaCtrlProblem,
     "smb": SMBProblem,
+    "smb_ctrl": SMBCtrlProblem,
 }

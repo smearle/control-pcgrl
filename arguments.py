@@ -2,11 +2,9 @@ from pdb import set_trace as T
 import argparse
 
 prob_cond_metrics = {
-        'binary': ['regions'],
-#       'binary': ['path-length'],
-#       'binary': ['regions', 'path-length'],
-        'zelda': ['num_enemies'],
-        'sokoban': ['num_boxes'],
+        'binary_ctrl': ['regions', 'path-length'],
+        'zelda_ctrl': ['nearest-enemy', 'path-length'],
+        'sokoban_ctrl': ['crate', 'sol-length'],
         }
 
 all_metrics = {
@@ -24,7 +22,11 @@ def parse_pcgrl_args(args):
     opts = args.parse_args()
     if opts.max_step == -1:
         max_step = None
-    if opts.conditionals == ['ALL']:
+    if opts.conditionals == ['NONE']:
+        opts.conditionals = []
+    elif opts.conditionals == ['DEFAULT']:
+        opts.conditionals = prob_cond_metrics[opts.problem]
+    elif opts.conditionals == ['ALL']:
         opts.conditionals = all_metrics[opts.problem]
 
     return opts
@@ -52,7 +54,7 @@ def get_args():
         '--conditionals',
         nargs='+',
         help='Which game level metrics to use as conditionals for the generator',
-        default=[])
+        default=['DEFAULT'])
     args.add_argument(
         '--resume',
         help='Are we resuming from a saved training run?',
