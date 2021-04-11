@@ -1,0 +1,510 @@
+
+"""
+Run a trained agent for qualitative analysis.
+"""
+import os
+from PIL import Image
+from pdb import set_trace as T
+import numpy as np
+from numpy import asarray
+import cv2
+from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size
+from envs import make_vec_envs
+from matplotlib import pyplot as plt
+import pickle
+import json
+from matplotlib import colors
+
+font                   = cv2.FONT_HERSHEY_SIMPLEX
+bottomLeftCornerOfText = (10,500)
+fontScale              = 1
+fontColor              = (255,255,255)
+lineType               = 2
+
+def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
+    """
+     - max_trials: The number of trials per evaluation.
+     - infer_kwargs: Args to pass to the environment.
+    """
+    infer_kwargs = {
+            **infer_kwargs,
+            'inference': True,
+            'evaluate': True
+            }
+    max_trials = kwargs.get('max_trials', -1)
+    n = kwargs.get('n', None)
+    map_width = infer_kwargs.get('map_width')
+    max_steps = infer_kwargs.get('max_step')
+    eval_controls = infer_kwargs.get('eval_controls')
+    env_name = '{}-{}-v0'.format(game, representation)
+    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    levels_im_name = "{}_{}-bins_levels.png"
+    if n is None:
+        if EXPERIMENT_ID is None:
+            n = max_exp_idx(exp_name)
+        else:
+            n = EXPERIMENT_ID
+    if n == 0:
+        raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
+    crop_size = infer_kwargs.get('cropped_size')
+    if crop_size == -1:
+        infer_kwargs['cropped_size'] = get_crop_size(game)
+    log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
+    data_path = os.path.join(log_dir, '{}_eval_data.pkl'.format(N_BINS))
+    data_path_levels = os.path.join(log_dir, '{}_eval_data_levels.pkl'.format(N_BINS))
+    if VIS_ONLY:
+        if RENDER_LEVELS:
+            eval_data_levels = pickle.load(open(data_path_levels, "rb"))
+            eval_data_levels.render_levels()
+            return
+        eval_data = pickle.load(open(data_path, "rb"))
+        # FIXME: just for backward compatibility
+        eval_data.log_dir = log_dir
+        eval_data.visualize_data(log_dir)
+        return
+    # no log dir, 1 parallel environment
+    n_cpu = infer_kwargs.get('n_cpu')
+    env, dummy_action_space, n_tools = make_vec_envs(env_name, representation, None, **infer_kwargs)
+    model = load_model(log_dir, load_best=infer_kwargs.get('load_best'), n_tools=n_tools)
+#   model.set_env(env)
+    env.action_space = dummy_action_space
+    # Record final values of each trial
+#   if 'binary' in env_name:
+#       path_lengths = []
+#       changes = []
+#       regions = []
+#       infer_info = {
+#           'path_lengths': [],
+#           'changes': [],
+#           'regions': [],
+#           }
+    if n_cpu == 1:
+        control_bounds = env.envs[0].get_control_bounds()
+    elif n_cpu > 1:
+        env.remotes[0].send(('env_method', ('get_control_bounds', [], {})))  # supply args and kwargs
+        control_bounds = env.remotes[0].recv()
+    if not eval_controls:
+        eval_controls = control_bounds.keys()
+    ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
+    # Hackish get initial states
+    init_states = []
+    for i in range(N_TRIALS):
+        env.envs[0].reset()
+        init_states.append(env.envs[0].unwrapped._rep._map)
+    N_EVALS = N_TRIALS * N_MAPS
+    if len(ctrl_bounds) == 1:
+        ctrl_name = ctrl_bounds[0][0]
+        bounds = ctrl_bounds[0][1] 
+        step_size = max((bounds[1] - bounds[0]) / (N_BINS[0] - 1), 1)
+        eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
+        level_images = []
+        cell_scores = np.zeros((len(eval_trgs), 1))
+        cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
+        cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
+        for i, trg in enumerate(eval_trgs):
+            trg_dict = {ctrl_name: trg}
+            print('evaluating control targets: {}'.format(trg_dict))
+            env.envs[0].set_trgs(trg_dict)
+#           set_ctrl_trgs(env, {ctrl_name: trg})
+            net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+            level_images.append(level_image)
+            cell_scores[i] = net_score
+            cell_ctrl_scores[i] = ctrl_score
+            cell_static_scores[i] = static_score
+        ctrl_names = (ctrl_name, None)
+        ctrl_ranges = (eval_trgs, None)
+        if RENDER_LEVELS:
+            ims = np.hstack(level_images)
+            image = Image.fromarray(ims)
+            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
+
+    elif len(ctrl_bounds) >=2:
+        ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
+        b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
+        step_0 = max((b0[1] - b0[0]) / (N_BINS[0] - 1), 1)
+        step_1 = max((b1[1] - b1[0]) / (N_BINS[-1] - 1), 1)
+        trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
+        trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
+        cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        trg_dict = env.envs[0].static_trgs
+        trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
+        level_images = []
+        for i, t0 in enumerate(trgs_0):
+            level_images_y = []
+            for j, t1 in enumerate(trgs_1):
+                ctrl_trg_dict = {ctrl_0: t0, ctrl_1: t1}
+                trg_dict.update(ctrl_trg_dict)
+                print('evaluating control targets: {}'.format(trg_dict))
+    #           set_ctrl_trgs(env, {ctrl_name: trg})
+                net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+                level_images_y.append(level_image)
+                cell_scores[i, j] = net_score
+                cell_ctrl_scores[i, j] = ctrl_score
+                cell_static_scores[i, j] = static_score
+            if RENDER_LEVELS:
+                level_images.append(np.hstack(level_images_y))
+        ctrl_names = (ctrl_0, ctrl_1)
+        ctrl_ranges = (trgs_0, trgs_1)
+        if RENDER_LEVELS:
+            image = np.vstack(level_images[::-1])
+            image = Image.fromarray(image)
+            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
+
+    if not RENDER_LEVELS:
+        eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir)
+        pickle.dump(eval_data, open(data_path, "wb"))
+        eval_data.visualize_data(log_dir)
+    else:
+        levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
+        eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
+        pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
+        eval_data_levels.render_levels()
+
+
+def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
+    env.envs[0].set_trgs(trg_dict)
+    eval_scores = np.zeros(n_trials)
+    eval_ctrl_scores = np.zeros(n_trials)
+    eval_static_scores = np.zeros(n_trials)
+    n = 0
+    # FIXME: why do we need this?
+    while n < n_trials:
+        env.envs[0].set_map(init_states[n % N_MAPS])
+        obs = env.reset()
+#       epi_rewards = np.zeros((max_step, n_envs))
+        i = 0
+        # note that this is weighted loss
+        init_loss = env.envs[0].get_loss()
+        init_ctrl_loss = env.envs[0].get_ctrl_loss()
+        init_static_loss = env.envs[0].get_static_loss()
+        done = False
+        while not done:
+#           if i == max_steps - 1:
+            if True:
+                if RENDER_LEVELS:
+                    image = env.render('rgb_array')
+                final_loss = env.envs[0].get_loss()
+                final_ctrl_loss = env.envs[0].get_ctrl_loss()
+                final_static_loss = env.envs[0].get_static_loss()
+            action, _ = model.predict(obs)
+            obs, rewards, done, info = env.step(action)
+#           epi_rewards[i] = rewards
+            i += 1
+        # what percentage of loss (distance from target) was recovered?
+        eps = 0.001
+        max_loss = max(abs(init_loss), eps)
+        max_ctrl_loss = max(abs(init_ctrl_loss), eps)
+        max_static_loss = max(abs(init_static_loss), eps)
+        score = (final_loss - init_loss) / abs(max_loss)
+        ctrl_score = (final_ctrl_loss - init_ctrl_loss) / abs(max_ctrl_loss)
+        static_score = (final_static_loss - init_static_loss) / abs(max_static_loss)
+        eval_scores[n] = score
+        eval_ctrl_scores[n] = ctrl_score
+        eval_static_scores[n] = static_score
+        n += n_envs
+    eval_score = eval_scores.mean()
+    eval_ctrl_score = eval_ctrl_scores.mean()
+    eval_static_score = eval_static_scores.mean()
+    print('eval score: {}'.format(eval_score))
+    print('control score: {}'.format(ctrl_score))
+    print('static score: {}'.format(static_score))
+    if RENDER_LEVELS:
+#       image = env.render('rgb_array')
+        image.save(os.path.join(log_dir, '{}_level.png'.format(trg_dict)))
+        level_image = asarray(image)
+    else:
+        level_image = None
+    return eval_score, eval_ctrl_score, eval_static_score, level_image
+
+
+
+
+
+
+class EvalData():
+    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=None, levels_im_path=None):
+        self.ctrl_names = ctrl_names
+        self.ctrl_ranges = ctrl_ranges
+        self.cell_scores = cell_scores
+        self.cell_ctrl_scores = cell_ctrl_scores
+        self.cell_static_scores = cell_static_scores
+        self.levels_image = levels_image
+        self.levels_im_path = levels_im_path
+        self.log_dir = log_dir
+
+    def visualize_data(self, log_dir):
+
+        def create_heatmap(title, data):
+            fig, ax = plt.subplots()
+            # percentages from ratios
+            data = data * 100
+            data = np.clip(data, -100, 100)
+            data = data.T
+            if data.shape[0] == 1:
+                fig.set_size_inches(10, 2)
+                ax.set_yticks([])
+                tick_idxs = np.arange(0, cell_scores.shape[0], max(1, (cell_scores.shape[0] // 10)))
+                ticks = np.arange(cell_scores.shape[0])
+                ticks = ticks[tick_idxs]
+                ax.set_xticks(ticks)
+                labels = np.array([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
+                labels = labels[tick_idxs]
+                ax.set_xticklabels(labels)
+            else:
+                data = data[::-1,:]
+                ax.set_xticks(np.arange(cell_scores.shape[0]))
+                ax.set_yticks(np.arange(cell_scores.shape[1]))
+                ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
+                ax.set_yticklabels([int(x) for x in ctrl_ranges[1][::-1]])
+            # Create the heatmap
+#           im = ax.imshow(data, aspect='auto', vmin=-100, vmax=100)
+            im = ax.imshow(data, aspect='auto', vmax=100)
+
+            #Create colorbar
+            cmap = colors.ListedColormap(['b','r','y','r'])
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("", rotation=90, va="bottom")
+
+            # We want to show all ticks...
+            # ... and label them with the respective list entries
+            plt.xlabel(ctrl_names[0])
+            plt.ylabel(ctrl_names[1])
+
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                     rotation_mode="anchor")
+
+            ax.set_title(title)
+            fig.tight_layout()
+
+            plt.savefig(os.path.join(log_dir, "{}_{}.png".format(ctrl_names, title.replace("%", ""))))
+#           plt.show()
+
+        ctrl_names = self.ctrl_names
+        ctrl_ranges = self.ctrl_ranges
+        cell_scores = self.cell_scores
+        cell_ctrl_scores = self.cell_ctrl_scores
+        cell_static_scores = self.cell_static_scores
+
+        title = "All goals (mean progress, %)"
+        create_heatmap(title, cell_scores)
+
+        title = "Controlled goals (mean progress, %)"
+        create_heatmap(title, cell_ctrl_scores)
+
+        title = "Fixed goals (mean progress, %)"
+        create_heatmap(title, cell_static_scores)
+        self.save_stats()
+
+    def save_stats(self):
+        scores = {
+            'net_score': self.cell_scores.mean(),
+            'ctrl_score': self.cell_ctrl_scores.mean(),
+            'fixed_score': self.cell_static_scores.mean(),
+        }
+        with open(os.path.join(self.log_dir, 'scores.json'), 'w') as fp:
+            json.dump(scores, fp)
+
+    def render_levels(self):
+        ctrl_names = self.ctrl_names
+        fig, ax = plt.subplots()
+        ax.imshow(self.levels_image)
+    #       ax.axis["xzero"].set_axisline_style("-|>")
+        plt.tick_params(
+            axis='x',
+            which='both',
+            bottom=False,
+            top=False,
+            labelbottom=False)
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left=False,
+            right=False,
+            labelleft=False)
+        if ctrl_names[1] is None:
+            plt.xlabel(ctrl_names[0])
+            pad_inches = 0
+            hspace = 0
+            bottom = 0
+        else:
+            plt.xlabel(ctrl_names[1])
+            plt.ylabel(ctrl_names[0])
+            pad_inches = 0
+            hspace = 0
+            bottom = 0.05
+       #plt.gca().set_axis_off()
+        plt.subplots_adjust(top = 1, bottom = bottom, right = 1, left = 0, 
+                    hspace = hspace, wspace = 0)
+        plt.margins(0,0)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        plt.savefig(self.levels_im_path, bbox_inches = 'tight',
+            pad_inches = pad_inches)
+        plt.show()
+
+
+
+#NOTE: let's not try multiproc how about that :~)
+
+#def eval_episodes(model, env, n_trials, n_envs):
+#    eval_scores = np.zeros(n_trials)
+#    n = 0
+#    # FIXME: why do we need this?
+#    env.reset()
+#    while n < n_trials:
+#
+#        obs = env.reset()
+##       epi_rewards = np.zeros((max_step, n_envs))
+#        i = 0
+##       env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply args and kwargs
+##       init_metric_vals = env.remotes[0].recv()
+#        [remote.send(('env_method', ('get_loss', [], {}))) for remote in env.remotes]
+#        # note that this is weighted loss
+#        init_loss = np.sum([remote.recv() for remote in env.remotes])
+#        dones = np.array([False])
+#        while not dones.all():
+#            action, _ = model.predict(obs)
+#            obs, rewards, dones, info = env.step(action)
+##           epi_rewards[i] = rewards
+#            i += 1
+#        # since reward is weighted loss
+#        final_loss = np.sum(rewards)
+#        # what percentage of loss (distance from target) was recovered?
+#        score = (final_loss - init_loss) / abs(init_loss)
+##       env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply args and kwargs
+##       final_metric_vals = env.remotes[0].recv()
+#        eval_scores[n] = score
+#        n += n_envs
+#    return eval_scores.mean()
+#
+#def set_ctrl_trgs(env, trg_dict):
+#    [remote.send(('env_method', ('set_trgs', [trg_dict], {}))) for remote in env.remotes]
+
+from arguments import get_args
+args = get_args()
+args.add_argument('--vis_only',
+        help='Just load data from previous evaluation and visualize it.',
+        action='store_true',
+        )
+args.add_argument('--eval_controls',
+        help='Which controls to evaluate and visualize.',
+        nargs='+',
+        default=[],
+        )
+args.add_argument('--n_maps',
+        help='Number maps on which to simulate in each cell.',
+        default=3,
+        type=int,
+        )
+args.add_argument('--n_trials',
+        help='Number trials for which to simulate on each map.',
+        default=3,
+        type=int,
+        )
+#args.add_argument('--step_size',
+#        help='Bin size along either dimension.',
+#        default=20,
+#        type=int,
+#        )
+args.add_argument('--n_bins',
+        help='How many bins along each dimension (a sequence of ints).',
+        nargs='+',
+        type=int,
+        default=(10,10),
+        )
+args.add_argument('--render_levels',
+        help='Save final maps (default to only one eval per cell)',
+        action='store_true',
+        )
+from arguments import parse_pcgrl_args
+opts = parse_pcgrl_args(args)
+global VIS_ONLY 
+VIS_ONLY = opts.vis_only
+
+# For locating trained model
+global EXPERIMENT_ID
+global EXPERIMENT_DIR
+#EXPERIMENT_DIR = 'hpc_runs/runs'
+if not opts.HPC:
+    EXPERIMENT_DIR = 'runs'
+else:
+    EXPERIMENT_DIR = 'hpc_runs'
+EXPERIMENT_ID = opts.experiment_id
+problem = opts.problem
+representation = opts.representation
+conditional = True
+midep_trgs = opts.midep_trgs
+ca_action = opts.ca_action
+if conditional:
+    experiment = 'conditional'
+else:
+    experiment = 'vanilla'
+kwargs = {
+       #'change_percentage': 1,
+       #'target_path': 105,
+       #'n': 4, # rank of saved experiment (by default, n is max possible)
+        }
+
+RENDER_LEVELS = opts.render_levels
+if problem == 'sokobangoal':
+    map_width = 5
+else:
+    map_width = 16
+
+if conditional:
+    max_step = opts.max_step
+    if max_step is None:
+        if RENDER_LEVELS:
+            max_step = 10000
+        else:
+            max_step = 5000
+    cond_metrics = opts.conditionals
+
+    experiment = '_'.join([experiment] + cond_metrics)
+    if midep_trgs:
+        experiment = '_'.join([experiment, 'midepTrgs'])
+    if ca_action:
+        max_step = 50
+        experiment = '_'.join([experiment, 'CAaction'])
+else:
+    max_step = None
+    cond_metrics = None
+
+# For inference
+infer_kwargs = {
+       #'change_percentage': 1,
+       #'target_path': 200,
+        'conditional': True,
+        'cond_metrics': cond_metrics,
+        'max_step': max_step,
+        'render': opts.render,
+        # TODO: multiprocessing
+#       'n_cpu': opts.n_cpu,
+        'n_cpu': 1,
+        'load_best': opts.load_best,
+        'midep_trgs': midep_trgs,
+        'infer': True,
+        'ca_action': ca_action,
+        'map_width': map_width,
+        'eval_controls': opts.eval_controls,
+        'cropped_size': opts.crop_size,
+        }
+
+global N_BINS
+N_BINS = tuple(opts.n_bins)
+
+if RENDER_LEVELS:
+    N_MAPS = 1
+    N_TRIALS = 1
+else:
+    N_MAPS = opts.n_maps
+    N_TRIALS = opts.n_trials
+
+if __name__ == '__main__':
+
+    evaluate(problem, representation, experiment, infer_kwargs, **kwargs)
+#   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
+#   analyze()
