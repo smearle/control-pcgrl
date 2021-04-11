@@ -123,7 +123,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
 
     if representation == 'wide':
-        policy_kwargs = {'n_tools': n_tools}
+#       policy_kwargs = {'n_tools': n_tools}
+        policy_kwargs = {}
         if ca_action:
             # FIXME: there should be a better way hahahaha
             env.action_space = dummy_action_space
