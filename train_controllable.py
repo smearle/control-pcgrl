@@ -141,8 +141,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if not resume or model is None:
 #       model = PPO(policy, env, verbose=1, n_steps=n_steps, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
-    else:
-        model.set_env(env)
+#   else:
+    model.set_env(env)
 
    #model.policy = model.policy.to('cuda:0')
 #   if torch.cuda.is_available():
