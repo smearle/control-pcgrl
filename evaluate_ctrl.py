@@ -456,11 +456,11 @@ else:
 
 if conditional:
     max_step = opts.max_step
-    if max_step is None:
-        if RENDER_LEVELS:
-            max_step = 10000
-        else:
-            max_step = 5000
+#   if max_step is None:
+#       if RENDER_LEVELS:
+#           max_step = 10000
+#       else:
+#           max_step = 5000
     cond_metrics = opts.conditionals
 
     experiment = '_'.join([experiment] + cond_metrics)

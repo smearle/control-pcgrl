@@ -69,7 +69,7 @@ def get_args():
         '--n_cpu',
         help='How many environments to run in parallel.',
         type=int,
-        default=12,
+        default=50,
     )
     args.add_argument(
         '--render',
@@ -90,7 +90,7 @@ def get_args():
         '--max_step',
         help='How many steps in an episode, maximum.',
         type=int,
-        default=1000,
+        default=-1,
         )
 
     # Not for training:

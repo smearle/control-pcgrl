@@ -149,10 +149,9 @@ if problem == 'sokobangoal':
 else:
     map_width = 16
 
-if opts.max_step is None:
-    max_step = 1000
-else:
-    max_step = opts.max_step
+max_step = opts.max_step
+#if max_step is None:
+#    max_step = 1000
 
 if conditional:
     cond_metrics = opts.conditionals
