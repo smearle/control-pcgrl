@@ -1,3 +1,4 @@
+from pdb import set_trace as T
 from gym_pcgrl.envs.probs.sokoban_prob import SokobanProblem
 import numpy as np
 
@@ -41,6 +42,8 @@ class SokobanCtrlProblem(SokobanProblem):
         stats = super().get_stats(map)
         stats['sol-length'] = len(stats['solution'])
         stats['ratio'] = abs(stats['crate'] - stats['target'])
+        if stats['dist-win'] == self._width * self._height * (self._width + self._height):
+            stats['dist-win'] = 0
 
         return stats
 
