@@ -39,7 +39,7 @@ class BinaryCtrlProblem(BinaryProblem):
 
 #       self.weights = self._rewards
         self.weights = {
-            'regions': 5,
+            'regions': 1,
             'path-length': 1,
         }
 
