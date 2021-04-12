@@ -19,7 +19,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
                 }
 
         self.static_trgs = {
-                'enemies': (2, 7),
+                'enemies': (2, self._max_enemies),
                 'path-length': self._max_path_length,
                 'nearest-enemy': (5, self._max_nearest_enemy),
                 'regions': 1,

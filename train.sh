@@ -17,17 +17,20 @@ source activate
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
+#python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "turtle"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "wide"
 
+python train_controllable.py --problem "zelda_ctrl" --conditionals "path-length" --representation "narrow"
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "narrow"
+#python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "narrow" --resume
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "turtle"
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "wide"
 
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "narrow"
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "turtle"
-python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "wide"
+#python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "wide"
 
 
 
