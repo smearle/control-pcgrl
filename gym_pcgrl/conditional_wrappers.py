@@ -401,7 +401,7 @@ class ALPGMMTeacher(gym.Wrapper):
         trg_vec = self.alp_gmm.sample_task()
         self.trg_vec = trg_vec
         trgs = {k: trg_vec[i] for (i, k) in enumerate(self.usable_metrics)}
-        print(trgs)
+#       print(trgs)
         self.set_trgs(trgs)
         self.trial_reward = 0
         self.n_trial_steps = 0
