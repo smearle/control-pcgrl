@@ -377,3 +377,40 @@ class UniformNoiseyTargets(gym.Wrapper):
         self.set_rand_trgs()
 
         return self.env.reset()
+
+
+class ALPGMMTeacher(gym.Wrapper):
+    def __init__(self, env, **kwargs):
+
+        from teachDRL.teachers.algos.alp_gmm import ALPGMM
+
+        super(ALPGMMTeacher, self).__init__(env)
+        self.cond_bounds = self.env.unwrapped.cond_bounds
+        self.midep_trgs = False
+        env_param_lw_bounds = [self.cond_bounds[k][0] for k in self.usable_metrics]
+        env_param_hi_bounds = [self.cond_bounds[k][1] for k in self.usable_metrics]
+        self.alp_gmm = ALPGMM(env_param_lw_bounds, env_param_hi_bounds)
+        self.trg_vec = None
+        self.trial_reward = 0
+        self.n_trial_steps = 0
+
+    def reset(self):
+        if self.trg_vec:
+            rew = self.trial_reward / self.n_trial_steps
+            self.alp_gmm.update(self.trg_vec, rew)
+        trg_vec = self.alp_gmm.sample_task()
+        self.trg_vec = trg_vec
+        trgs = {k: trg_vec[i] for (i, k) in enumerate(self.usable_metrics)}
+        print(trgs)
+        self.set_trgs(trgs)
+        self.trial_reward = 0
+        self.n_trial_steps = 0
+
+        return self.env.reset()
+
+    def step(self, action):
+        obs, rew, done, info = self.env.step(action)
+        self.trial_reward += rew
+        self.n_trial_steps += 1
+
+        return obs, rew, done, info

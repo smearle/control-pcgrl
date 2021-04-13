@@ -94,6 +94,11 @@ def get_args():
         type=int,
         default=-1,
         )
+    args.add_argument(
+        '--alp_gmm',
+        help='Fancy ish teacher algorithm for controllable targets.',
+        action='store_true',
+    )
 
     # Not for training:
     args.add_argument(

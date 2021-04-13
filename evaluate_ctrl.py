@@ -438,6 +438,7 @@ representation = opts.representation
 conditional = True
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
+alp_gmm = opts.alp_gmm
 if conditional:
     experiment = 'conditional'
 else:
@@ -469,6 +470,8 @@ if conditional:
     if ca_action:
         max_step = 50
         experiment = '_'.join([experiment, 'CAaction'])
+    if alp_gmm:
+        experiment = '_'.join([experiment, 'ALPGMM'])
 else:
     max_step = None
     cond_metrics = None

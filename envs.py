@@ -13,6 +13,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     render = kwargs.get('render', False)
     conditional = kwargs.get('conditional', False)
     evaluate = kwargs.get('evaluate', False)
+    ALP_GMM = kwargs.get('alp_gmm', False)
     def _thunk():
         if representation == 'wide':
             ca_action = kwargs.get('ca_action', False)
@@ -33,7 +34,10 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
             env = conditional_wrappers.ParamRew(env, cond_metrics=kwargs.pop('cond_metrics'), **kwargs)
             env.configure(**kwargs)
             if not evaluate:
-                env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)
+                if not ALP_GMM:
+                    env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)
+                else:
+                    env = conditional_wrappers.ALPGMMTeacher(env, **kwargs)
         if render or log_dir is not None and len(log_dir) > 0:
             # RenderMonitor must come last
             env = RenderMonitor(env, rank, log_dir, **kwargs)

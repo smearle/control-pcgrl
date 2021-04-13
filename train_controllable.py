@@ -49,6 +49,8 @@ def callback(_locals, _globals):
             else:
                 print("Saving latest model")
                 _locals['self'].save(os.path.join(log_dir, 'latest_model.zip'))
+            if alp_gmm:
+                pass
         else:
 #           print('{} monitor entries'.format(len(x)))
             pass
@@ -168,6 +170,7 @@ n_cpu = opts.n_cpu
 resume = opts.resume
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
+alp_gmm = opts.alp_gmm
 #################
 
 if problem == 'sokobangoal':
@@ -189,6 +192,8 @@ else:
         experiment = '_'.join([experiment, 'midepTrgs'])
 if ca_action:
     experiment = '_'.join([experiment, 'CAaction'])
+if alp_gmm:
+    experiment = '_'.join([experiment, 'ALPGMM'])
 #   max_step = 5
 kwargs = {
     'map_width': map_width,
@@ -200,6 +205,7 @@ kwargs = {
     'midep_trgs': midep_trgs,
     'ca_action': ca_action,
     'cropped_size': opts.crop_size,
+    'alp_gmm': alp_gmm,
 }
 
 if __name__ == '__main__':
