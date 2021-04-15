@@ -4,11 +4,12 @@ import gym_pcgrl
 import numpy as np
 import math
 import os
+from pdb import set_trace as T
 
 # clean the input action
 get_action = lambda a: a.item() if hasattr(a, "item") else a
 # unwrap all the environments and get the PcgrlEnv
-get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) or "PcgrlCtrlEnv" in str(type(env)) else get_pcgrl_env(env.env)
+get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) or "PcgrlCtrlEnv" in str(type(env)) or "Micropolis" in str(type(env)) or "RCT" in str(type(env)) else get_pcgrl_env(env.env)
 
 class MaxStep(gym.Wrapper):
     """
@@ -249,16 +250,21 @@ The wrappers we use for narrow and turtle experiments
 class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
-        self.pcgrl_env.adjust_param(**kwargs)
-        # Cropping the map to the correct crop_size
-        env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
-        # Transform to one hot encoding if not binary
-        if 'binary' not in game:
-            env = OneHotEncoding(env, 'map')
-        # Indices for flatting
-        flat_indices = ['map']
-        # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indices)
+        if 'micropolis' in game.lower():
+            self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
+        if 'RCT' in game:
+            self.pcgrl_env = RCTWrapper(self.pcgrl_env)
+        else:
+            self.pcgrl_env.adjust_param(**kwargs)
+            # Cropping the map to the correct crop_size
+            env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+            # Transform to one hot encoding if not binary
+            if 'binary' not in game:
+                env = OneHotEncoding(env, 'map')
+            # Indices for flatting
+            flat_indices = ['map']
+            # Final Wrapper has to be ToImage or ToFlat
+            self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -268,15 +274,61 @@ Used for wide experiments
 class ActionMapImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
-        self.pcgrl_env.adjust_param(**kwargs)
-        # Indices for flatting
-        flat_indices = ['map']
-        env = self.pcgrl_env
-        # Add the action map wrapper
-        env = ActionMap(env)
-        # Transform to one hot encoding if not binary
-        if 'binary' not in game:
-            env = OneHotEncoding(env, 'map')
-        # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indices)
+        if 'micropolis' in game.lower():
+            self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
+        if 'RCT' in game:
+            self.pcgrl_env = RCTWrapper(self.pcgrl_env)
+            self.env = self.pcgrl_env
+        else:
+            self.pcgrl_env.adjust_param(**kwargs)
+            # Indices for flatting
+            flat_indices = ['map']
+            env = self.pcgrl_env
+            # Add the action map wrapper
+            env = ActionMap(env)
+            # Transform to one hot encoding if not binary
+            if 'binary' not in game and 'RCT' not in game and 'Micropolis' not in game:
+                env = OneHotEncoding(env, 'map')
+            # Final Wrapper has to be ToImage or ToFlat
+            self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
+
+
+class SimCityWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.env = game
+        self.env.configure(map_width=16)
+        super(SimCityWrapper, self).__init__(self.env)
+        self.observation_space = gym.spaces.Dict({
+                'map': self.observation_space,
+                })
+
+    def adjust_param(self, **kwargs):
+        return
+
+    def get_border_tile(self):
+        return 0
+
+class RCTWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.env = game
+        self.env.configure()
+        super(RCTWrapper, self).__init__(self.env)
+#       self.observation_space = gym.spaces.Dict({
+#               'map': self.observation_space,
+#               })
+        self.unwrapped.static_trgs = self.unwrapped.metric_trgs
+        self.unwrapped.cond_bounds = self.param_bounds
+
+    def step(self, action):
+        action = np.array(action)
+        obs, rew, done, info = super().step(action)
+#       obs = {'map': np.array(obs).transpose(1, 2, 0)}
+        obs = obs.transpose(1, 2, 0)
+        return obs, rew, done, info
+
+    def reset(self):
+        obs = super().reset()
+#       obs = {'map': obs.transpose(1, 2, 0)}
+        obs = obs.transpose(1, 2, 0)
+        return obs

@@ -18,7 +18,7 @@ def get_crop_size(game):
     elif "sokoban" in game:
         return 10
     else:
-        raise Exception
+        return None
 
 class RenderMonitor(Monitor):
     """
@@ -79,6 +79,13 @@ def make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs):
     else:
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
     return env
+
+def get_env_name(game, representation):
+    if 'RCT' or 'Micropolis' in game:
+        env_name = '{}-v0'.format(game)
+    else:
+        env_name = '{}-{}-v0'.format(game, representation)
+    return env_name
 
 def get_exp_name(game, representation, experiment, **kwargs):
     exp_name = '{}_{}'.format(game, representation)

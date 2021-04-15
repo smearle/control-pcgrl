@@ -61,16 +61,20 @@ def callback(_locals, _globals):
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
-    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl"]:
+    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]:
         raise Exception("Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
     kwargs['n_cpu'] = n_cpu
-    env_name = '{}-{}-v0'.format(game, representation)
+    if 'Micropolis' or 'RCT' in game:
+        env_name = '{}-v0'.format(game)
+    else:
+        env_name = '{}-{}-v0'.format(game, representation)
+    print('env name: ', env_name)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
     ca_action = kwargs.get('ca_action')
     map_width = kwargs.get('map_width')
 
-    if representation == 'wide':
+    if representation == 'wide' and not 'RCT' or 'Micropolis' in game:
         if ca_action:
             raise Exception()
 #           policy = CApolicy

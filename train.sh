@@ -18,7 +18,7 @@ source activate
 conda activate vanilla_pcgrl
 
 #python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
-python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow" --alp_gmm
+python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "turtle"

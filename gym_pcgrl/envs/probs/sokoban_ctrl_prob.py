@@ -22,7 +22,7 @@ class SokobanCtrlProblem(SokobanProblem):
 
         self.static_trgs = {
                 'player': 1,
-                'crate': (1, self._max_crates),
+                'crate': (2, self._max_crates),
                 'target': (1, self._max_crates),
                 'regions': 1,
                 'ratio': 0,

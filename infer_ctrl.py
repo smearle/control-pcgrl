@@ -4,7 +4,7 @@ Run a trained agent for qualitative analysis.
 from pdb import set_trace as T
 import numpy as np
 import cv2
-from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size
+from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size, get_env_name
 from envs import make_vec_envs
 
 
@@ -27,7 +27,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     max_trials = kwargs.get('max_trials', -1)
     n = kwargs.get('n', None)
     map_width = infer_kwargs.get('map_width')
-    env_name = '{}-{}-v0'.format(game, representation)
+    env_name = get_env_name(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if n is None:
         if EXPERIMENT_ID is None:

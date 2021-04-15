@@ -55,9 +55,15 @@ class ParamRew(gym.Wrapper):
         self.all_metrics.update(self.usable_metrics)
         self.all_metrics.update(self.static_metrics)
 
+        if 'RCT' or 'Micropolis' in type(env.unwrapped):
+            self.RCT = True
+
         for k in self.all_metrics:
             v = self.metrics[k]
-            self.weights[k] = self.unwrapped.weights[k]
+            if self.RCT and k not in self.usable_metrics:
+                self.weights[k] = 0
+            else:
+                self.weights[k] = self.unwrapped.weights[k]
 
 #       for k in self.usable_metrics:
 #           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
@@ -74,9 +80,16 @@ class ParamRew(gym.Wrapper):
 #           n_new_obs = 1 * len(self.usable_metrics)
         else:
             n_new_obs = 1 * len(self.usable_metrics)
-        obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + n_new_obs
-        low = self.observation_space.low
-        high = self.observation_space.high
+        if 'RCT' or 'Micropolis' in type(env.unwrapped):
+            self.CHAN_LAST = True
+            obs_shape = orig_obs_shape[1], orig_obs_shape[2], orig_obs_shape[0] + n_new_obs
+            low = self.observation_space.low.transpose(1, 2, 0)
+            high = self.observation_space.high.transpose(1, 2, 0)
+        else:
+            self.CHAN_LAST = False
+            obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + n_new_obs
+            low = self.observation_space.low
+            high = self.observation_space.high
         metrics_shape = (obs_shape[0], obs_shape[1], n_new_obs)
         self.metrics_shape = metrics_shape
         metrics_low = np.full(metrics_shape, fill_value=0)
@@ -85,7 +98,7 @@ class ParamRew(gym.Wrapper):
         high = np.concatenate((metrics_high, high), axis=2)
         self.observation_space = gym.spaces.Box(low=low, high=high)
         # Yikes lol (this is to appease SB3)
-        self.unwrapped.observation_space = self.observation_space
+#       self.unwrapped.observation_space = self.observation_space
         print('conditional observation space: {}'.format(self.observation_space))
         self.next_trgs = None
 
@@ -178,6 +191,8 @@ class ParamRew(gym.Wrapper):
             i += 1
 #       print('param rew obs shape ', obs.shape)
 #       print('metric trgs shape ', metrics_ob.shape)
+#       if self.CHAN_LAST:
+#           obs = obs.transpose(1, 2, 0)
         obs = np.concatenate((metrics_ob, obs), axis=2)
 
         return obs

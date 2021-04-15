@@ -5,6 +5,8 @@ prob_cond_metrics = {
         'binary_ctrl': ['regions', 'path-length'],
         'zelda_ctrl': ['nearest-enemy', 'path-length'],
         'sokoban_ctrl': ['crate', 'sol-length'],
+        'MicropolisEnv': ['res_pop'],
+        'RCT': ['income'],
         }
 
 all_metrics = {
