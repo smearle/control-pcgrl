@@ -39,6 +39,7 @@ from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 """
 /// Required Environment ///
 conda create -n ribs-pt python=3.7
+pip install scipy==1.2.0  # must use this version with GVGAI_GYM
 conda install -c conda-forge notebook
 conda install pytorch torchvision torchaudio -c pytorch
 conda install tensorboard
