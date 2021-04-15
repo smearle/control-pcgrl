@@ -56,11 +56,11 @@ class ParamRew(gym.Wrapper):
         self.all_metrics.update(self.static_metrics)
 
         if 'RCT' or 'Micropolis' in type(env.unwrapped):
-            self.RCT = True
+            self.SC_RCT = True
 
         for k in self.all_metrics:
             v = self.metrics[k]
-            if self.RCT and k not in self.usable_metrics:
+            if self.SC_RCT and k not in self.usable_metrics:
                 self.weights[k] = 0
             else:
                 self.weights[k] = self.unwrapped.weights[k]

@@ -74,7 +74,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     ca_action = kwargs.get('ca_action')
     map_width = kwargs.get('map_width')
 
-    if representation == 'wide' and not 'RCT' or 'Micropolis' in game:
+    if representation == 'wide' and not ('RCT' in game or 'Micropolis' in game):
         if ca_action:
             raise Exception()
 #           policy = CApolicy

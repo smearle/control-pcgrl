@@ -276,7 +276,8 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env = gym.make(game)
         if 'micropolis' in game.lower():
             self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
-        if 'RCT' in game:
+            self.env = self.pcgrl_env
+        elif 'RCT' in game:
             self.pcgrl_env = RCTWrapper(self.pcgrl_env)
             self.env = self.pcgrl_env
         else:
@@ -299,9 +300,23 @@ class SimCityWrapper(gym.Wrapper):
         self.env = game
         self.env.configure(map_width=16)
         super(SimCityWrapper, self).__init__(self.env)
-        self.observation_space = gym.spaces.Dict({
-                'map': self.observation_space,
-                })
+#       self.observation_space = gym.spaces.Dict({
+#               'map': self.observation_space,
+#               })
+
+#       self.action_space = self.unwrapped.action_space = gym.spaces.MultiDiscrete((self.map_width, self.map_width, self.n_tools))
+
+    def step(self, action):
+        obs, rew, done, info = super().step(action)
+#       obs = {'map': np.array(obs).transpose(1, 2, 0)}
+        obs = obs.transpose(1, 2, 0)
+        return obs, rew, done, info
+
+    def reset(self):
+        obs = super().reset()
+#       obs = {'map': obs.transpose(1, 2, 0)}
+        obs = obs.transpose(1, 2, 0)
+        return obs
 
     def adjust_param(self, **kwargs):
         return
