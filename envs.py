@@ -4,8 +4,6 @@ from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from utils import RenderMonitor
 from gym import spaces
 from pdb import set_trace as T
-import gym_city
-import micro_rct
 
 def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     '''

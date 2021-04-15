@@ -5,6 +5,7 @@ import numpy as np
 import math
 import os
 from pdb import set_trace as T
+import micro_rct
 
 # clean the input action
 get_action = lambda a: a.item() if hasattr(a, "item") else a
@@ -252,6 +253,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env = gym.make(game)
         if 'micropolis' in game.lower():
             self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
+            import gym_city
         if 'RCT' in game:
             self.pcgrl_env = RCTWrapper(self.pcgrl_env)
         else:

@@ -18,7 +18,7 @@ source activate
 conda activate vanilla_pcgrl
 
 #python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
-python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
+#python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "turtle"
@@ -32,11 +32,17 @@ python train_controllable.py --problem "binary_ctrl" --conditionals "path-length
 #python train_controllable.py --problem "zelda_ctrl" --conditionals "nearest-enemy" "path-length" --representation "wide"
 
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" --representation "narrow"
-#python train_controllable.py --problem "sokoban_ctrl" --conditionals "sol-length" --representation "narrow"
+python train_controllable.py --problem "sokoban_ctrl" --conditionals "sol-length" --representation "narrow"
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "narrow"
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "turtle"
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "wide"
 
+#python train_controllable.py --problem "RCT" --conditionals "happiness" --representation "wide"
+#python train_controllable.py --problem "RCT" --conditionals "happiness" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "income" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "num_vomits" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "happiness" "income" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "num_vomits" "income" --representation "wide" --alp_gmm --max_step 1000
 
 
 ## OLD FUCKING TRASH GARBAGE
