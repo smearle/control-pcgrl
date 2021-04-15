@@ -6,6 +6,7 @@ import math
 import os
 from pdb import set_trace as T
 import micro_rct
+import gym_city
 
 # clean the input action
 get_action = lambda a: a.item() if hasattr(a, "item") else a
