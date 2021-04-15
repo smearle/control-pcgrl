@@ -420,9 +420,18 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
                     time_penalty = n_step
                     batch_time_penalty -= time_penalty
 
-                    # we want to hit each of our static targets exactly, penalize for anything else
+                    # we want to hit each of our static targets exactly, penalize for anything else.
                     # for ranges, we take our least distance to any element in the range
-                    targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
+                    targets_penalty = 0
+                    for k in static_targets:
+                        if k in bc_names:
+                            continue
+                        if isinstance(static_targets[k], tuple):
+                            # take the smalles distance from current value to any point in range
+                            targets_penalty -= abs(np.arange(*static_targets[k]) - stats[k]).min()
+                        else:
+                            targets_penalty -= static_targets[k] - stats[k]
+#                   targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
                     batch_targets_penalty -= targets_penalty
 
             if RENDER:
@@ -692,7 +701,7 @@ class EvoPCGRL():
                 print(f"  - Mean Score: {df['objective'].mean()}")
                 print(f"  - Min Score: {df['objective'].min()}")
             # Save checkpoint
-            if itr % 1 == 0:
+            if itr % 10 == 0:
                 global ENV
                 ENV = self.env
                 self.env = None
