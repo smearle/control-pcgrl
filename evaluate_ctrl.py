@@ -147,7 +147,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
-                div_score = np.sum([np.sum(a != b) for a in tokens for b in tokens])
+                div_score = np.sum([np.sum(a != b) for a in tokens for b in tokens]) / (len(tokens) * (len(tokens) - 1))
                 div_scores[i, j] = div_score
 #               level_tokens[j][i] = tokens
             if RENDER_LEVELS:
