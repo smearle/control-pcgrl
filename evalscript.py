@@ -2,8 +2,6 @@ import os
 
 def eval(dir):
     
-    ctr = 0
-
     for filename in os.listdir(dir):
         argslist = []
         if filename.endswith("log"):
@@ -17,14 +15,10 @@ def eval(dir):
                     command += '--alp_gmm '
                 else:
                     command +=  condition + " "
-            command += "--n_maps 3 --n_trials 3 --n_bins 3 --diversity_eval --render_levels"
-            
-            
-            if ctr==0:
-                print(command)
-                os.system(command)
+            command += "--n_maps 3 --n_trials 3 --n_bins 3 --diversity_eval --render_level "
 
-            ctr+=1
+            print(command)
+            os.system(command)
                  
 if __name__ == '__main__':
     eval('runs')
