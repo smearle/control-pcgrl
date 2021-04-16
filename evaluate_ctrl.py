@@ -101,16 +101,18 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         cell_scores = np.zeros((len(eval_trgs), 1))
         cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
         cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
+        level_tokens = []
         for i, trg in enumerate(eval_trgs):
             trg_dict = {ctrl_name: trg}
             print('evaluating control targets: {}'.format(trg_dict))
             env.envs[0].set_trgs(trg_dict)
 #           set_ctrl_trgs(env, {ctrl_name: trg})
-            net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+            net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
             level_images.append(level_image)
             cell_scores[i] = net_score
             cell_ctrl_scores[i] = ctrl_score
             cell_static_scores[i] = static_score
+            level_tokens.append(tokens)
         ctrl_names = (ctrl_name, None)
         ctrl_ranges = (eval_trgs, None)
         if RENDER_LEVELS:
@@ -128,6 +130,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        level_tokens = [[[]*len(trgs_0)]* len(trgs_1)]
         trg_dict = env.envs[0].static_trgs
         trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
         level_images = []
@@ -138,13 +141,15 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 trg_dict.update(ctrl_trg_dict)
                 print('evaluating control targets: {}'.format(trg_dict))
     #           set_ctrl_trgs(env, {ctrl_name: trg})
-                net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+                net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
                 level_images_y.append(level_image)
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
+                level_tokens[i][j] = tokens
             if RENDER_LEVELS:
                 level_images.append(np.hstack(level_images_y))
+            level_tokens.append(tokens)
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
         if RENDER_LEVELS:
@@ -156,11 +161,17 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir)
         pickle.dump(eval_data, open(data_path, "wb"))
         eval_data.visualize_data(log_dir)
+
     else:
         levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
         eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
         pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
         eval_data_levels.render_levels()
+
+    if DIVERSITY_EVAL:
+        if RENDER_LEVELS:
+            eval_data = eval_data_levels
+        eval_data.hamming_heatmap(level_tokens)
 
 
 def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
@@ -170,6 +181,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     eval_static_scores = np.zeros(n_trials)
     n = 0
     # FIXME: why do we need this?
+    tokens = []
     while n < n_trials:
         env.envs[0].set_map(init_states[n % N_MAPS])
         obs = env.reset()
@@ -204,6 +216,8 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
         eval_ctrl_scores[n] = ctrl_score
         eval_static_scores[n] = static_score
         n += n_envs
+        tokens.append(env.envs[0].unwrapped._rep._map )
+
     eval_score = eval_scores.mean()
     eval_ctrl_score = eval_ctrl_scores.mean()
     eval_static_score = eval_static_scores.mean()
@@ -216,7 +230,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
         level_image = asarray(image)
     else:
         level_image = None
-    return eval_score, eval_ctrl_score, eval_static_score, level_image
+    return eval_score, eval_ctrl_score, eval_static_score, level_image, tokens
 
 
 
@@ -233,7 +247,7 @@ class EvalData():
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
         self.log_dir = log_dir
-
+        
     def visualize_data(self, log_dir):
 
         def create_heatmap(title, data):
@@ -296,7 +310,105 @@ class EvalData():
 
         title = "Fixed goals (mean progress, %)"
         create_heatmap(title, cell_static_scores)
+
+        title = "Hamming distances"
         self.save_stats()
+
+    def pairwise_hamming(self, a, b):
+        
+        hamming = 0
+        #assumes border is one tile
+        for i in range(1, len(a)-1):
+            for j in range(1, len(a[0])-1):
+                if a[i][j] != b[i][j]:
+                    hamming += 1
+        return hamming
+
+    def hamming_heatmap(self, level_tokens):
+        if N_MAPS==1:
+            return
+        
+        fig, ax = plt.subplots()
+        title = "Diversity"
+            
+        #get the hamming distance between all possible pairs of chromosomes in each cell
+        #1) make the evaldata function have the tilemap for each env in each bucket.
+        #2) feed THAT info to this function.
+        print(len(level_tokens))
+        print(len(level_tokens[0]))
+        print(len(level_tokens[0][0]))
+        if type(level_tokens[0][0])==list:
+            hamming_scores = np.zeros(shape=(len(level_tokens[0]), len(level_tokens)))
+            for i, row in enumerate(level_tokens):
+                for j, col in enumerate(level_tokens[i]):
+                    hamming = 0
+                    counter = 0
+                    for k in range(len(col)-1):
+                        for l in range(k+1,len(col)):
+                            print("index: ", k, l)
+                            hamming += self.pairwise_hamming(col[k], col[l])
+                            counter+=1
+                    hamming = hamming/counter
+                    hamming_scores[i//N_BINS,j//N_BINS] = hamming
+        else:
+            for i in range(len(level_tokens[0])):
+                for j in range(len(level_tokens)):
+                    print("bin ", j)
+                    print(level_tokens[j][i][0])
+
+            for i, tokens in enumerate(level_tokens):
+                hamming_scores = np.zeros(shape=(len(level_tokens), 1))
+                hamming = 0
+                counter = 0
+                for j in range(len(tokens)-1):
+                    for k in range(j+1, len(tokens)):
+                        print("index: ", j, k)
+                        hamming += self.pairwise_hamming(tokens[j], tokens[k])
+                        counter+=1
+                hamming = hamming/counter
+                hamming_scores[i] = hamming
+        hamming_scores = hamming_scores.T
+        print("ctr", counter)
+        print(hamming_scores)
+
+        if hamming_scores.shape[0]==1:
+            fig.set_size_inches(10, 2)
+            ax.set_yticks([])
+            tick_idxs = np.arange(0, self.cell_scores.shape[0], max(1, (self.cell_scores.shape[0] // 10)))
+            ticks = np.arange(self.cell_scores.shape[0])
+            ticks = ticks[tick_idxs]
+            ax.set_xticks(ticks)
+            labels = np.array([int(x) for (i, x) in enumerate(self.ctrl_ranges[0])])
+            labels = labels[tick_idxs]
+            ax.set_xticklabels(labels)
+        else:
+            hamming_scores = hamming_scores[::-1,:]
+            ax.set_xticks(np.arange(self.cell_scores.shape[0]))
+            ax.set_yticks(np.arange(self.cell_scores.shape[1]))
+            ax.set_xticklabels([int(x) for x in self.ctrl_ranges[0]])
+            ax.set_yticklabels([int(x) for x in self.ctrl_ranges[1][::-1]])
+        # Create the heatmap
+        im = ax.imshow(hamming_scores, aspect='auto')
+
+        #Create colorbar
+        cmap = colors.ListedColormap(['b','r','y','r'])
+        cbar = ax.figure.colorbar(im, ax=ax)
+        cbar.ax.set_ylabel("", rotation=90, va="bottom")
+
+        # We want to show all ticks...
+        # ... and label them with the respective list entries
+        plt.xlabel(self.ctrl_names[0])
+        plt.ylabel(self.ctrl_names[1])
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                rotation_mode="anchor")
+
+        ax.set_title(title)
+        fig.tight_layout()
+
+        plt.savefig(os.path.join(self.log_dir, "{}_{}.png".format(self.ctrl_names, title.replace("%", ""))))
+
 
     def save_stats(self):
         scores = {
@@ -344,6 +456,7 @@ class EvalData():
         plt.savefig(self.levels_im_path, bbox_inches = 'tight',
             pad_inches = pad_inches)
         plt.show()
+
 
 
 
@@ -419,10 +532,15 @@ args.add_argument('--render_levels',
         help='Save final maps (default to only one eval per cell)',
         action='store_true',
         )
+args.add_argument('--diversity_eval',
+        help='Evaluate average pairwise hamming distance per cell',
+        action='store_true',
+        )
 from arguments import parse_pcgrl_args
 opts = parse_pcgrl_args(args)
 global VIS_ONLY 
 VIS_ONLY = opts.vis_only
+DIVERSITY_EVAL = opts.diversity_eval
 
 # For locating trained model
 global EXPERIMENT_ID
@@ -499,7 +617,7 @@ infer_kwargs = {
 global N_BINS
 N_BINS = tuple(opts.n_bins)
 
-if RENDER_LEVELS:
+if RENDER_LEVELS and not DIVERSITY_EVAL:
     N_MAPS = 1
     N_TRIALS = 1
 else:

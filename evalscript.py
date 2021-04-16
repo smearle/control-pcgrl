@@ -1,23 +1,31 @@
 import os
 
 def eval(dir):
-
-    argslist = []
+    
+    ctr = 0
 
     for filename in os.listdir(dir):
+        argslist = []
         if filename.endswith("log"):
             argslist.append(filename.split("_")[:-1])
 
+        for arg in argslist:
+            conditionals = arg[4:-1]
+            command = (f"python evaluate_ctrl.py -p {arg[0]}_{arg[1]} -r {arg[2]} -c ")
+            for condition in conditionals:
+                if condition == 'ALPGMM':
+                    command += '--alp_gmm '
+                else:
+                    command +=  condition + " "
+            command += "--n_maps 3 --n_trials 3 --n_bins 3 --diversity_eval --render_levels"
+            
+            
+            if ctr==0:
+                print(command)
+                os.system(command)
 
-    for arg in argslist:
-        conditionals = arg[3:-1]
-        command = (f"python evaluate.py -p {arg[0]} -r {arg[1]} -c ")
-        for condition in conditionals:
-            command +=  condition + " "
-        command += f"--load_best --experiment_id {arg[-1]} --n_maps 6"
-        os.system(command)
+            ctr+=1
                  
-
 if __name__ == '__main__':
     eval('runs')
-
+    
