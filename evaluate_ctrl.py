@@ -183,7 +183,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     # FIXME: why do we need this?
     tokens = []
     while n < n_trials:
-        env.envs[0].set_map(init_states[n % N_MAPS])
+        env.envs[0].set_map(init_states[n % N_TRIALS])
         obs = env.reset()
 #       epi_rewards = np.zeros((max_step, n_envs))
         i = 0
