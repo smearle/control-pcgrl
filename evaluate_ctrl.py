@@ -8,7 +8,7 @@ from pdb import set_trace as T
 import numpy as np
 from numpy import asarray
 import cv2
-from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size
+from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size, get_env_name
 from envs import make_vec_envs
 from matplotlib import pyplot as plt
 import pickle
@@ -36,7 +36,8 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     map_width = infer_kwargs.get('map_width')
     max_steps = infer_kwargs.get('max_step')
     eval_controls = infer_kwargs.get('eval_controls')
-    env_name = '{}-{}-v0'.format(game, representation)
+    env_name = get_env_name(game, representation)
+#   env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     levels_im_name = "{}_{}-bins_levels.png"
     if n is None:
@@ -90,7 +91,9 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     init_states = []
     for i in range(N_TRIALS):
         env.envs[0].reset()
-        init_states.append(env.envs[0].unwrapped._rep._map)
+        # TODO: set initial states in either of these domains?
+        if not (RCT or SC):
+            init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
     if len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
@@ -147,6 +150,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 level_images.append(np.hstack(level_images_y))
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
+        image = None
         if RENDER_LEVELS:
             image = np.vstack(level_images[::-1])
             image = Image.fromarray(image)
@@ -171,7 +175,12 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     n = 0
     # FIXME: why do we need this?
     while n < n_trials:
-        env.envs[0].set_map(init_states[n % N_MAPS])
+        if not (RCT or SC):
+            env.envs[0].set_map(init_states[n % N_MAPS])
+        elif SC:
+            # Resize gui window for simcity
+            env.envs[0].win1.editMapView.changeScale(0.77)
+            env.envs[0].win1.editMapView.centerOnTile(20, 16)
         obs = env.reset()
 #       epi_rewards = np.zeros((max_step, n_envs))
         i = 0
@@ -185,6 +194,18 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
             if True:
                 if RENDER_LEVELS:
                     image = env.render('rgb_array')
+                    if SC and i == max_steps - 1:
+                        #FIXME lmao fucking stupid as all heck
+                        im_path = os.path.join(log_dir, '{}_level.png'.format(trg_dict))
+                        image = env.envs[0].win1.editMapView.buffer.write_to_png(im_path)
+                        em = env.envs[0].win1.editMapView
+                        image = Image.open(im_path)
+                        image = np.array(image)
+                        print(image.shape)
+                        image = image[:, 400:-400, :]
+                        print(image.shape)
+                    if RCT and i == max_steps - 1:
+                        image = Image.fromarray(image.transpose(1, 0, 2))
                 final_loss = env.envs[0].get_loss()
                 final_ctrl_loss = env.envs[0].get_ctrl_loss()
                 final_static_loss = env.envs[0].get_static_loss()
@@ -210,8 +231,8 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     print('eval score: {}'.format(eval_score))
     print('control score: {}'.format(ctrl_score))
     print('static score: {}'.format(static_score))
-    if RENDER_LEVELS:
-#       image = env.render('rgb_array')
+    if RENDER_LEVELS and not SC:
+        # we hackishly save it for SC up above already
         image.save(os.path.join(log_dir, '{}_level.png'.format(trg_dict)))
         level_image = asarray(image)
     else:
@@ -434,6 +455,14 @@ else:
     EXPERIMENT_DIR = 'hpc_runs'
 EXPERIMENT_ID = opts.experiment_id
 problem = opts.problem
+if 'RCT' in problem:
+    RCT = True
+else:
+    RCT = False
+if 'Micropolis' in problem:
+    SC = True
+else:
+    SC = False
 representation = opts.representation
 conditional = True
 midep_trgs = opts.midep_trgs

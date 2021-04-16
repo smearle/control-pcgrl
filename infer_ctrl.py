@@ -111,8 +111,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 #               infer_info['regions'] = regions[-1]
             n_step = 0
             n_trials += 1
-        print(env.envs[0].metrics)
-        print(n_step)
+#       print(env.envs[0].metrics)
+#       print(n_step)
     return infer_info
 
 

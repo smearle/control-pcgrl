@@ -55,8 +55,10 @@ class ParamRew(gym.Wrapper):
         self.all_metrics.update(self.usable_metrics)
         self.all_metrics.update(self.static_metrics)
 
-        if 'RCT' or 'Micropolis' in type(env.unwrapped):
+        if 'RCT' in str(type(env.unwrapped)) or 'Micropolis' in str(type(env.unwrapped)):
             self.SC_RCT = True
+        else:
+            self.SC_RCT = False
 
         for k in self.all_metrics:
             v = self.metrics[k]
@@ -80,7 +82,7 @@ class ParamRew(gym.Wrapper):
 #           n_new_obs = 1 * len(self.usable_metrics)
         else:
             n_new_obs = 1 * len(self.usable_metrics)
-        if 'RCT' or 'Micropolis' in type(env.unwrapped):
+        if self.SC_RCT:
             self.CHAN_LAST = True
             obs_shape = orig_obs_shape[1], orig_obs_shape[2], orig_obs_shape[0] + n_new_obs
             low = self.observation_space.low.transpose(1, 2, 0)
@@ -301,7 +303,10 @@ class ParamRew(gym.Wrapper):
 #       print(reward)
        #return reward
 #           reward = loss
-        loss = self.get_loss()
+        if not self.SC_RCT:
+            loss = self.get_loss()
+        else:
+            loss = self.get_ctrl_loss()
        #return loss
         reward = loss - self.last_loss
         self.last_loss = loss
@@ -318,7 +323,7 @@ class ParamRew(gym.Wrapper):
             if isinstance(v, tuple):
                 if self.metrics[k] in np.arange(*v):
                     done = False
-            elif self.metrics[k] != int(v):
+            elif int(self.metrics[k]) != int(v):
                 done = False
 
         if done and self.infer:

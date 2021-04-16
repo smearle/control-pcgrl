@@ -81,7 +81,7 @@ def make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs):
     return env
 
 def get_env_name(game, representation):
-    if 'RCT' or 'Micropolis' in game:
+    if 'RCT' in game or 'Micropolis' in game:
         env_name = '{}-v0'.format(game)
     else:
         env_name = '{}-{}-v0'.format(game, representation)

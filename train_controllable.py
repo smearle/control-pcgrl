@@ -6,8 +6,9 @@ import model
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
 from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
-from utils import get_exp_name, max_exp_idx, load_model, get_crop_size
+from utils import get_exp_name, max_exp_idx, load_model, get_crop_size, get_env_name
 from envs import make_vec_envs
+import gym_pcgrl
 #from stable_baselines3 import PPO
 from stable_baselines import PPO2
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
@@ -64,10 +65,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]:
         raise Exception("Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
     kwargs['n_cpu'] = n_cpu
-    if 'Micropolis' or 'RCT' in game:
-        env_name = '{}-v0'.format(game)
-    else:
-        env_name = '{}-{}-v0'.format(game, representation)
+    env_name = get_env_name(game, representation)
     print('env name: ', env_name)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
@@ -199,6 +197,10 @@ if ca_action:
 if alp_gmm:
     experiment = '_'.join([experiment, 'ALPGMM'])
 #   max_step = 5
+if len(COND_METRICS) == 0:
+    change_percentage = 0.2
+else:
+    change_percentage = 1
 kwargs = {
     'map_width': map_width,
     'change_percentage': 1,
@@ -210,6 +212,7 @@ kwargs = {
     'ca_action': ca_action,
     'cropped_size': opts.crop_size,
     'alp_gmm': alp_gmm,
+    'change_percentage': change_percentage,
 }
 
 if __name__ == '__main__':
