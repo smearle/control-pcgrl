@@ -128,6 +128,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        div_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         level_tokens = [[None]*len(trgs_0)]* len(trgs_1)
@@ -146,10 +147,12 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
-                level_tokens[j][i] = tokens
+                div_score = np.sum([np.sum(a != b) for a in tokens for b in tokens])
+                div_scores[i, j] = div_score
+#               level_tokens[j][i] = tokens
             if RENDER_LEVELS:
                 level_images.append(np.hstack(level_images_y))
-            level_tokens.append(tokens)
+#           level_tokens.append(tokens)
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
         if RENDER_LEVELS:
@@ -171,7 +174,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if DIVERSITY_EVAL:
         if RENDER_LEVELS:
             eval_data = eval_data_levels
-        eval_data.hamming_heatmap(level_tokens)
+        eval_data.hamming_heatmap(level_tokens, div_scores=div_scores)
 
 
 def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
@@ -318,53 +321,57 @@ class EvalData():
     def pairwise_hamming(self, a, b):
         return np.sum(a != b)
 
-    def hamming_heatmap(self, level_tokens):
+    def hamming_heatmap(self, level_tokens, div_scores=None):
         if N_MAPS==1:
             return
         
         fig, ax = plt.subplots()
         title = "Diversity"
-            
-        #get the hamming distance between all possible pairs of chromosomes in each cell
-        #1) make the evaldata function have the tilemap for each env in each bucket.
-        #2) feed THAT info to this function.
-        print(len(level_tokens))
-        print(len(level_tokens[0]))
-        print(len(level_tokens[0][0]))
-        if type(level_tokens[0][0])==list:
-            hamming_scores = np.zeros(shape=(len(level_tokens[0]), len(level_tokens)))
-            for i, row in enumerate(level_tokens):
-                for j, col in enumerate(level_tokens[i]):
+
+        if div_scores is not None:
+            hamming_scores = div_scores
+        else:
+            #get the hamming distance between all possible pairs of chromosomes in each cell
+            #1) make the evaldata function have the tilemap for each env in each bucket.
+            #2) feed THAT info to this function.
+            print(len(level_tokens))
+            print(len(level_tokens[0]))
+            print(len(level_tokens[0][0]))
+            if type(level_tokens[0][0])==list:
+                hamming_scores = np.zeros(shape=(len(level_tokens[0]), len(level_tokens)))
+                for i, row in enumerate(level_tokens):
+                    for j, col in enumerate(level_tokens[i]):
+                        hamming = 0
+                        counter = 0
+                        for k in range(len(col)-1):
+                            for l in range(k+1,len(col)):
+                                print("index: ", k, l)
+                                hamming += self.pairwise_hamming(col[k], col[l])
+                                counter+=1
+                        # Division by zero can happen here, why?
+                        if counter > 0:
+                            hamming = hamming/counter
+                        print(hamming_scores.shape)
+                        hamming_scores[j,i] = hamming
+            else:
+                hamming_scores = np.zeros(shape=(len(level_tokens), 1))
+                for i in range(len(level_tokens[0])):
+                    for j in range(len(level_tokens)):
+                        print("bin ", j)
+                        print(level_tokens[j][i][0])
+
+                for i, tokens in enumerate(level_tokens):
                     hamming = 0
                     counter = 0
-                    for k in range(len(col)-1):
-                        for l in range(k+1,len(col)):
-                            print("index: ", k, l)
-                            hamming += self.pairwise_hamming(col[k], col[l])
+                    for j in range(len(tokens)-1):
+                        for k in range(j+1, len(tokens)):
+                            print("index: ", j, k)
+                            hamming += self.pairwise_hamming(tokens[j], tokens[k])
                             counter+=1
-                    # Division by zero can happen here, why?
-                    if counter > 0:
-                        hamming = hamming/counter
-                    hamming_scores[j,i] = hamming
-        else:
-            hamming_scores = np.zeros(shape=(len(level_tokens), 1))
-            for i in range(len(level_tokens[0])):
-                for j in range(len(level_tokens)):
-                    print("bin ", j)
-                    print(level_tokens[j][i][0])
-
-            for i, tokens in enumerate(level_tokens):
-                hamming = 0
-                counter = 0
-                for j in range(len(tokens)-1):
-                    for k in range(j+1, len(tokens)):
-                        print("index: ", j, k)
-                        hamming += self.pairwise_hamming(tokens[j], tokens[k])
-                        counter+=1
-                hamming = hamming/counter
-                hamming_scores[i] = hamming
-        hamming_scores = hamming_scores.T
-        print("ctr", counter)
+                    hamming = hamming/counter
+                    hamming_scores[i] = hamming
+            hamming_scores = hamming_scores.T
+            print("ctr", counter)
         print(hamming_scores)
 
         if hamming_scores.shape[0]==1:
