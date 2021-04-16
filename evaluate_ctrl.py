@@ -88,7 +88,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
     # Hackish get initial states
     init_states = []
-    for i in range(N_TRIALS):
+    for i in range(N_MAPS):
         env.envs[0].reset()
         init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
@@ -130,7 +130,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
-        level_tokens = [[[]*len(trgs_0)]* len(trgs_1)]
+        level_tokens = [[None]*len(trgs_0)]* len(trgs_1)
         trg_dict = env.envs[0].static_trgs
         trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
         level_images = []
@@ -146,7 +146,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
-                level_tokens[i][j] = tokens
+                level_tokens[j][i] = tokens
             if RENDER_LEVELS:
                 level_images.append(np.hstack(level_images_y))
             level_tokens.append(tokens)
@@ -183,7 +183,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     # FIXME: why do we need this?
     tokens = []
     while n < n_trials:
-        env.envs[0].set_map(init_states[n % N_TRIALS])
+        env.envs[0].set_map(init_states[n % N_MAPS])
         obs = env.reset()
 #       epi_rewards = np.zeros((max_step, n_envs))
         i = 0
@@ -200,6 +200,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
                 final_loss = env.envs[0].get_loss()
                 final_ctrl_loss = env.envs[0].get_ctrl_loss()
                 final_static_loss = env.envs[0].get_static_loss()
+                curr_tokens = env.envs[0].unwrapped._rep._map
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
 #           epi_rewards[i] = rewards
@@ -216,7 +217,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
         eval_ctrl_scores[n] = ctrl_score
         eval_static_scores[n] = static_score
         n += n_envs
-        tokens.append(env.envs[0].unwrapped._rep._map )
+        tokens.append(curr_tokens)
 
     eval_score = eval_scores.mean()
     eval_ctrl_score = eval_ctrl_scores.mean()
@@ -315,14 +316,7 @@ class EvalData():
         self.save_stats()
 
     def pairwise_hamming(self, a, b):
-        
-        hamming = 0
-        #assumes border is one tile
-        for i in range(1, len(a)-1):
-            for j in range(1, len(a[0])-1):
-                if a[i][j] != b[i][j]:
-                    hamming += 1
-        return hamming
+        return np.sum(a != b)
 
     def hamming_heatmap(self, level_tokens):
         if N_MAPS==1:
@@ -348,16 +342,18 @@ class EvalData():
                             print("index: ", k, l)
                             hamming += self.pairwise_hamming(col[k], col[l])
                             counter+=1
-                    hamming = hamming/counter
-                    hamming_scores[i//N_BINS,j//N_BINS] = hamming
+                    # Division by zero can happen here, why?
+                    if counter > 0:
+                        hamming = hamming/counter
+                    hamming_scores[j,i] = hamming
         else:
+            hamming_scores = np.zeros(shape=(len(level_tokens), 1))
             for i in range(len(level_tokens[0])):
                 for j in range(len(level_tokens)):
                     print("bin ", j)
                     print(level_tokens[j][i][0])
 
             for i, tokens in enumerate(level_tokens):
-                hamming_scores = np.zeros(shape=(len(level_tokens), 1))
                 hamming = 0
                 counter = 0
                 for j in range(len(tokens)-1):
