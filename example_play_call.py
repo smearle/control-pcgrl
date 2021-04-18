@@ -21,12 +21,12 @@
 import random
 import sys
 
-gvgai_path = '/Volumes/Data_01/home/g/hybrid/GVGAI_GYM/'
+gvgai_path = '/home/sme/GVGAI_GYM/'
 sys.path.insert(0,gvgai_path)
 from play import play
 # import play.play as play
 
-def player(state,action_space=6):
+def random_player(state,action_space=6):
     """
     player takes a current state and returns an action
     state (numpy array dtype uint8 shape (90, 130, 4)): the current state of the game as pixel values
@@ -37,7 +37,7 @@ def player(state,action_space=6):
 
 
 
-# # Loosing level
+# # Losing level
 # level = (
 # """wwwwwwwwwwwww
 # wwAwg+...w..w
@@ -63,7 +63,7 @@ w.....2.....w
 wwwwwwwwwwwww"""
 )
 
-result = play(level, player, gvgai_path, 1000)
+result = play(level, random_player, gvgai_path, 1000)
 
 
 print(result)
