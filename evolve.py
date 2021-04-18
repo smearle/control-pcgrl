@@ -1,4 +1,5 @@
 import argparse
+import sys
 import os
 import pickle
 import time
@@ -24,6 +25,10 @@ from torch.nn import Conv2d, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
+from example_play_call import random_player
+gvgai_path = '/home/sme/GVGAI_GYM/'
+sys.path.insert(0,gvgai_path)
+from play import play
 
 import ray
 
@@ -385,19 +390,12 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             if not CA_ACTION:
                 pass
 #               action = np.array([action[1], action[2], action[0]])
-#               # two identical actions means that we are caught in a loop, assuming we sample actions deterministically from the NN (we do)
-#               done = (action == last_int_map).all() or n_step >= 100
-#               if done:
-#                   bcs[0, n_episode] = env._rep_stats['path-length']
-#                   bcs[1, n_episode] = env._rep_stats['regions']
-#                   reward = 0
-#               else:
-#                   obs, reward, _, info = env.step(action)
-
-            # Hack implementation of a cellular automata-like action. We only need to get stats at the end of the episode!
             else:
                 obs = action
                 int_map = action.argmax(axis=0)
+                if PLAY_LEVEL:
+                    play_result = play(int_map, random_player, gvgai_path, 1000)
+                    print(play_result)
                 env._rep._map = int_map
                 reward = 0
                 done = (int_map == last_int_map).all() or n_step >= N_STEPS
@@ -904,6 +902,11 @@ if __name__ == '__main__':
         help='Use multi-thread evolution process.',
         action='store_true',
     )
+    opts.add_argument(
+        '--play_level',
+        help="Use a playing agent to evaluate generated levels.",
+        action='store_true',
+    )
 
     opts = opts.parse_args()
     global INFER
@@ -920,6 +923,8 @@ if __name__ == '__main__':
     global BCS
     global GRID
     global THREADS
+    global PLAY_LEVEL
+    PLAY_LEVEL = opts.play_level
     BCS = opts.behavior_characteristics
     N_GENERATIONS = opts.n_generations
     N_INIT_STATES = opts.n_init_states

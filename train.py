@@ -2,9 +2,10 @@
 #Install stable-baselines as described in the documentation
 
 import model
-from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
+from model import FullyConvPolicy, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
-from stable_baselines import PPO2
+#from stable_baselines import PPO2
+from policy import PPO2
 from stable_baselines.results_plotter import load_results, ts2xy
 
 import tensorflow as tf
@@ -49,11 +50,12 @@ def callback(_locals, _globals):
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
+    kwargs['n_cpu'] = n_cpu
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
     if representation == 'wide':
-        policy = FullyConvPolicyBigMap
+        policy = FullyConvPolicy
         if game == "sokoban":
             policy = FullyConvPolicySmallMap
     else:
@@ -83,7 +85,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     used_dir = log_dir
     if not logging:
         used_dir = None
-    env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
+    env = make_vec_envs(env_name, representation, log_dir, **kwargs)
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
@@ -94,9 +96,9 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'binary'
-representation = 'narrow'
-experiment = None
+game = 'sokoban'
+representation = 'wide'
+experiment = 'LongConv'
 steps = 1e8
 render = False
 logging = True
