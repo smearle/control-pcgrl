@@ -758,16 +758,7 @@ class EvoPCGRL():
         self.n_generator_weights = initial_w.shape[0]
         self.n_player_weights = 0
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
-        gen_emitters = [
-#           ImprovementEmitter(
-            OptimizingEmitter(
-                self.gen_archive,
-                initial_w.flatten(),
-                # TODO: play with initial step size?
-                1,  # Initial step size.
-                batch_size=30,
-            ) for _ in range(5)  # Create 5 separate emitters.
-        ]
+
        #gen_emitters.append(
        #    OptimizingEmitter(
        #        self.gen_archive,
@@ -780,6 +771,16 @@ class EvoPCGRL():
 
 
         if PLAY_LEVEL:
+            gen_emitters = [
+    #           ImprovementEmitter(
+                OptimizingEmitter(
+                    self.gen_archive,
+                    initial_w.flatten(),
+                    # TODO: play with initial step size?
+                    1,  # Initial step size.
+                    batch_size=30,
+                ) for _ in range(5)  # Create 5 separate emitters.
+            ]
             # Concatenate designer and player weights
             self.play_model = PlayerNN(self.n_tile_types)
             set_nograd(self.play_model)
@@ -796,6 +797,17 @@ class EvoPCGRL():
                 ) for _ in range(5)  # Create 5 separate emitters.
             ]
             self.play_optimizer = Optimizer(self.play_archive, play_emitters)
+        else:
+            gen_emitters = [
+    #           ImprovementEmitter(
+                ImprovementEmitter(
+                    self.gen_archive,
+                    initial_w.flatten(),
+                    # TODO: play with initial step size?
+                    1,  # Initial step size.
+                    batch_size=30,
+                ) for _ in range(5)  # Create 5 separate emitters.
+            ]
         self.gen_optimizer = Optimizer(self.gen_archive, gen_emitters)
 
         # These are the initial maps which will act as seeds to our NCA models
@@ -812,6 +824,9 @@ class EvoPCGRL():
         if PLAY_LEVEL:
             self.player_1 = PlayerNN(self.n_tile_types)
             self.player_2 = RandomPlayer(self.env.player_action_space)
+        else:
+            self.player_1 = None
+            self.player_2 = None
 
     def evolve(self):
 

@@ -15,13 +15,13 @@ class ZeldaCtrlProblem(ZeldaProblem):
                 'regions': 5,
                 'enemies': 1,
                 'nearest-enemy':1,
-#               'path-length': 1,
+                'path-length': 1,
                 }
 
         self.static_trgs = {
                 'enemies': (2, self._max_enemies),
-#               'path-length': self._max_path_length,
-#               'nearest-enemy': (5, self._max_nearest_enemy),
+                'path-length': self._max_path_length,
+                'nearest-enemy': (5, self._max_nearest_enemy),
                 'regions': 1,
                 'player': 1,
                 'key': 1,
@@ -34,12 +34,12 @@ class ZeldaCtrlProblem(ZeldaProblem):
                 'door': 1,
                 'regions': 1,
                 'enemies': 5,
-#               'nearest-enemy': 7,
-#               'path-length': 100,
+                'nearest-enemy': 7,
+                'path-length': 100,
                 }
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
-#               'nearest-enemy': (0, self._max_nearest_enemy),
+                'nearest-enemy': (0, self._max_nearest_enemy),
                 'enemies': (0, self._width * self._height - 2), 
                 'player': (0, self._width * self._height - 2), 
                 'key': (0, self._width * self._height - 2), 
@@ -48,7 +48,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
                                                                                             
                 #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
                 # and "snake" along that one
-#               'path-length': (0, self._max_path_length),  # Upper bound: zig-zag
+                'path-length': (0, self._max_path_length),  # Upper bound: zig-zag
 
                                                                                             #   11111111
                                                                                             #   00000001
