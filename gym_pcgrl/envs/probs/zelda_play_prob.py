@@ -39,7 +39,7 @@ class ZeldaPlayProblem(ZeldaCtrlProblem):
     ''' A version of zelda in which a player may control Link and play the game.'''
     def __init__(self, max_step=200):
         super().__init__()
-        self._width = self.MAP_X = 8
+        self._width = self.MAP_X = 16
         self._height = self._width
         self.playable = False
         self.active_agent = 0
@@ -54,17 +54,18 @@ class ZeldaPlayProblem(ZeldaCtrlProblem):
 
 
     def get_stats(self, map):
+        map_stats = super().get_stats(map)
         map_locations = get_tile_locations(map, self.get_tile_types())
         players = _get_certain_tiles(map_locations, ['player'])
-        map_stats = {
-            "player": len(players),
-            "key": calc_certain_tile(map_locations, ["key"]),
-            "door": calc_certain_tile(map_locations, ["door"]),
-            "enemies": calc_certain_tile(map_locations, ["bat", "spider", "scorpion"]),
-            "regions": calc_num_regions(map, map_locations, ["empty", "player", "key", "bat", "spider", "scorpion"]),
-            "nearest-enemy": 0,
-            "path-length": 0
-        }
+#       map_stats = {
+#           "player": len(players),
+#           "key": calc_certain_tile(map_locations, ["key"]),
+#           "door": calc_certain_tile(map_locations, ["door"]),
+#           "enemies": calc_certain_tile(map_locations, ["bat", "spider", "scorpion"]),
+#           "regions": calc_num_regions(map, map_locations, ["empty", "player", "key", "bat", "spider", "scorpion"]),
+#           "nearest-enemy": 0,
+#           "path-length": 0
+#       }
 
         if self.player.coords is None:
             if map_stats["player"] == 1: # and map_stats["key"] > 0 and map_stats["regions"] == 1 and map_stats["key"] >= 1:
@@ -160,4 +161,4 @@ class ZeldaPlayProblem(ZeldaCtrlProblem):
             rewards["path-length"] * self._rewards["path-length"]
 
     def is_playable(self, stats):
-        return stats["player"] == 1  # and stats["key"] == 1 and stats["door"] == 1
+        return stats["player"] == 1  and stats["key"] == 1 and stats["door"] == 1 and stats["regions"] == 1
