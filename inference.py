@@ -38,14 +38,16 @@ def infer(game, representation, model_path, **kwargs):
             if dones:
                 break
         time.sleep(0.2)
+        dones = False
 
 ################################## MAIN ########################################
 game = 'binary'
 representation = 'narrow'
-model_path = 'models/{}/{}/model_1.pkl'.format(game, representation)
+#model_path = 'models/{}/{}/model_1.pkl'.format(game, representation)
+model_path = 'runs/{}_{}_2_log/latest_model.pkl'.format(game, representation)
 kwargs = {
-    'change_percentage': 0.4,
-    'trials': 1,
+    'change_percentage': 1,
+    'trials': 100,
     'verbose': True
 }
 

@@ -30,14 +30,15 @@ class PcgrlEnv(gym.Env):
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self.metrics = {}
-        print('problem metrics trgs: {}'.format(self._prob.metric_trgs))
-        for k in self._prob.metric_trgs:
+        print('problem metrics trgs: {}'.format(self._prob.static_trgs))
+        for k in self._prob.static_trgs:
             self.metrics[k] = None
         print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
         self._changes = 0
         self.width = self._prob._width
-        self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
+#       self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
+        self._max_changes = max(int(1.0 * self._prob._width * self._prob._height), 1)
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
@@ -50,9 +51,9 @@ class PcgrlEnv(gym.Env):
 
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
         
-        self.metric_trgs = collections.OrderedDict(self._prob.metric_trgs)
+        self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)
         self.weights = self._prob.weights
-        self.param_bounds = self._prob.param_bounds
+#       self.param_bounds = self._prob.cond_bounds
 
     def configure(self, map_width, max_step=300):
         self._prob._width = map_width
@@ -61,12 +62,12 @@ class PcgrlEnv(gym.Env):
         self._prob.max_step = max_step
 
 
-    def get_param_bounds(self):
-        return self.param_bounds
+#   def get_param_bounds(self):
+#       return self.param_bounds
 
-    def set_param_bounds(self, bounds):
-        #TODO
-        return len(bounds)
+#   def set_param_bounds(self, bounds):
+#       #TODO
+#       return len(bounds)
 
     def set_params(self, trgs):
         for k, v in trgs.items():

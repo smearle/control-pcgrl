@@ -39,7 +39,7 @@ class PlayPcgrlEnv(PcgrlEnv):
         return self.player_action_space
 
     def reset(self):
-        print('resetting play pcgrl')
+#       print('resetting play pcgrl')
         obs = super().reset()
         self.won = False
         # FIXME: active agent is supposed to be 1 (player) for this reset?
@@ -53,6 +53,8 @@ class PlayPcgrlEnv(PcgrlEnv):
             # for player coords
             self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
             obs = self._rep.get_observation()
+        else:
+            self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
         return obs
 
     def step(self, action):
@@ -65,6 +67,8 @@ class PlayPcgrlEnv(PcgrlEnv):
             action = action[-1]
             move = self.player_actions[action]
             obs, rew, done, info = self.play(move)
+        else:
+            raise Exception
         if self._prob.playable:
             info['trg_agent'] = self.trg_agent
             info['playable_map'] = self._rep._map
@@ -93,10 +97,8 @@ class PlayPcgrlEnv(PcgrlEnv):
         return
 
     def play(self, move):
-        if self._prob.player.coords is None:
-            self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-            if self._prob.player.coords is None:
-                self._prob.player.coords = 3, 3
+       #if self._prob.player.coords is None:
+       #    self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
         assert self._prob.player.coords is not None
         x, y = self._prob.player.coords
         player_chan = 2
@@ -115,9 +117,21 @@ class PlayPcgrlEnv(PcgrlEnv):
                 self._rep.update([x_t, y_t, player_chan])
                 self._prob.player.coords = x_t, y_t
         obs = self._rep.get_observation()
-        rew = self._prob.get_reward(None, None)
-        done = False
+#       rew = self._prob.get_reward(None, None)
+        done = self._prob.player.done
+       #if done:
+       #    if self._prob.player.won:
+       #        rew = 1
+       #    else:
+       #        rew = 0
+       #else:
+       #    rew = 0
+        rew = self._prob.player.rew
+
         info = {}
         info['won'] = self.won
 
         return obs, rew, done, info
+
+    def is_playable(self):
+        return self._prob.is_playable(self._rep_stats)

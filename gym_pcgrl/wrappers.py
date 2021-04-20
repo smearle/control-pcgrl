@@ -11,11 +11,7 @@ def get_action(a):
 
 
 # unwrap all the environments and get the PcgrlEnv
-
-
-def get_pcgrl_env(env):
-    return env if "PcgrlEnv" in str(type(env)) else get_pcgrl_env(env.env)
-
+get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) or "PcgrlCtrlEnv" in str(type(env)) else get_pcgrl_env(env.env)
 
 class MaxStep(gym.Wrapper):
     """
@@ -37,22 +33,21 @@ class MaxStep(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
     def step(self, action):
-        obs, reward, done, info = self.env.step(action)
-        self.n_step += 1
+         obs, reward, done, info = self.env.step(action)
+         self.n_step += 1
 
-        if self.n_step == self.max_step:
-            done = True
-        else:
-            done = False
+         if self.n_step == self.max_step:
+             done = True
+        #else:
+        #    done = False
 
-        return obs, reward, done, info
+         return obs, reward, done, info
 
     def reset(self):
         obs = self.env.reset()
         self.n_step = 0
 
         return obs
-
 
 """
 Return a Box instead of dictionary by stacking different similar objects

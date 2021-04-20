@@ -3,7 +3,8 @@ import numpy as np
 from gym_pcgrl.envs.helper import (_get_certain_tiles, calc_certain_tile,
                                    calc_num_regions, get_range_reward,
                                    get_tile_locations)
-from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
+#from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
+from gym_pcgrl.envs.probs.zelda_ctrl_prob import ZeldaCtrlProblem
 
 class Player():
     def __init__(self):
@@ -13,8 +14,9 @@ class Player():
         self.doors = 0
         # score or reward
         self.rew = 0
-        self.won = 0
-        self.coords = (0, 0)
+        self.won = False
+        self.done = False
+        self.coords = None
         self.win_time = 0
 
     def move(self, x_t, y_t):
@@ -27,23 +29,26 @@ class Player():
         self.keys = 0
         self.doors = 0
         self.rew = 0
-        self.won = 0
+        self.won = False
+        self.done = False
         self.win_time = 0
-        self.coords = (0, 0)
+        self.coords = None
 
-class ZeldaPlayProblem(ZeldaProblem):
+class ZeldaPlayProblem(ZeldaCtrlProblem):
 
     ''' A version of zelda in which a player may control Link and play the game.'''
     def __init__(self, max_step=200):
         super().__init__()
         self._width = self.MAP_X = 8
-        self._height = 8
+        self._height = self._width
         self.playable = False
         self.active_agent = 0
         # applies only to player turns
         self.player = Player()
         self.win_time = 0
         self.max_step = max_step
+        self.min_reward = -1
+        self.max_reward = 2
         # one key and one door
 
 
@@ -61,21 +66,20 @@ class ZeldaPlayProblem(ZeldaProblem):
             "path-length": 0
         }
 
-        if map_stats["player"] == 1 and map_stats["key"] > 0:#and map_stats["regions"] == 1 and map_stats["key"] >= 1:
-            self.playable = True
-            self.player.coords = players[0]
-            self.polayable = True
-       #else:
-       #    self.playable = False
+        if self.player.coords is None:
+            if map_stats["player"] == 1: # and map_stats["key"] > 0 and map_stats["regions"] == 1 and map_stats["key"] >= 1:
+                self.player.coords = players[0]
+           #else:
+           #    self.playable = False
 
-        if len(players) > 1:
-            self.player.coords = players[-1]
+            if len(players) > 1:
+                self.player.coords = players[-1]
 
         return map_stats
 
     def reset(self, rep_stats):
         super().reset(rep_stats)
-        self.player.reset()
+        self.player = Player()
        #self.playable = False
 
 
@@ -90,7 +94,7 @@ class ZeldaPlayProblem(ZeldaProblem):
         ''' Moves the player to map coordinates (x_t, y_t).
             Returns True if player can move to target tile.
         '''
-        if not self.player.won == 1:
+        if not self.player.won:
             self.player.win_time += 1
 
         # impassable tiles
@@ -109,9 +113,11 @@ class ZeldaPlayProblem(ZeldaProblem):
             passable = False
 
         if trg_chan in [spider, bat, scorpion]:
-            self.player.rew -= 0.5
+            self.player.rew -= 1
+            self.player.done = True
         elif trg_chan == key: # and not self.won:
-            self.player.rew += 1
+            if self.player.keys == 0:
+                self.player.rew += 1
             self.player.keys += 1
            #self._prob.player.rew = self.max_step - self._iteration
            #self.won = True
@@ -123,12 +129,11 @@ class ZeldaPlayProblem(ZeldaProblem):
                 self.player.doors += 1
                 self.player.keys -= 1
                 self.player.rew += 1
-                self.player.won = 1
-                self.player.rew += self.max_step - self.win_time
+                self.player.won = True
+                self.player.done = True
+#               self.player.rew += self.max_step - self.win_time
             else:
                 passable = False
-        else:
-            self.player.rew = 0
 
         return passable
 
@@ -153,3 +158,6 @@ class ZeldaPlayProblem(ZeldaProblem):
             rewards["regions"] * self._rewards["regions"]#+\
            #rewards["nearest-enemy"] * self._rewards["nearest-enemy"] +\
            #rewards["path-length"] * self._rewards["path-length"]
+
+    def is_playable(self, stats):
+        return stats["player"] == 1  # and stats["key"] == 1 and stats["door"] == 1
