@@ -27,8 +27,8 @@ class SMBCtrlProblem(SMBProblem):
                 'enemies': (0, self._width * self._height),
                 'empty': (0, self._width * self._height),
                 'noise': (0, self._width * self._height),
-                'jumps': (0, self._width * self._height),
+                'jumps': (0, self._width),
                 'jumps-dist': (0, self._width * self._height),
-                'dist-win': (0, self._width * self._height),
+                'dist-win': (0, self._width), #* self._height),
                 }
         

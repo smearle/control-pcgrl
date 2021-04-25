@@ -25,6 +25,7 @@ from torch.nn import Conv2d, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
+import scipy
 #from example_play_call import random_player
 #gvgai_path = '/home/sme/GVGAI_GYM/'
 #sys.path.insert(0,gvgai_path)
@@ -80,7 +81,7 @@ class FlexArchive(GridArchive):
         super().__init__(*args, **kwargs)
 
     def update_elite(self, obj, bcs):
-        index = self._get_index(bcs)
+        index = self._get_index(np.array(bcs))
         self.update_elite_idx(index, obj)
 
     def update_elite_idx(self, index, obj):
@@ -131,24 +132,27 @@ def unravel_index(
     return coord.flip(-1)
 
 
+# TODO: Use the GPU!
+
 #   if CUDA:
 #       m.cuda()
 #       m.to('cuda:0')
 
 
 class GeneratorNN(nn.Module):
+    ''' A neural cellular automata-type NN to generate levels or wide-representation action distributions.'''
     def __init__(self, n_tile_types):
         super().__init__()
-        if 'zelda' in PROBLEM:
-            n_hid_1 = 32
-            n_hid_2 = 16
-        if 'binary' in PROBLEM:
-            n_hid_1 = 32
-            n_hid_2 = 16
-        if PROBLEM == 'mini':
-            #TODO: make this smaller maybe?
-            n_hid_1 = 32
-            n_hid_2 = 16
+#       if 'zelda' in PROBLEM:
+        n_hid_1 = 32
+        n_hid_2 = 16
+#       if 'binary' in PROBLEM:
+#           n_hid_1 = 32
+#           n_hid_2 = 16
+#       if PROBLEM == 'mini':
+#           #TODO: make this smaller maybe?
+#           n_hid_1 = 32
+#           n_hid_2 = 16
 
         self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
@@ -180,11 +184,11 @@ class PlayerNN(nn.Module):
         super().__init__()
         self.n_tile_types = n_tile_types
         assert 'zelda' in PROBLEM
-        self.l1 = Conv2d(n_tile_types, 10, 1, 1, 0, bias=True)
-        self.l2 = Conv2d(10, 10, 3, 2, 1, bias=True)
-        self.l3 = Conv2d(10, n_actions, 3, 2, 1, bias=True)
+        self.l1 = Conv2d(n_tile_types, 16, 3, 1, 0, bias=True)
+        self.l2 = Conv2d(16, 16, 3, 2, 1, bias=True)
+        self.l3 = Conv2d(16, n_actions, 3, 1, 1, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
+        self.apply(init_play_weights)
         self.flatten = torch.nn.Flatten()
         self.net_reward = 0
         self.n_episodes = 0
@@ -194,15 +198,19 @@ class PlayerNN(nn.Module):
         x = x.unsqueeze(0)
         with torch.no_grad():
             x = torch.relu(self.l1(x))
-            for i in range(int(np.log2(x.shape[2]))):
+            for i in range(int(np.log2(x.shape[2])) + 1):
+#           for i in range(1):
                 x = torch.relu(self.l2(x))
             x = torch.relu(self.l3(x))
+
+#           x = x.argmax(1)
+#           x = x[0]
             x = x.flatten()
-        x = torch.softmax(x, axis=0)
-       #x = [x.argmax().item()]
-        act_ids = np.arange(x.shape[0])
-        probs = x.detach().numpy()
-        x = np.random.choice(act_ids, 1, p=probs)
+            x = torch.softmax(x, axis=0)
+           #x = [x.argmax().item()]
+            act_ids = np.arange(x.shape[0])
+            probs = x.detach().numpy()
+            x = np.random.choice(act_ids, 1, p=probs)
 
         return x
 
@@ -228,6 +236,17 @@ def init_weights(m):
 
     if type(m) == torch.nn.Conv2d:
         torch.nn.init.orthogonal_(m.weight)
+
+
+def init_play_weights(m):
+    if type(m) == torch.nn.Linear:
+        torch.nn.init.xavier_uniform(m.weight, gain=0)
+        m.bias.data.fill_(0.00)
+
+    if type(m) == torch.nn.Conv2d:
+#       torch.nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
+        torch.nn.init.constant_(m.weight, 0)
+
 
 
 def set_nograd(nn):
@@ -448,14 +467,25 @@ def play_level(env, level, player):
     env._rep._random_start = False
     p_obs = env.reset()
     if not env.is_playable():
-        return 0
+        return 0, None
     # TODO: check if env is playable!
     env.set_active_agent(1)
     if RENDER:
         env.render()
     net_p_rew = 0
+    action_hist = []
     for p_i in range(N_PLAYER_STEPS):
         action = player(p_obs['map'])
+        if isinstance(action, torch.Tensor):
+            # TODO: this logic belongs with the model
+            player_coords = env._prob.player.coords
+            action = np.array(action)[player_coords[0], player_coords[1]]
+        elif isinstance(action, list) or isinstance(action, np.ndarray):
+            assert len(action) == 1
+            action = action[-1]
+        else:
+            raise Exception
+        action_hist.append(action)
         p_obs, p_rew, p_done, p_info = env.step(action)
         if RENDER:
             env.render()
@@ -464,7 +494,12 @@ def play_level(env, level, player):
         if p_done:
             break
 #   player.assign_reward(net_p_rew)
-    return net_p_rew
+    action_freqs = np.bincount(action_hist, minlength=len(env.player_actions))
+    action_entropy = scipy.stats.entropy(action_freqs)
+    local_action_entropy = np.mean(
+            [scipy.stats.entropy(np.bincount(action_hist[i:i+10], minlength=len(env.player_actions))) for i in np.arange(0, len(action_hist) - 10, 6)])
+    local_action_entropy = np.nan_to_num(local_action_entropy)
+    return net_p_rew, [action_entropy, local_action_entropy]
 
 @ray.remote
 def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_targets, seed, player_1, player_2):
@@ -522,19 +557,22 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
     return final_levels
 
 def player_simulate(env, n_tile_types, play_bc_names, player_1, playable_levels, seed=None):
+    n_evals = 10
     net_reward = 0
-    for int_map in playable_levels:
+    bcs = []
+    for int_map in playable_levels * n_evals:
         if INFER:
-            env.render()
+#           env.render()
             input('ready player 1')
-        p_1_rew = play_level(env, int_map, player_1)
+        p_1_rew, p_bcs = play_level(env, int_map, player_1)
+        bcs.append(p_bcs)
         if INFER:
             print('p_1 reward: ', p_1_rew)
         net_reward += p_1_rew
 
-    reward = net_reward / len(playable_levels)
-    bc = (0,)
-    return reward, bc
+    reward = net_reward / len(playable_levels * n_evals)
+    bcs = [np.mean([bcs[j][i] for j in range(len(bcs))]) for i in range(len(bcs[0]))]
+    return reward, bcs
 
 
 
@@ -644,11 +682,11 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
                         if INFER:
                             env.render()
                             input('ready player 1')
-                        p_1_rew = play_level(env, int_map, player_1)
+                        p_1_rew, p_bcs = play_level(env, int_map, player_1)
                         if INFER:
                             print('p_1 reward: ', p_1_rew)
                             input('ready player 2')
-                        p_2_rew = play_level(env, int_map, player_2)
+                        p_2_rew, p_bcs = play_level(env, int_map, player_2)
                         if INFER:
                             print('p_2 reward: ', p_2_rew)
 
@@ -667,8 +705,8 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
-#       batch_targets_penalty = 10 * batch_targets_penalty / N_INIT_STATES
-    batch_targets_penalty = batch_targets_penalty / N_INIT_STATES
+    batch_targets_penalty = 10 * batch_targets_penalty / N_INIT_STATES
+   #batch_targets_penalty = batch_targets_penalty / N_INIT_STATES
     batch_reward += batch_targets_penalty
     if PLAY_LEVEL:
         batch_reward += batch_play_bonus / N_INIT_STATES
@@ -693,6 +731,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
         return batch_reward, final_bcs
     else:
         return batch_reward, final_bcs, (time_penalty, targets_penalty, variance_penalty, diversity_bonus)
+
 
 
 
@@ -729,6 +768,11 @@ class EvoPCGRL():
 
 
         if PLAY_LEVEL:
+            self.play_bc_names = ['action_entropy', 'local_action_entropy']
+            self.play_bc_bounds = {
+                    'action_entropy': (0, 4),
+                    'local_action_entropy': (0, 4),
+                }
             self.gen_archive = GridArchive(
                 [100 for _ in self.bc_names],
                #[1],
@@ -738,9 +782,9 @@ class EvoPCGRL():
             self.play_archive = FlexArchive(
                 # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
                #[min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
-                [1],
+                [100 for _ in self.play_bc_names],
                 # min/max for each BC
-                [(-1, 1)],
+                [self.play_bc_bounds[bc_name] for bc_name in self.play_bc_names],
             )
         else:
             self.gen_archive = GridArchive(
@@ -759,16 +803,6 @@ class EvoPCGRL():
         self.n_player_weights = 0
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
 
-       #gen_emitters.append(
-       #    OptimizingEmitter(
-       #        self.gen_archive,
-       #        initial_w.flatten(),
-       #        1, 
-       #        batch_size=30,
-       #    )
-       #)
-
-
 
         if PLAY_LEVEL:
             gen_emitters = [
@@ -782,7 +816,7 @@ class EvoPCGRL():
                 ) for _ in range(5)  # Create 5 separate emitters.
             ]
             # Concatenate designer and player weights
-            self.play_model = PlayerNN(self.n_tile_types)
+            self.play_model = PlayerNN(self.n_tile_types, n_actions=len(self.env.player_actions))
             set_nograd(self.play_model)
             initial_play_w = get_init_weights(self.play_model)
             assert len(initial_play_w.shape) == 1
@@ -790,7 +824,7 @@ class EvoPCGRL():
             play_emitters = [
                 OptimizingEmitter(
                     self.play_archive,
-                    initial_w.flatten(),
+                    initial_play_w.flatten(),
                     # NOTE: Big step size, shit otherwise
                     1,  # Initial step size.
                     batch_size=30,
@@ -830,6 +864,7 @@ class EvoPCGRL():
 
     def evolve(self):
 
+        net_p_itr = 0
         for itr in tqdm(range(self.n_itr, self.total_itrs + 1)):
             # Request models from the optimizer.
             gen_sols = self.gen_optimizer.ask()
@@ -866,7 +901,7 @@ class EvoPCGRL():
             log_archive(self.gen_archive, 'Generator', itr, self.start_time)
 
             # FIXME: implement these
-            self.play_bc_names = ['NONE']
+#           self.play_bc_names = ['action_entropy', 'action_entropy_local']
             if PLAY_LEVEL:
                #elite_model_w = self.gen_archive.get_random_elite()[0]
                 df = self.gen_archive.as_pandas()
@@ -878,62 +913,83 @@ class EvoPCGRL():
                     elite_model_w = models[m_i]
                     set_weights(self.gen_model, elite_model_w)
                     playable_levels += gen_playable_levels(self.env, self.gen_model, self.init_states, self.n_tile_types)
-                    if len(playable_levels) >= 10:
+                    if len(playable_levels) >= 50:
                         break
-                if len(playable_levels) > 0:
-                    play_sols = self.play_optimizer.ask()
-                    objs, bcs = [], []
-                    if THREADS:
-                        futures = [multi_play_evo.remote(self.env, self.gen_model, player_w, self.n_tile_types, self.init_states, self.play_bc_names, self.static_targets, seed, player_1=self.player_1, player_2=self.player_2, playable_levels=playable_levels) for player_w in play_sols] 
-                        results = ray.get(futures)
-                        for result in results:
-                            m_obj, m_bcs = result
-                            objs.append(m_obj)
-                            bcs.append([*m_bcs])
-                    else:
-                        play_i = 0
-                        for play_w in play_sols:
-                            print(play_i)
-                            play_i += 1
-                            set_weights(self.play_model, play_w)
-                            m_obj, m_bcs = player_simulate(
-                                env=self.env,
-                                n_tile_types=self.n_tile_types,
-                                play_bc_names=self.play_bc_names,
-                                seed=seed,
-                                player_1=self.player_1,
-                                playable_levels=playable_levels,
-                            )
-                            objs.append(m_obj)
-                            bcs.append(m_bcs)
-                    self.play_optimizer.tell(objs, bcs)
+                if len(playable_levels) >= 10:
+                    play_start_time = time.time()
+                    self.playable_levels = playable_levels
+                    for p_itr in tqdm(range(1, 2)): 
+                        net_p_itr += 1
+                        play_sols = self.play_optimizer.ask()
+                        objs, bcs = [], []
+                        if THREADS:
+                            futures = [multi_play_evo.remote(self.env, self.gen_model, player_w, self.n_tile_types, self.init_states, self.play_bc_names, self.static_targets, seed, player_1=self.player_1, player_2=self.player_2, playable_levels=playable_levels) for player_w in play_sols] 
+                            results = ray.get(futures)
+                            for result in results:
+                                m_obj, m_bcs = result
+                                objs.append(m_obj)
+                                bcs.append([*m_bcs])
+                        else:
+                            play_i = 0
+                            for play_w in play_sols:
+                                play_i += 1
+                                set_weights(self.play_model, play_w)
+                                m_obj, m_bcs = player_simulate(
+                                    env=self.env,
+                                    n_tile_types=self.n_tile_types,
+                                    play_bc_names=self.play_bc_names,
+                                    seed=seed,
+                                    player_1=self.player_1,
+                                    playable_levels=playable_levels,
+                                )
+                                objs.append(m_obj)
+                                bcs.append(m_bcs)
+                        self.play_optimizer.tell(objs, bcs)
 
-                    # FIXME: THis is stupid
-                    elites = [self.play_archive.get_random_elite() for _ in range(len(self.play_archive._solutions))]
+                        df = self.play_archive.as_pandas()
+                        high_performing = df.sort_values("objective", ascending=False)
+                        elite_models = np.array(high_performing.loc[:, "solution_0":])
+                        for elite_i in range(10):
+                            play_model_weights = elite_models[elite_i]
+                            init_nn = set_weights(self.play_model, play_model_weights)
 
-                    for (model, score, behavior_values) in elites:
-                        init_nn = set_weights(self.play_model, model)
+                            obj, bcs = player_simulate(self.env, self.n_tile_types, self.play_bc_names, init_nn, playable_levels=playable_levels)
 
-                        obj, bcs = player_simulate(self.env, self.n_tile_types, self.play_bc_names, init_nn, playable_levels=playable_levels)
+                            self.play_archive.update_elite(obj, bcs)
 
-                        self.play_archive.update_elite(bcs, obj)
+                           #    m_objs.append(obj)
+                           #bc_a = get_bcs(init_nn)
+                           #obj = np.mean(m_objs)
+                           #objs.append(obj)
+                           #bcs.append([bc_a])
+                        log_archive(self.play_archive, 'Player', p_itr, play_start_time)
 
-                       #    m_objs.append(obj)
-                       #bc_a = get_bcs(init_nn)
-                       #obj = np.mean(m_objs)
-                       #objs.append(obj)
-                       #bcs.append([bc_a])
-                    log_archive(self.play_archive, 'Player', itr, self.start_time)
+                        if net_p_itr > 0 and net_p_itr % 10 == 0:
+                            self.save()
+
+                        df = self.play_archive.as_pandas()
+                        high_performing = df.sort_values("objective", ascending=False)
+                        elite_scores = np.array(high_performing.loc[:, "objective"])
+
+                        if np.array(elite_scores).max() >= self.env._prob.max_reward:
+                            break
+
                     # TODO: assuming an archive of one here! Make it more general, like above for generators
                     set_weights(self.play_model, self.play_archive.get_random_elite()[0])
+
+
             # Save checkpoint
             if itr % 10 == 0:
-                global ENV
-                ENV = self.env
-                self.env = None
-                pickle.dump(self, open(SAVE_PATH, 'wb'))
-                self.env = ENV
+                self.save()
+
             self.n_itr += 1
+
+    def save(self):
+        global ENV
+        ENV = self.env
+        self.env = None
+        pickle.dump(self, open(SAVE_PATH, 'wb'))
+        self.env = ENV
 
     def init_env(self):
         env_name = '{}-wide-v0'.format(PROBLEM)
@@ -986,9 +1042,8 @@ class EvoPCGRL():
         if PROBLEM == 'mini':
             # path lenth
             high_performing = df.sort_values("behavior_1", ascending=False)
-            # nearest enemies
-#           high_performing = df.sort_values("behavior_0", ascending=False)
-#           high_performing = df.sort_values("objective", ascending=False)
+        else:
+            high_performing = df.sort_values("objective", ascending=False)
         rows = high_performing
         models = np.array(rows.loc[:, "solution_0":])
         bcs_0 = np.array(rows.loc[:, "behavior_0"])
@@ -1030,6 +1085,8 @@ class EvoPCGRL():
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
             fig.savefig('evo_runs/test_grid.png', dpi=300)
 
+        if PLAY_LEVEL:
+            player_simulate(self.env, self.n_tile_types, self.play_bc_names, self.play_model, playable_levels=self.playable_levels, seed=None)
         while True:
 #           model = self.archive.get_random_elite()[0]
 #           model = models[np.random.randint(len(models))]

@@ -64,7 +64,7 @@ class PlayPcgrlEnv(PcgrlEnv):
           #self.
            #action = np.ravel_multi_index(action, (self.h, self.w, self.dim))
         elif self.active_agent == 1:
-            action = action[-1]
+           #action = action[-1]
             move = self.player_actions[action]
             obs, rew, done, info = self.play(move)
         else:
