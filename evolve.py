@@ -1052,9 +1052,15 @@ class EvoPCGRL():
         i = 0
 
         if GRID:
+            global RENDER
+            RENDER = False
 
-            d = 6  # dimension of rows and columns
-            figw, figh = 16.0, 16.0
+            if 'smb' in PROBLEM:
+                d = 3
+                figw, figh = 32, 4
+            else:
+                d = 6  # number of rows and columns
+                figw, figh = self.env._prob._width, self.env._prob._height
             fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
 
             df_g = df.sort_values(by=['behavior_0', 'behavior_1'], ascending=False)
@@ -1083,6 +1089,7 @@ class EvoPCGRL():
                     img = self.env.render(mode='rgb_array')
                     axs[row_num,col_num].imshow(img, aspect='auto')
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
+            plt.tight_layout()
             fig.savefig('evo_runs/test_grid.png', dpi=300)
 
         if PLAY_LEVEL:
