@@ -31,4 +31,3 @@ class SMBCtrlProblem(SMBProblem):
                 'jumps-dist': (0, self._width * self._height),
                 'dist-win': (0, self._width), #* self._height),
                 }
-        

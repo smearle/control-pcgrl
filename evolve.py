@@ -861,6 +861,8 @@ class EvoPCGRL():
         else:
             self.player_1 = None
             self.player_2 = None
+        if not os.path.isdir(SAVE_PATH):
+            os.mkdir(SAVE_PATH)
 
     def evolve(self):
 
@@ -1090,7 +1092,7 @@ class EvoPCGRL():
                     axs[row_num,col_num].imshow(img, aspect='auto')
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
             plt.tight_layout()
-            fig.savefig('evo_runs/test_grid.png', dpi=300)
+            fig.savefig(os.path.join(SAVE_PATH, 'levelGrid_{}-bin.png'.format(d)), dpi=300)
 
         if PLAY_LEVEL:
             player_simulate(self.env, self.n_tile_types, self.play_bc_names, self.play_model, playable_levels=self.playable_levels, seed=None)
@@ -1233,7 +1235,7 @@ if __name__ == '__main__':
     if THREADS:
         ray.init()
 
-    exp_name = 'EvoPCGRL_{}_{}-batch_{}-step_{}'.format(PROBLEM, N_INIT_STATES, N_STEPS, opts.exp_name)
+    exp_name = 'EvoPCGRL_{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, BCS, N_INIT_STATES, N_STEPS, opts.exp_name)
     SAVE_PATH = os.path.join('evo_runs', exp_name)
 
     # Create TensorBoard Log Directory if does not exist
