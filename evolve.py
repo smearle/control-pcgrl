@@ -787,13 +787,18 @@ class EvoPCGRL():
                 [self.play_bc_bounds[bc_name] for bc_name in self.play_bc_names],
             )
         else:
-            self.gen_archive = GridArchive(
-                # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
-               #[min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
-                [100 for _ in self.bc_names],
-                # min/max for each BC
-                [self.bc_bounds[bc_name] for bc_name in self.bc_names],
-            )
+            if self.bc_names == ["NONE"]:
+                self.gen_archive = GridArchive(
+                    [1, 1], [(0, 1), (0, 1)],
+                )
+            else:
+                self.gen_archive = GridArchive(
+                    # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
+                   #[min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
+                    [100 for _ in self.bc_names],
+                    # min/max for each BC
+                    [self.bc_bounds[bc_name] for bc_name in self.bc_names],
+                )
 
         self.gen_model = GeneratorNN(self.n_tile_types)
         set_nograd(self.gen_model)
@@ -1033,17 +1038,14 @@ class EvoPCGRL():
         df = archive.as_pandas()
 #       high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
         if 'binary' in PROBLEM:
-            high_performing = df.sort_values("behavior_1", ascending=False)
-#           high_performing = df.sort_values("objective", ascending=False)
+#           high_performing = df.sort_values("behavior_1", ascending=False)
+            high_performing = df.sort_values("objective", ascending=False)
         if 'zelda' in PROBLEM:
             # path lenth
 #           high_performing = df.sort_values("behavior_1", ascending=False)
             # nearest enemies
 #           high_performing = df.sort_values("behavior_0", ascending=False)
             high_performing = df.sort_values("objective", ascending=False)
-        if PROBLEM == 'mini':
-            # path lenth
-            high_performing = df.sort_values("behavior_1", ascending=False)
         else:
             high_performing = df.sort_values("objective", ascending=False)
         rows = high_performing

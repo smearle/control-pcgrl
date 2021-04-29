@@ -25,7 +25,7 @@ class SMBCtrlProblem(SMBProblem):
                 'dist-floor': (0, self._width * self._height),
                 'disjoint-tubes': (0, self._width * self._height), 
                 'enemies': (0, self._width * self._height),
-                'empty': (0, self._width * self._height),
+                'empty': (0, self._width), # * self._height),
                 'noise': (0, self._width * self._height),
                 'jumps': (0, self._width),
                 'jumps-dist': (0, self._width * self._height),
