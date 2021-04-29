@@ -1056,7 +1056,7 @@ class EvoPCGRL():
             RENDER = False
 
             if 'smb' in PROBLEM:
-                d = 3
+                d = 4
                 figw, figh = 32, 4
             else:
                 d = 6  # number of rows and columns
