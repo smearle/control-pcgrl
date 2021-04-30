@@ -443,7 +443,7 @@ class PlayerRight(nn.Module):
     def forward(self, obs):
         return [1]
 
-def log_archive(archive, name, itr, start_time):
+def log_archive(archive, name, itr, start_time, level_json=None):
     # TensorBoard Logging.
     df = archive.as_pandas(include_solutions=False)
     elapsed_time = time.time() - start_time
@@ -452,6 +452,15 @@ def log_archive(archive, name, itr, start_time):
     writer.add_scalar('{} score/max'.format(name), df['objective'].max(), itr)
     writer.add_scalar('{} score/min'.format(name), df['objective'].min(), itr)
 
+    # Change: log mean, max, and min for all stats
+    if level_json:
+        stats = ['batch_reward','variance','diversity','targets']
+        # level_json = {'level': final_levels.tolist(),'batch_reward':[batch_reward] * len(final_levels.tolist()), 'variance': [variance_penalty] * len(final_levels.tolist()), 'diversity':[diversity_bonus] * len(final_levels.tolist()),'targets':trg.tolist(), **bc_dict}
+        for stat in stats:
+            writer.add_scalar('Training {}/min'.format(stat), np.min(level_json[stat]), itr)
+            writer.add_scalar('Training {}/mean'.format(stat), np.mean(level_json[stat]), itr)
+            writer.add_scalar('Training {}/max'.format(stat), np.max(level_json[stat]), itr)
+ 
     # Logging.
     if itr % 1 == 0:
         print(f"> {itr} itrs completed after {elapsed_time:.2f} s")
@@ -504,7 +513,7 @@ def play_level(env, level, player):
 @ray.remote
 def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_targets, seed, player_1, player_2):
     set_weights(model, model_w)
-    obj, bcs = simulate(
+    level_json, obj, bcs = simulate(
         env=env,
         model=model,
         n_tile_types=n_tile_types,
@@ -514,7 +523,7 @@ def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_t
         seed=seed,
         player_1=player_1,
         player_2=player_2)
-    return obj, bcs
+    return level_json, obj, bcs
 
 @ray.remote
 def multi_play_evo(env, gen_model, player_1_w, n_tile_types, init_states, play_bc_names, static_targets, seed, player_1, player_2, playable_levels):
@@ -607,6 +616,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
     width = init_states.shape[1]
     height = init_states.shape[2]
     bcs = np.empty(shape=(len(bc_names), n_init_states))
+    trg = np.empty(shape=(n_init_states))
     final_levels = np.empty(shape=init_states.shape, dtype=np.uint8)
     batch_reward = 0
     batch_time_penalty = 0
@@ -675,6 +685,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
                         else:
                             targets_penalty += abs(static_targets[k] - stats[k])
                     batch_targets_penalty -= targets_penalty
+                    trg[n_episode] = -targets_penalty
 
 
 
@@ -728,7 +739,12 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             diversity_bonus = None
 
     if not INFER:
-        return batch_reward, final_bcs
+        bc_dict = {}
+        for i in range(len(bc_names)):
+            bc_name = bc_names[i]
+            bc_dict[bc_name] = bcs[i,:].tolist()
+        level_json = {'level': final_levels.tolist(),'batch_reward':[batch_reward] * len(final_levels.tolist()), 'variance': [variance_penalty] * len(final_levels.tolist()), 'diversity':[diversity_bonus] * len(final_levels.tolist()),'targets':trg.tolist(), **bc_dict}
+        return level_json, batch_reward, final_bcs
     else:
         return batch_reward, final_bcs, (time_penalty, targets_penalty, variance_penalty, diversity_bonus)
 
@@ -875,13 +891,15 @@ class EvoPCGRL():
                 futures = [multi_evo.remote(self.env, self.gen_model, model_w, self.n_tile_types, self.init_states, self.bc_names, self.static_targets, seed, player_1=self.player_1, player_2=self.player_2) for model_w in gen_sols]
                 results = ray.get(futures)
                 for result in results:
-                    m_obj, m_bcs = result
+                    level_json, m_obj, m_bcs = result
+                    if SAVE:
+                        pd.DataFrame(level_json).to_csv(SAVE_PATH + "_levels.csv", mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
             else:
                 for model_w in gen_sols:
                     set_weights(self.gen_model, model_w)
-                    m_obj, m_bcs = simulate(
+                    level_json, m_obj, m_bcs = simulate(
                         env=self.env,
                         model=self.gen_model,
                         n_tile_types=self.n_tile_types,
@@ -892,13 +910,16 @@ class EvoPCGRL():
                         player_1=self.player_1,
                         player_2=self.player_2,
                     )
+                    if SAVE:
+                        # Save levels to disc
+                        pd.DataFrame(level_json).to_csv(SAVE_PATH + "_levels.csv", mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append(m_bcs)
 
             # Send the results back to the optimizer.
             self.gen_optimizer.tell(objs, bcs)
 
-            log_archive(self.gen_archive, 'Generator', itr, self.start_time)
+            log_archive(self.gen_archive, 'Generator', itr, self.start_time, level_json)
 
             # FIXME: implement these
 #           self.play_bc_names = ['action_entropy', 'action_entropy_local']
@@ -1116,13 +1137,13 @@ if __name__ == '__main__':
         '-p',
         '--problem',
         help='Which game to generate levels for (PCGRL "problem").',
-        default='binary_ctrl',
+        default='mini',
     )
     opts.add_argument(
         '-e',
         '--exp_name',
         help='Name of the experiment, for save files.',
-        default='0',
+        default='0test',
     )
     opts.add_argument(
         '-ng',
@@ -1150,7 +1171,7 @@ if __name__ == '__main__':
         '--behavior_characteristics',
         nargs='+',
         help='A list of strings corresponding to the behavior characteristics that will act as the dimensions for our grid of elites during evolution.',
-        default=['regions','path-length'],
+        default=['emptiness','path-length'],
     )
     opts.add_argument(
         '-r',
@@ -1192,6 +1213,12 @@ if __name__ == '__main__':
         help="Use a playing agent to evaluate generated levels.",
         action='store_true',
     )
+    opts.add_argument(
+        '-s',
+        '--save_levels',
+        help='Save all levels to a csv',
+        action='store_true',
+    )
 
     opts = opts.parse_args()
     global INFER
@@ -1209,6 +1236,7 @@ if __name__ == '__main__':
     global GRID
     global THREADS
     global PLAY_LEVEL
+    global SAVE
     PLAY_LEVEL = opts.play_level
     BCS = opts.behavior_characteristics
     N_GENERATIONS = opts.n_generations
@@ -1225,6 +1253,7 @@ if __name__ == '__main__':
     THREADS = opts.multi_thread
     if THREADS:
         ray.init()
+    SAVE = opts.save_levels
 
     exp_name = 'EvoPCGRL_{}_{}-batch_{}-step_{}'.format(PROBLEM, N_INIT_STATES, N_STEPS, opts.exp_name)
     SAVE_PATH = os.path.join('evo_runs', exp_name)
