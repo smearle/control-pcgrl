@@ -764,6 +764,7 @@ class EvoPCGRL():
                 'emptiness': (0.0, 1.0),
                 'entropy': (0.0, 1.0),
             })
+
         self.static_targets = self.env._prob.static_trgs
 
 
@@ -787,7 +788,7 @@ class EvoPCGRL():
                 [self.play_bc_bounds[bc_name] for bc_name in self.play_bc_names],
             )
         else:
-            if self.bc_names == ["NONE"]:
+            if CMAES:
                 self.gen_archive = GridArchive(
                     [1, 1], [(0, 1), (0, 1)],
                 )
@@ -837,9 +838,12 @@ class EvoPCGRL():
             ]
             self.play_optimizer = Optimizer(self.play_archive, play_emitters)
         else:
+            if CMAES:
+                emitter_type = OptimizingEmitter
+            else:
+                emitter_type = ImprovementEmitter
             gen_emitters = [
-    #           ImprovementEmitter(
-                ImprovementEmitter(
+                emitter_type(
                     self.gen_archive,
                     initial_w.flatten(),
                     # TODO: play with initial step size?
@@ -995,12 +999,18 @@ class EvoPCGRL():
         global ENV
         ENV = self.env
         self.env = None
-        pickle.dump(self, open(SAVE_PATH, 'wb'))
+        pickle.dump(self, open(os.path.join(SAVE_PATH, "evolver.pkl"), 'wb'))
         self.env = ENV
 
     def init_env(self):
         env_name = '{}-wide-v0'.format(PROBLEM)
         self.env = gym.make(env_name)
+        if CMAES:
+            if "binary" in PROBLEM:
+                path_trg = self.env._prob.static_trgs['path-length']
+                self.env._prob.static_trgs.update({'path-length': (path_trg - 20, path_trg)})
+            else:
+                raise NotImplemented
 
     def visualize(self):
         archive = self.gen_archive
@@ -1055,7 +1065,7 @@ class EvoPCGRL():
         objs = np.array(rows.loc[:, "objective"])
         i = 0
 
-        if GRID:
+        if RENDER_LEVELS:
             global RENDER
             RENDER = False
 
@@ -1103,10 +1113,10 @@ class EvoPCGRL():
 #           model = models[np.random.randint(len(models))]
             model = models[i]
             init_nn = set_weights(self.gen_model, model)
-#           init_states = (np.random.random(
-#               size=(1, 1, MAP_WIDTH, MAP_WIDTH)) < 0.2).astype(np.uint8)
+#           init_states = self.init_states
+            init_states = np.random.randint(0, self.n_tile_types, size=self.init_states.shape)
             _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
-                            self.n_tile_types, self.init_states, self.bc_names, self.static_targets, seed=None, player_1=self.player_1, player_2=self.player_2)
+                            self.n_tile_types, init_states, self.bc_names, self.static_targets, seed=None, player_1=self.player_1, player_2=self.player_2)
             input("Mean behavior characteristics:\n\t{}: {}\n\t{}: {}\nMean reward:\n\tTotal: {}\n\ttime: {}\n\ttargets: {}\n\tvariance: {}\n\tdiversity: {}\nPress any key for next generator...".format(
                 self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i], objs[i], time_penalty, targets_penalty, variance_penalty, diversity_bonus))
             i += 1
@@ -1118,7 +1128,7 @@ if __name__ == '__main__':
     """
     Set Parameters
     """
-    seed = 1339
+    seed = 420
     CA_ACTION = True
 
     opts = argparse.ArgumentParser(
@@ -1188,7 +1198,7 @@ if __name__ == '__main__':
     )
     opts.add_argument(
         '-g',
-        '--save_grid',
+        '--render_levels',
         help='Save grid of levels to png.',
         action='store_true',
     )
@@ -1201,6 +1211,12 @@ if __name__ == '__main__':
     opts.add_argument(
         '--play_level',
         help="Use a playing agent to evaluate generated levels.",
+        action='store_true',
+    )
+    opts.add_argument(
+        '-ev',
+        '--evaluate',
+        help='Run evaluation on the archive of elites.',
         action='store_true',
     )
 
@@ -1217,9 +1233,13 @@ if __name__ == '__main__':
     global N_INIT_STATES
     global N_INFER_STEPS
     global BCS
-    global GRID
+    global RENDER_LEVELS
     global THREADS
     global PLAY_LEVEL
+    global CMAES
+    global EVALUATE
+    CMAES = opts.behavior_characteristics == ["NONE"]
+    EVALUATE = opts.evaluate
     PLAY_LEVEL = opts.play_level
     BCS = opts.behavior_characteristics
     N_GENERATIONS = opts.n_generations
@@ -1232,7 +1252,7 @@ if __name__ == '__main__':
     INFER = opts.infer
     N_INFER_STEPS = N_STEPS
 #   N_INFER_STEPS = 100
-    GRID = opts.save_grid
+    RENDER_LEVELS = opts.render_levels
     THREADS = opts.multi_thread
     if THREADS:
         ray.init()
@@ -1245,7 +1265,7 @@ if __name__ == '__main__':
     writer = SummaryWriter(LOG_NAME)
 
     try:
-        evolver = pickle.load(open(SAVE_PATH, 'rb'))
+        evolver = pickle.load(open(os.path.join(SAVE_PATH, "evolver.pkl"), 'rb'))
         print('Loaded save file at {}'.format(SAVE_PATH))
         if VISUALIZE:
             evolver.visualize()
