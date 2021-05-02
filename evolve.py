@@ -919,7 +919,17 @@ class EvoPCGRL():
             else:
                 init_states = self.init_states
             if THREADS:
-                futures = [multi_evo.remote(self.env, self.gen_model, model_w, self.n_tile_types, init_states, self.bc_names, self.static_targets, seed, player_1=self.player_1, player_2=self.player_2) for model_w in gen_sols]
+                futures = [multi_evo.remote(self.env,
+                                            self.gen_model,
+                                            model_w,
+                                            self.n_tile_types,
+                                            init_states,
+                                            self.bc_names,
+                                            self.static_targets,
+                                            seed,
+                                            player_1=self.player_1,
+                                            player_2=self.player_2)
+                           for model_w in gen_sols]
                 results = ray.get(futures)
                 for result in results:
                     level_json, m_obj, m_bcs = result
@@ -950,26 +960,48 @@ class EvoPCGRL():
             # Send the results back to the optimizer.
             self.gen_optimizer.tell(objs, bcs)
 
-            # TODO: parallelize me
-            df = self.gen_archive.as_pandas()
-            high_performing = df.sort_values("objective", ascending=False)
-            elite_models = np.array(high_performing.loc[:, "solution_0":])
-            # 150 to match number of new-model evaluations
-            for elite_i in range(min(len(elite_models), 150)):
-                gen_model_weights = elite_models[elite_i]
-                set_weights(self.gen_model, gen_model_weights)
+            # Re-evaluate elite generators
+            if RANDOM_INIT_LEVELS:
+                df = self.gen_archive.as_pandas()
+                high_performing = df.sort_values("objective", ascending=False)
+                elite_models = np.array(high_performing.loc[:, "solution_0":])
+                if THREADS:
+                    futures = [multi_evo.remote(
+                        self.env,
+                        self.gen_model,
+                        elite_models[i],
+                        self.n_tile_types,
+                        init_states,
+                        self.bc_names,
+                        self.static_targets,
+                        seed,
+                        player_1=self.player_1,
+                        player_2=self.player_2) for i in range(min(len(elite_models), 150)
+                    )]
+                    results = ray.get(futures)
+                    for result in results:
+                        level_json, el_obj, el_bcs = result
+                        if SAVE_LEVELS:
+                            pd.DataFrame(level_json).to_csv(SAVE_PATH + "_levels.csv", mode='a', header=False, index=False)
+                        self.gen_archive.update_elite(el_obj, el_bcs)
 
-                level_json, obj, bcs = simulate(env=self.env,
-                                                model=self.gen_model,
-                                                n_tile_types=self.n_tile_types,
-                                                init_states=init_states,
-                                                bc_names=self.bc_names,
-                                                static_targets=self.static_targets,
-                                                seed=seed,
-                                                player_1=self.player_1,
-                                                player_2=self.player_2)
+                else:
+                    # 150 to match number of new-model evaluations
+                    for elite_i in range(min(len(elite_models), 150)):
+                        gen_model_weights = elite_models[elite_i]
+                        set_weights(self.gen_model, gen_model_weights)
 
-                self.gen_archive.update_elite(obj, bcs)
+                        level_json, el_obj, el_bcs = simulate(env=self.env,
+                                                        model=self.gen_model,
+                                                        n_tile_types=self.n_tile_types,
+                                                        init_states=init_states,
+                                                        bc_names=self.bc_names,
+                                                        static_targets=self.static_targets,
+                                                        seed=seed,
+                                                        player_1=self.player_1,
+                                                        player_2=self.player_2)
+
+                        self.gen_archive.update_elite(el_obj, el_bcs)
 
 
             log_archive(self.gen_archive, 'Generator', itr, self.start_time, level_json)
