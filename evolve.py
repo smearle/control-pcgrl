@@ -77,6 +77,9 @@ RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
+
+
+
 class FlexArchive(GridArchive):
     def __init__(self, *args, **kwargs):
         self.score_hists = {}
@@ -305,6 +308,7 @@ def get_entropy(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns the entropy of the level normalized roughly to a range of 0.0 to 1.0
     """
+    #FIXME: make this robust to different action spaces
     n_classes = env.action_space.nvec[2]
     max_val = -(1 / n_classes)*np.log(1 / n_classes)* n_classes
     total = len(int_map.flatten())
@@ -323,7 +327,7 @@ def get_counts(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns a python list with tile counts for each tile normalized to a range of 0.0 to 1.0
     """
-    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]  # for example 14*14=196
+    max_val = env._prob._width * env._prob._height  # for example 14*14=196
     return [np.sum(int_map.flatten() == tile)/max_val for tile in range(env.action_space.nvec[2])]
 
 
@@ -334,8 +338,8 @@ def get_emptiness(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns an emptiness value normalized to a range of 0.0 to 1.0
     """
-    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]  # for example 14*14=196
-    return np.sum(int_map.flatten() == 0)/max_val
+    max_val = env._prob._width * env._prob._height  # for example 14*14=196
+    return np.sum(int_map.flatten() == 0) / max_val
 
 def get_hor_sym(int_map, env):
     """
@@ -647,69 +651,65 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
             # The standard single-build action (why throw away all that information at the NCA's output, though? Not sure if this really works).
-            if not CA_ACTION:
-                pass
-#               action = np.array([action[1], action[2], action[0]])
-            else:
-                obs = action
-                int_map = action.argmax(axis=0)
-                env._rep._map = int_map
-                reward = 0
-                done = (int_map == last_int_map).all() or n_step >= N_STEPS
-                if INFER:
-                    time.sleep(1/30)
-                if done:
-                    final_levels[n_episode] = int_map
-                    stats = env._prob.get_stats(
-                        get_string_map(int_map,
-                                       env._prob.get_tile_types()))
+            int_map = action.argmax(axis=0)
+            obs = get_one_hot_map(int_map, n_tile_types)
+            env._rep._map = int_map
+            reward = 0
+            done = (int_map == last_int_map).all() or n_step >= N_STEPS
+            if INFER:
+                time.sleep(1/30)
+            if done:
+                final_levels[n_episode] = int_map
+                stats = env._prob.get_stats(
+                    get_string_map(int_map,
+                                   env._prob.get_tile_types()))
 
 
-                    # get BCs
-                    # Resume here. Use new BC function.
-                    for i in range(len(bc_names)):
-                        bc_name = bc_names[i]
-                        bcs[i, n_episode] = get_bc(bc_name, int_map, stats, env)
+                # get BCs
+                # Resume here. Use new BC function.
+                for i in range(len(bc_names)):
+                    bc_name = bc_names[i]
+                    bcs[i, n_episode] = get_bc(bc_name, int_map, stats, env)
 
 
-                    # TODO: reward calculation should depend on self.reward_names
-                    # ad hoc reward: shorter episodes are better?
-                    time_penalty = n_step
-                    batch_time_penalty -= time_penalty
+                # TODO: reward calculation should depend on self.reward_names
+                # ad hoc reward: shorter episodes are better?
+                time_penalty = n_step
+                batch_time_penalty -= time_penalty
 
-                    # we want to hit each of our static targets exactly, penalize for anything else.
-                    # for ranges, we take our least distance to any element in the range
-                    targets_penalty = 0
-                    for k in static_targets:
-                        if k in bc_names:
-                            continue
-                        if isinstance(static_targets[k], tuple):
-                            # take the smalles distance from current value to any point in range
-                            targets_penalty += abs(np.arange(*static_targets[k]) - stats[k]).min()
-                        else:
-                            targets_penalty += abs(static_targets[k] - stats[k])
-                    #                   targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
-                    batch_targets_penalty -= targets_penalty
-                    if SAVE_LEVELS:
-                        trg[n_episode] = -targets_penalty
+                # we want to hit each of our static targets exactly, penalize for anything else.
+                # for ranges, we take our least distance to any element in the range
+                targets_penalty = 0
+                for k in static_targets:
+                    if k in bc_names:
+                        continue
+                    if isinstance(static_targets[k], tuple):
+                        # take the smalles distance from current value to any point in range
+                        targets_penalty += abs(np.arange(*static_targets[k]) - stats[k]).min()
+                    else:
+                        targets_penalty += abs(static_targets[k] - stats[k])
+                #                   targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
+                batch_targets_penalty -= targets_penalty
+                if SAVE_LEVELS:
+                    trg[n_episode] = -targets_penalty
 
 
 
-                    if PLAY_LEVEL:
-                        if INFER:
-                            env.render()
-                            input('ready player 1')
-                        p_1_rew, p_bcs = play_level(env, int_map, player_1)
-                        if INFER:
-                            print('p_1 reward: ', p_1_rew)
-                            input('ready player 2')
-                        p_2_rew, p_bcs = play_level(env, int_map, player_2)
-                        if INFER:
-                            print('p_2 reward: ', p_2_rew)
+                if PLAY_LEVEL:
+                    if INFER:
+                        env.render()
+                        input('ready player 1')
+                    p_1_rew, p_bcs = play_level(env, int_map, player_1)
+                    if INFER:
+                        print('p_1 reward: ', p_1_rew)
+                        input('ready player 2')
+                    p_2_rew, p_bcs = play_level(env, int_map, player_2)
+                    if INFER:
+                        print('p_2 reward: ', p_2_rew)
 
-                        max_regret = env._prob.max_reward - env._prob.min_reward
-                        # add this in case we get worst possible regret (don't want to punish a playable map)
-                        batch_play_bonus += max_regret + p_1_rew - p_2_rew
+                    max_regret = env._prob.max_reward - env._prob.min_reward
+                    # add this in case we get worst possible regret (don't want to punish a playable map)
+                    batch_play_bonus += max_regret + p_1_rew - p_2_rew
 
 
 
@@ -1099,7 +1099,7 @@ class EvoPCGRL():
         self.env = ENV
 
     def init_env(self):
-        env_name = '{}-wide-v0'.format(PROBLEM)
+        env_name = '{}-{}-v0'.format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
         if CMAES:
             # Give a little wiggle room from targets, to allow for some diversity
@@ -1224,35 +1224,41 @@ class EvoPCGRL():
 
             idxs_0 = np.array(rows.loc[:, "index_0"])
             idxs_1 = np.array(rows.loc[:, "index_1"])
-            while i < len(models):
-                # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
-                model = models[i]
-                id_0 = idxs_0[i]
-                id_1 = idxs_1[i]
 
-                if RANDOM_INIT_LEVELS:
-                    # Effectively doing inference on a (presumed) held-out set of levels
-                    N_EVAL_STATES = 100
-                    init_states = np.random.randint(0, self.n_tile_types, size=(N_EVAL_STATES, *self.init_states.shape[1:]))
-                else:
-                    init_states = self.init_states
-                # TODO: Parallelize me
-                init_nn = set_weights(self.gen_model, model)
-                _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = \
-                    simulate(self.env,
-                            init_nn,
-                            self.n_tile_types,
-                            init_states,
-                            self.bc_names,
-                            self.static_targets,
-                            seed=None,
-                            player_1 = self.player_1,
-                            player_2 = self.player_2)
-                playability_scores[id_0, id_1] = targets_penalty
-                if diversity_bonus is not None:
-                    diversity_scores[id_0, id_1] = diversity_bonus
-                if variance_penalty is not None:
-                    reliability_scores[id_0, id_1] = variance_penalty
+            if RANDOM_INIT_LEVELS:
+                # Effectively doing inference on a (presumed) held-out set of levels
+                N_EVAL_STATES = 100
+                init_states = np.random.randint(0, self.n_tile_types, size=(N_EVAL_STATES, *self.init_states.shape[1:]))
+            else:
+                init_states = self.init_states
+
+            if THREADS:
+                T()
+            else:
+                while i < len(models):
+                    # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
+                    model = models[i]
+                    id_0 = idxs_0[i]
+                    id_1 = idxs_1[i]
+
+
+                    # TODO: Parallelize me
+                    init_nn = set_weights(self.gen_model, model)
+                    _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = \
+                        simulate(self.env,
+                                init_nn,
+                                self.n_tile_types,
+                                init_states,
+                                self.bc_names,
+                                self.static_targets,
+                                seed=None,
+                                player_1 = self.player_1,
+                                player_2 = self.player_2)
+                    playability_scores[id_0, id_1] = targets_penalty
+                    if diversity_bonus is not None:
+                        diversity_scores[id_0, id_1] = diversity_bonus
+                    if variance_penalty is not None:
+                        reliability_scores[id_0, id_1] = variance_penalty
 
                 def plot_score_heatmap(scores, score_name, cmap_str="magma"):
                     ax = plt.gca()
@@ -1418,6 +1424,15 @@ if __name__ == '__main__':
         help='Incorporate diversity/variance bonus/penalty into fitness only if targets are met perfectly (rather than always incorporating them).',
         action='store_true',
     )
+    opts.add_argument(
+        '-rep',
+        '--representation',
+        help='The interface between generator-agent and environment. cellular: agent acts as cellular automaton, observing and'
+             ' supplying entire next stats. wide: agent observes entire stats, and changes any one tile. narrow: agent '
+             'observes state and target tile, and selects built at target tile. turtle: agent selects build at current '
+             'tile or navigates to adjacent tile.',
+        default='cellular',
+    )
 
     opts = opts.parse_args()
     global INFER
@@ -1440,6 +1455,8 @@ if __name__ == '__main__':
     global SAVE_LEVELS
     global RANDOM_INIT_LEVELS
     global CASCADE_REWARD
+    global REPRESENTATION
+    REPRESENTATION = opts.representation
     CASCADE_REWARD = opts.cascade_reward
     RANDOM_INIT_LEVELS = opts.random_init_levels
     CMAES = opts.behavior_characteristics == ["NONE"]
@@ -1458,6 +1475,9 @@ if __name__ == '__main__':
 #   N_INFER_STEPS = 100
     RENDER_LEVELS = opts.render_levels
     THREADS = opts.multi_thread
+
+
+
     if THREADS:
         ray.init()
     SAVE_LEVELS = opts.save_levels
