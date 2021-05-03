@@ -676,10 +676,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
     batch_time_penalty = 0
     batch_targets_penalty = 0
     batch_play_bonus = 0
-    if hasattr(env._rep, '_dirs'):
-        n_dirs = len(env._rep._dirs)
-    else:
-        n_dirs = None
+
     for (n_episode, init_state) in enumerate(init_states):
         # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
         env._rep._map = init_state.copy()
@@ -704,7 +701,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
-            action, skip = preprocess_action(action, int_map=env._rep._map, x=env._rep._x, y=env._rep._y, n_dirs=n_dirs)
+            action, skip = preprocess_action(action, int_map=env._rep._map, x=env._rep._x, y=env._rep._y, n_dirs=N_DIRS)
             change, x, y = env._rep.update(action)
             int_map = env._rep._map
             obs = get_one_hot_map(env._rep.get_observation()['map'], n_tile_types)
@@ -888,11 +885,17 @@ class EvoPCGRL():
                     [self.bc_bounds[bc_name] for bc_name in self.bc_names],
                 )
 
+        global N_DIRS
+        if hasattr(self.env._rep, '_dirs'):
+            N_DIRS = len(self.env._rep._dirs)
+        else:
+            N_DIRS = 0
+
         reps_to_out_chans = {
             'cellular': self.n_tile_types,
             'wide': self.n_tile_types,
             'narrow': self.n_tile_types + 1,
-            'turtle': self.n_tile_types + len(self.env._rep._dirs)
+            'turtle': self.n_tile_types + N_DIRS,
         }
 
         n_out_chans = reps_to_out_chans[REPRESENTATION]
