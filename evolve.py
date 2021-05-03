@@ -77,7 +77,53 @@ RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
+def id_action(action, **kwargs):
+    return action
 
+def wide_action(action, **kwargs):
+    # only consider tiles where the generator suggests something different than the existing tile
+    int_map = kwargs.get('int_map')
+    act_mask = action.argmax(axis=0) != int_map
+    n_new_builds = np.sum(act_mask)
+    act_mask = act_mask.reshape((1, *act_mask.shape))
+    act_mask = np.vstack((act_mask, act_mask))
+#   action = action * act_mask
+    action = np.where(act_mask == False, action.min() - 10, action)
+    coords = np.unravel_index(action.argmax(), action.shape)
+    if n_new_builds > 0:
+        assert act_mask[coords[0], coords[1], coords[2]] == 1
+    coords = coords[2], coords[1], coords[0]
+#   assert int_map[coords[0], coords[1]] != coords[2]
+    return coords
+
+def narrow_action(action, **kwargs):
+    x = kwargs.get('x')
+    y = kwargs.get('y')
+    act = action[:, x, y].argmax()
+    if act == 0:
+        skip = True
+    else:
+        skip = False
+    return act, skip
+
+def turtle_action(action, **kwargs):
+    x = kwargs.get('x')
+    y = kwargs.get('y')
+    n_dirs = kwargs.get('n_dirs')
+    act = action[:, x, y].argmax()
+    # NOTE: beware, this needs to mirror the logic inside turtle_rep
+    if act < n_dirs:
+        skip = True
+    else:
+        skip = False
+    return act, skip
+
+preprocess_action_funcs = {
+    'cellular': id_action,
+    'wide': wide_action,
+    'narrow': narrow_action,
+    'turtle': turtle_action,
+}
 
 
 class FlexArchive(GridArchive):
@@ -146,7 +192,7 @@ def unravel_index(
 
 class GeneratorNN(nn.Module):
     ''' A neural cellular automata-type NN to generate levels or wide-representation action distributions.'''
-    def __init__(self, n_tile_types):
+    def __init__(self, n_tile_types, n_actions):
         super().__init__()
 #       if 'zelda' in PROBLEM:
         n_hid_1 = 32
@@ -160,8 +206,8 @@ class GeneratorNN(nn.Module):
 #           n_hid_2 = 16
 
         self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, 1, bias=True)
-        self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(n_hid_2, n_tile_types, 1, 1, 0, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 
@@ -630,9 +676,17 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
     batch_time_penalty = 0
     batch_targets_penalty = 0
     batch_play_bonus = 0
+    if hasattr(env._rep, '_dirs'):
+        n_dirs = len(env._rep._dirs)
+    else:
+        n_dirs = None
     for (n_episode, init_state) in enumerate(init_states):
         # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
-        env._rep._map = init_state
+        env._rep._map = init_state.copy()
+        # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
+        # TODO: wrap the env instead
+        env._rep._x = np.random.randint(env._prob._width)
+        env._rep._y = np.random.randint(env._prob._height)
         int_map = init_state
         obs = get_one_hot_map(int_map, n_tile_types)
         if RENDER:
@@ -644,18 +698,21 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
         done = False
 
         n_step = 0
-        last_int_map = None
         while not done:
 #           in_tensor = torch.unsqueeze(
 #               torch.unsqueeze(torch.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
-            # The standard single-build action (why throw away all that information at the NCA's output, though? Not sure if this really works).
-            int_map = action.argmax(axis=0)
-            obs = get_one_hot_map(int_map, n_tile_types)
-            env._rep._map = int_map
-            reward = 0
-            done = (int_map == last_int_map).all() or n_step >= N_STEPS
+            # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
+            action, skip = preprocess_action(action, int_map=env._rep._map, x=env._rep._x, y=env._rep._y, n_dirs=n_dirs)
+            change, x, y = env._rep.update(action)
+            int_map = env._rep._map
+            obs = get_one_hot_map(env._rep.get_observation()['map'], n_tile_types)
+#           int_map = action.argmax(axis=0)
+#           obs = get_one_hot_map(int_map, n_tile_types)
+#           env._rep._map = int_map
+            done = not (change or skip) or n_step >= N_STEPS
+           #done = n_step >= N_STEPS
             if INFER:
                 time.sleep(1/30)
             if done:
@@ -831,7 +888,15 @@ class EvoPCGRL():
                     [self.bc_bounds[bc_name] for bc_name in self.bc_names],
                 )
 
-        self.gen_model = GeneratorNN(self.n_tile_types)
+        reps_to_out_chans = {
+            'cellular': self.n_tile_types,
+            'wide': self.n_tile_types,
+            'narrow': self.n_tile_types + 1,
+            'turtle': self.n_tile_types + len(self.env._rep._dirs)
+        }
+
+        n_out_chans = reps_to_out_chans[REPRESENTATION]
+        self.gen_model = GeneratorNN(n_tile_types=self.n_tile_types, n_actions=n_out_chans)
         set_nograd(self.gen_model)
         initial_w = get_init_weights(self.gen_model)
         assert len(initial_w.shape) == 1
@@ -1109,6 +1174,18 @@ class EvoPCGRL():
             else:
                 raise NotImplemented
 
+        global N_STEPS
+        if N_STEPS is None:
+            max_ca_steps = 10
+            max_changes = self.env._prob._width * self.env._prob._height
+            reps_to_steps = {
+                'cellular': max_ca_steps,
+                'wide': max_changes,
+                'narrow': max_changes,
+                'turtle': max_changes * 2,  # So that it can move around to each tile I guess
+            }
+            N_STEPS = reps_to_steps[REPRESENTATION]
+
     def visualize(self):
         archive = self.gen_archive
         # # Visualize Result
@@ -1163,7 +1240,9 @@ class EvoPCGRL():
 
         if RENDER_LEVELS:
             global RENDER
+            global N_INIT_STATES
             RENDER = False
+            N_INIT_STATES = 1
 
             if 'smb' in PROBLEM:
                 d = 4
@@ -1192,9 +1271,9 @@ class EvoPCGRL():
                     # initialize weights
                     init_nn = set_weights(self.gen_model, model)
 
-                    # run simulation
+                    # run simulation, but only on the first level-seed
                     _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
-                                    self.n_tile_types, self.init_states, self.bc_names, self.static_targets, seed=None)
+                                    self.n_tile_types, self.init_states[0:1], self.bc_names, self.static_targets, seed=None)
                     # Get image
                     img = self.env.render(mode='rgb_array')
                     axs[row_num,col_num].imshow(img, aspect='auto')
@@ -1233,7 +1312,7 @@ class EvoPCGRL():
                 init_states = self.init_states
 
             if THREADS:
-                T()
+                raise NotImplementedError
             else:
                 while i < len(models):
                     # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
@@ -1351,7 +1430,7 @@ if __name__ == '__main__':
         '--n_steps',
         help='Maximum number of steps in each generation episode.',
         type=int,
-        default=10,
+        default=None,
     )
     opts.add_argument(
         '-bcs',
@@ -1413,9 +1492,9 @@ if __name__ == '__main__':
         action='store_true',
     )
     opts.add_argument(
-        '-rand',
-        '--random_init_levels',
-        help='Provide the generators with new random initial levels during evaluation, rather than using a fixed set of random levels throughout evolution.',
+        '-fix',
+        '--fixed_init_levels',
+        help='Use a fixed set of random levels throughout evolution, rather than providing the generators with new random initial levels during evaluation.',
         action='store_true',
     )
     opts.add_argument(
@@ -1456,9 +1535,10 @@ if __name__ == '__main__':
     global RANDOM_INIT_LEVELS
     global CASCADE_REWARD
     global REPRESENTATION
+    global preprocess_action
     REPRESENTATION = opts.representation
     CASCADE_REWARD = opts.cascade_reward
-    RANDOM_INIT_LEVELS = opts.random_init_levels
+    RANDOM_INIT_LEVELS = not opts.fixed_init_levels
     CMAES = opts.behavior_characteristics == ["NONE"]
     EVALUATE = opts.evaluate
     PLAY_LEVEL = opts.play_level
@@ -1466,6 +1546,7 @@ if __name__ == '__main__':
     N_GENERATIONS = opts.n_generations
     N_INIT_STATES = opts.n_init_states
     N_STEPS = opts.n_steps
+
     SHOW_VIS = opts.show_vis
     PROBLEM = opts.problem
     CUDA = False
@@ -1475,6 +1556,7 @@ if __name__ == '__main__':
 #   N_INFER_STEPS = 100
     RENDER_LEVELS = opts.render_levels
     THREADS = opts.multi_thread
+    preprocess_action = preprocess_action_funcs[REPRESENTATION]
 
 
 
@@ -1482,11 +1564,12 @@ if __name__ == '__main__':
         ray.init()
     SAVE_LEVELS = opts.save_levels
 
-    exp_name = 'EvoPCGRL_{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, BCS, N_INIT_STATES, N_STEPS, opts.exp_name)
+#   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, opts.exp_name)
+    exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, opts.exp_name)
     if CASCADE_REWARD:
         exp_name += '_cascRew'
-    if RANDOM_INIT_LEVELS:
-        exp_name += '_rndLvls'
+    if not RANDOM_INIT_LEVELS:
+        exp_name += '_fixLvls'
     SAVE_PATH = os.path.join('evo_runs', exp_name)
 
     # Create TensorBoard Log Directory if does not exist
