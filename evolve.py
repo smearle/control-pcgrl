@@ -887,11 +887,6 @@ class EvoPCGRL():
                     [self.bc_bounds[bc_name] for bc_name in self.bc_names],
                 )
 
-        global N_DIRS
-        if hasattr(self.env._rep, '_dirs'):
-            N_DIRS = len(self.env._rep._dirs)
-        else:
-            N_DIRS = 0
 
         reps_to_out_chans = {
             'cellular': self.n_tile_types,
@@ -1169,6 +1164,8 @@ class EvoPCGRL():
         self.env = ENV
 
     def init_env(self):
+        '''Initialize the PCGRL level-generation RL environment and extract any useful info from it.'''
+
         env_name = '{}-{}-v0'.format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
         if CMAES:
@@ -1178,6 +1175,13 @@ class EvoPCGRL():
                 self.env._prob.static_trgs.update({'path-length': (path_trg - 20, path_trg)})
             else:
                 raise NotImplemented
+
+
+        global N_DIRS
+        if hasattr(self.env._rep, '_dirs'):
+            N_DIRS = len(self.env._rep._dirs)
+        else:
+            N_DIRS = 0
 
         global N_STEPS
         if N_STEPS is None:
