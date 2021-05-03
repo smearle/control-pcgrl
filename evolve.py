@@ -78,7 +78,8 @@ https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
 def id_action(action, **kwargs):
-    return action
+    skip = False
+    return action, skip
 
 def wide_action(action, **kwargs):
     # only consider tiles where the generator suggests something different than the existing tile
@@ -94,7 +95,8 @@ def wide_action(action, **kwargs):
         assert act_mask[coords[0], coords[1], coords[2]] == 1
     coords = coords[2], coords[1], coords[0]
 #   assert int_map[coords[0], coords[1]] != coords[2]
-    return coords
+    skip = False
+    return coords, skip
 
 def narrow_action(action, **kwargs):
     x = kwargs.get('x')
