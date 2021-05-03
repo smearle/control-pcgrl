@@ -966,8 +966,12 @@ class EvoPCGRL():
         else:
             self.player_1 = None
             self.player_2 = None
+        # This directory might already exist if a previous experiment failed before the first proper checkpoint/save
         if not os.path.isdir(SAVE_PATH):
             os.mkdir(SAVE_PATH)
+        # Save the command line arguments with which we launched
+        with open(os.path.join(SAVE_PATH, 'settings.json'), 'w', encoding='utf-8') as f:
+            json.dump(arg_dict, f, ensure_ascii=False, indent=4)
 
     def evolve(self):
 
@@ -1377,7 +1381,8 @@ class EvoPCGRL():
                 if RANDOM_INIT_LEVELS:
                     f_name = f_name + '_randSeeds'
                 f_name += '.json'
-                json.dump(stats, open(os.path.join(SAVE_PATH, f_name), 'w'))
+                with open(os.path.join(SAVE_PATH, f_name), 'w', encodign='utf-8') as f:
+                    json.dump(stats, f, ensure_ascii=False, indent=4)
                 return
 
 
@@ -1412,7 +1417,7 @@ if __name__ == '__main__':
         '-p',
         '--problem',
         help='Which game to generate levels for (PCGRL "problem").',
-        default='mini',
+        default='binary_ctrl',
     )
     opts.add_argument(
         '-e',
@@ -1446,7 +1451,7 @@ if __name__ == '__main__':
         '--behavior_characteristics',
         nargs='+',
         help='A list of strings corresponding to the behavior characteristics that will act as the dimensions for our grid of elites during evolution.',
-        default=['emptiness','path-length'],
+        default=['NONE'],
     )
     opts.add_argument(
         '-r',
@@ -1521,8 +1526,21 @@ if __name__ == '__main__':
              'tile or navigates to adjacent tile.',
         default='cellular',
     )
+    opts.add_argument(
+        '-la',
+        '--load_args',
+        help='Rather than having the above args supplied by the command-line, load them from a settings.json file. (Of '
+             'course, the value of this arg in the json will have no effect.)',
+        action='store_true',
+    )
+
 
     opts = opts.parse_args()
+    arg_dict = vars(opts)
+    if opts.load_args:
+        with open('configs/evo/settings.json') as f:
+            new_arg_dict = json.load(f)
+            arg_dict.update(new_arg_dict)
     global INFER
     global EVO_DIR
     global CUDA
@@ -1545,36 +1563,36 @@ if __name__ == '__main__':
     global CASCADE_REWARD
     global REPRESENTATION
     global preprocess_action
-    REPRESENTATION = opts.representation
-    CASCADE_REWARD = opts.cascade_reward
-    RANDOM_INIT_LEVELS = not opts.fixed_init_levels
-    CMAES = opts.behavior_characteristics == ["NONE"]
-    EVALUATE = opts.evaluate
-    PLAY_LEVEL = opts.play_level
-    BCS = opts.behavior_characteristics
-    N_GENERATIONS = opts.n_generations
-    N_INIT_STATES = opts.n_init_states
-    N_STEPS = opts.n_steps
+    REPRESENTATION = arg_dict['representation']
+    CASCADE_REWARD = arg_dict['cascade_reward']
+    RANDOM_INIT_LEVELS = not arg_dict['fixed_init_levels']
+    CMAES = arg_dict['behavior_characteristics'] == ["NONE"]
+    EVALUATE = arg_dict['evaluate']
+    PLAY_LEVEL = arg_dict['play_level']
+    BCS = arg_dict['behavior_characteristics']
+    N_GENERATIONS = arg_dict['n_generations']
+    N_INIT_STATES = arg_dict['n_init_states']
+    N_STEPS = arg_dict['n_steps']
 
-    SHOW_VIS = opts.show_vis
-    PROBLEM = opts.problem
+    SHOW_VIS = arg_dict['show_vis']
+    PROBLEM = arg_dict['problem']
     CUDA = False
-    VISUALIZE = opts.visualize
-    INFER = opts.infer
+    VISUALIZE = arg_dict['visualize']
+    INFER = arg_dict['infer']
     N_INFER_STEPS = N_STEPS
 #   N_INFER_STEPS = 100
-    RENDER_LEVELS = opts.render_levels
-    THREADS = opts.multi_thread
+    RENDER_LEVELS = arg_dict['render_levels']
+    THREADS = arg_dict['multi_thread']
     preprocess_action = preprocess_action_funcs[REPRESENTATION]
 
 
 
     if THREADS:
         ray.init()
-    SAVE_LEVELS = opts.save_levels
+    SAVE_LEVELS = arg_dict['save_levels']
 
-#   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, opts.exp_name)
-    exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, opts.exp_name)
+#   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
+    exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, arg_dict['exp_name'])
     if CASCADE_REWARD:
         exp_name += '_cascRew'
     if not RANDOM_INIT_LEVELS:
@@ -1597,13 +1615,13 @@ if __name__ == '__main__':
             evolver.infer()
         if not (INFER or VISUALIZE):
             # then we train
-            RENDER = opts.render
+            RENDER = arg_dict['render']
             evolver.init_env()
-            evolver.total_itrs = opts.n_generations
+            evolver.total_itrs = arg_dict['n_generations']
             evolver.evolve()
     except FileNotFoundError as e:
         if not INFER:
-            RENDER = opts.render
+            RENDER = arg_dict['render']
             print(
                 "Failed loading from an existing save-file. Evolving from scratch. The error was: {}"
                 .format(e))
