@@ -16,9 +16,10 @@
     "multi_thread": true,
     "play_level": false,
     "evaluate": false,
-    "save_levels": true,
+    "save_levels": false,
     "fixed_init_levels": false,
     "cascade_reward": false,
     "representation": "turtle",
+    "model": "NCA",
     "e": "0"
 }

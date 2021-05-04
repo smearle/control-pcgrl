@@ -23,7 +23,7 @@ from ribs.emitters import ImprovementEmitter, OptimizingEmitter
 from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
-from torch.nn import Conv2d, CrossEntropyLoss
+from torch.nn import Conv2d, Linear, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
@@ -78,6 +78,7 @@ https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
 def id_action(action, **kwargs):
+    # the argmax along tile_type dimension is performed inside the representation's update function
     skip = False
     return action, skip
 
@@ -113,7 +114,31 @@ def turtle_action(action, **kwargs):
     y = kwargs.get('y')
     n_dirs = kwargs.get('n_dirs')
     act = action[:, y, x].argmax()
-    # NOTE: beware, this needs to mirror the logic inside turtle_rep
+    # moving is counted as a skip, so lack of change does not end episode
+    if act < n_dirs:
+        skip = True
+    else:
+        skip = False
+    return act, skip
+
+def flat_to_box(action, **kwargs):
+    int_map = kwargs.get('int_map')
+    n_tiles = kwargs.get('n_tiles')
+    action = action.reshape((n_tiles, *int_map.shape))
+    skip = False
+    return action, skip
+
+def flat_to_narrow(action, **kwargs):
+    act = action.argmax()
+    if act == 0:
+        skip = True
+    else:
+        skip = False
+    return act, skip
+
+def flat_to_turtle(action, **kwargs):
+    n_dirs = kwargs.get('n_dirs')
+    act = action.argmax()
     if act < n_dirs:
         skip = True
     else:
@@ -121,10 +146,21 @@ def turtle_action(action, **kwargs):
     return act, skip
 
 preprocess_action_funcs = {
-    'cellular': id_action,
-    'wide': wide_action,
-    'narrow': narrow_action,
-    'turtle': turtle_action,
+    'NCA':
+        {
+            'cellular': id_action,
+            'wide': wide_action,
+            'narrow': narrow_action,
+            'turtle': turtle_action,
+        },
+    'CNN':
+        {
+            # will try to build this logic into the model
+            'cellular': flat_to_box,
+            'wide': flat_to_box,
+            'narrow': flat_to_narrow,
+            'turtle': flat_to_turtle,
+        }
 }
 
 
@@ -232,6 +268,47 @@ class GeneratorNN(nn.Module):
         # axis 0,2 is the y value
         return x
 
+
+class GeneratorNNDense(nn.Module):
+    ''' A neural cellular automata-type NN to generate levels or wide-representation action distributions.'''
+    def __init__(self, n_tile_types, n_actions, observation_shape, n_flat_actions):
+        super().__init__()
+        n_hid_1 = 16
+        # Hack af. Pad the input to make it have root 2? idk, bad
+        sq_i = 2
+        assert observation_shape[-1] == observation_shape[-2]
+        while sq_i < observation_shape[-1]:
+            sq_i = sq_i ** 2
+        pad_0 = sq_i - observation_shape[-1]
+        self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, pad_0+1, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_1, 3, 2, 1, bias=True)
+        self.flatten = torch.nn.Flatten()
+#       n_flat = self.flatten(self.l3(self.l2(self.l1(torch.zeros(size=observation_shape))))).shape[-1]
+        n_flat = n_hid_1
+        self.d1 = Linear(n_flat, n_flat_actions)
+#       self.d2 = Linear(16, n_flat_actions)
+        self.layers = [self.l1, self.l2, self.d1]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with torch.no_grad():
+            x = self.l1(x)
+            x = torch.nn.functional.relu(x)
+            for i in range(int(np.log2(x.shape[2])) + 1):
+                x = self.l2(x)
+                x = torch.nn.functional.relu(x)
+            x = self.flatten(x)
+            x = self.d1(x)
+            x = torch.tanh(x)
+#           x = self.d2(x)
+#           x = torch.sigmoid(x)
+            if not CA_ACTION:
+                x = torch.stack([
+                    unravel_index(x[i].argmax(), x[i].shape)
+                    for i in range(x.shape[0])
+                ])
+        return x
+
 class PlayerNN(nn.Module):
     def __init__(self, n_tile_types, n_actions=4):
         super().__init__()
@@ -284,7 +361,7 @@ class PlayerNN(nn.Module):
 
 def init_weights(m):
     if type(m) == torch.nn.Linear:
-        torch.nn.init.xavier_uniform(m.weight)
+        torch.nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
     if type(m) == torch.nn.Conv2d:
@@ -311,13 +388,14 @@ def get_init_weights(nn):
     """
     Use to get flat vector of weights from PyTorch model
     """
-    init_weights = []
+    init_params = []
     for lyr in nn.layers:
-        init_weights.append(lyr.weight.view(-1).numpy())
-        init_weights.append(lyr.bias.view(-1).numpy())
-    init_weights = np.hstack(init_weights)
+        init_params.append(lyr.weight.view(-1).numpy())
+        init_params.append(lyr.bias.view(-1).numpy())
+    init_params = np.hstack(init_params)
+    print('number of initial NN parameters: {}'.format(init_params.shape))
 
-    return init_weights
+    return init_params
 
 
 def set_weights(nn, weights):
@@ -896,7 +974,26 @@ class EvoPCGRL():
         }
 
         n_out_chans = reps_to_out_chans[REPRESENTATION]
-        self.gen_model = GeneratorNN(n_tile_types=self.n_tile_types, n_actions=n_out_chans)
+        if MODEL == "NCA":
+            self.gen_model = GeneratorNN(n_tile_types=self.n_tile_types, n_actions=n_out_chans)
+        elif MODEL == "CNN":
+            # Adding n_tile_types as a dimension here. Why would this ever be the env's observation space though? Should be one-hot by default?
+            observation_shape = (1, self.n_tile_types, *self.env.observation_space['map'].shape)
+            if isinstance(self.env.action_space, gym.spaces.Box):
+                action_shape = self.env.action_space.shape
+                assert len(action_shape) == 3
+                n_flat_actions = action_shape[0] * action_shape[1] * action_shape[2]
+            elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
+                nvec = self.env.action_space.nvec
+                assert len(nvec) == 3
+                n_flat_actions = nvec[0] * nvec[1] * nvec[2]
+            elif isinstance(self.env.action_space, gym.spaces.Discrete):
+                n_flat_actions = self.env.action_space.n
+            else:
+                raise NotImplementedError("I don't know how to handle this action space: {}".format(type(self.env.action_space)))
+            self.gen_model = GeneratorNNDense(n_tile_types=self.n_tile_types, n_actions=n_out_chans,
+                                              observation_shape=observation_shape,
+                                              n_flat_actions=n_flat_actions)
         set_nograd(self.gen_model)
         initial_w = get_init_weights(self.gen_model)
         assert len(initial_w.shape) == 1
@@ -1541,6 +1638,11 @@ if __name__ == '__main__':
              'course, the value of this arg in the json will have no effect.)',
         action='store_true',
     )
+    opts.add_argument(
+        '--model',
+        help='Which neural network architecture to use for the generator. NCA: just conv layers. CNN: Some conv layers, then a dense layer.',
+        default='NCA',
+    )
 
 
     opts = opts.parse_args()
@@ -1570,7 +1672,9 @@ if __name__ == '__main__':
     global RANDOM_INIT_LEVELS
     global CASCADE_REWARD
     global REPRESENTATION
+    global MODEL
     global preprocess_action
+    MODEL = arg_dict['model']
     REPRESENTATION = arg_dict['representation']
     CASCADE_REWARD = arg_dict['cascade_reward']
     RANDOM_INIT_LEVELS = not arg_dict['fixed_init_levels']
@@ -1592,7 +1696,7 @@ if __name__ == '__main__':
     RENDER_LEVELS = arg_dict['render_levels']
     THREADS = arg_dict['multi_thread']
     SAVE_INTERVAL = 100
-    preprocess_action = preprocess_action_funcs[REPRESENTATION]
+    preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
 
 
 
@@ -1601,7 +1705,7 @@ if __name__ == '__main__':
     SAVE_LEVELS = arg_dict['save_levels']
 
 #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
-    exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, arg_dict['exp_name'])
+    exp_name = 'EvoPCGRL_{}-{}_{}_{}_{}-batch_{}'.format(PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, arg_dict['exp_name'])
     if CASCADE_REWARD:
         exp_name += '_cascRew'
     if not RANDOM_INIT_LEVELS:

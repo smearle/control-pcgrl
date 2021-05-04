@@ -40,24 +40,32 @@ local_bcs = {
         ['enemies', 'jumps'],
     ],
 }
+models = [
+    'NCA',
+    'CNN',
+]
 
 def launch_batch(exp_name):
     for prob in problems:
         prob_bcs = global_bcs + local_bcs[prob]
         for rep in representations:
             for bc_pair in prob_bcs:
-                exp_config = copy.deepcopy(default_config)
-                exp_config.update({
-                    'problem': prob,
-                    'representation': rep,
-                    'behavior_characteristics': bc_pair,
-                    'e': exp_name,
-                })
-                print('Saving experiment config:\n{}'.format(exp_config))
-                with open('configs/evo/settings.json', 'w') as f:
-                    json.dump(exp_config, f, ensure_ascii=False, indent=4)
-                # Launch the experiment. It should load the saved settings
-                os.system('sbatch evo_train.sh')
+                for model in models:
+                    # This would necessitate an explosive number of model params so we'll not run it
+                    if model == 'CNN' and rep == 'cellular':
+                        continue
+                    exp_config = copy.deepcopy(default_config)
+                    exp_config.update({
+                        'problem': prob,
+                        'representation': rep,
+                        'behavior_characteristics': bc_pair,
+                        'e': exp_name,
+                    })
+                    print('Saving experiment config:\n{}'.format(exp_config))
+                    with open('configs/evo/settings.json', 'w') as f:
+                        json.dump(exp_config, f, ensure_ascii=False, indent=4)
+                    # Launch the experiment. It should load the saved settings
+                    os.system('sbatch evo_train.sh')
 
 
 exp_name = '0'
