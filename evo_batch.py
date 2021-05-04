@@ -11,10 +11,10 @@ with open('configs/evo/default_settings.json', 'r') as f:
 print('Loaded default config:\n{}'.format(default_config))
 
 problems = [
-    'binary_ctrl',
+#   'binary_ctrl',
     'zelda_ctrl',
-    'sokoban_ctrl',
-    'smb_ctrl',
+#   'sokoban_ctrl',
+#   'smb_ctrl',
     ]
 representations = [
     'cellular',
@@ -24,7 +24,7 @@ representations = [
     ]
 global_bcs = [
     ['NONE'],
-    ['emptiness', 'symmetry'],
+#   ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     'binary_ctrl': [
