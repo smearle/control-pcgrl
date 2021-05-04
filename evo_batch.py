@@ -66,7 +66,7 @@ def launch_batch(exp_name):
                     with open('evo_train.sh', 'r') as f:
                         content = f.read()
                         new_content = re.sub(
-                            'python evolve.py -la \d',
+                            'python evolve.py -la \d+',
                             'python evolve.py -la {}'.format(i), content)
                     with open('evo_train.sh', 'w') as f:
                         f.write(new_content)
@@ -93,4 +93,4 @@ TEST = False
 EXP_NAME = '0'
 
 if __name__ == '__main__':
-    launch_batch(exp_name)
+    launch_batch(EXP_NAME)
