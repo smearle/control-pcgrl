@@ -128,6 +128,21 @@ def flat_to_box(action, **kwargs):
     skip = False
     return action, skip
 
+
+def flat_to_wide(action, **kwargs):
+    int_map = kwargs.get('int_map')
+    w = int_map.shape[0]
+    h = int_map.shape[1]
+    n_tiles = kwargs.get('n_tiles')
+    assert len(action) == int_map.shape[0] + int_map.shape[1] + n_tiles
+    action = (
+        action[:w].argmax(),
+        action[w:w+h].argmax(),
+        action[w+h:].argmax(),
+    )
+    skip = False
+    return action, skip
+
 def flat_to_narrow(action, **kwargs):
     act = action.argmax()
     if act == 0:
@@ -157,12 +172,40 @@ preprocess_action_funcs = {
         {
             # will try to build this logic into the model
             'cellular': flat_to_box,
-            'wide': flat_to_box,
+            'wide': flat_to_wide,
             'narrow': flat_to_narrow,
             'turtle': flat_to_turtle,
         }
 }
 
+def id_observation(obs, **kwargs):
+    return obs
+
+def local_observation(obs, **kwargs):
+    x = kwargs.get('x')
+    y = kwargs.get('y')
+    local_obs = np.zeros((1, obs.shape[1], obs.shape[2]))
+    # What is up with these y x lol
+    local_obs[0, y, x] = 1
+    np.concatenate((obs, local_obs), axis=0)
+    return obs
+
+preprocess_observation_funcs = {
+    'NCA':
+        {
+            'cellular': id_observation,
+            'wide': id_observation,
+            'narrow': local_observation,
+            'turtle': local_observation,
+        },
+    'CNN':
+        {
+            'cellular': id_observation,
+            'wide': id_observation,
+            'narrow': local_observation,
+            'turtle': local_observation,
+        }
+}
 
 class FlexArchive(GridArchive):
     def __init__(self, *args, **kwargs):
@@ -230,7 +273,7 @@ def unravel_index(
 
 class GeneratorNN(nn.Module):
     ''' A neural cellular automata-type NN to generate levels or wide-representation action distributions.'''
-    def __init__(self, n_tile_types, n_actions):
+    def __init__(self, n_in_chans, n_actions):
         super().__init__()
 #       if 'zelda' in PROBLEM:
         n_hid_1 = 32
@@ -243,7 +286,7 @@ class GeneratorNN(nn.Module):
 #           n_hid_1 = 32
 #           n_hid_2 = 16
 
-        self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, 1, bias=True)
+        self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
@@ -271,7 +314,7 @@ class GeneratorNN(nn.Module):
 
 class GeneratorNNDense(nn.Module):
     ''' A neural cellular automata-type NN to generate levels or wide-representation action distributions.'''
-    def __init__(self, n_tile_types, n_actions, observation_shape, n_flat_actions):
+    def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions):
         super().__init__()
         n_hid_1 = 16
         # Hack af. Pad the input to make it have root 2? idk, bad
@@ -280,7 +323,7 @@ class GeneratorNNDense(nn.Module):
         while sq_i < observation_shape[-1]:
             sq_i = sq_i ** 2
         pad_0 = sq_i - observation_shape[-1]
-        self.l1 = Conv2d(n_tile_types, n_hid_1, 3, 1, pad_0+1, bias=True)
+        self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, pad_0+1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 3, 2, 1, bias=True)
         self.flatten = torch.nn.Flatten()
 #       n_flat = self.flatten(self.l3(self.l2(self.l1(torch.zeros(size=observation_shape))))).shape[-1]
@@ -781,10 +824,20 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
-            action, skip = preprocess_action(action, int_map=env._rep._map, x=env._rep._x, y=env._rep._y, n_dirs=N_DIRS, n_tiles=n_tile_types)
+            action, skip = preprocess_action(
+                action,
+                int_map=env._rep._map,
+                x=env._rep._x,
+                y=env._rep._y,
+                n_dirs=N_DIRS,
+                n_tiles=n_tile_types)
             change, x, y = env._rep.update(action)
             int_map = env._rep._map
             obs = get_one_hot_map(env._rep.get_observation()['map'], n_tile_types)
+            preprocess_observation(
+                obs,
+                x=env._rep._x,
+                y=env._rep._y)
 #           int_map = action.argmax(axis=0)
 #           obs = get_one_hot_map(int_map, n_tile_types)
 #           env._rep._map = int_map
@@ -973,9 +1026,17 @@ class EvoPCGRL():
             'turtle': self.n_tile_types + N_DIRS,
         }
 
+        reps_to_in_chans = {
+            'cellular': self.n_tile_types,
+            'wide': self.n_tile_types,
+            'narrow': self.n_tile_types + 1,
+            'turtle': self.n_tile_types + 1,
+        }
+
         n_out_chans = reps_to_out_chans[REPRESENTATION]
+        n_in_chans = reps_to_in_chans[REPRESENTATION]
         if MODEL == "NCA":
-            self.gen_model = GeneratorNN(n_tile_types=self.n_tile_types, n_actions=n_out_chans)
+            self.gen_model = GeneratorNN(n_in_chans=self.n_tile_types, n_actions=n_out_chans)
         elif MODEL == "CNN":
             # Adding n_tile_types as a dimension here. Why would this ever be the env's observation space though? Should be one-hot by default?
             observation_shape = (1, self.n_tile_types, *self.env.observation_space['map'].shape)
@@ -986,12 +1047,12 @@ class EvoPCGRL():
             elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
                 nvec = self.env.action_space.nvec
                 assert len(nvec) == 3
-                n_flat_actions = nvec[0] * nvec[1] * nvec[2]
+                n_flat_actions = nvec[0] + nvec[1] + nvec[2]
             elif isinstance(self.env.action_space, gym.spaces.Discrete):
                 n_flat_actions = self.env.action_space.n
             else:
                 raise NotImplementedError("I don't know how to handle this action space: {}".format(type(self.env.action_space)))
-            self.gen_model = GeneratorNNDense(n_tile_types=self.n_tile_types, n_actions=n_out_chans,
+            self.gen_model = GeneratorNNDense(n_in_chans=self.n_tile_types, n_actions=n_out_chans,
                                               observation_shape=observation_shape,
                                               n_flat_actions=n_flat_actions)
         set_nograd(self.gen_model)
@@ -1636,7 +1697,8 @@ if __name__ == '__main__':
         '--load_args',
         help='Rather than having the above args supplied by the command-line, load them from a settings.json file. (Of '
              'course, the value of this arg in the json will have no effect.)',
-        action='store_true',
+        type=int,
+        default=None,
     )
     opts.add_argument(
         '--model',
@@ -1647,8 +1709,8 @@ if __name__ == '__main__':
 
     opts = opts.parse_args()
     arg_dict = vars(opts)
-    if opts.load_args:
-        with open('configs/evo/settings.json') as f:
+    if opts.load_args is not None:
+        with open('configs/evo/settings_{}.json'.format(opts.load_args)) as f:
             new_arg_dict = json.load(f)
             arg_dict.update(new_arg_dict)
     global INFER
@@ -1697,6 +1759,7 @@ if __name__ == '__main__':
     THREADS = arg_dict['multi_thread']
     SAVE_INTERVAL = 100
     preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
+    preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
 
 
