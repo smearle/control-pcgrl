@@ -1,12 +1,11 @@
 {
-    "problem": "smb_ctrl",
+    "problem": "binary_ctrl",
     "exp_name": "test_0",
     "n_generations": 100000,
     "n_init_states": 10,
     "n_steps": null,
     "behavior_characteristics": [
-        "enemies",
-        "jumps"
+        "NONE"
     ],
     "render": false,
     "infer": false,
@@ -16,9 +15,8 @@
     "multi_thread": true,
     "play_level": false,
     "evaluate": false,
-    "save_levels": true,
+    "save_levels": false,
     "fixed_init_levels": false,
     "cascade_reward": false,
-    "representation": "turtle",
-    "e": "0"
+    "representation": "cellular"
 }

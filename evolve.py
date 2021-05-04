@@ -87,7 +87,7 @@ def wide_action(action, **kwargs):
     act_mask = action.argmax(axis=0) != int_map
     n_new_builds = np.sum(act_mask)
     act_mask = act_mask.reshape((1, *act_mask.shape))
-    act_mask = np.vstack((act_mask, act_mask))
+    act_mask = np.repeat(act_mask, kwargs.get('n_tiles'), axis=0)
 #   action = action * act_mask
     action = np.where(act_mask == False, action.min() - 10, action)
     coords = np.unravel_index(action.argmax(), action.shape)
@@ -101,7 +101,7 @@ def wide_action(action, **kwargs):
 def narrow_action(action, **kwargs):
     x = kwargs.get('x')
     y = kwargs.get('y')
-    act = action[:, x, y].argmax()
+    act = action[:, y, x].argmax()
     if act == 0:
         skip = True
     else:
@@ -112,7 +112,7 @@ def turtle_action(action, **kwargs):
     x = kwargs.get('x')
     y = kwargs.get('y')
     n_dirs = kwargs.get('n_dirs')
-    act = action[:, x, y].argmax()
+    act = action[:, y, x].argmax()
     # NOTE: beware, this needs to mirror the logic inside turtle_rep
     if act < n_dirs:
         skip = True
@@ -357,7 +357,7 @@ def get_entropy(int_map, env):
     returns the entropy of the level normalized roughly to a range of 0.0 to 1.0
     """
     #FIXME: make this robust to different action spaces
-    n_classes = env.action_space.nvec[2]
+    n_classes = len(env._prob._prob)
     max_val = -(1 / n_classes)*np.log(1 / n_classes)* n_classes
     total = len(int_map.flatten())
     entropy = 0.0
@@ -376,7 +376,7 @@ def get_counts(int_map, env):
     returns a python list with tile counts for each tile normalized to a range of 0.0 to 1.0
     """
     max_val = env._prob._width * env._prob._height  # for example 14*14=196
-    return [np.sum(int_map.flatten() == tile)/max_val for tile in range(env.action_space.nvec[2])]
+    return [np.sum(int_map.flatten() == tile)/max_val for tile in range(len(env._prob._prob))]
 
 
 def get_emptiness(int_map, env):
@@ -396,7 +396,7 @@ def get_hor_sym(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns a symmetry float value normalized to a range of 0.0 to 1.0
     """
-    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]/2  # for example 14*14/2=98
+    max_val = env._prob._width*env._prob._height/2  # for example 14*14/2=98
     m = 0
     if int(int_map.shape[0])%2==0:
         m = np.sum((int_map[:int(int_map.shape[0]/2)] == np.flip(int_map[int(int_map.shape[0]/2):],0)).astype(int))
@@ -413,7 +413,7 @@ def get_ver_sym(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns a symmetry float value normalized to a range of 0.0 to 1.0
     """
-    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]/2  # for example 14*14/2=98
+    max_val = env._prob._width*env._prob._height/2  # for example 14*14/2=98
     m = 0
     if int(int_map.shape[1])%2==0:
         m = np.sum((int_map[:,:int(int_map.shape[1]/2)] == np.flip(int_map[:,int(int_map.shape[1]/2):],1)).astype(int))
@@ -436,7 +436,7 @@ def get_sym(int_map, env):
 
 # CO-OCCURRANCE
 def get_co(int_map, env):
-    max_val = env.action_space.nvec[0]*env.action_space.nvec[1]*4
+    max_val = env._prob._width*env._prob._height*4
     result = (np.sum((np.roll(int_map, 1, axis=0) == int_map).astype(int))+
     np.sum((np.roll(int_map, -1, axis=0) == int_map).astype(int))+
     np.sum((np.roll(int_map, 1, axis=1) == int_map).astype(int))+
@@ -703,7 +703,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
             in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
-            action, skip = preprocess_action(action, int_map=env._rep._map, x=env._rep._x, y=env._rep._y, n_dirs=N_DIRS)
+            action, skip = preprocess_action(action, int_map=env._rep._map, x=env._rep._x, y=env._rep._y, n_dirs=N_DIRS, n_tiles=n_tile_types)
             change, x, y = env._rep.update(action)
             int_map = env._rep._map
             obs = get_one_hot_map(env._rep.get_observation()['map'], n_tile_types)
@@ -1003,7 +1003,7 @@ class EvoPCGRL():
                 for result in results:
                     level_json, m_obj, m_bcs = result
                     if SAVE_LEVELS:
-                        pd.DataFrame(level_json).to_csv(SAVE_PATH + "_levels.csv", mode='a', header=False, index=False)
+                        pd.DataFrame(level_json).to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
             else:
@@ -1140,7 +1140,7 @@ class EvoPCGRL():
                            #bcs.append([bc_a])
                         log_archive(self.play_archive, 'Player', p_itr, play_start_time)
 
-                        if net_p_itr > 0 and net_p_itr % 10 == 0:
+                        if net_p_itr > 0 and net_p_itr % SAVE_INTERVAL == 0:
                             self.save()
 
                         df = self.play_archive.as_pandas()
@@ -1155,7 +1155,7 @@ class EvoPCGRL():
 
 
             # Save checkpoint
-            if itr % 10 == 0:
+            if itr % SAVE_INTERVAL == 0:
                 self.save()
 
             self.n_itr += 1
@@ -1177,6 +1177,14 @@ class EvoPCGRL():
             if "binary" in PROBLEM:
                 path_trg = self.env._prob.static_trgs['path-length']
                 self.env._prob.static_trgs.update({'path-length': (path_trg - 20, path_trg)})
+            elif "zelda" in PROBLEM:
+                path_trg = self.env._prob.static_trgs['path-length']
+                self.env._prob.static_trgs.update({'path-length': (path_trg - 40, path_trg)})
+            elif "sokoban" in PROBLEM:
+                sol_trg = self.env._prob.static_trgs['sol-length']
+                self.env._prob.static_trgs.update({'sol-length': (sol_trg - 10, sol_trg)})
+            elif "smb" in PROBLEM:
+                pass
             else:
                 raise NotImplemented
 
@@ -1583,6 +1591,7 @@ if __name__ == '__main__':
 #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict['render_levels']
     THREADS = arg_dict['multi_thread']
+    SAVE_INTERVAL = 100
     preprocess_action = preprocess_action_funcs[REPRESENTATION]
 
 
