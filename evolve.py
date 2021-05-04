@@ -1161,7 +1161,10 @@ class EvoPCGRL():
                 for result in results:
                     level_json, m_obj, m_bcs = result
                     if SAVE_LEVELS:
-                        pd.DataFrame(level_json).to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
+                        df = pd.DataFrame(level_json)
+                        df = df[df['targets'] == 0]
+                        if len(df) > 0:
+                            df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
             else:
@@ -1180,7 +1183,10 @@ class EvoPCGRL():
                     )
                     if SAVE_LEVELS:
                         # Save levels to disc
-                        pd.DataFrame(level_json).to_csv(SAVE_PATH + "_levels.csv", mode='a', header=False, index=False)
+                        df = pd.DataFrame(level_json)
+                        df = df[df['targets'] == 0]
+                        if len(df) > 0:
+                            df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append(m_bcs)
 
@@ -1209,7 +1215,11 @@ class EvoPCGRL():
                     for result in results:
                         level_json, el_obj, el_bcs = result
                         if SAVE_LEVELS:
-                            pd.DataFrame(level_json).to_csv(SAVE_PATH + "_levels.csv", mode='a', header=False, index=False)
+                            # Save levels to disc
+                            df = pd.DataFrame(level_json)
+                            df = df[df['targets'] == 0]
+                            if len(df) > 0:
+                                df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
                         self.gen_archive.update_elite(el_obj, el_bcs)
 
                 else:
