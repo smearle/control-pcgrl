@@ -22,12 +22,14 @@ from ribs.archives import GridArchive
 from ribs.emitters import ImprovementEmitter, OptimizingEmitter
 from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
+from ribs.archives._add_status import AddStatus
 from torch import ByteTensor, Tensor, nn
 from torch.nn import Conv2d, Linear, CrossEntropyLoss
 from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
 import scipy
+import pprint
 #from example_play_call import random_player
 #gvgai_path = '/home/sme/GVGAI_GYM/'
 #sys.path.insert(0,gvgai_path)
@@ -208,33 +210,97 @@ preprocess_observation_funcs = {
 }
 
 class FlexArchive(GridArchive):
+    ''' Subclassing a pyribs archive class to do some funky stuff.'''
     def __init__(self, *args, **kwargs):
-        self.score_hists = {}
+        self.obj_hist = {}
+        self.bc_hist = {}
         super().__init__(*args, **kwargs)
+#       # "index of indices", so we can remove them from _occupied_indices when removing
+#       self._index_ranks = {}
+        self._occupied_indices = set()
 
-    def update_elite(self, obj, bcs):
-        index = self._get_index(np.array(bcs))
-        self.update_elite_idx(index, obj)
+    def _add_occupied_index(self, index):
+#       rank = len(self._occupied_indices)
+#       self._index_ranks[index] = rank  # the index of the index in _occupied_indices
+        return super()._add_occupied_index(index)
 
-    def update_elite_idx(self, index, obj):
-        if index not in self.score_hists:
-            self.score_hists[index] = []
-        score_hists = self.score_hists[index]
-        score_hists.append(obj)
-        obj = np.mean(score_hists)
-        self._solutions[index][2] = obj
-        self._objective_values[index] = obj
+    def _remove_occupied_index(self, index):
+        self._occupied_indices.remove(index)
+        self._occupied_indices_cols = tuple(
+                [self._occupied_indices[i][j] for i in range(len(self._occupied_indices))]
+                for j in range(len(self._storage_dims))
+        )
 
-        while len(score_hists) > 500:
-            score_hists.pop(0)
+    def update_elite(self, obj, bcs, old_bcs):
+        '''
+        obj: objective score from new evaluations
+        bcs: behavior characteristics from new evaluations
+        old_bcs: previous behavior characteristics, for getting the individuals index in the archive
+        '''
 
-    def add(self, solution, objective_value, behavior_values):
-        index = self._get_index(behavior_values)
+        # Remove it, update it
 
-        if index in self.score_hists:
-            self.score_hists[index] = [objective_value]
+        old_idx = self.get_index(np.array(old_bcs))
 
-        return super().add(solution, objective_value, behavior_values)
+        self._remove_occupied_index(old_idx)
+#       rank = self._index_ranks.pop(old_idx)
+#       self._occupied_indices.pop(rank)
+#       [self._occupied_indices_cols[i].pop(rank) for i in range(len(self._storage_dims))]
+        obj_hist = self.obj_hist.pop(old_idx)
+        obj_hist.append(obj)
+        mean_obj = np.mean(obj_hist)
+        bc_hist = self.bc_hist.pop(old_idx)
+        bc_hist.append(bcs)
+        bc_hist_np = np.asarray(bc_hist)
+        mean_bcs = bc_hist_np.mean(axis=0)
+#       new_idx = self.get_index(mean_bcs)
+        self._objective_values[old_idx] = np.nan
+        self._behavior_values[old_idx] = np.nan
+        self._occupied[old_idx] = False
+        solution = self._solutions[old_idx].copy()
+        self._solutions[old_idx] = np.nan
+        self._metadata[old_idx] = np.nan
+
+        # Add it back
+
+        while len(obj_hist) > 100:
+            obj_hist = obj_hist[-100:]
+        while len(bc_hist) > 100:
+            bc_hist = bc_hist[-100:]
+
+        self.add(solution, mean_obj, mean_bcs,
+                obj_hist=obj_hist, 
+                bc_hist=bc_hist,
+                )
+            
+#       self._occupied[new_idx] = True
+#       self._behavior_values[new_idx] = mean_bcs
+#       # FIXME: how to remove old index from occupied_indices :((( Hopefully this does not fuxk us too hard 
+#       # (it fucks get_random_elite and checking emptiness... but that's ok for now)
+#       self._occupied_indices.append(new_idx)  # this doesn't really do anything then
+##      self._add_occupied_index(new_idx)
+#       self.bc_hists[new_idx] = bc_hists
+#       self.obj_hists[new_idx] = obj_hists
+
+    def add(self, solution, objective_value, behavior_values,
+                obj_hist=None,
+                bc_hist=None):
+
+        index = self.get_index(behavior_values)
+
+        status, dtype_improvement = super().add(solution, objective_value, behavior_values)
+
+        if not status == AddStatus.NOT_ADDED:
+            if obj_hist is None:
+                assert bc_hist is None
+                self.obj_hist[index] = [objective_value]
+                self.bc_hist[index] = [list(behavior_values)]
+            else:
+                self.obj_hist[index] = obj_hist
+                self.bc_hist[index] = bc_hist
+
+        return status, dtype_improvement
+
 
 def unravel_index(
     indices: torch.LongTensor,
@@ -1194,10 +1260,12 @@ class EvoPCGRL():
             self.gen_optimizer.tell(objs, bcs)
 
             # Re-evaluate elite generators
-            if RANDOM_INIT_LEVELS:
+            if RANDOM_INIT_LEVELS and self.n_itr % 10 == 0:
                 df = self.gen_archive.as_pandas()
-                high_performing = df.sort_values("objective", ascending=False)
+#               high_performing = df.sort_values("objective", ascending=False)
+                high_performing = df.sample(frac=1)
                 elite_models = np.array(high_performing.loc[:, "solution_0":])
+                elite_bcs = np.array(high_performing.loc[:, "behavior_0":"behavior_1"])
                 if THREADS:
                     futures = [multi_evo.remote(
                         self.env,
@@ -1212,7 +1280,9 @@ class EvoPCGRL():
                         player_2=self.player_2) for i in range(min(len(elite_models), 150)
                     )]
                     results = ray.get(futures)
+                    el_i = 0
                     for result in results:
+                        old_el_bcs = elite_bcs[el_i]
                         level_json, el_obj, el_bcs = result
                         if SAVE_LEVELS:
                             # Save levels to disc
@@ -1220,11 +1290,16 @@ class EvoPCGRL():
                             df = df[df['targets'] == 0]
                             if len(df) > 0:
                                 df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
-                        self.gen_archive.update_elite(el_obj, el_bcs)
+                        self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
+                        el_i += 1
 
                 else:
                     # 150 to match number of new-model evaluations
                     for elite_i in range(min(len(elite_models), 150)):
+                       #print(elite_i)
+                       #pprint.pprint(self.gen_archive.obj_hist, width=1)
+                       #pprint.pprint(self.gen_archive.bc_hist, width=1)
+                        old_el_bcs = elite_bcs[elite_i]
                         gen_model_weights = elite_models[elite_i]
                         set_weights(self.gen_model, gen_model_weights)
 
@@ -1237,8 +1312,13 @@ class EvoPCGRL():
                                                         seed=seed,
                                                         player_1=self.player_1,
                                                         player_2=self.player_2)
+                        idx = self.gen_archive.get_index(old_el_bcs)
+                        if idx not in self.gen_archive.bc_hist:
+                            T()
+                        if idx not in self.gen_archive.obj_hist:
+                            T()
 
-                        self.gen_archive.update_elite(el_obj, el_bcs)
+                        self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
 
 
             log_archive(self.gen_archive, 'Generator', itr, self.start_time, level_json)
@@ -1332,6 +1412,9 @@ class EvoPCGRL():
         global ENV
         ENV = self.env
         self.env = None
+        evo_path = os.path.join(SAVE_PATH, 'evolver.pkl')
+
+        os.system('mv "{}" "{}"'.format(evo_path, os.path.join(SAVE_PATH, 'last_evolver.pkl')))
         pickle.dump(self, open(os.path.join(SAVE_PATH, "evolver.pkl"), 'wb'))
         self.env = ENV
 
@@ -1395,7 +1478,7 @@ class EvoPCGRL():
 #       plt.gca().invert_yaxis()  # Makes more sense if larger BC_1's are on top.
         plt.xlabel(self.bc_names[0])
         plt.ylabel(self.bc_names[1])
-        plt.savefig('{}.png'.format(SAVE_PATH))
+        plt.savefig(os.path.join(SAVE_PATH, 'fitness.png'))
         if SHOW_VIS:
            plt.show()
 
@@ -1767,7 +1850,7 @@ if __name__ == '__main__':
 #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict['render_levels']
     THREADS = arg_dict['multi_thread']
-    SAVE_INTERVAL = 100
+    SAVE_INTERVAL = 10
     preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
     preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
