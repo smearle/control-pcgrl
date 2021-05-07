@@ -1277,7 +1277,7 @@ class EvoPCGRL():
                         self.static_targets,
                         seed,
                         player_1=self.player_1,
-                        player_2=self.player_2) for i in range(min(len(elite_models), 150)
+                        player_2=self.player_2) for i in range(min(len(elite_models) // 2, 150)
                     )]
                     results = ray.get(futures)
                     el_i = 0
