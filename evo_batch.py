@@ -9,9 +9,9 @@ import re
 
 
 problems = [
-#   'binary_ctrl',
+    'binary_ctrl',
     'zelda_ctrl',
-#   'sokoban_ctrl',
+    'sokoban_ctrl',
 #   'smb_ctrl',
     ]
 representations = [
@@ -40,7 +40,7 @@ local_bcs = {
 }
 models = [
     'NCA',
-    'CNN',
+#   'CNN',
 ]
 
 def launch_batch(exp_name):
