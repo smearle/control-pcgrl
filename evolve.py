@@ -414,7 +414,7 @@ class GeneratorNNDense(nn.Module):
                 x = torch.nn.functional.relu(x)
             x = self.flatten(x)
             x = self.d1(x)
-            x = torch.tanh(x)
+            x = torch.sigmoid(x)
 #           x = self.d2(x)
 #           x = torch.sigmoid(x)
             if not CA_ACTION:
@@ -758,7 +758,9 @@ def play_level(env, level, player):
     return net_p_rew, [action_entropy, local_action_entropy]
 
 @ray.remote
-def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_targets, seed, player_1, player_2):
+def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_targets, seed, player_1, player_2, proc_id=None):
+    if proc_id is not None:
+        print('simulating id: {}'.format(proc_id))
     set_weights(model, model_w)
     result = simulate(
         env=env,
@@ -773,7 +775,9 @@ def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_t
     return result
 
 @ray.remote
-def multi_play_evo(env, gen_model, player_1_w, n_tile_types, init_states, play_bc_names, static_targets, seed, player_1, player_2, playable_levels):
+def multi_play_evo(env, gen_model, player_1_w, n_tile_types, init_states, play_bc_names, static_targets, seed, player_1, player_2, playable_levels, proc_id=None):
+    if proc_id is not None:
+        print('simulating id: {}'.format(proc_id))
     set_weights(player_1, player_1_w)
     obj, bcs = player_simulate(
         env=env,
@@ -974,7 +978,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
 
             if RENDER:
                 env.render()
-            if done and INFER:
+            if done and INFER and not (EVALUATE and THREADS):
                 time.sleep(5/30)
                 print('stats: {}\n\ntime_penalty: {}\n targets_penalty: {}'.format(stats, time_penalty, targets_penalty))
             last_int_map = int_map
@@ -1049,7 +1053,7 @@ class EvoPCGRL():
 
         self.static_targets = self.env._prob.static_trgs
 
-        if RANDOM_INIT_LEVELS:
+        if REEVALUATE_ELITES:
             # If we are constantly providing new random seeds to generators, we will need to regularly re-evaluate elites
             gen_archive_cls = FlexArchive
         else:
@@ -1167,12 +1171,16 @@ class EvoPCGRL():
                 emitter_type = OptimizingEmitter
             else:
                 emitter_type = ImprovementEmitter
+            if MODEL == 'NCA':
+                init_step_size = 1
+            elif MODEL == 'CNN':
+                init_step_size = 1
             gen_emitters = [
                 emitter_type(
                     self.gen_archive,
                     initial_w.flatten(),
                     # TODO: play with initial step size?
-                    1,  # Initial step size.
+                    init_step_size,  # Initial step size.
                     batch_size=30,
                 ) for _ in range(5)  # Create 5 separate emitters.
             ]
@@ -1265,7 +1273,7 @@ class EvoPCGRL():
             self.gen_optimizer.tell(objs, bcs)
 
             # Re-evaluate elite generators
-            if RANDOM_INIT_LEVELS and self.n_itr % 10 == 0:
+            if REEVALUATE_ELITES and self.n_itr % 10 == 0:
                 df = self.gen_archive.as_pandas()
 #               high_performing = df.sort_values("objective", ascending=False)
                 high_performing = df.sample(frac=1)
@@ -1487,6 +1495,7 @@ class EvoPCGRL():
         plt.savefig(os.path.join(SAVE_PATH, 'fitness.png'))
         if SHOW_VIS:
            plt.show()
+        plt.close()
 
         # Print table of results
         df = archive.as_pandas()
@@ -1614,8 +1623,9 @@ class EvoPCGRL():
                                             self.static_targets,
                                             seed,
                                             player_1=self.player_1,
-                                            player_2=self.player_2)
-                           for model_w in models]
+                                            player_2=self.player_2,
+                                            proc_id=i)
+                                            for (i, model_w) in enumerate(models)]
                 results = ray.get(futures)
                 i = 0
                 for result in results:
@@ -1625,7 +1635,7 @@ class EvoPCGRL():
                     level_json, batch_reward, final_bcs, (time_penalty, batch_targets_penalty, variance_penalty, diversity_bonus) = result
                     if SAVE_LEVELS:
                         save_levels(level_json)
-                    record_scores(id_0, id_1, batch_reward, targets_penalty, diversity_bonus, variance_penalty)
+                    record_scores(id_0, id_1, batch_reward, batch_targets_penalty, diversity_bonus, variance_penalty)
                     i += 1
             else:
                 while i < len(models):
@@ -1651,38 +1661,42 @@ class EvoPCGRL():
                         save_levels(level_json)
                     record_scores(id_0, id_1, batch_reward, targets_penalty, diversity_bonus, variance_penalty)
 
-                def plot_score_heatmap(scores, score_name, cmap_str="magma"):
-                    ax = plt.gca()
-                    ax.set_xlim(lower_bounds[0], upper_bounds[0])
-                    ax.set_ylim(lower_bounds[0], upper_bounds[0])
-                    vmin = np.min(scores)
-                    vmax = np.max(scores)
-                    t = ax.pcolormesh(x_bounds, y_bounds, scores, cmap=matplotlib.cm.get_cmap(cmap_str), vmin=vmin, vmax=vmax)
-                    ax.figure.colorbar(t, ax=ax, pad=0.1)
-                    if SHOW_VIS:
-                        plt.show()
-                    f_name = score_name
-                    if RANDOM_INIT_LEVELS:
-                        f_name = f_name + '_randSeeds'
-                    f_name += '.png'
-                    plt.savefig(os.path.join(SAVE_PATH, f_name))
-                    plt.close()
+            def plot_score_heatmap(scores, score_name, cmap_str="magma"):
+                scores = scores.T
+                ax = plt.gca()
+                ax.set_xlim(lower_bounds[0], upper_bounds[0])
+                ax.set_ylim(lower_bounds[1], upper_bounds[1])
+                ax.set_xlabel(self.bc_names[0])
+                ax.set_ylabel(self.bc_names[1])
+                vmin = np.min(scores)
+                vmax = np.max(scores)
+                t = ax.pcolormesh(x_bounds, y_bounds, scores, cmap=matplotlib.cm.get_cmap(cmap_str), vmin=vmin, vmax=vmax)
+                ax.figure.colorbar(t, ax=ax, pad=0.1)
+                if SHOW_VIS:
+                    plt.show()
+                f_name = score_name
+                if not RANDOM_INIT_LEVELS:
+                    f_name = f_name + 'fixLvls'
+                f_name += '.png'
+                plt.savefig(os.path.join(SAVE_PATH, f_name))
+                plt.close()
 
-                plot_score_heatmap(playability_scores, 'playability')
-                plot_score_heatmap(diversity_scores, 'diversity')
-                plot_score_heatmap(reliability_scores, 'reliability')
-                stats = {
-                    'playability': np.mean(playability_scores),
-                    'diversity': np.mean(diversity_scores),
-                    'reliability': np.mean(reliability_scores),
-                }
-                f_name = 'stats'
-                if RANDOM_INIT_LEVELS:
-                    f_name = f_name + '_randSeeds'
-                f_name += '.json'
-                with open(os.path.join(SAVE_PATH, f_name), 'w', encodign='utf-8') as f:
-                    json.dump(stats, f, ensure_ascii=False, indent=4)
-                return
+            plot_score_heatmap(playability_scores, 'playability')
+            plot_score_heatmap(diversity_scores, 'diversity')
+            plot_score_heatmap(reliability_scores, 'reliability')
+            plot_score_heatmap(fitness_scores, 'fitness_eval')
+            stats = {
+                'playability': np.nanmean(playability_scores),
+                'diversity': np.nanmean(diversity_scores),
+                'reliability': np.nanmean(reliability_scores),
+            }
+            f_name = 'stats'
+            if not RANDOM_INIT_LEVELS:
+                f_name = f_name + 'fixLvls'
+            f_name += '.json'
+            with open(os.path.join(SAVE_PATH, f_name), 'w', encoding='utf-8') as f:
+                json.dump(stats, f, ensure_ascii=False, indent=4)
+            return
 
 
         while True:
@@ -1805,7 +1819,6 @@ if __name__ == '__main__':
         action='store_true',
     )
     opts.add_argument(
-        '-fix',
         '--fixed_init_levels',
         help='Use a fixed set of random levels throughout evolution, rather than providing the generators with new random initial levels during evaluation.',
         action='store_true',
@@ -1838,6 +1851,11 @@ if __name__ == '__main__':
         help='Which neural network architecture to use for the generator. NCA: just conv layers. CNN: Some conv layers, then a dense layer.',
         default='NCA',
     )
+    opts.add_argument(
+        '--fix_elites',
+        help='(Do not) re-evaluate the elites on new random seeds to ensure their generality.',
+        action='store_true',
+    )
 
 
     opts = opts.parse_args()
@@ -1868,11 +1886,16 @@ if __name__ == '__main__':
     global CASCADE_REWARD
     global REPRESENTATION
     global MODEL
+    global REEVALUATE_ELITES
     global preprocess_action
     MODEL = arg_dict['model']
     REPRESENTATION = arg_dict['representation']
     CASCADE_REWARD = arg_dict['cascade_reward']
     RANDOM_INIT_LEVELS = not arg_dict['fixed_init_levels']
+    REEVALUATE_ELITES = not arg_dict['fix_elites']
+    if REEVALUATE_ELITES:
+        # Otherwise there is no point in re-evaluating them
+        assert RANDOM_INIT_LEVELS
     CMAES = arg_dict['behavior_characteristics'] == ["NONE"]
     EVALUATE = arg_dict['evaluate']
     PLAY_LEVEL = arg_dict['play_level']
@@ -1901,16 +1924,22 @@ if __name__ == '__main__':
     SAVE_LEVELS = arg_dict['save_levels']
 
 #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
-    exp_name = 'EvoPCGRL_{}-{}_{}_{}_{}-batch_{}'.format(PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, arg_dict['exp_name'])
+    exp_name = 'EvoPCGRL_{}-{}_{}_{}_{}-batch'.format(PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES)
     if CASCADE_REWARD:
         exp_name += '_cascRew'
     if not RANDOM_INIT_LEVELS:
         exp_name += '_fixLvls'
+    if not REEVALUATE_ELITES:
+        exp_name += '_fixElites'
+    exp_name += '_' + arg_dict['exp_name']
     SAVE_PATH = os.path.join('evo_runs', exp_name)
 
-    # Create TensorBoard Log Directory if does not exist
-    LOG_NAME = './runs/' + datetime.now().strftime("%Y%m%d-%H%M%S")+ '-' + exp_name
-    writer = SummaryWriter(LOG_NAME)
+    def init_tensorboard():
+        assert not INFER
+        # Create TensorBoard Log Directory if does not exist
+        LOG_NAME = './runs/' + datetime.now().strftime("%Y%m%d-%H%M%S")+ '-' + exp_name
+        writer = SummaryWriter(LOG_NAME)
+        return writer
 
     try:
         try:
@@ -1926,6 +1955,7 @@ if __name__ == '__main__':
             N_STEPS = N_INFER_STEPS
             evolver.infer()
         if not (INFER or VISUALIZE):
+            writer = init_tensorboard()
             # then we train
             RENDER = arg_dict['render']
             evolver.init_env()
@@ -1937,6 +1967,7 @@ if __name__ == '__main__':
             print(
                 "Failed loading from an existing save-file. Evolving from scratch. The error was: {}"
                 .format(e))
+            writer = init_tensorboard()
             evolver = EvoPCGRL()
             evolver.evolve()
         else:
