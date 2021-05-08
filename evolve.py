@@ -212,8 +212,9 @@ preprocess_observation_funcs = {
 class FlexArchive(GridArchive):
     ''' Subclassing a pyribs archive class to do some funky stuff.'''
     def __init__(self, *args, **kwargs):
-        self.obj_hist = {}
-        self.bc_hist = {}
+        self.n_evals = {}
+#       self.obj_hist = {}
+#       self.bc_hist = {}
         super().__init__(*args, **kwargs)
 #       # "index of indices", so we can remove them from _occupied_indices when removing
 #       self._index_ranks = {}
@@ -239,33 +240,36 @@ class FlexArchive(GridArchive):
         old_idx = self.get_index(np.array(old_bcs))
         self._remove_occupied_index(old_idx)
 
-        old_idx = self.get_index(np.array(old_bcs))
-
 #       rank = self._index_ranks.pop(old_idx)
 #       self._occupied_indices.pop(rank)
 #       [self._occupied_indices_cols[i].pop(rank) for i in range(len(self._storage_dims))]
-        obj_hist = self.obj_hist.pop(old_idx)
-        obj_hist.append(obj)
-        mean_obj = np.mean(obj_hist)
-        bc_hist = self.bc_hist.pop(old_idx)
-        bc_hist.append(bcs)
-        bc_hist_np = np.asarray(bc_hist)
-        mean_bcs = bc_hist_np.mean(axis=0)
-#       new_idx = self.get_index(mean_bcs)
+        n_evals = self.n_evals.pop(old_idx)
+        old_obj = self._objective_values[old_idx]
+        mean_obj = (old_obj * n_evals + obj) / (n_evals + 1)
+        mean_bcs = np.array([
+                (old_bcs[i] * n_evals + bcs[i]) / (n_evals + 1) for i in range(len(old_bcs))
+                ])
+#       obj_hist = self.obj_hist.pop(old_idx)
+#       obj_hist.append(obj)
+#       mean_obj = np.mean(obj_hist)
+#       bc_hist = self.bc_hist.pop(old_idx)
+#       bc_hist.append(bcs)
+#       bc_hist_np = np.asarray(bc_hist)
+#       mean_bcs = bc_hist_np.mean(axis=0)
         self._objective_values[old_idx] = np.nan
         self._behavior_values[old_idx] = np.nan
         self._occupied[old_idx] = False
         solution = self._solutions[old_idx].copy()
         self._solutions[old_idx] = np.nan
         self._metadata[old_idx] = np.nan
-        while len(obj_hist) > 100:
-            obj_hist = obj_hist[-100:]
-        while len(bc_hist) > 100:
-            bc_hist = bc_hist[-100:]
+#       while len(obj_hist) > 100:
+#           obj_hist = obj_hist[-100:]
+#       while len(bc_hist) > 100:
+#           bc_hist = bc_hist[-100:]
 
-        return solution, mean_obj, mean_bcs, obj_hist, bc_hist
+        return solution, mean_obj, mean_bcs, n_evals
 
-    def update_elite(self, solution, mean_obj, mean_bcs, obj_hist, bc_hist):
+    def update_elite(self, solution, mean_obj, mean_bcs, n_evals):
         '''
         obj: objective score from new evaluations
         bcs: behavior characteristics from new evaluations
@@ -274,9 +278,8 @@ class FlexArchive(GridArchive):
 
         # Add it back
 
-        self.add(solution, mean_obj, mean_bcs,
-                obj_hist=obj_hist, 
-                bc_hist=bc_hist,
+        self.add(solution, mean_obj, mean_bcs, None,
+                n_evals=n_evals
                 )
             
 #       self._occupied[new_idx] = True
@@ -288,22 +291,17 @@ class FlexArchive(GridArchive):
 #       self.bc_hists[new_idx] = bc_hists
 #       self.obj_hists[new_idx] = obj_hists
 
-    def add(self, solution, objective_value, behavior_values,
-                obj_hist=None,
-                bc_hist=None):
+    def add(self, solution, objective_value, behavior_values, meta,
+                n_evals=0):
 
         index = self.get_index(behavior_values)
 
         status, dtype_improvement = super().add(solution, objective_value, behavior_values)
-
         if not status == AddStatus.NOT_ADDED:
-            if obj_hist is None:
-                assert bc_hist is None
-                self.obj_hist[index] = [objective_value]
-                self.bc_hist[index] = [list(behavior_values)]
+            if n_evals == 0:
+                self.n_evals[index] = 1
             else:
-                self.obj_hist[index] = obj_hist
-                self.bc_hist[index] = bc_hist
+                self.n_evals[index] = min(n_evals + 1, 100)
 
         return status, dtype_improvement
 
@@ -1272,10 +1270,10 @@ class EvoPCGRL():
             # Send the results back to the optimizer.
             self.gen_optimizer.tell(objs, bcs)
 
-            # Re-evaluate elite generators
-            if REEVALUATE_ELITES and self.n_itr % 10 == 0:
+            # Re-evaluate elite generators. If doing CMAES, re-evaluate every iteration. Otherwise, try to let the archive grow.
+            if REEVALUATE_ELITES and (CMAES or self.n_itr % 1 == 0):
                 df = self.gen_archive.as_pandas()
-#               high_performing = df.sort_values("objective", ascending=False)
+#               curr_archive_size = len(df)
                 high_performing = df.sample(frac=1)
                 elite_models = np.array(high_performing.loc[:, "solution_0":])
                 elite_bcs = np.array(high_performing.loc[:, "behavior_0":"behavior_1"])
@@ -1290,7 +1288,7 @@ class EvoPCGRL():
                         self.static_targets,
                         seed,
                         player_1=self.player_1,
-                        player_2=self.player_2) for i in range(min(max(len(elite_models) // 2, 1),  150)
+                        player_2=self.player_2) for i in range(min(max(len(elite_models) // 2, 1),  150 // 2)
                     )]
                     results = ray.get(futures)
                     for (el_i, result) in enumerate(results):
@@ -1333,6 +1331,8 @@ class EvoPCGRL():
                             T()
 
                         self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
+
+#               last_archive_size = len(self.gen_archive.as_pandas(include_solutions=False))
 
 
             log_archive(self.gen_archive, 'Generator', itr, self.start_time, level_json)
@@ -1708,7 +1708,7 @@ class EvoPCGRL():
                 init_states = np.random.randint(0, self.n_tile_types, size=self.init_states.shape)
             else:
                 init_states = self.init_states
-            _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
+            _, _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
                             self.n_tile_types, init_states, self.bc_names, self.static_targets, seed=None, player_1=self.player_1, player_2=self.player_2)
             input("Mean behavior characteristics:\n\t{}: {}\n\t{}: {}\nMean reward:\n\tTotal: {}\n\ttime: {}\n\ttargets: {}\n\tvariance: {}\n\tdiversity: {}\nPress any key for next generator...".format(
                 self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i], objs[i], time_penalty, targets_penalty, variance_penalty, diversity_bonus))
