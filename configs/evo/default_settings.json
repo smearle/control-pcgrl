@@ -1,0 +1,23 @@
+{
+    "problem": "binary_ctrl",
+    "exp_name": "test_0",
+    "n_generations": 100000,
+    "n_init_states": 10,
+    "n_steps": null,
+    "behavior_characteristics": [
+        "NONE"
+    ],
+    "render": false,
+    "infer": false,
+    "visualize": false,
+    "show_vis": false,
+    "render_levels": false,
+    "multi_thread": true,
+    "play_level": false,
+    "evaluate": false,
+    "save_levels": false,
+    "fixed_init_levels": false,
+    "cascade_reward": false,
+    "representation": "cellular",
+    "model": "NCA"
+}

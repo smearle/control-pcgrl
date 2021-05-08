@@ -16,7 +16,7 @@ class TurtleRepresentation(Representation):
     def __init__(self):
         super().__init__()
         self._dirs = [(-1,0), (1,0), (0,-1), (0,1)]
-        self._warp = False
+        self._warp = True
 
     """
     Resets the current representation where it resets the parent and the current

@@ -13,23 +13,35 @@ class BinaryProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 14
-        self._height = 14
+        self._width = 16
+        self._height = 16
         self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
-        self._target_path = 20
+        self._target_path = np.inf
         self._random_probs = True
+        # for use with ParamRew
+        self.metric_trgs = {
+                'regions': 1, 
+                'path-length': 100
+                }
+        self.param_bounds = {'regions': (0, self._width * self._height // (3 * 3)),
+                'path-length': (0, 100)}
+        self.weights = {'regions': 1,
+                'path-length': 1,
+                }
 
         self._rewards = {
-            "regions": 5,
+            "regions": 0,
             "path-length": 1
         }
+
+        self._max_path_length = np.ceil(self._width / 2) * self._height + np.floor(self._height)
 
     """
     Get a list of all the different tile names
 
-    Returns:
+    Returns:`
         string[]: that contains all the tile names
     """
     def get_tile_types(self):
@@ -99,7 +111,7 @@ class BinaryProblem(Problem):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
+            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], 125, 125)
         }
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\
@@ -117,7 +129,8 @@ class BinaryProblem(Problem):
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
+#       return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
+        return new_stats["regions"] == 1 and new_stats["path-length"] == self._max_path_length
 
     """
     Get any debug information need to be printed

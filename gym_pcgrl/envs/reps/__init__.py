@@ -4,6 +4,7 @@ from gym_pcgrl.envs.reps.narrow_multi_rep import NarrowMultiRepresentation
 from gym_pcgrl.envs.reps.wide_rep import WideRepresentation
 from gym_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
 from gym_pcgrl.envs.reps.turtle_cast_rep import TurtleCastRepresentation
+from gym_pcgrl.envs.reps.ca_rep import CARepresentation
 
 # all the representations should be defined here with its corresponding class
 REPRESENTATIONS = {
@@ -12,5 +13,6 @@ REPRESENTATIONS = {
     "narrowmulti": NarrowMultiRepresentation,
     "wide": WideRepresentation,
     "turtle": TurtleRepresentation,
-    "turtlecast": TurtleCastRepresentation
+    "turtlecast": TurtleCastRepresentation,
+    "cellular": CARepresentation,
 }
