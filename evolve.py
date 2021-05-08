@@ -1244,6 +1244,7 @@ class EvoPCGRL():
                             df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
+                del results
             else:
                 for model_w in gen_sols:
                     set_weights(self.gen_model, model_w)
@@ -1304,6 +1305,7 @@ class EvoPCGRL():
                         results[el_i] = self.gen_archive.pop_elite(el_obj, el_bcs, old_el_bcs)
                     for (el_i, result) in enumerate(results):
                         self.gen_archive.update_elite(*result)
+                    del results
 
                 else:
                     # 150 to match number of new-model evaluations
@@ -1366,6 +1368,7 @@ class EvoPCGRL():
                                 m_obj, m_bcs = result
                                 objs.append(m_obj)
                                 bcs.append([*m_bcs])
+                            del results
                         else:
                             play_i = 0
                             for play_w in play_sols:
@@ -1637,6 +1640,7 @@ class EvoPCGRL():
                         save_levels(level_json)
                     record_scores(id_0, id_1, batch_reward, batch_targets_penalty, diversity_bonus, variance_penalty)
                     i += 1
+                del results
             else:
                 while i < len(models):
                     # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
