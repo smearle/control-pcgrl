@@ -231,18 +231,16 @@ class FlexArchive(GridArchive):
                 for j in range(len(self._storage_dims))
         )
 
-    def update_elite(self, obj, bcs, old_bcs):
+    def pop_elite(self, obj, bcs, old_bcs):
         '''
-        obj: objective score from new evaluations
-        bcs: behavior characteristics from new evaluations
-        old_bcs: previous behavior characteristics, for getting the individuals index in the archive
+        Need to call update_elite after this!
         '''
-
         # Remove it, update it
+        old_idx = self.get_index(np.array(old_bcs))
+        self._remove_occupied_index(old_idx)
 
         old_idx = self.get_index(np.array(old_bcs))
 
-        self._remove_occupied_index(old_idx)
 #       rank = self._index_ranks.pop(old_idx)
 #       self._occupied_indices.pop(rank)
 #       [self._occupied_indices_cols[i].pop(rank) for i in range(len(self._storage_dims))]
@@ -260,13 +258,21 @@ class FlexArchive(GridArchive):
         solution = self._solutions[old_idx].copy()
         self._solutions[old_idx] = np.nan
         self._metadata[old_idx] = np.nan
-
-        # Add it back
-
         while len(obj_hist) > 100:
             obj_hist = obj_hist[-100:]
         while len(bc_hist) > 100:
             bc_hist = bc_hist[-100:]
+
+        return solution, mean_obj, mean_bcs, obj_hist, bc_hist
+
+    def update_elite(self, solution, mean_obj, mean_bcs, obj_hist, bc_hist):
+        '''
+        obj: objective score from new evaluations
+        bcs: behavior characteristics from new evaluations
+        old_bcs: previous behavior characteristics, for getting the individuals index in the archive
+        '''
+
+        # Add it back
 
         self.add(solution, mean_obj, mean_bcs,
                 obj_hist=obj_hist, 
@@ -754,7 +760,7 @@ def play_level(env, level, player):
 @ray.remote
 def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_targets, seed, player_1, player_2):
     set_weights(model, model_w)
-    level_json, obj, bcs = simulate(
+    result = simulate(
         env=env,
         model=model,
         n_tile_types=n_tile_types,
@@ -764,7 +770,7 @@ def multi_evo(env, model, model_w, n_tile_types, init_states, bc_names, static_t
         seed=seed,
         player_1=player_1,
         player_2=player_2)
-    return level_json, obj, bcs
+    return result
 
 @ray.remote
 def multi_play_evo(env, gen_model, player_1_w, n_tile_types, init_states, play_bc_names, static_targets, seed, player_1, player_2, playable_levels):
@@ -995,19 +1001,18 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
         else:
             variance_penalty = None
             diversity_bonus = None
-
+    if SAVE_LEVELS:
+        bc_dict = {}
+        for i in range(len(bc_names)):
+            bc_name = bc_names[i]
+            bc_dict[bc_name] = bcs[i, :].tolist()
+        level_json = {'level': final_levels.tolist(),'batch_reward':[batch_reward] * len(final_levels.tolist()), 'variance': [variance_penalty] * len(final_levels.tolist()), 'diversity':[diversity_bonus] * len(final_levels.tolist()),'targets':trg.tolist(), **bc_dict}
+    else:
+        level_json = None
     if not INFER:
-        if SAVE_LEVELS:
-            bc_dict = {}
-            for i in range(len(bc_names)):
-                bc_name = bc_names[i]
-                bc_dict[bc_name] = bcs[i, :].tolist()
-            level_json = {'level': final_levels.tolist(),'batch_reward':[batch_reward] * len(final_levels.tolist()), 'variance': [variance_penalty] * len(final_levels.tolist()), 'diversity':[diversity_bonus] * len(final_levels.tolist()),'targets':trg.tolist(), **bc_dict}
-        else:
-            level_json = None
         return level_json, batch_reward, final_bcs
     else:
-        return batch_reward, final_bcs, (time_penalty, batch_targets_penalty, variance_penalty, diversity_bonus)
+        return level_json, batch_reward, final_bcs, (time_penalty, batch_targets_penalty, variance_penalty, diversity_bonus)
 
 
 
@@ -1277,11 +1282,10 @@ class EvoPCGRL():
                         self.static_targets,
                         seed,
                         player_1=self.player_1,
-                        player_2=self.player_2) for i in range(min(len(elite_models) // 2, 150)
+                        player_2=self.player_2) for i in range(min(max(len(elite_models) // 2, 1),  150)
                     )]
                     results = ray.get(futures)
-                    el_i = 0
-                    for result in results:
+                    for (el_i, result) in enumerate(results):
                         old_el_bcs = elite_bcs[el_i]
                         level_json, el_obj, el_bcs = result
                         if SAVE_LEVELS:
@@ -1290,8 +1294,10 @@ class EvoPCGRL():
                             df = df[df['targets'] == 0]
                             if len(df) > 0:
                                 df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
-                        self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
-                        el_i += 1
+#                       mean_obj, mean_bcs, obj_hist, bc_hist = self.gen_archive.pop_elite(el_obj, el_bcs, old_el_bcs)
+                        results[el_i] = self.gen_archive.pop_elite(el_obj, el_bcs, old_el_bcs)
+                    for (el_i, result) in enumerate(results):
+                        self.gen_archive.update_elite(*result)
 
                 else:
                     # 150 to match number of new-model evaluations
@@ -1569,22 +1575,58 @@ class EvoPCGRL():
             y_bounds = np.linspace(lower_bounds[1], upper_bounds[1], y_dim + 1)
 
             # Color for each cell in the heatmap
+            fitness_scores = np.full((y_dim, x_dim), np.nan)
             playability_scores = np.full((y_dim, x_dim), np.nan)
             diversity_scores = np.full((y_dim, x_dim), np.nan)
             reliability_scores = np.full((y_dim, x_dim), np.nan)
+
+            def record_scores(id_0, id_1, batch_reward, targets_penalty, diversity_bonus, variance_penalty):
+                fitness_scores[id_0, id_1] = batch_reward
+                playability_scores[id_0, id_1] = targets_penalty
+                if diversity_bonus is not None:
+                    diversity_scores[id_0, id_1] = diversity_bonus
+                if variance_penalty is not None:
+                    reliability_scores[id_0, id_1] = variance_penalty
+
+            def save_levels(level_json):
+                df = pd.DataFrame(level_json)
+#               df = df[df['targets'] == 0]
+                if len(df) > 0:
+                    df.to_csv(os.path.join(SAVE_PATH, "eval_levels.csv"), mode='a', header=False, index=False)
 
             idxs_0 = np.array(rows.loc[:, "index_0"])
             idxs_1 = np.array(rows.loc[:, "index_1"])
 
             if RANDOM_INIT_LEVELS:
                 # Effectively doing inference on a (presumed) held-out set of levels
-                N_EVAL_STATES = 100
+                N_EVAL_STATES = 10
                 init_states = np.random.randint(0, self.n_tile_types, size=(N_EVAL_STATES, *self.init_states.shape[1:]))
             else:
                 init_states = self.init_states
 
             if THREADS:
-                raise NotImplementedError
+                futures = [multi_evo.remote(self.env,
+                                            self.gen_model,
+                                            model_w,
+                                            self.n_tile_types,
+                                            init_states,
+                                            self.bc_names,
+                                            self.static_targets,
+                                            seed,
+                                            player_1=self.player_1,
+                                            player_2=self.player_2)
+                           for model_w in models]
+                results = ray.get(futures)
+                i = 0
+                for result in results:
+                    id_0 = idxs_0[i]
+                    id_1 = idxs_1[i]
+
+                    level_json, batch_reward, final_bcs, (time_penalty, batch_targets_penalty, variance_penalty, diversity_bonus) = result
+                    if SAVE_LEVELS:
+                        save_levels(level_json)
+                    record_scores(id_0, id_1, batch_reward, targets_penalty, diversity_bonus, variance_penalty)
+                    i += 1
             else:
                 while i < len(models):
                     # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
@@ -1595,7 +1637,7 @@ class EvoPCGRL():
 
                     # TODO: Parallelize me
                     init_nn = set_weights(self.gen_model, model)
-                    _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = \
+                    level_json, batch_reward, final_bcs, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = \
                         simulate(self.env,
                                 init_nn,
                                 self.n_tile_types,
@@ -1605,11 +1647,9 @@ class EvoPCGRL():
                                 seed=None,
                                 player_1 = self.player_1,
                                 player_2 = self.player_2)
-                    playability_scores[id_0, id_1] = targets_penalty
-                    if diversity_bonus is not None:
-                        diversity_scores[id_0, id_1] = diversity_bonus
-                    if variance_penalty is not None:
-                        reliability_scores[id_0, id_1] = variance_penalty
+                    if SAVE_LEVELS:
+                        save_levels(level_json)
+                    record_scores(id_0, id_1, batch_reward, targets_penalty, diversity_bonus, variance_penalty)
 
                 def plot_score_heatmap(scores, score_name, cmap_str="magma"):
                     ax = plt.gca()
@@ -1873,7 +1913,10 @@ if __name__ == '__main__':
     writer = SummaryWriter(LOG_NAME)
 
     try:
-        evolver = pickle.load(open(os.path.join(SAVE_PATH, "evolver.pkl"), 'rb'))
+        try:
+            evolver = pickle.load(open(os.path.join(SAVE_PATH, "evolver.pkl"), 'rb'))
+        except:
+            evolver = pickle.load(open(os.path.join(SAVE_PATH, "last_evolver.pkl"), 'rb'))
         print('Loaded save file at {}'.format(SAVE_PATH))
         if VISUALIZE:
             evolver.visualize()
