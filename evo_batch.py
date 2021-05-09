@@ -16,10 +16,10 @@ problems = [
     'smb_ctrl',
     ]
 representations = [
-    'cellular',
-    'wide',
-#   'narrow',
-#   'turtle',
+#   'cellular',
+#   'wide',
+    'narrow',
+    'turtle',
     ]
 global_bcs = [
     ['NONE'],

@@ -7,7 +7,7 @@
 ##SBATCH --gres=gpu:1
 
 #SBATCH --time=24:00:00
-#SBATCH --mem=40GB
+#SBATCH --mem=180GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=sam.earle@nyu.edu
@@ -21,7 +21,7 @@ source activate
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate evo-pcgrl
 
-python evolve.py -la 14
+python evolve.py -la 71
 
 #python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'cellular' -m -e 0
 #python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'wide' -m -e 0
