@@ -81,17 +81,21 @@ RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
-def save_grid(d=6):
+def save_grid(csv_name='levels', d=6):
+    if CMAES:
+        # TODO: implement me
+        return
     # save grid using csv file
     # get path to CSV
-    levels_path = os.path.join(SAVE_PATH, "levels.csv")
+    levels_path = os.path.join(SAVE_PATH, csv_name + '.csv')
     # get env name
     env_name = '{}-{}-v0'.format(PROBLEM, REPRESENTATION)
     # create env
     env = gym.make(env_name)
+    map_width = env._prob._width
 
-    df = pd.read_csv(CSV_PATH, header=None).rename(index=str, columns={0:'level',1:'batch_reward', 2:'variance', 3:'diversity', 4:'targets'})
-    for i in range(5, len(df.columns)):
+    df = pd.read_csv(levels_path, header=None).rename(index=str, columns={0:'level',1:'batch_reward', 2:'variance', 3:'diversity', 4:'targets'})
+    for i in range(map_width, len(df.columns)):
         df = df.rename(index=str, columns={i:'bc{}'.format(i-5)})
     df = df[df['targets']==0]  # select only the valid levels 
     # d = 6  # dimension of rows and columns
@@ -112,7 +116,8 @@ def save_grid(d=6):
         # grid_models = np.array(row.loc[:,'solution_0':])
         grid_models = row['level'].tolist()
         for col_num in range(len(row)):
-            level = np.zeros((5,5), dtype=int)
+            axs[row_num,col_num].set_axis_off()
+            level = np.zeros((map_width,map_width), dtype=int)
             for i, l_rows in enumerate(grid_models[col_num].split('], [')):
                 for j, l_col in enumerate(l_rows.split(',')):
                     level[i,j] = int(l_col.replace('[','').replace(']','').replace(' ',''))
@@ -121,11 +126,11 @@ def save_grid(d=6):
             env._rep._map = level
             img = env.render(mode='rgb_array')
             axs[row_num,col_num].imshow(img, aspect='auto')
-            axs[row_num,col_num].set_axis_off()
 
     fig.subplots_adjust(hspace=0.01, wspace=0.01)
-    levels_png_path = os.path.join(SAVE_PATH, "levels_grid.png")
+    levels_png_path = os.path.join(SAVE_PATH, "{}_grid.png".format(csv_name))
     fig.savefig(levels_png_path, dpi=300)
+    plt.close()
 
 
 def auto_garbage_collect(pct=80.0):
@@ -2051,7 +2056,8 @@ if __name__ == '__main__':
             RENDER = True
             N_STEPS = N_INFER_STEPS
             evolver.infer()
-            save_grid()
+            save_grid(csv_name='eval_levels')
+            save_grid(csv_name='levels')
         if not (INFER or VISUALIZE):
             writer = init_tensorboard()
             # then we train
