@@ -14,8 +14,8 @@ problems = [
     'smb_ctrl',
     ]
 representations = [
-    'cellular',
-#   'wide',
+#   'cellular',
+    'wide',
 #   'narrow',
 #   'turtle',
     ]
@@ -39,18 +39,19 @@ local_bcs = {
 }
 models = [
     'NCA',
-#   'CNN',
+#   'CNN',  # Doesn't learn atm
 ]
 
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
     True,
-#   False,
+    False,
 ]
 
+# Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
     True,
-#   False,
+    False,
 ]
 
 def launch_batch(exp_name):
@@ -70,15 +71,20 @@ def launch_batch(exp_name):
         prob_bcs = global_bcs + local_bcs[prob]
 
         for rep in representations:
-            for bc_pair in prob_bcs:
-                for model in models:
-                    # This would necessitate an explosive number of model params so we'll not run it
+            for model in models:
 
-                    if model == 'CNN' and rep == 'cellular':
-                        continue
+                if model == 'CNN' and rep == 'cellular':
+                    # This would necessitate an explosive number of model params so we'll not run it
+                    continue
+
+                for bc_pair in prob_bcs:
 
                     for fix_el in fix_elites:
                         for fix_seed in fix_seeds:
+
+                            # No reason to re-evaluate other than random seeds so this would cause an error
+                            if fix_seed and not fix_el:
+                                continue
 
                             # Edit the sbatch file to load the correct config file
                             with open('evo_train.sh', 'r') as f:
