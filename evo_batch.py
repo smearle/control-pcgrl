@@ -48,6 +48,11 @@ fix_elites = [
 #   False,
 ]
 
+fix_seeds = [
+    True,
+#   False,
+]
+
 def launch_batch(exp_name):
     if TEST:
         print('Testing locally.')
@@ -73,40 +78,43 @@ def launch_batch(exp_name):
                         continue
 
                     for fix_el in fix_elites:
-                        # Edit the sbatch file to load the correct config file
-                        with open('evo_train.sh', 'r') as f:
-                            content = f.read()
-                            new_content = re.sub(
-                                'python evolve.py -la \d+',
-                                'python evolve.py -la {}'.format(i), content)
-                        with open('evo_train.sh', 'w') as f:
-                            f.write(new_content)
-                        # Write the config file with the desired settings
-                        exp_config = copy.deepcopy(default_config)
-                        exp_config.update({
-                            'problem': prob,
-                            'representation': rep,
-                            'behavior_characteristics': bc_pair,
-                            'model': model,
-                            'fix_elites': fix_el,
-                            'exp_name': exp_name,
-                        })
-                        if EVALUATE:
-                            exp_config.update({
-                                'infer': True,
-                                'evaluate': True,
-                            })
-                        print('Saving experiment config:\n{}'.format(exp_config))
-                        with open('configs/evo/settings_{}.json'.format(i), 'w') as f:
-                            json.dump(exp_config, f, ensure_ascii=False, indent=4)
-                        # Launch the experiment. It should load the saved settings
+                        for fix_seed in fix_seeds:
 
-                        if TEST:
-                            os.system('python evolve.py -la {}'.format(i))
-                            os.system('ray stop')
-                        else:
-                            os.system('sbatch evo_train.sh')
-                        i += 1
+                            # Edit the sbatch file to load the correct config file
+                            with open('evo_train.sh', 'r') as f:
+                                content = f.read()
+                                new_content = re.sub(
+                                    'python evolve.py -la \d+',
+                                    'python evolve.py -la {}'.format(i), content)
+                            with open('evo_train.sh', 'w') as f:
+                                f.write(new_content)
+                            # Write the config file with the desired settings
+                            exp_config = copy.deepcopy(default_config)
+                            exp_config.update({
+                                'problem': prob,
+                                'representation': rep,
+                                'behavior_characteristics': bc_pair,
+                                'model': model,
+                                'fix_elites': fix_el,
+                                'fixed_init_levels': fix_seed,
+                                'exp_name': exp_name,
+                            })
+                            if EVALUATE:
+                                exp_config.update({
+                                    'infer': True,
+                                    'evaluate': True,
+                                })
+                            print('Saving experiment config:\n{}'.format(exp_config))
+                            with open('configs/evo/settings_{}.json'.format(i), 'w') as f:
+                                json.dump(exp_config, f, ensure_ascii=False, indent=4)
+                            # Launch the experiment. It should load the saved settings
+
+                            if TEST:
+                                os.system('python evolve.py -la {}'.format(i))
+                                os.system('ray stop')
+                            else:
+                                os.system('sbatch evo_train.sh')
+                            i += 1
 
 if __name__ == '__main__':
     opts = argparse.ArgumentParser(
