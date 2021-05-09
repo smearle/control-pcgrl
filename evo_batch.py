@@ -11,17 +11,17 @@ problems = [
     'binary_ctrl',
     'zelda_ctrl',
     'sokoban_ctrl',
-#   'smb_ctrl',
+    'smb_ctrl',
     ]
 representations = [
     'cellular',
-    'wide',
-    'narrow',
-    'turtle',
+#   'wide',
+#   'narrow',
+#   'turtle',
     ]
 global_bcs = [
     ['NONE'],
-#   ['emptiness', 'symmetry'],
+    ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     'binary_ctrl': [
