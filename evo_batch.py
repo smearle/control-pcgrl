@@ -106,6 +106,7 @@ def launch_batch(exp_name):
                                 'fix_elites': fix_el,
                                 'fixed_init_levels': fix_seed,
                                 'exp_name': exp_name,
+                                'save_levels': True,
                             })
                             if EVALUATE:
                                 exp_config.update({
