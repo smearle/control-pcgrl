@@ -1,8 +1,10 @@
 import argparse
+import gc
 import json
 import sys
 import os
 import pickle
+import psutil
 import time
 from pdb import set_trace as T
 from random import randint
@@ -78,6 +80,11 @@ https://arxiv.org/pdf/2009.01398.pdf
 RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
+
+def auto_garbage_collect(pct=80.0):
+    if psutil.virtual_memory().percent >= pct:
+        gc.collect()
+
 
 def id_action(action, **kwargs):
     # the argmax along tile_type dimension is performed inside the representation's update function
@@ -1248,6 +1255,7 @@ class EvoPCGRL():
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
                 del results
+                auto_garbage_collect()
             else:
                 for model_w in gen_sols:
                     set_weights(self.gen_model, model_w)
@@ -1309,6 +1317,7 @@ class EvoPCGRL():
                     for (el_i, result) in enumerate(results):
                         self.gen_archive.update_elite(*result)
                     del results
+                    auto_garbage_collect()
 
                 else:
                     # 150 to match number of new-model evaluations
@@ -1372,6 +1381,7 @@ class EvoPCGRL():
                                 objs.append(m_obj)
                                 bcs.append([*m_bcs])
                             del results
+                            auto_garbage_collect()
                         else:
                             play_i = 0
                             for play_w in play_sols:
@@ -1674,6 +1684,7 @@ class EvoPCGRL():
                     record_scores(id_0, id_1, batch_reward, batch_targets_penalty, diversity_bonus, variance_penalty)
                     i += 1
                 del results
+                auto_garbage_collect()
             else:
                 while i < len(models):
                     # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
