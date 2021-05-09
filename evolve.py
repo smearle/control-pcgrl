@@ -1331,9 +1331,9 @@ class EvoPCGRL():
                                                         player_2=self.player_2)
                         idx = self.gen_archive.get_index(old_el_bcs)
                         if idx not in self.gen_archive.bc_hist:
-                            T()
+                            raise Exception
                         if idx not in self.gen_archive.obj_hist:
-                            T()
+                            raise Exception
 
                         self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
 
@@ -1604,6 +1604,7 @@ class EvoPCGRL():
             player_simulate(self.env, self.n_tile_types, self.play_bc_names, self.play_model, playable_levels=self.playable_levels, seed=None)
         i = 0
         if EVALUATE:
+            N_INIT_STATES = self.init_states.shape[0]
             RENDER = False
             # Iterate through our archive of trained elites, evaluating them and storing stats about them.
             # Borrowing logic from grid_archive_heatmap from pyribs.
@@ -1704,8 +1705,8 @@ class EvoPCGRL():
                 ax.set_ylim(lower_bounds[1], upper_bounds[1])
                 ax.set_xlabel(self.bc_names[0])
                 ax.set_ylabel(self.bc_names[1])
-                vmin = np.min(scores)
-                vmax = np.max(scores)
+                vmin = np.nanmin(scores)
+                vmax = np.nanmax(scores)
                 t = ax.pcolormesh(x_bounds, y_bounds, scores, cmap=matplotlib.cm.get_cmap(cmap_str), vmin=vmin, vmax=vmax)
                 ax.figure.colorbar(t, ax=ax, pad=0.1)
                 if SHOW_VIS:
