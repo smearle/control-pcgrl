@@ -96,7 +96,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
     if not resume:
         n = n + 1
-    log_dir = 'runs/{}_{}_log'.format(exp_name, n)
+    log_dir = 'rl_runs/{}_{}_log'.format(exp_name, n)
     kwargs = {
         **kwargs,
         'render_rank': 0,
@@ -171,12 +171,17 @@ resume = opts.resume
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
+evo_compare = opts.evo_compare
 #################
 
-if problem == 'sokobangoal':
+if 'sokoban' in problem:
     map_width = 5
-else:
+elif 'zelda' in problem:
+    map_width = 14
+elif 'binary' in problem:
     map_width = 16
+else:
+    raise NotImplementedError("Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
 
 
 max_step = opts.max_step
@@ -206,6 +211,7 @@ kwargs = {
     'ca_action': ca_action,
     'cropped_size': opts.crop_size,
     'alp_gmm': alp_gmm,
+    'evo_compare': evo_compare,
 }
 
 if __name__ == '__main__':

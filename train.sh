@@ -17,8 +17,11 @@ source activate
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
+# evo-pcgrl comparison
+python train_controllable.py --problem "binary_ctrl" --representation "narrow" --conditionals "NONE" --evo_compare
+
 #python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow"
-python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow" --alp_gmm
+#python train_controllable.py --problem "binary_ctrl" --conditionals "path-length" --representation "narrow" --alp_gmm
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "narrow"
 #python train_controllable.py --problem "binary_ctrl" --conditionals "regions" "path-length" --representation "turtle"

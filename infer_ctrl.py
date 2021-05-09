@@ -124,7 +124,7 @@ global EXPERIMENT_ID
 global EXPERIMENT_DIR
 #EXPERIMENT_DIR = 'hpc_runs/runs'
 if not opts.HPC:
-    EXPERIMENT_DIR = 'runs'
+    EXPERIMENT_DIR = 'rl_runs'
 else:
     EXPERIMENT_DIR = 'hpc_runs'
 EXPERIMENT_ID = opts.experiment_id

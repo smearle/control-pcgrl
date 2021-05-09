@@ -180,9 +180,9 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
     def sample_dtype(self):
         return tf.int64
 
-class FullyConvPolicy(ActorCriticPolicy):
+class FullyConvPolicyBigMap(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
-        super(FullyConvPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
+        super(FullyConvPolicyBigMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
         n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
         self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
         with tf.variable_scope("model", reuse=kwargs['reuse']):

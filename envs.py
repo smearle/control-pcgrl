@@ -14,6 +14,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     conditional = kwargs.get('conditional', False)
     evaluate = kwargs.get('evaluate', False)
     ALP_GMM = kwargs.get('alp_gmm', False)
+    evo_compare = kwargs.get('evo_compare', False)
     def _thunk():
         if representation == 'wide':
             ca_action = kwargs.get('ca_action', False)
@@ -25,6 +26,21 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+        if evo_compare:
+            # Give a little wiggle room from targets, to allow for some diversity
+            if "binary" in env_name:
+                path_trg = env.unwrapped._prob.static_trgs['path-length']
+                env.unwrapped._prob.static_trgs.update({'path-length': (path_trg - 20, path_trg)})
+            elif "zelda" in env_name:
+                path_trg = env.unwrapped._prob.static_trgs['path-length']
+                env.unwrapped._prob.static_trgs.update({'path-length': (path_trg - 40, path_trg)})
+            elif "sokoban" in env_name:
+                sol_trg = env.unwrapped._prob.static_trgs['sol-length']
+                env.unwrapped._prob.static_trgs.update({'sol-length': (sol_trg - 10, sol_trg)})
+            elif "smb" in env_name:
+                pass
+            else:
+                raise NotImplemented
         if max_step is not None:
             env = wrappers.MaxStep(env, max_step)
         if log_dir is not None and kwargs.get('add_bootstrap', False):
@@ -41,6 +57,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         if render or log_dir is not None and len(log_dir) > 0:
             # RenderMonitor must come last
             env = RenderMonitor(env, rank, log_dir, **kwargs)
+
         return env
     return _thunk
 
