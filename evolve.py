@@ -1339,10 +1339,12 @@ class EvoPCGRL():
                                                         player_1=self.player_1,
                                                         player_2=self.player_2)
                         idx = self.gen_archive.get_index(old_el_bcs)
-                        if idx not in self.gen_archive.bc_hist:
+                        if idx not in self.n_evals:
                             raise Exception
-                        if idx not in self.gen_archive.obj_hist:
-                            raise Exception
+#                       if idx not in self.gen_archive.bc_hist:
+#                           raise Exception
+#                       if idx not in self.gen_archive.obj_hist:
+#                           raise Exception
 
                         self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
 
