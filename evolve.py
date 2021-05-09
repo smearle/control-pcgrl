@@ -1536,43 +1536,69 @@ class EvoPCGRL():
             global N_INIT_STATES
             RENDER = False
             N_INIT_STATES = 1
-
             if 'smb' in PROBLEM:
                 d = 4
                 figw, figh = 32, 4
             else:
                 d = 6  # number of rows and columns
                 figw, figh = self.env._prob._width, self.env._prob._height
-            fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
 
-            df_g = df.sort_values(by=['behavior_0', 'behavior_1'], ascending=False)
 
-            df_g['row'] = np.floor(np.linspace(0, d, len(df_g), endpoint=False)).astype(int)
+            if CMAES:
+                n_rows = 2
+                n_cols= 5
+                n_figs = n_rows * d
+                fig, axs = plt.subplots(ncols=d, nrows=n_rows, figsize=(figw*n_cols/d, figh*n_rows/d))
+                df_g = df.sort_values(by=['objective'], ascending=False)
+                grid_models = np.array(df_g.loc[:, 'solution_0':])
+                for (i, model) in enumerate(grid_models):
+                    for j in range(n_figs):
+                        n_row = j // d
+                        n_col = j % d
+                        axs[n_row, n_col].set_axis_off()
+                        # TODO: select for diversity?
+                        # parallelization would be kind of pointelss here
+                        init_nn = set_weights(self.gen_model, model)
+                        init_state = np.random.randint(0, self.n_tile_types, size=(1, *self.init_states.shape[1:]))
+                        # run simulation, but only on the first level-seed
+                        _, _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
+                                        self.n_tile_types, init_state[0:1], self.bc_names, self.static_targets, seed=None)
+                        # Get image
+                        img = self.env.render(mode='rgb_array')
+                        axs[n_row, n_col].imshow(img, aspect=1)
 
-            for row_num in range(d):
-                row = df_g[df_g['row']==row_num]
-                row = row.sort_values(by=['behavior_1'], ascending=True)
-                row['col'] = np.arange(0,len(row), dtype=int)
-                idx = np.floor(np.linspace(0,len(row)-1,d)).astype(int)
-                row = row[row['col'].isin(idx)]
-                row = row.drop(['row','col'], axis=1)
-                grid_models = np.array(row.loc[:,'solution_0':])
-                for col_num in range(len(row)):
-                    model = grid_models[col_num]
-                    axs[row_num,col_num].set_axis_off()
 
-                    # initialize weights
-                    init_nn = set_weights(self.gen_model, model)
+            else:
+                fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
+                df_g = df.sort_values(by=['behavior_0', 'behavior_1'], ascending=False)
 
-                    # run simulation, but only on the first level-seed
-                    _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
-                                    self.n_tile_types, self.init_states[0:1], self.bc_names, self.static_targets, seed=None)
-                    # Get image
-                    img = self.env.render(mode='rgb_array')
-                    axs[row_num,col_num].imshow(img, aspect='auto')
+                df_g['row'] = np.floor(np.linspace(0, d, len(df_g), endpoint=False)).astype(int)
+
+                for row_num in range(d):
+                    row = df_g[df_g['row']==row_num]
+                    row = row.sort_values(by=['behavior_1'], ascending=True)
+                    row['col'] = np.arange(0,len(row), dtype=int)
+                    idx = np.floor(np.linspace(0,len(row)-1,d)).astype(int)
+                    row = row[row['col'].isin(idx)]
+                    row = row.drop(['row','col'], axis=1)
+                    grid_models = np.array(row.loc[:,'solution_0':])
+                    for col_num in range(len(row)):
+                        model = grid_models[col_num]
+                        axs[row_num,col_num].set_axis_off()
+
+                        # initialize weights
+                        init_nn = set_weights(self.gen_model, model)
+
+                        # run simulation, but only on the first level-seed
+                        _, _, _, (time_penalty, targets_penalty, variance_penalty, diversity_bonus) = simulate(self.env, init_nn,
+                                        self.n_tile_types, self.init_states[0:1], self.bc_names, self.static_targets, seed=None)
+                        # Get image
+                        img = self.env.render(mode='rgb_array')
+                        axs[row_num,col_num].imshow(img, aspect='auto')
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
             plt.tight_layout()
             fig.savefig(os.path.join(SAVE_PATH, 'levelGrid_{}-bin.png'.format(d)), dpi=300)
+            plt.close()
 
         if PLAY_LEVEL:
             player_simulate(self.env, self.n_tile_types, self.play_bc_names, self.play_model, playable_levels=self.playable_levels, seed=None)

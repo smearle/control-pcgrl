@@ -1,5 +1,7 @@
 '''
 Launch a batch of experiments on a SLURM cluster.
+
+WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from dead processes.
 '''
 import os
 import copy
@@ -14,7 +16,7 @@ problems = [
     'smb_ctrl',
     ]
 representations = [
-#   'cellular',
+    'cellular',
     'wide',
 #   'narrow',
 #   'turtle',
@@ -109,6 +111,8 @@ def launch_batch(exp_name):
                                 exp_config.update({
                                     'infer': True,
                                     'evaluate': True,
+                                    'render_levels': True,
+                                    'save_levels': True,
                                 })
                             print('Saving experiment config:\n{}'.format(exp_config))
                             with open('configs/evo/settings_{}.json'.format(i), 'w') as f:
