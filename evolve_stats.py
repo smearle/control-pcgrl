@@ -81,53 +81,6 @@ RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
-def save_grid(d=6):
-    # save grid using csv file
-    # get path to CSV
-    levels_path = os.path.join(SAVE_PATH, "levels.csv")
-    # get env name
-    env_name = '{}-{}-v0'.format(PROBLEM, REPRESENTATION)
-    # create env
-    env = gym.make(env_name)
-
-    df = pd.read_csv(CSV_PATH, header=None).rename(index=str, columns={0:'level',1:'batch_reward', 2:'variance', 3:'diversity', 4:'targets'})
-    for i in range(5, len(df.columns)):
-        df = df.rename(index=str, columns={i:'bc{}'.format(i-5)})
-    df = df[df['targets']==0]  # select only the valid levels 
-    # d = 6  # dimension of rows and columns
-    figw, figh = 16.0, 16.0
-    fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
-
-    df_g = df.sort_values(by=['bc0', 'bc1'], ascending=False)
-
-    df_g['row'] = np.floor(np.linspace(0, d, len(df_g), endpoint=False)).astype(int)
-
-    for row_num in range(d):
-        row = df_g[df_g['row']==row_num]
-        row = row.sort_values(by=['bc1'], ascending=True)
-        row['col'] = np.arange(0,len(row), dtype=int)
-        idx = np.floor(np.linspace(0,len(row)-1,d)).astype(int)
-        row = row[row['col'].isin(idx)]
-        row = row.drop(['row','col'], axis=1)
-        # grid_models = np.array(row.loc[:,'solution_0':])
-        grid_models = row['level'].tolist()
-        for col_num in range(len(row)):
-            level = np.zeros((5,5), dtype=int)
-            for i, l_rows in enumerate(grid_models[col_num].split('], [')):
-                for j, l_col in enumerate(l_rows.split(',')):
-                    level[i,j] = int(l_col.replace('[','').replace(']','').replace(' ',''))
-
-            # Set map
-            env._rep._map = level
-            img = env.render(mode='rgb_array')
-            axs[row_num,col_num].imshow(img, aspect='auto')
-            axs[row_num,col_num].set_axis_off()
-
-    fig.subplots_adjust(hspace=0.01, wspace=0.01)
-    levels_png_path = os.path.join(SAVE_PATH, "levels_grid.png")
-    fig.savefig(levels_png_path, dpi=300)
-
-
 def auto_garbage_collect(pct=80.0):
     if psutil.virtual_memory().percent >= pct:
         gc.collect()
@@ -1303,6 +1256,8 @@ class EvoPCGRL():
                             df.to_csv(os.path.join(SAVE_PATH, "levels.csv"), mode='a', header=False, index=False)
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
+                    
+                    # level_json = {'level': final_levels.tolist(),'batch_reward':[batch_reward] * len(final_levels.tolist()), 'variance': [variance_penalty] * len(final_levels.tolist()), 'diversity':[diversity_bonus] * len(final_levels.tolist()),'targets':trg.tolist(), **bc_dict}
                     [stat_json[stat].extend(level_json[stat]) for stat in stats]
                 del results
                 auto_garbage_collect()
@@ -1373,7 +1328,7 @@ class EvoPCGRL():
 
                 else:
                     # 150 to match number of new-model evaluations
-                    for elite_i in range(min(max(len(elite_models) //2, 1), 150 // 2)):
+                    for elite_i in range(min(len(elite_models), 150)):
                        #print(elite_i)
                        #pprint.pprint(self.gen_archive.obj_hist, width=1)
                        #pprint.pprint(self.gen_archive.bc_hist, width=1)
@@ -1391,8 +1346,13 @@ class EvoPCGRL():
                                                         player_1=self.player_1,
                                                         player_2=self.player_2)
                         idx = self.gen_archive.get_index(old_el_bcs)
-                        [stat_json[stat].extend(level_json[stat]) for stat in stats]
-                        self.gen_archive.update_elite(*self.gen_archive.pop_elite(el_obj, el_bcs, old_el_bcs))
+                        [stat_json[stat].extend(level_json[stat]) for stat in stats] 
+                        if idx not in self.gen_archive.bc_hist:
+                            raise Exception
+                        if idx not in self.gen_archive.obj_hist:
+                            raise Exception
+
+                        self.gen_archive.update_elite(el_obj, el_bcs, old_el_bcs)
 
 #               last_archive_size = len(self.gen_archive.as_pandas(include_solutions=False))
 
@@ -2051,7 +2011,6 @@ if __name__ == '__main__':
             RENDER = True
             N_STEPS = N_INFER_STEPS
             evolver.infer()
-            save_grid()
         if not (INFER or VISUALIZE):
             writer = init_tensorboard()
             # then we train
