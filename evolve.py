@@ -803,7 +803,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
             int_map = action.argmax(axis=0)
             env._rep._map = int_map
             done = (int_map == last_int_map).all() or n_step >= N_STEPS
-            if INFER:
+            if INFER and not EVALUATE:
                 time.sleep(1/30)
             if done:
                 env._rep._old_map = int_map
@@ -855,6 +855,8 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
     if PLAY_LEVEL:
         assert player_1 is not None
         assert player_2 is not None
+    if CMAES:
+        bc_names = ['NONE', 'NONE']
     # Allow us to manually set the level-map on reset (using the "_old_map" attribute)
     # Actually we have found a more efficient workaround for now.
 #   env._rep._random_start = False
@@ -917,7 +919,7 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
 #           env._rep._map = int_map
             done = not (change or skip) or n_step >= N_STEPS
            #done = n_step >= N_STEPS
-            if INFER:
+            if INFER and not EVALUATE:
                 time.sleep(1/30)
             if done:
                 final_levels[n_episode] = int_map
@@ -976,8 +978,9 @@ def simulate(env, model, n_tile_types, init_states, bc_names, static_targets, se
 
             if RENDER:
                 env.render()
-            if done and INFER and not (EVALUATE and THREADS):
-                time.sleep(5/30)
+            if done and INFER:  #and not (EVALUATE and THREADS):
+                if not EVALUATE:
+                    time.sleep(5/30)
                 print('stats: {}\n\ntime_penalty: {}\n targets_penalty: {}'.format(stats, time_penalty, targets_penalty))
             last_int_map = int_map
             n_step += 1
@@ -1611,7 +1614,10 @@ class EvoPCGRL():
 
             if RANDOM_INIT_LEVELS:
                 # Effectively doing inference on a (presumed) held-out set of levels
-                N_EVAL_STATES = 10
+                if CMAES:
+                    N_EVAL_STATES = N_INIT_STATES = 100
+                else:
+                    N_EVAL_STATES = N_INIT_STATES = 10
                 init_states = np.random.randint(0, self.n_tile_types, size=(N_EVAL_STATES, *self.init_states.shape[1:]))
             else:
                 init_states = self.init_states
@@ -1685,10 +1691,11 @@ class EvoPCGRL():
                 plt.savefig(os.path.join(SAVE_PATH, f_name))
                 plt.close()
 
-            plot_score_heatmap(playability_scores, 'playability')
-            plot_score_heatmap(diversity_scores, 'diversity')
-            plot_score_heatmap(reliability_scores, 'reliability')
-            plot_score_heatmap(fitness_scores, 'fitness_eval')
+            if not CMAES:
+                plot_score_heatmap(playability_scores, 'playability')
+                plot_score_heatmap(diversity_scores, 'diversity')
+                plot_score_heatmap(reliability_scores, 'reliability')
+                plot_score_heatmap(fitness_scores, 'fitness_eval')
             stats = {
                 'playability': np.nanmean(playability_scores),
                 'diversity': np.nanmean(diversity_scores),
