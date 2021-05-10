@@ -26,6 +26,10 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
     """
+    global N_BINS
+    global N_MAPS
+    global N_TRIALS
+
     infer_kwargs = {
             **infer_kwargs,
             'inference': True,
@@ -86,6 +90,9 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if not eval_controls:
         eval_controls = control_bounds.keys()
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
+    if len(ctrl_bounds) == 0 and DIVERSITY_EVAL:
+        N_MAPS = 100
+        N_TRIALS = 1
     # Hackish get initial states
     init_states = []
     for i in range(N_MAPS):
@@ -131,7 +138,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         div_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
-        level_tokens = [[None]*len(trgs_0)]* len(trgs_1)
+        level_tokens = [[None]*len(trgs_0)]* len(trgs_1)  # Wait what?
         trg_dict = env.envs[0].static_trgs
         trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
         level_images = []
@@ -160,21 +167,57 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             image = Image.fromarray(image)
             image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
-    if not RENDER_LEVELS:
-        eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir)
-        pickle.dump(eval_data, open(data_path, "wb"))
-        eval_data.visualize_data(log_dir)
 
-    else:
-        levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
-        eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
-        pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
+    elif len(ctrl_bounds) == 0:
+        N_BINS = None
+        levels_im_name = "{}_{}-bins_levels.png"
+        level_images = []
+        cell_scores = np.zeros(shape=(1,1))
+        div_scores = np.zeros(shape=(1,1))
+        cell_static_scores = np.zeros(shape=(1,1))        
+        cell_ctrl_scores = np.zeros(shape=(1,1))
+        level_tokens = None 
+        ctrl_names = None
+
+        if DIVERSITY_EVAL:
+            n_row = 1
+            n_col = 1
+        else:
+            n_row = 2
+            n_col = 5
+
+        for i in range(n_row):
+            level_images_y = []
+            for j in range(n_col):
+                net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, env.envs[0].unwrapped._prob.static_trgs, max_steps)
+                level_images_y.append(level_image)
+                cell_scores[0,0] = net_score
+                div_score = np.sum([np.sum(a != b) for a in tokens for b in tokens]) / (len(tokens) * (len(tokens) - 1))
+                div_score = div_score / (map_width * map_width)
+                div_scores[0,0] = div_score
+            if RENDER_LEVELS:
+                level_images.append(np.hstack(level_images_y))
+        if RENDER_LEVELS:
+            image = np.vstack(level_images[::-1])
+            image = Image.fromarray(image)
+            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
+
+        ctrl_ranges = None
+    
+    levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
+    if not RENDER_LEVELS:
+        image = None
+    eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
+    pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
+    if RENDER_LEVELS:
         eval_data_levels.render_levels()
 
     if DIVERSITY_EVAL:
-        if RENDER_LEVELS:
-            eval_data = eval_data_levels
-        eval_data.hamming_heatmap(level_tokens, div_scores=div_scores)
+        eval_data = eval_data_levels
+        if len(ctrl_bounds) == 0:
+            eval_data.save_stats(div_scores)
+        else:
+            eval_data.hamming_heatmap(level_tokens, div_scores=div_scores)
 
 
 def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
@@ -413,11 +456,12 @@ class EvalData():
         plt.savefig(os.path.join(self.log_dir, "{}_{}.png".format(self.ctrl_names, title.replace("%", ""))))
 
 
-    def save_stats(self):
+    def save_stats(self, div_scores=np.zeros(shape=(1,1))):
         scores = {
             'net_score': self.cell_scores.mean(),
             'ctrl_score': self.cell_ctrl_scores.mean(),
             'fixed_score': self.cell_static_scores.mean(),
+            'diversity_score': div_scores.mean(),
         }
         with open(os.path.join(self.log_dir, 'scores.json'), 'w') as fp:
             json.dump(scores, fp)
@@ -550,7 +594,7 @@ global EXPERIMENT_ID
 global EXPERIMENT_DIR
 #EXPERIMENT_DIR = 'hpc_runs/runs'
 if not opts.HPC:
-    EXPERIMENT_DIR = 'runs'
+    EXPERIMENT_DIR = 'rl_runs'
 else:
     EXPERIMENT_DIR = 'hpc_runs'
 EXPERIMENT_ID = opts.experiment_id

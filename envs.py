@@ -27,6 +27,8 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
         if evo_compare:
+            # FIXME: THIS DOES NOT WORK
+
             # Give a little wiggle room from targets, to allow for some diversity
             if "binary" in env_name:
                 path_trg = env.unwrapped._prob.static_trgs['path-length']
