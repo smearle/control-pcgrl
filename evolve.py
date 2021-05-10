@@ -95,7 +95,8 @@ def save_grid(csv_name='levels', d=6):
     map_width = env._prob._width
 
     df = pd.read_csv(levels_path, header=None).rename(index=str, columns={0:'level',1:'batch_reward', 2:'variance', 3:'diversity', 4:'targets'})
-    for i in range(map_width, len(df.columns)):
+    # rename columns containing BC values
+    for i in range(5, len(df.columns)):
         df = df.rename(index=str, columns={i:'bc{}'.format(i-5)})
     df = df[df['targets']==0]  # select only the valid levels 
     # d = 6  # dimension of rows and columns
