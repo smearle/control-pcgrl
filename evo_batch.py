@@ -22,21 +22,25 @@ representations = [
 #   'turtle',
     ]
 global_bcs = [
-    ['NONE'],
-    ['emptiness', 'symmetry'],
+#   ['NONE'],
+#   ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     'binary_ctrl': [
-        ['regions', 'path-length'],
+#       ['regions', 'path-length'],
+        ['emptiness', 'path-length'],
     ],
     'zelda_ctrl': [
-        ['nearest-enemy', 'path-length'],
+#       ['nearest-enemy', 'path-length'],
+        ['emptiness', 'path-length'],
     ],
     'sokoban_ctrl': [
-        ['crate', 'sol-length'],
+#       ['crate', 'sol-length'],
+        ['emptiness', 'sol-length'],
     ],
     'smb_ctrl': [
-        ['enemies', 'jumps'],
+#       ['enemies', 'jumps'],
+        ['emptiness', 'jumps'],
     ],
 }
 models = [
