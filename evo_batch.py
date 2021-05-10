@@ -29,18 +29,22 @@ local_bcs = {
     'binary_ctrl': [
 #       ['regions', 'path-length'],
         ['emptiness', 'path-length'],
+        ['symmetry', 'path-length'],
     ],
     'zelda_ctrl': [
 #       ['nearest-enemy', 'path-length'],
         ['emptiness', 'path-length'],
+        ['symmetry', 'path-length'],
     ],
     'sokoban_ctrl': [
 #       ['crate', 'sol-length'],
         ['emptiness', 'sol-length'],
+        ['symmetry', 'sol-length'],
     ],
     'smb_ctrl': [
 #       ['enemies', 'jumps'],
         ['emptiness', 'jumps'],
+        ['symmetry', 'jumps'],
     ],
 }
 models = [
