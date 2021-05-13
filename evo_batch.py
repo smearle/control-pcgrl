@@ -112,7 +112,7 @@ def launch_batch(exp_name):
                                 'behavior_characteristics': bc_pair,
                                 'model': model,
                                 'fix_elites': fix_el,
-                                'fixed_init_levels': fix_seed,
+                                'fix_level_seeds': fix_seed,
                                 'exp_name': exp_name,
                                 'save_levels': True,
                             })
