@@ -1826,7 +1826,7 @@ class EvoPCGRL():
 
             # Save checkpoint
 
-            if itr % SAVE_INTERVAL == 0:
+            if itr % SAVE_INTERVAL == 0 or itr == 1:
                 self.save()
 
             self.n_itr += 1
