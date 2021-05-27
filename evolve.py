@@ -525,7 +525,7 @@ class GeneratorNNDense(nn.Module):
                  n_flat_actions):
         super().__init__()
         n_hid_1 = 32
-        n_hid_2 = 32
+        n_hid_2 = 64
         self.conv1 = Conv2d(n_in_chans, n_hid_1, kernel_size=3, stride=2)
         self.conv2 = Conv2d(n_hid_1, n_hid_2, kernel_size=3, stride=2)
         self.conv3 = Conv2d(n_hid_2, n_hid_2, kernel_size=3, stride=2)
@@ -534,10 +534,10 @@ class GeneratorNNDense(nn.Module):
             self.conv3(
                 self.conv2(self.conv1(
                     torch.zeros(size=observation_shape))))).shape[-1]
-        self.fc1 = Linear(n_flat, n_flat_actions)
-#       self.fc1 = Linear(n_flat, n_hid_2)
-#       self.fc2 = Linear(n_hid_2, n_flat_actions)
-        self.layers = [self.conv1, self.conv2, self.conv3, self.fc1] #, self.fc2]
+#       self.fc1 = Linear(n_flat, n_flat_actions)
+        self.fc1 = Linear(n_flat, n_hid_2)
+        self.fc2 = Linear(n_hid_2, n_flat_actions)
+        self.layers = [self.conv1, self.conv2, self.conv3, self.fc1, self.fc2]
         self.apply(init_weights)
 
     def forward(self, x):
@@ -546,9 +546,8 @@ class GeneratorNNDense(nn.Module):
             x = F.relu(self.conv2(x))
             x = F.relu(self.conv3(x))
             x = self.flatten(x)
-            x = F.softmax(self.fc1(x), dim=1)
-#           x = F.relu(self.fc1(x))
-#           x = F.softmax(self.fc2(x), dim=1)
+            x = F.relu(self.fc1(x))
+            x = F.softmax(self.fc2(x), dim=1)
 
         return x
 

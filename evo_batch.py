@@ -11,13 +11,13 @@ import argparse
 
 problems = [
     'binary_ctrl',
-    'zelda_ctrl',
-    'sokoban_ctrl',
-    'smb_ctrl',
+#   'zelda_ctrl',
+#   'sokoban_ctrl',
+#   'smb_ctrl',
     ]
 representations = [
-    'cellular',
-#   'wide',
+#   'cellular',
+    'wide',
 #   'narrow',
 #   'turtle',
     ]
@@ -28,7 +28,7 @@ global_bcs = [
 local_bcs = {
     'binary_ctrl': [
 #       ['regions', 'path-length'],
-        ['emptiness', 'path-length'],
+#       ['emptiness', 'path-length'],
         ['symmetry', 'path-length'],
     ],
     'zelda_ctrl': [
@@ -48,20 +48,20 @@ local_bcs = {
     ],
 }
 models = [
-    'NCA',
-#   'CNN',  # Doesn't learn atm
+#   'NCA',
+    'CNN',  # Doesn't learn atm
 ]
 
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
     True,
-    False,
+#   False,
 ]
 
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
     True,
-    False,
+#   False,
 ]
 
 def launch_batch(exp_name):
@@ -122,6 +122,7 @@ def launch_batch(exp_name):
                                     'evaluate': True,
                                     'render_levels': True,
                                     'save_levels': True,
+                                    'visualize': True,
                                 })
                             print('Saving experiment config:\n{}'.format(exp_config))
                             with open('configs/evo/settings_{}.json'.format(i), 'w') as f:
