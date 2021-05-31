@@ -37,8 +37,7 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._changes = 0
         self.width = self._prob._width
-#       self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
-        self._max_changes = max(int(1.0 * self._prob._width * self._prob._height), 1)
+        self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 

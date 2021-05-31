@@ -130,7 +130,7 @@ else:
 EXPERIMENT_ID = opts.experiment_id
 problem = opts.problem
 representation = opts.representation
-conditional = True
+conditional = opts.conditional
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
@@ -153,6 +153,7 @@ else:
 max_step = opts.max_step
 #if max_step is None:
 #    max_step = 1000
+change_percentage = opts.change_percentage
 
 if conditional:
     cond_metrics = opts.conditionals
@@ -165,15 +166,17 @@ if conditional:
         experiment = '_'.join([experiment, 'CAaction'])
     if alp_gmm:
         experiment = '_'.join([experiment, 'ALPGMM'])
+    change_percentage = 1.0
 
 else:
     cond_metrics = None
+    experiment += '_chng-{}'.format(change_percentage)
 
 # For inference
 infer_kwargs = {
-       #'change_percentage': 1,
+        'change_percentage': change_percentage,
        #'target_path': 200,
-        'conditional': True,
+        'conditional': conditional,
         'cond_metrics': cond_metrics,
         'max_step': max_step,
         'render': True,

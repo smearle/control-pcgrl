@@ -20,10 +20,12 @@ def parse_args():
 
 def parse_pcgrl_args(args):
     opts = args.parse_args()
+    opts.conditional = True
     if opts.max_step == -1:
         max_step = None
     if opts.conditionals == ['NONE']:
         opts.conditionals = []
+        opts.conditionall = False
     elif opts.conditionals == ['DEFAULT']:
         opts.conditionals = prob_cond_metrics[opts.problem]
     elif opts.conditionals == ['ALL']:
@@ -54,7 +56,7 @@ def get_args():
         '--conditionals',
         nargs='+',
         help='Which game level metrics to use as conditionals for the generator',
-        default=['DEFAULT'])
+        default=['NONE'])
     args.add_argument(
         '--resume',
         help='Are we resuming from a saved training run?',
@@ -88,6 +90,12 @@ def get_args():
         type=int,
         default=-1,
         )
+    args.add_argument(
+        '--change_percentage',
+        help='How much of the content can an agent can edit before episode termination. Between 0 and 1.',
+        type=float,
+        default=0.2,
+    )
     args.add_argument(
         '--max_step',
         help='How many steps in an episode, maximum.',

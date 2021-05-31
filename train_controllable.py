@@ -160,7 +160,7 @@ opts = parse_args()
 ################################## MAIN ########################################
 
 ### User settings
-conditional = True
+conditional = len(opts.conditionals) > 0
 problem = opts.problem
 representation = opts.representation
 steps = 5e8
@@ -184,15 +184,19 @@ else:
     raise NotImplementedError("Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
 
 
+change_percentage = opts.change_percentage
 max_step = opts.max_step
 global COND_METRICS
 if conditional:
     experiment = 'conditional'
     COND_METRICS = opts.conditionals
     experiment = '_'.join([experiment] + COND_METRICS)
+    change_percentage = 1.0
 else:
     experiment = 'vanilla'
     COND_METRICS = None
+    experiment += '_chng-{}'.format(change_percentage)
+    change_percentage = opts.change_percentage
     if midep_trgs:
         experiment = '_'.join([experiment, 'midepTrgs'])
 if ca_action:
@@ -202,7 +206,7 @@ if alp_gmm:
 #   max_step = 5
 kwargs = {
     'map_width': map_width,
-    'change_percentage': 1,
+    'change_percentage': change_percentage,
     'conditional': conditional,
     'cond_metrics': COND_METRICS,
     'resume': resume,
