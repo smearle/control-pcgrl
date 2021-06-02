@@ -524,8 +524,8 @@ class GeneratorNNDense(nn.Module):
     def __init__(self, n_in_chans, n_actions, observation_shape,
                  n_flat_actions):
         super().__init__()
-        n_hid_1 = 32
-        n_hid_2 = 64
+        n_hid_1 = 16
+        n_hid_2 = 32
         self.conv1 = Conv2d(n_in_chans, n_hid_1, kernel_size=3, stride=2)
         self.conv2 = Conv2d(n_hid_1, n_hid_2, kernel_size=3, stride=2)
         self.conv3 = Conv2d(n_hid_2, n_hid_2, kernel_size=3, stride=2)
@@ -1838,7 +1838,7 @@ class EvoPCGRL():
 
         os.system('mv "{}" "{}"'.format(
             evo_path, os.path.join(SAVE_PATH, 'last_evolver.pkl')))
-        pickle.dump(self, open(os.path.join(SAVE_PATH, "evolver.pkl"), 'wb'))
+        pickle.dump(self, open(os.path.join(SAVE_PATH, "evolver.pkl"), 'wb'), protocol=4)
         self.env = ENV
 
     def init_env(self):

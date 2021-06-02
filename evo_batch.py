@@ -55,13 +55,13 @@ models = [
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
     True,
-#   False,
+    False,
 ]
 
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
     True,
-#   False,
+    False,
 ]
 
 def launch_batch(exp_name):
