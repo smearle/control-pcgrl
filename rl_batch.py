@@ -51,7 +51,7 @@ local_controls: Dict[str, List] = {
         # ["symmetry", "jumps"],
     ],
 }
-change_percentages = np.arange(0.2, 1.01, 0.2)
+change_percentages = np.arange(2, 11, 2) / 10
 
 
 def launch_batch(exp_name):
@@ -65,7 +65,7 @@ def launch_batch(exp_name):
 
     if LOCAL:
         # if running locally, just run a quick test
-        default_config["n_frames"] = 1000
+        default_config["n_frames"] = 100000
     i = 0
 
     for prob in problems:

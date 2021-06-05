@@ -106,10 +106,10 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 
     if n is None:
         n = max_exp_idx(exp_name)
+        if not resume:
+            n += 1
     global log_dir
 
-    if not resume:
-        n = n + 1
     log_dir = 'rl_runs/{}_{}_log'.format(exp_name, n)
 
     kwargs = {
