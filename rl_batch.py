@@ -76,7 +76,7 @@ def launch_batch(exp_name):
                 for change_percentage in change_percentages:
 
                     if controls != ["NONE"] and change_percentage != 1:
-                        # TODO: maybe support controllable runs with variable change percentage?
+                        # TODO: support controllable runs with variable change percentage
                         continue
 
                     # Edit the sbatch file to load the correct config file
