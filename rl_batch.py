@@ -14,9 +14,9 @@ import numpy as np
 
 problems: List[str] = [
     "binary_ctrl",
-    'zelda_ctrl',
-    'sokoban_ctrl',
-    #'smb_ctrl',
+    "zelda_ctrl",
+    "sokoban_ctrl",
+    # 'smb_ctrl',
 ]
 representations: List[str] = [
     # 'cellular',
@@ -24,24 +24,24 @@ representations: List[str] = [
     "narrow",
     # 'turtle',
 ]
-# TODO: incorporate formal (rather than functional) metrics as controls
+# TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-    ["NONE"],
+    # ["NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {
     "binary_ctrl": [
-        # ['regions', 'path-length'],
+        ["regions", "path-length"],
         # ['emptiness', 'path-length'],
         # ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
-        # ['nearest-enemy', 'path-length'],
+        ["nearest-enemy", "path-length"],
         # ["emptiness", "path-length"],
         # ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        # ['crate', 'sol-length'],
+        ["crate", "sol-length"],
         # ["emptiness", "sol-length"],
         # ["symmetry", "sol-length"],
     ],
@@ -52,6 +52,10 @@ local_controls: Dict[str, List] = {
     ],
 }
 change_percentages = np.arange(2, 11, 2) / 10
+alp_gmms = [
+    # True,
+    False
+]
 
 
 def launch_batch(exp_name):
@@ -77,42 +81,45 @@ def launch_batch(exp_name):
 
                     if controls != ["NONE"] and change_percentage != 1:
                         # TODO: support controllable runs with variable change percentage
+
                         continue
+                    for alp_gmm in alp_gmms:
 
-                    # Edit the sbatch file to load the correct config file
-                    with open("rl_train.sh", "r") as f:
-                        content = f.read()
-                        new_content = re.sub(
-                            "python train_controllable.py -la \d+",
-                            "python train_controllable.py -la {}".format(i),
-                            content,
+                        # Edit the sbatch file to load the correct config file
+                        with open("rl_train.sh", "r") as f:
+                            content = f.read()
+                            new_content = re.sub(
+                                "python train_controllable.py -la \d+",
+                                "python train_controllable.py -la {}".format(i),
+                                content,
+                            )
+                        with open("rl_train.sh", "w") as f:
+                            f.write(new_content)
+                        # Write the config file with the desired settings
+                        exp_config = copy.deepcopy(default_config)
+                        exp_config.update(
+                            {
+                                "problem": prob,
+                                "representation": rep,
+                                "conditionals": controls,
+                                "change_percentage": change_percentage,
+                                "alp_gmm": alp_gmm,
+                                "experiment_id": exp_name,
+                            }
                         )
-                    with open("rl_train.sh", "w") as f:
-                        f.write(new_content)
-                    # Write the config file with the desired settings
-                    exp_config = copy.deepcopy(default_config)
-                    exp_config.update(
-                        {
-                            "problem": prob,
-                            "representation": rep,
-                            "cond_metrics": controls,
-                            "change_percentage": change_percentage,
-                            "experiment_id": exp_name,
-                        }
-                    )
 
-                    if EVALUATE:
-                        exp_config.update({})
-                    print("Saving experiment config:\n{}".format(exp_config))
-                    with open("configs/rl/settings_{}.json".format(i), "w") as f:
-                        json.dump(exp_config, f, ensure_ascii=False, indent=4)
-                    # Launch the experiment. It should load the saved settings
+                        if EVALUATE:
+                            exp_config.update({})
+                        print("Saving experiment config:\n{}".format(exp_config))
+                        with open("configs/rl/settings_{}.json".format(i), "w") as f:
+                            json.dump(exp_config, f, ensure_ascii=False, indent=4)
+                        # Launch the experiment. It should load the saved settings
 
-                    if LOCAL:
-                        os.system("python train_controllable.py -la {}".format(i))
-                    else:
-                        os.system("sbatch rl_train.sh")
-                    i += 1
+                        if LOCAL:
+                            os.system("python train_controllable.py -la {}".format(i))
+                        else:
+                            os.system("sbatch rl_train.sh")
+                        i += 1
 
 
 if __name__ == "__main__":

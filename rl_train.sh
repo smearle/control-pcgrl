@@ -6,7 +6,7 @@
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
-#SBATCH --time=96:00:00
+#SBATCH --time=120:00:00
 #SBATCH --mem=30GB
 #SBATCH --job-name=pcgrl
 #SBATCH --mail-type=BEGIN,END
@@ -21,5 +21,5 @@ source activate vanilla_pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla-pcgrl
 
-python train_controllable.py -la 8
+python train_controllable.py -la 1
 

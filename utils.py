@@ -126,7 +126,7 @@ def get_exp_name(game, representation, **kwargs):
 
     if kwargs.get("conditional"):
         exp_name += "_conditional"
-        exp_name += kwargs.get("cond_metrics")
+        exp_name += '_' + '-'.join(['ctrl'] + kwargs.get("cond_metrics"))
     else:
         exp_name += "_vanilla"
         exp_name += "_chng-{}".format(kwargs.get("change_percentage"))

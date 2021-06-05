@@ -1,7 +1,6 @@
 {
     "map_width": 16,
     "change_percentage": 0.2,
-    "conditional": false,
     "cond_metrics": null,
     "resume": false,
     "max_step": null,
