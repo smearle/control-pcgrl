@@ -4,7 +4,8 @@ Run a trained agent for qualitative analysis.
 from pdb import set_trace as T
 import numpy as np
 import cv2
-from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size
+print('importing tensorflow stuff, if a hang happens after this just reboot :~)\n')
+from utils import get_exp_name, max_exp_idx, load_model, get_crop_size, get_env_name
 from envs import make_vec_envs
 
 
@@ -14,7 +15,7 @@ fontScale              = 1
 fontColor              = (255,255,255)
 lineType               = 2
 
-def infer(game, representation, experiment, infer_kwargs, **kwargs):
+def infer(game, representation, infer_kwargs, **kwargs):
     """
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
@@ -27,8 +28,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     max_trials = kwargs.get('max_trials', -1)
     n = kwargs.get('n', None)
     map_width = infer_kwargs.get('map_width')
-    env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    env_name = get_env_name(game, representation)
+    exp_name = get_exp_name(game, representation, **infer_kwargs)
     if n is None:
         if EXPERIMENT_ID is None:
             n = max_exp_idx(exp_name)
@@ -43,6 +44,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
     env, dummy_action_space, n_tools = make_vec_envs(env_name, representation, None, **infer_kwargs)
+    print('loading model at {}'.format(log_dir))
     model = load_model(log_dir, load_best=infer_kwargs.get('load_best'), n_tools=n_tools)
 #   model.set_env(env)
     env.action_space = dummy_action_space
@@ -104,6 +106,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 #      #    print(p, v.shape)
         n_step += 1
         if dones:
+            env.reset()
 #          #show_state(env, path_lengths, changes, regions, n_step)
 #           if 'binary' in env_name:
 #               infer_info['path_lengths'] = path_lengths[-1]
@@ -111,8 +114,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 #               infer_info['regions'] = regions[-1]
             n_step = 0
             n_trials += 1
-        print(env.envs[0].metrics)
-        print(n_step)
+#       print(env.envs[0].metrics)
+#       print(n_step)
     return infer_info
 
 
@@ -130,14 +133,10 @@ else:
 EXPERIMENT_ID = opts.experiment_id
 problem = opts.problem
 representation = opts.representation
-conditional = opts.conditional
+conditional = len(opts.conditionals) > 0
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
-if conditional:
-    experiment = 'conditional'
-else:
-    experiment = 'vanilla'
 kwargs = {
        #'change_percentage': 1,
        #'target_path': 105,
@@ -158,19 +157,12 @@ change_percentage = opts.change_percentage
 if conditional:
     cond_metrics = opts.conditionals
 
-    if midep_trgs:
-        experiment = '_'.join([experiment, 'midepTrgs'])
-    experiment = '_'.join([experiment] + cond_metrics)
     if ca_action:
         max_step = 50
-        experiment = '_'.join([experiment, 'CAaction'])
-    if alp_gmm:
-        experiment = '_'.join([experiment, 'ALPGMM'])
     change_percentage = 1.0
 
 else:
     cond_metrics = None
-    experiment += '_chng-{}'.format(change_percentage)
 
 # For inference
 infer_kwargs = {
@@ -190,6 +182,6 @@ infer_kwargs = {
         }
 
 if __name__ == '__main__':
-    infer(problem, representation, experiment, infer_kwargs, **kwargs)
+    infer(problem, representation, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

@@ -23,6 +23,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
 #               env = wrappers.CAactionWrapper(env_name, **kwargs)
             else:
                 env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
+
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
@@ -48,14 +49,14 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         if log_dir is not None and kwargs.get('add_bootstrap', False):
             env = wrappers.EliteBootStrapping(env,
                                               os.path.join(log_dir, "bootstrap{}/".format(rank)))
-        if conditional:
-            env = conditional_wrappers.ParamRew(env, cond_metrics=kwargs.pop('cond_metrics'), **kwargs)
-            env.configure(**kwargs)
-            if not evaluate:
-                if not ALP_GMM:
-                    env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)
-                else:
-                    env = conditional_wrappers.ALPGMMTeacher(env, **kwargs)
+        env = conditional_wrappers.ParamRew(env, cond_metrics=kwargs.pop('cond_metrics'), **kwargs)
+        env.configure(**kwargs)
+        if not evaluate:
+            if not ALP_GMM:
+                env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)
+            elif conditional:
+                env = conditional_wrappers.ALPGMMTeacher(env, **kwargs)
+            # it not conditional, the ParamRew wrapper should just be fixed at default static targets
         if render or log_dir is not None and len(log_dir) > 0:
             # RenderMonitor must come last
             env = RenderMonitor(env, rank, log_dir, **kwargs)

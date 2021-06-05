@@ -40,6 +40,12 @@ python train_controllable.py --problem "binary_ctrl" --representation "narrow" -
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "turtle"
 #python train_controllable.py --problem "sokoban_ctrl" --conditionals "crate" "sol-length" --representation "wide"
 
+#python train_controllable.py --problem "RCT" --conditionals "happiness" --representation "wide"
+#python train_controllable.py --problem "RCT" --conditionals "happiness" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "income" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "num_vomits" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "happiness" "income" --representation "wide" --alp_gmm --max_step 1000
+#python train_controllable.py --problem "RCT" --conditionals "num_vomits" "income" --representation "wide" --alp_gmm --max_step 1000
 
 
 ## OLD FUCKING TRASH GARBAGE

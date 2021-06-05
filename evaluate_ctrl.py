@@ -8,12 +8,15 @@ from pdb import set_trace as T
 import numpy as np
 from numpy import asarray
 import cv2
-from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size
+from utils import get_exp_name, max_exp_idx, load_model, get_action, get_crop_size, get_env_name
 from envs import make_vec_envs
 from matplotlib import pyplot as plt
 import pickle
 import json
 from matplotlib import colors
+
+# For 1D data, do we use a bar chart instead of a heatmap?
+BAR_CHART = True
 
 font                   = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10,500)
@@ -21,7 +24,13 @@ fontScale              = 1
 fontColor              = (255,255,255)
 lineType               = 2
 
-def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
+def div_calc(tokens):
+    div_score = np.sum([np.sum(a != b) for a in tokens for b in tokens]) / (len(tokens) * (len(tokens) - 1))
+    div_score = div_score / (tokens[0].shape[0] * (tokens[0].shape[1]))
+    return div_score
+
+
+def evaluate(game, representation, infer_kwargs, **kwargs):
     """
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
@@ -40,8 +49,9 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     map_width = infer_kwargs.get('map_width')
     max_steps = infer_kwargs.get('max_step')
     eval_controls = infer_kwargs.get('eval_controls')
-    env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    env_name = get_env_name(game, representation)
+#   env_name = '{}-{}-v0'.format(game, representation)
+    exp_name = get_exp_name(game, representation, **kwargs)
     levels_im_name = "{}_{}-bins_levels.png"
     if n is None:
         if EXPERIMENT_ID is None:
@@ -65,6 +75,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         # FIXME: just for backward compatibility
         eval_data.log_dir = log_dir
         eval_data.visualize_data(log_dir)
+        eval_data.hamming_heatmap(None, eval_data.div_scores)
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -97,7 +108,9 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     init_states = []
     for i in range(N_MAPS):
         env.envs[0].reset()
-        init_states.append(env.envs[0].unwrapped._rep._map)
+        # TODO: set initial states in either of these domains?
+        if not (RCT or SC):
+            init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
     if len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
@@ -109,12 +122,15 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
         cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
         level_tokens = []
+        div_scores = np.zeros((len(eval_trgs), 1))
         for i, trg in enumerate(eval_trgs):
             trg_dict = {ctrl_name: trg}
             print('evaluating control targets: {}'.format(trg_dict))
             env.envs[0].set_trgs(trg_dict)
 #           set_ctrl_trgs(env, {ctrl_name: trg})
             net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+            div_score = div_calc(tokens)
+            div_scores[i, 0] = div_score
             level_images.append(level_image)
             cell_scores[i] = net_score
             cell_ctrl_scores[i] = ctrl_score
@@ -154,7 +170,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
-                div_score = np.sum([np.sum(a != b) for a in tokens for b in tokens]) / (len(tokens) * (len(tokens) - 1))
+                div_score = div_calc(tokens)
                 div_scores[i, j] = div_score
 #               level_tokens[j][i] = tokens
             if RENDER_LEVELS:
@@ -162,6 +178,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
 #           level_tokens.append(tokens)
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
+        image = None
         if RENDER_LEVELS:
             image = np.vstack(level_images[::-1])
             image = Image.fromarray(image)
@@ -209,7 +226,15 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         image = None
     eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
     pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
-    if RENDER_LEVELS:
+    if not RENDER_LEVELS:
+        eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, div_scores, log_dir)
+        pickle.dump(eval_data, open(data_path, "wb"))
+        eval_data.visualize_data(log_dir)
+
+    else:
+        levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
+        eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, div_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
+        pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
         eval_data_levels.render_levels()
 
     if DIVERSITY_EVAL:
@@ -229,7 +254,12 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     # FIXME: why do we need this?
     tokens = []
     while n < n_trials:
-        env.envs[0].set_map(init_states[n % N_MAPS])
+        if not (RCT or SC):
+            env.envs[0].set_map(init_states[n % N_MAPS])
+        elif SC:
+            # Resize gui window for simcity
+            env.envs[0].win1.editMapView.changeScale(0.77)
+            env.envs[0].win1.editMapView.centerOnTile(20, 16)
         obs = env.reset()
 #       epi_rewards = np.zeros((max_step, n_envs))
         i = 0
@@ -243,10 +273,27 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
             if True:
                 if RENDER_LEVELS:
                     image = env.render('rgb_array')
+                    if SC and i == max_steps - 1:
+                        #FIXME lmao fucking stupid as all heck
+                        im_path = os.path.join(log_dir, '{}_level.png'.format(trg_dict))
+                        image = env.envs[0].win1.editMapView.buffer.write_to_png(im_path)
+                        em = env.envs[0].win1.editMapView
+                        image = Image.open(im_path)
+                        image = np.array(image)
+                        print(image.shape)
+                        image = image[:, 400:-400, :]
+                        print(image.shape)
+                    if RCT and i == max_steps - 1:
+                        image = Image.fromarray(image.transpose(1, 0, 2))
                 final_loss = env.envs[0].get_loss()
                 final_ctrl_loss = env.envs[0].get_ctrl_loss()
                 final_static_loss = env.envs[0].get_static_loss()
-                curr_tokens = env.envs[0].unwrapped._rep._map
+                if not (SC or RCT):
+                    curr_tokens = env.envs[0].unwrapped._rep._map
+                elif SC:
+                    curr_tokens = env.envs[0].state.argmax(axis=0)
+                elif RCT:
+                    curr_tokens = env.envs[0].rct_env.park.map[0]
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
 #           epi_rewards[i] = rewards
@@ -269,10 +316,10 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     eval_ctrl_score = eval_ctrl_scores.mean()
     eval_static_score = eval_static_scores.mean()
     print('eval score: {}'.format(eval_score))
-    print('control score: {}'.format(ctrl_score))
-    print('static score: {}'.format(static_score))
-    if RENDER_LEVELS:
-#       image = env.render('rgb_array')
+    print('control score: {}'.format(eval_ctrl_score))
+    print('static score: {}'.format(eval_static_score))
+    if RENDER_LEVELS and not SC:
+        # we hackishly save it for SC up above already
         image.save(os.path.join(log_dir, '{}_level.png'.format(trg_dict)))
         level_image = asarray(image)
     else:
@@ -285,12 +332,13 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
 
 
 class EvalData():
-    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=None, levels_im_path=None):
+    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, div_scores, log_dir, levels_image=None, levels_im_path=None):
         self.ctrl_names = ctrl_names
         self.ctrl_ranges = ctrl_ranges
         self.cell_scores = cell_scores
         self.cell_ctrl_scores = cell_ctrl_scores
         self.cell_static_scores = cell_static_scores
+        self.div_scores = div_scores
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
         self.log_dir = log_dir
@@ -302,36 +350,46 @@ class EvalData():
             # percentages from ratios
             data = data * 100
             data = np.clip(data, -100, 100)
-            data = data.T
-            if data.shape[0] == 1:
+#           data = data.T
+            if data.shape[1] == 1:
+                data = data.T
                 fig.set_size_inches(10, 2)
-                ax.set_yticks([])
                 tick_idxs = np.arange(0, cell_scores.shape[0], max(1, (cell_scores.shape[0] // 10)))
                 ticks = np.arange(cell_scores.shape[0])
                 ticks = ticks[tick_idxs]
                 ax.set_xticks(ticks)
-                labels = np.array([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
+                labels = np.array([int(round(x, 0)) for (i, x) in enumerate(ctrl_ranges[0])])
                 labels = labels[tick_idxs]
                 ax.set_xticklabels(labels)
+                if BAR_CHART:
+#                   low = data[0].min()
+                    low = 0
+                    high = 100
+                    plt.ylim([low, high])
+                    ax.bar(ticks, data[0])
+                    plt.xlabel(ctrl_names[0])
+                else:
+                    ax.set_yticks([])
             else:
                 data = data[::-1,:]
-                ax.set_xticks(np.arange(cell_scores.shape[0]))
-                ax.set_yticks(np.arange(cell_scores.shape[1]))
-                ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
-                ax.set_yticklabels([int(x) for x in ctrl_ranges[1][::-1]])
+                ax.set_xticks(np.arange(cell_scores.shape[1]))
+                ax.set_yticks(np.arange(cell_scores.shape[0]))
+                ax.set_xticklabels([int(round(x, 0)) for x in ctrl_ranges[1]])
+                ax.set_yticklabels([int(round(x, 0)) for x in ctrl_ranges[0][::-1]])
             # Create the heatmap
 #           im = ax.imshow(data, aspect='auto', vmin=-100, vmax=100)
-            im = ax.imshow(data, aspect='auto', vmax=100)
+            if not BAR_CHART or data.shape[0] != 1:
+                im = ax.imshow(data, aspect='auto', vmin=0, vmax=100)
 
-            #Create colorbar
-            cmap = colors.ListedColormap(['b','r','y','r'])
-            cbar = ax.figure.colorbar(im, ax=ax)
-            cbar.ax.set_ylabel("", rotation=90, va="bottom")
+                #Create colorbar
+                cmap = colors.ListedColormap(['b','r','y','r'])
+                cbar = ax.figure.colorbar(im, ax=ax)
+                cbar.ax.set_ylabel("", rotation=90, va="bottom")
 
-            # We want to show all ticks...
-            # ... and label them with the respective list entries
-            plt.xlabel(ctrl_names[0])
-            plt.ylabel(ctrl_names[1])
+                # We want to show all ticks...
+                # ... and label them with the respective list entries
+                plt.xlabel(ctrl_names[1])
+                plt.ylabel(ctrl_names[0])
 
             # Rotate the tick labels and set their alignment.
             plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
@@ -372,7 +430,7 @@ class EvalData():
         title = "Diversity"
 
         if div_scores is not None:
-            hamming_scores = div_scores
+            hamming_scores = div_scores.T
         else:
             #get the hamming distance between all possible pairs of chromosomes in each cell
             #1) make the evaldata function have the tilemap for each env in each bucket.
@@ -419,32 +477,45 @@ class EvalData():
 
         if hamming_scores.shape[0]==1:
             fig.set_size_inches(10, 2)
-            ax.set_yticks([])
             tick_idxs = np.arange(0, self.cell_scores.shape[0], max(1, (self.cell_scores.shape[0] // 10)))
             ticks = np.arange(self.cell_scores.shape[0])
             ticks = ticks[tick_idxs]
             ax.set_xticks(ticks)
-            labels = np.array([int(x) for (i, x) in enumerate(self.ctrl_ranges[0])])
+            labels = np.array([int(round(x, 0)) for (i, x) in enumerate(self.ctrl_ranges[0])])
             labels = labels[tick_idxs]
             ax.set_xticklabels(labels)
+            if BAR_CHART:
+                low = 0
+                high = 0.7
+#               low = hamming_scores[0].min()
+#               high = hamming_scores[0].max()
+                plt.ylim([low, high])
+                plt.bar(ticks, hamming_scores[0], color='purple')
+                plt.xlabel(self.ctrl_names[0])
+            else:
+                ax.set_yticks([])
         else:
             hamming_scores = hamming_scores[::-1,:]
-            ax.set_xticks(np.arange(self.cell_scores.shape[0]))
-            ax.set_yticks(np.arange(self.cell_scores.shape[1]))
-            ax.set_xticklabels([int(x) for x in self.ctrl_ranges[0]])
-            ax.set_yticklabels([int(x) for x in self.ctrl_ranges[1][::-1]])
-        # Create the heatmap
-        im = ax.imshow(hamming_scores, aspect='auto')
+            ax.set_xticks(np.arange(self.cell_scores.shape[1]))
+            ax.set_yticks(np.arange(self.cell_scores.shape[0]))
+            ax.set_xticklabels([int(round(x, 0)) for x in self.ctrl_ranges[1]])
+            ax.set_yticklabels([int(round(x, 0)) for x in self.ctrl_ranges[0][::-1]])
+        if not BAR_CHART or hamming_scores.shape[0] != 1:
+            # Create the heatmap
 
-        #Create colorbar
-        cmap = colors.ListedColormap(['b','r','y','r'])
-        cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.ax.set_ylabel("", rotation=90, va="bottom")
+            #Create colorbar
+#           cmap = colors.ListedColormap(['r','y','b','r'])
+            cmap = plt.get_cmap('inferno')
+#           im = ax.imshow(hamming_scores, aspect='auto', cmap=cmap, vmin=0, vmax=0.7)
+            im = ax.imshow(hamming_scores, aspect='auto', cmap=cmap)
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("", rotation=90, va="bottom")
 
-        # We want to show all ticks...
-        # ... and label them with the respective list entries
-        plt.xlabel(self.ctrl_names[0])
-        plt.ylabel(self.ctrl_names[1])
+
+            # We want to show all ticks...
+            # ... and label them with the respective list entries
+            plt.xlabel(self.ctrl_names[1])
+            plt.ylabel(self.ctrl_names[0])
 
         # Rotate the tick labels and set their alignment.
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
@@ -471,26 +542,37 @@ class EvalData():
         fig, ax = plt.subplots()
         ax.imshow(self.levels_image)
     #       ax.axis["xzero"].set_axisline_style("-|>")
-        plt.tick_params(
-            axis='x',
-            which='both',
-            bottom=False,
-            top=False,
-            labelbottom=False)
-        plt.tick_params(
-            axis='y',
-            which='both',
-            left=False,
-            right=False,
-            labelleft=False)
+       #plt.tick_params(
+       #    axis='x',
+       #    which='both',
+       #    bottom=False,
+       #    top=False,
+       #    labelbottom=False)
+
         if ctrl_names[1] is None:
             plt.xlabel(ctrl_names[0])
+            # wut
+            im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[0]
+            plt.xticks(np.arange(self.cell_scores.shape[0]) * im_width + im_width / 2, labels=[int(round(x, 0)) for x in self.ctrl_ranges[0]])
             pad_inches = 0
             hspace = 0
             bottom = 0
+            plt.tick_params(
+                axis='y',
+                which='both',
+                left=False,
+                right=False,
+                labelleft=False)
         else:
-            plt.xlabel(ctrl_names[1])
-            plt.ylabel(ctrl_names[0])
+            plt.xlabel(ctrl_names[0])
+            plt.ylabel(ctrl_names[1])
+            im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[1]
+            im_height = np.array(self.levels_image).shape[0] / self.cell_scores.shape[0]
+            plt.xticks(np.arange(self.cell_scores.shape[0]) * im_width + im_width / 2, labels=[int(round(x, 0)) for x in self.ctrl_ranges[0]])
+            plt.yticks(np.arange(self.cell_scores.shape[1]) * im_height + im_height / 2, labels=[int(round(y, 0)) for y in self.ctrl_ranges[1][::-1]])
+#           ax.set_xticklabels([round(x, 1) for x in ctrl_ranges[0]])
+#           ax.set_yticklabels([round(x, 1) for x in ctrl_ranges[1][::-1]])
+
             pad_inches = 0
             hspace = 0
             bottom = 0.05
@@ -498,8 +580,8 @@ class EvalData():
         plt.subplots_adjust(top = 1, bottom = bottom, right = 1, left = 0, 
                     hspace = hspace, wspace = 0)
         plt.margins(0,0)
-        plt.gca().xaxis.set_major_locator(plt.NullLocator())
-        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+       #plt.gca().xaxis.set_major_locator(plt.NullLocator())
+       #plt.gca().yaxis.set_major_locator(plt.NullLocator())
         plt.savefig(self.levels_im_path, bbox_inches = 'tight',
             pad_inches = pad_inches)
         plt.show()
@@ -556,12 +638,12 @@ args.add_argument('--eval_controls',
         )
 args.add_argument('--n_maps',
         help='Number maps on which to simulate in each cell.',
-        default=3,
+        default=10,
         type=int,
         )
 args.add_argument('--n_trials',
         help='Number trials for which to simulate on each map.',
-        default=3,
+        default=1,
         type=int,
         )
 #args.add_argument('--step_size',
@@ -579,15 +661,15 @@ args.add_argument('--render_levels',
         help='Save final maps (default to only one eval per cell)',
         action='store_true',
         )
-args.add_argument('--diversity_eval',
-        help='Evaluate average pairwise hamming distance per cell',
-        action='store_true',
-        )
+#args.add_argument('--diversity_eval',
+#        help='Evaluate average pairwise hamming distance per cell',
+#        action='store_true',
+#        )
 from arguments import parse_pcgrl_args
 opts = parse_pcgrl_args(args)
 global VIS_ONLY 
 VIS_ONLY = opts.vis_only
-DIVERSITY_EVAL = opts.diversity_eval
+#DIVERSITY_EVAL = opts.diversity_eval
 
 # For locating trained model
 global EXPERIMENT_ID
@@ -599,15 +681,19 @@ else:
     EXPERIMENT_DIR = 'hpc_runs'
 EXPERIMENT_ID = opts.experiment_id
 problem = opts.problem
+if 'RCT' in problem:
+    RCT = True
+else:
+    RCT = False
+if 'Micropolis' in problem:
+    SC = True
+else:
+    SC = False
 representation = opts.representation
 conditional = opts.conditional
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
-if conditional:
-    experiment = 'conditional'
-else:
-    experiment = 'vanilla'
 kwargs = {
        #'change_percentage': 1,
        #'target_path': 105,
@@ -616,6 +702,8 @@ kwargs = {
 
 RENDER_LEVELS = opts.render_levels
 change_percentage = opts.change_percentage
+#NOTE: For now rendering levels and doing any sort of evaluation are separate processes because we don't need to render all that and it would be inefficient but we do need many runs for statistical significance. Pray for representative levels.
+DIVERSITY_EVAL = not RENDER_LEVELS
 if problem == 'sokobangoal':
     map_width = 5
 else:
@@ -630,20 +718,13 @@ if conditional:
 #           max_step = 5000
     cond_metrics = opts.conditionals
 
-    experiment = '_'.join([experiment] + cond_metrics)
-    if midep_trgs:
-        experiment = '_'.join([experiment, 'midepTrgs'])
     if ca_action:
         max_step = 50
-        experiment = '_'.join([experiment, 'CAaction'])
-    if alp_gmm:
-        experiment = '_'.join([experiment, 'ALPGMM'])
     change_percentage = 1.0
 else:
     max_step = None
     cond_metrics = None
     change_percentage
-    experiment += '_chng-{}'.format(change_percentage)
 
 # For inference
 infer_kwargs = {
@@ -669,14 +750,16 @@ global N_BINS
 N_BINS = tuple(opts.n_bins)
 
 if RENDER_LEVELS and not DIVERSITY_EVAL:
+    #FIXME: this is not ob
     N_MAPS = 1
     N_TRIALS = 1
 else:
     N_MAPS = opts.n_maps
-    N_TRIALS = opts.n_trials
+#   N_TRIALS = opts.n_trials
+    N_TRIALS = 1
 
 if __name__ == '__main__':
 
-    evaluate(problem, representation, experiment, infer_kwargs, **kwargs)
+    evaluate(problem, representation, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

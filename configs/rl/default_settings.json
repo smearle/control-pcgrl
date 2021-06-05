@@ -1,0 +1,16 @@
+{
+    "map_width": 16,
+    "change_percentage": 0.2,
+    "conditional": false,
+    "cond_metrics": null,
+    "resume": false,
+    "max_step": null,
+    "midep_trgs": false,
+    "ca_action": false,
+    "cropped_size": 28,
+    "alp_gmm": false,
+    "evo_compare": false,
+    "n_cpu": 50,
+    "render_rank": 0,
+    "render": false
+}

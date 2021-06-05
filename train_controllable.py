@@ -1,25 +1,29 @@
-#pip install tensorflow==1.15
-#Install stable-baselines as described in the documentation
-from pdb import set_trace as T
+# pip install tensorflow==1.15
+# Install stable-baselines as described in the documentation
+import json
+import os
+from pdb import set_trace as TT
 
-import model
+import numpy as np
+
+import gym_pcgrl  # noqa : F401
+from arguments import parse_args
+from envs import make_vec_envs
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
-from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
-from utils import get_exp_name, max_exp_idx, load_model, get_crop_size
-from envs import make_vec_envs
+from model import (CustomPolicyBigMap, CustomPolicySmallMap,
+                   FullyConvPolicyBigMap, FullyConvPolicySmallMap)
 #from stable_baselines3 import PPO
 from stable_baselines import PPO2
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines.results_plotter import load_results, ts2xy
-#import torch
-
-import numpy as np
-import os
+from utils import (get_crop_size, get_env_name, get_exp_name, load_model,
+                   max_exp_idx)
 
 n_steps = 0
 log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
+
 
 def callback(_locals, _globals):
     """
@@ -34,10 +38,11 @@ def callback(_locals, _globals):
         x, y = ts2xy(load_results(log_dir), 'timesteps')
 
         if len(x) > 100:
-           #pdb.set_trace()
+            # pdb.set_trace()
             mean_reward = np.mean(y[-100:])
             print(x[-1], 'timesteps')
-            print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
+            print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(
+                best_mean_reward, mean_reward))
 
             # New best model, we save the agent here
 
@@ -49,10 +54,11 @@ def callback(_locals, _globals):
             else:
                 print("Saving latest model")
                 _locals['self'].save(os.path.join(log_dir, 'latest_model.zip'))
+
             if alp_gmm:
                 pass
         else:
-#           print('{} monitor entries'.format(len(x)))
+            #           print('{} monitor entries'.format(len(x)))
             pass
     n_steps += 1
     # Returning False will stop training early
@@ -60,17 +66,20 @@ def callback(_locals, _globals):
     return True
 
 
-def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
-    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl"]:
-        raise Exception("Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
+def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
+    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]:
+        raise Exception(
+            "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
     kwargs['n_cpu'] = n_cpu
-    env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    env_name = get_env_name(game, representation)
+    print('env name: ', env_name)
+    exp_name = get_exp_name(game, representation, **kwargs)
+
+
     resume = kwargs.get('resume', False)
     ca_action = kwargs.get('ca_action')
-    map_width = kwargs.get('map_width')
 
-    if representation == 'wide':
+    if representation == 'wide' and not ('RCT' in game or 'Micropolis' in game):
         if ca_action:
             raise Exception()
 #           policy = CApolicy
@@ -79,54 +88,61 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 #           policy = WidePolicy
 
         if game == "sokoban" or game == "sokoban_ctrl":
-#           T()
+            #           T()
             policy = FullyConvPolicySmallMap
     else:
-#       policy = ActorCriticCnnPolicy
+        #       policy = ActorCriticCnnPolicy
         policy = CustomPolicyBigMap
 
         if game == "sokoban" or game == "sokoban_ctrl":
-#           T()
+            #           T()
             policy = CustomPolicySmallMap
     crop_size = kwargs.get('cropped_size')
+
     if crop_size == -1:
         kwargs['cropped_size'] = get_crop_size(game)
-    n = max_exp_idx(exp_name)
+
+    n = kwargs.get('experiment_id')
+
+    if n is None:
+        n = max_exp_idx(exp_name)
     global log_dir
 
     if not resume:
         n = n + 1
     log_dir = 'rl_runs/{}_{}_log'.format(exp_name, n)
+
     kwargs = {
         **kwargs,
         'render_rank': 0,
         'render': render,
     }
-    used_dir = log_dir
-
-    if not logging:
-        used_dir = None
-    kwargs.update({'render': render})
 
     if not resume:
         os.mkdir(log_dir)
     try:
-        env, dummy_action_space, n_tools = make_vec_envs(env_name, representation, log_dir, **kwargs)
+        env, dummy_action_space, n_tools = make_vec_envs(
+            env_name, representation, log_dir, **kwargs)
     except Exception as e:
         # if this is a new experiment, clean up the logging directory if we fail to start up
+
         if not resume:
             os.rmdir(log_dir)
         raise e
+
+    with open(os.path.join(log_dir, 'settings.json'),
+              'w',
+              encoding='utf-8') as f:
+        json.dump(kwargs, f, ensure_ascii=False, indent=4)
 
 #       pass
     if resume:
         model = load_model(log_dir, n_tools=n_tools)
 
-
-
     if representation == 'wide':
-#       policy_kwargs = {'n_tools': n_tools}
+        #       policy_kwargs = {'n_tools': n_tools}
         policy_kwargs = {}
+
         if ca_action:
             # FIXME: there should be a better way hahahaha
             env.action_space = dummy_action_space
@@ -141,29 +157,38 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 #       n_steps = 2048
 
     if not resume or model is None:
-#       model = PPO(policy, env, verbose=1, n_steps=n_steps, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
-        model = PPO2(policy, env, verbose=1, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
+        # model = PPO(policy, env, verbose=1, n_steps=n_steps,
+        #             tensorboard_log="./runs", policy_kwargs=policy_kwargs)
+        model = PPO2(policy, env, verbose=1,
+                     tensorboard_log="./rl_runs", policy_kwargs=policy_kwargs)
 #   else:
     model.set_env(env)
 
-   #model.policy = model.policy.to('cuda:0')
+    #model.policy = model.policy.to('cuda:0')
 #   if torch.cuda.is_available():
 #       model.policy = model.policy.cuda()
     if not logging:
-        model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
+        model.learn(total_timesteps=n_frames, tb_log_name=exp_name)
     else:
-        model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
+        model.learn(total_timesteps=n_frames,
+                    tb_log_name=exp_name, callback=callback)
 
-from arguments import parse_args
+
 opts = parse_args()
+arg_dict = vars(opts)
+
+if opts.load_args is not None:
+    with open('configs/rl/settings_{}.json'.format(opts.load_args)) as f:
+        new_arg_dict = json.load(f)
+        arg_dict.update(new_arg_dict)
 
 ################################## MAIN ########################################
 
-### User settings
+# User settings
 conditional = len(opts.conditionals) > 0
 problem = opts.problem
 representation = opts.representation
-steps = 5e8
+n_frames = opts.n_frames
 render = opts.render
 logging = True
 n_cpu = opts.n_cpu
@@ -181,29 +206,20 @@ elif 'zelda' in problem:
 elif 'binary' in problem:
     map_width = 16
 else:
-    raise NotImplementedError("Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
+    raise NotImplementedError(
+        "Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
 
 
 change_percentage = opts.change_percentage
 max_step = opts.max_step
 global COND_METRICS
+
 if conditional:
-    experiment = 'conditional'
     COND_METRICS = opts.conditionals
-    experiment = '_'.join([experiment] + COND_METRICS)
     change_percentage = 1.0
 else:
-    experiment = 'vanilla'
     COND_METRICS = None
-    experiment += '_chng-{}'.format(change_percentage)
     change_percentage = opts.change_percentage
-    if midep_trgs:
-        experiment = '_'.join([experiment, 'midepTrgs'])
-if ca_action:
-    experiment = '_'.join([experiment, 'CAaction'])
-if alp_gmm:
-    experiment = '_'.join([experiment, 'ALPGMM'])
-#   max_step = 5
 kwargs = {
     'map_width': map_width,
     'change_percentage': change_percentage,
@@ -216,7 +232,8 @@ kwargs = {
     'cropped_size': opts.crop_size,
     'alp_gmm': alp_gmm,
     'evo_compare': evo_compare,
+    'change_percentage': change_percentage,
 }
 
 if __name__ == '__main__':
-    main(problem, representation, experiment, steps, n_cpu, render, logging, **kwargs)
+    main(problem, representation, int(n_frames), n_cpu, render, logging, **kwargs)

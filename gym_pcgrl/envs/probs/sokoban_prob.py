@@ -19,7 +19,7 @@ class SokobanProblem(Problem):
         self._prob = {"empty":0.45, "solid":0.4, "player": 0.05, "crate": 0.05, "target": 0.05}
         self._border_tile = "solid"
 
-        self._solver_power = 5000
+        self._solver_power = 10000
 
         self._max_crates = 3
 

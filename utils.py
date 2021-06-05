@@ -18,7 +18,7 @@ def get_crop_size(game):
     elif "sokoban" in game:
         return 10
     else:
-        raise Exception
+        return None
 
 class RenderMonitor(Monitor):
     """
@@ -36,7 +36,8 @@ class RenderMonitor(Monitor):
     def step(self, action):
         if self.render_gui and self.rank == self.render_rank:
             self.render()
-        return Monitor.step(self, action)
+        ret = Monitor.step(self, action)
+        return ret
 
 def get_action(obs, env, model, action_type=True):
     action = None
@@ -86,19 +87,36 @@ def make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs):
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
     return env
 
-def get_exp_name(game, representation, experiment, **kwargs):
+def get_env_name(game, representation):
+    if 'RCT' in game or 'Micropolis' in game:
+        env_name = '{}-v0'.format(game)
+    else:
+        env_name = '{}-{}-v0'.format(game, representation)
+    return env_name
+
+def get_exp_name(game, representation, **kwargs):
     exp_name = '{}_{}'.format(game, representation)
-    if experiment is not None:
-        exp_name = '{}_{}'.format(exp_name, experiment)
+    if kwargs.get('conditional'):
+        exp_name += '_conditional'
+        exp_name += kwargs.get('cond_metrics')
+    else:
+        exp_name += '_vanilla'
+        exp_name += '_chng-{}'.format(kwargs.get('change_percentage'))
+    if kwargs.get('midep_trgs'):
+        exp_name += '_midEpTrgs'
+    if kwargs.get('ca_action'):
+        exp_name += '_CAaction'
+    if kwargs.get('alp_gmm'):
+        exp_name += '_ALPGMM'
     return exp_name
 
 def max_exp_idx(exp_name):
-    log_dir = os.path.join("./runs", exp_name)
+    log_dir = os.path.join("./rl_runs", exp_name)
     log_files = glob.glob('{}*'.format(log_dir))
     if len(log_files) == 0:
         n = 0
     else:
-        log_ns = [re.search('_(\d+)', f).group(1) for f in log_files]
+        log_ns = [int(re.search('_(\d+)', f).group(1)) for f in log_files]
         n = max(log_ns)
     return int(n)
 

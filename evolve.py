@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from pdb import set_trace as T
+from pdb import set_trace as TT
 from random import randint
 # import cv2
 from typing import Tuple
@@ -2050,6 +2050,39 @@ class EvoPCGRL():
         i = 0
 
         if EVALUATE:
+            # First, visualize and aggregate the scores of the elites as they currently stand in the grid
+            if not VISUALIZE:
+                # visualize if we haven't already
+                self.visualize()
+            # aggregate scores of individuals currently in the grid
+            train_time_stats = {
+                    'objective':
+                        {
+                        'mean': objs.mean(),
+                        'max': objs.max(),
+                        'min': objs.min(),
+                        }
+                    }
+            json.dump(train_time_stats, open('train_time_stats.json', 'w'))
+
+            problem_eval_bc_names = {
+                    'binary': ('regions', 'path-length'),
+                    'zelda': ('nearest-enemy', 'path-length'),
+                    'sokoban': ('crate', 'sol-length'),
+                }
+            for (k, v) in problem_eval_bc_names.items():
+                if k in problem:
+                    eval_bc_names = v
+                    break
+            # toss our elites into an archive with different BCs. For fun!
+            eval_archive = GridArchive(
+                # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
+                #[min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
+                [100 for _ in eval_bc_names],
+                # min/max for each BC
+                [self.bc_bounds[bc_name] for bc_name in eval_bc_names],
+            )
+
             N_INIT_STATES = self.init_states.shape[0]
             RENDER = False
             # Iterate through our archive of trained elites, evaluating them and storing stats about them.
@@ -2113,7 +2146,7 @@ class EvoPCGRL():
                                      model_w,
                                      self.n_tile_types,
                                      init_states,
-                                     self.bc_names,
+                                     self.bc_names + eval_bc_names,
                                      self.static_targets,
                                      seed,
                                      player_1=self.player_1,
@@ -2126,19 +2159,22 @@ class EvoPCGRL():
                 i = 0
 
                 for result in results:
-                    id_0 = idxs_0[i]
-                    id_1 = idxs_1[i]
 
                     level_json, batch_reward, final_bcs, (
                         time_penalty, batch_targets_penalty, variance_penalty,
                         diversity_bonus) = result
-
+                   #id_0 = idxs_0[i]
+                   #id_1 = idxs_1[i]
+                    id_0, id_1 = archive.get_index(np.array(final_bcs))
+                    
                     if SAVE_LEVELS:
                         save_levels(level_json)
                     record_scores(id_0, id_1, batch_reward,
                                   batch_targets_penalty, diversity_bonus,
                                   variance_penalty)
                     i += 1
+                final_eval_bcs = final_bcs[2:]
+                eval_archive.add(models[i], batch_reward, final_eval_bcs)
                 del results
                 auto_garbage_collect()
             else:
@@ -2499,6 +2535,10 @@ if __name__ == '__main__':
             global RENDER
             RENDER = True
             N_STEPS = N_INFER_STEPS
+            if not RANDOM_INIT_LEVELS:
+                RANDOM_INIT_LEVELS = True
+                evolver.infer()
+                RANDOM_INIT_LEVELS = False
             evolver.infer()
             save_grid(csv_name='eval_levels')
             save_grid(csv_name='levels')
