@@ -101,18 +101,20 @@ def launch_batch(exp_name):
                             continue
 
                         if EVALUATE:
-                            script_name = "evaluate_ctrl.py"
+                            py_script_name = "evaluate_ctrl.py"
+                            sbatch_name = "rl_eval.sh"
                         else:
-                            script_name = "train_ctrl.py"
+                            py_script_name = "train_ctrl.py"
+                            sbatch_name = "rl_train.sh"
                         # Edit the sbatch file to load the correct config file
-                        with open("rl_train.sh", "r") as f:
+                        with open(sbatch_name, "r") as f:
                             content = f.read()
                             new_content = re.sub(
                                 "python .* -la \d+",
-                                "python {} -la {}".format(script_name, i),
+                                "python {} -la {}".format(py_script_name, i),
                                 content,
                             )
-                        with open("rl_train.sh", "w") as f:
+                        with open(sbatch_name, "w") as f:
                             f.write(new_content)
                         # Write the config file with the desired settings
                         exp_config = copy.deepcopy(default_config)
@@ -142,9 +144,9 @@ def launch_batch(exp_name):
                         # Launch the experiment. It should load the saved settings
 
                         if LOCAL:
-                            os.system("python {} -la {}".format(script_name, i))
+                            os.system("python {} -la {}".format(py_script_name, i))
                         else:
-                            os.system("sbatch rl_train.sh")
+                            os.system("sbatch {}".format(sbatch_name))
                         i += 1
 
 
