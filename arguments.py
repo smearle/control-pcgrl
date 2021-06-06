@@ -1,4 +1,5 @@
 import argparse
+import json
 from pdb import set_trace as T
 
 prob_cond_metrics = {
@@ -34,8 +35,15 @@ def parse_pcgrl_args(args):
     opts = args.parse_args()
     opts.conditional = True
 
-    if opts.max_step == -1:
-        opts.max_step = None
+    arg_dict = vars(opts)
+
+    if opts.load_args is not None:
+        with open('configs/rl/settings_{}.json'.format(opts.load_args)) as f:
+            new_arg_dict = json.load(f)
+            arg_dict.update(new_arg_dict)
+
+        if opts.max_step == -1:
+            opts.max_step = None
 
     if opts.conditionals == ["NONE"]:
         opts.conditionals = []
@@ -84,6 +92,7 @@ def get_args():
     args.add_argument(
         "--experiment_id",
         help="An experiment ID for tracking different runs of experiments with identical hyperparameters.",
+        type=int, 
         default=None,
     )
     args.add_argument(

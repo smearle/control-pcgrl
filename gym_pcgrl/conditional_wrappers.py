@@ -1,28 +1,33 @@
 ################################################################################
 #   Conditional Wrapper
 ################################################################################
-from pdb import set_trace as T
 import copy
+from pdb import set_trace as TT
+
 import gym
-#from opensimplex import OpenSimplex
-from gym_pcgrl.envs.helper import get_range_reward
 import numpy as np
+
+# from opensimplex import OpenSimplex
+from gym_pcgrl.envs.helper import get_range_reward
+
 
 class ParamRew(gym.Wrapper):
     def __init__(self, env, cond_metrics, rand_params=False, **kwargs):
-        self.CA_action = kwargs.get('ca_action')
+        self.CA_action = kwargs.get("ca_action")
 
-        self.render_gui = kwargs.get('render')
+        self.render_gui = kwargs.get("render")
         # Whether to always select random parameters, to stabilize learning multiple objectives
         # (i.e. prevent overfitting to some subset of objectives)
-#       self.rand_params = rand_params
+        #       self.rand_params = rand_params
         self.env = env
         super().__init__(self.env)
-#       cond_trgs = self.unwrapped.cond_trgs
+        #       cond_trgs = self.unwrapped.cond_trgs
+
         if cond_metrics is None:
             cond_metrics = []
         self.usable_metrics = set(cond_metrics)  # controllable metrics
-        self.static_metrics = set(env.static_trgs.keys())  # fixed metrics (i.e. playability constraints)
+        # fixed metrics (i.e. playability constraints)
+        self.static_metrics = set(env.static_trgs.keys())
 
         for k in self.usable_metrics:
             if k in self.static_metrics:
@@ -31,20 +36,21 @@ class ParamRew(gym.Wrapper):
         self.auto_reset = True
         self.weights = {}
 
-#       self.unwrapped.configure(**kwargs)
+        #       self.unwrapped.configure(**kwargs)
         self.metrics = self.unwrapped.metrics
         # NB: self.metrics needs to be an OrderedDict
-        print('usable metrics for conditional wrapper:', self.usable_metrics)
-        print('unwrapped env\'s current metrics: {}'.format(self.unwrapped.metrics))
+        print("usable metrics for conditional wrapper:", self.usable_metrics)
+        print("unwrapped env's current metrics: {}".format(self.unwrapped.metrics))
         self.last_metrics = copy.deepcopy(self.metrics)
         self.cond_bounds = self.unwrapped.cond_bounds
         self.param_ranges = {}
-#       self.max_improvement = 0
+        #       self.max_improvement = 0
+
         for k in self.usable_metrics:
             v = self.cond_bounds[k]
             improvement = abs(v[1] - v[0])
             self.param_ranges[k] = improvement
-#           self.max_improvement += improvement * self.weights[k]
+        #           self.max_improvement += improvement * self.weights[k]
 
         self.metric_trgs = {}
         # we might be using a subset of possible conditional targets supplied by the problem
@@ -57,41 +63,54 @@ class ParamRew(gym.Wrapper):
         self.all_metrics.update(self.usable_metrics)
         self.all_metrics.update(self.static_metrics)
 
-        if 'RCT' in str(type(env.unwrapped)) or 'Micropolis' in str(type(env.unwrapped)):
+        if "RCT" in str(type(env.unwrapped)) or "Micropolis" in str(
+            type(env.unwrapped)
+        ):
             self.SC_RCT = True
         else:
             self.SC_RCT = False
 
         for k in self.all_metrics:
             v = self.metrics[k]
+
             if self.SC_RCT and k not in self.usable_metrics:
                 self.weights[k] = 0
             else:
                 self.weights[k] = self.unwrapped.weights[k]
 
-#       for k in self.usable_metrics:
-#           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
+        #       for k in self.usable_metrics:
+        #           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
         self.width = self.unwrapped.width
         self.observation_space = self.env.observation_space
         # FIXME: hack for gym-pcgrl
-        print('conditional wrapper, original observation space', self.observation_space)
+        print("conditional wrapper, original observation space", self.observation_space)
         self.action_space = self.env.action_space
         orig_obs_shape = self.observation_space.shape
-        #TODO: adapt to (c, w, h) vs (w, h, c)
+        # TODO: adapt to (c, w, h) vs (w, h, c)
+
         if self.CA_action:
-#       if self.CA_action and False:
+            #       if self.CA_action and False:
             n_new_obs = 2 * len(self.usable_metrics)
-#           n_new_obs = 1 * len(self.usable_metrics)
+        #           n_new_obs = 1 * len(self.usable_metrics)
         else:
             n_new_obs = 1 * len(self.usable_metrics)
+
         if self.SC_RCT:
             self.CHAN_LAST = True
-            obs_shape = orig_obs_shape[1], orig_obs_shape[2], orig_obs_shape[0] + n_new_obs
+            obs_shape = (
+                orig_obs_shape[1],
+                orig_obs_shape[2],
+                orig_obs_shape[0] + n_new_obs,
+            )
             low = self.observation_space.low.transpose(1, 2, 0)
             high = self.observation_space.high.transpose(1, 2, 0)
         else:
             self.CHAN_LAST = False
-            obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + n_new_obs
+            obs_shape = (
+                orig_obs_shape[0],
+                orig_obs_shape[1],
+                orig_obs_shape[2] + n_new_obs,
+            )
             low = self.observation_space.low
             high = self.observation_space.high
         metrics_shape = (obs_shape[0], obs_shape[1], n_new_obs)
@@ -102,27 +121,30 @@ class ParamRew(gym.Wrapper):
         high = np.concatenate((metrics_high, high), axis=2)
         self.observation_space = gym.spaces.Box(low=low, high=high)
         # Yikes lol (this is to appease SB3)
-#       self.unwrapped.observation_space = self.observation_space
-        print('conditional observation space: {}'.format(self.observation_space))
+        #       self.unwrapped.observation_space = self.observation_space
+        print("conditional observation space: {}".format(self.observation_space))
         self.next_trgs = None
 
         if self.render_gui and True:
             screen_width = 200
             screen_height = 100 * self.num_params
             from gym_pcgrl.conditional_window import ParamRewWindow
+
             win = ParamRewWindow(self, self.metrics, self.metric_trgs, self.cond_bounds)
-           #win.connect("destroy", Gtk.main_quit)
+            # win.connect("destroy", Gtk.main_quit)
             win.show_all()
             self.win = win
-        self.infer = kwargs.get('infer', False)
+        self.infer = kwargs.get("infer", False)
         self.last_loss = None
 
     def get_control_bounds(self):
         controllable_bounds = {k: self.cond_bounds[k] for k in self.usable_metrics}
+
         return controllable_bounds
 
     def get_control_vals(self):
         control_vals = {k: self.metrics[k] for k in self.usable_metrics}
+
         return control_vals
 
     def get_metric_vals(self):
@@ -131,15 +153,12 @@ class ParamRew(gym.Wrapper):
     def configure(self, **kwargs):
         pass
 
-
-
     def enable_auto_reset(self, button):
         self.auto_reset = button.get_active()
 
-
     def getState(self):
         scalars = super().getState()
-        print('scalars: ', scalars)
+        print("scalars: ", scalars)
         raise Exception
 
         return scalars
@@ -153,8 +172,10 @@ class ParamRew(gym.Wrapper):
         self.init_metrics = copy.deepcopy(self.metrics)
 
         for k, trg in trgs.items():
-            if k in self.usable_metrics:
-                self.metric_trgs[k] = trg
+            # Here we will allow setting targets that are not controlled for in training.
+            # These will not be observed, but will factor into reward.
+            #           if k in self.usable_metrics:
+            self.metric_trgs[k] = trg
 
         self.display_metric_trgs()
 
@@ -181,26 +202,27 @@ class ParamRew(gym.Wrapper):
             if not metric:
                 metric = 0
             trg_range = self.param_ranges[k]
-#           if self.CA_action and False:
+            #           if self.CA_action and False:
+
             if isinstance(trg, tuple):
                 trg = (trg[0] + trg[1]) / 2
+
             if self.CA_action:
-#               metrics_ob[:, :, i] = (trg - metric) / trg_range
-                metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
-                metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
+                #               metrics_ob[:, :, i] = (trg - metric) / trg_range
+                metrics_ob[:, :, i * 2] = trg / self.param_ranges[k]
+                metrics_ob[:, :, i * 2 + 1] = metric / self.param_ranges[k]
             else:
                 metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
-#           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
-#           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
+            #           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
+            #           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
-#       print('param rew obs shape ', obs.shape)
-#       print('metric trgs shape ', metrics_ob.shape)
-#       if self.CHAN_LAST:
-#           obs = obs.transpose(1, 2, 0)
+        #       print('param rew obs shape ', obs.shape)
+        #       print('metric trgs shape ', metrics_ob.shape)
+        #       if self.CHAN_LAST:
+        #           obs = obs.transpose(1, 2, 0)
         obs = np.concatenate((metrics_ob, obs), axis=2)
 
         return obs
-
 
     def step(self, action):
         if self.render_gui and True:
@@ -259,6 +281,7 @@ class ParamRew(gym.Wrapper):
 
     def get_ctrl_loss(self):
         loss = 0
+
         for metric in self.usable_metrics:
             trg = self.metric_trgs[metric]
             val = self.metrics[metric]
@@ -270,11 +293,13 @@ class ParamRew(gym.Wrapper):
 
     def get_static_loss(self):
         loss = 0
+
         for metric in self.static_metrics:
             if metric in self.usable_metrics:
                 continue
             trg = self.static_trgs[metric]
             val = self.metrics[metric]
+
             if isinstance(trg, tuple):
                 loss_m = -abs(np.arange(*trg) - val).min()
             else:
@@ -284,32 +309,33 @@ class ParamRew(gym.Wrapper):
 
         return loss
 
-
-
     def get_reward(self):
         reward = 0
-       #for k in self.all_metrics:
-       #    if k in self.usable_metrics:
-       #        trg = self.cond_trgs[k]
-       #    elif k in self.static_trgs:
-       #        trg = self.static_trgs[k]
-       #    else:
-       #        raise Exception("Invalid metric")
-       #    if not isinstance(trg, tuple):
-       #        low = trg
-       #        high = trg
-       #    else:
-       #        low, high = trg
-       #    reward += get_range_reward(self.metrics[k], self.last_metrics[k], low, high) * self.unwrapped._prob._rewards[k]
-#       print(self.metrics)
-#       print(reward)
-       #return reward
-#           reward = loss
+        # for k in self.all_metrics:
+        #    if k in self.usable_metrics:
+        #        trg = self.cond_trgs[k]
+        #    elif k in self.static_trgs:
+        #        trg = self.static_trgs[k]
+        #    else:
+        #        raise Exception("Invalid metric")
+        #    if not isinstance(trg, tuple):
+        #        low = trg
+        #        high = trg
+        #    else:
+        #        low, high = trg
+        #    reward += get_range_reward(self.metrics[k], self.last_metrics[k], low, high) * self.unwrapped._prob._rewards[k]
+        #       print(self.metrics)
+        #       print(reward)
+        # return reward
+        #           reward = loss
+
         if not self.SC_RCT:
             loss = self.get_loss()
         else:
+            # FIXME: why do we do this?
             loss = self.get_ctrl_loss()
-       #return loss
+
+        # return loss
         reward = loss - self.last_loss
         self.last_loss = loss
 
@@ -318,7 +344,7 @@ class ParamRew(gym.Wrapper):
     def get_done(self):
         done = True
         # overwrite static trgs with conditional ones, in case we have made a static one conditional in this run
-        trg_dict = self.static_trgs
+        trg_dict = copy.deepcopy(self.static_trgs)
         trg_dict.update(self.metric_trgs)
 
         for k, v in trg_dict.items():
@@ -329,12 +355,13 @@ class ParamRew(gym.Wrapper):
                 done = False
 
         if done and self.infer:
-            print('targets reached! {}'.format(trg_dict))
+            print("targets reached! {}".format(trg_dict))
 
         return done
 
-## TODO: What the fuck is this actually doing and why does it kind of work?
-#class PerlinNoiseyTargets(gym.Wrapper):
+
+# TODO: What the fuck is this actually doing and why does it kind of work?
+# class PerlinNoiseyTargets(gym.Wrapper):
 #    '''A bunch of simplex noise instances modulate target metrics.'''
 #    def __init__(self, env, **kwargs):
 #        super(PerlinNoiseyTargets, self).__init__(env)
@@ -370,13 +397,15 @@ class ParamRew(gym.Wrapper):
 ##       self.noise = OpenSimplex()
 #        return self.env.reset()
 
+
 class UniformNoiseyTargets(gym.Wrapper):
-    '''A bunch of simplex noise instances modulate target metrics.'''
+    """A bunch of simplex noise instances modulate target metrics."""
+
     def __init__(self, env, **kwargs):
         super(UniformNoiseyTargets, self).__init__(env)
         self.cond_bounds = self.env.unwrapped.cond_bounds
         self.num_params = self.num_params
-        self.midep_trgs = kwargs.get('midep_trgs', False)
+        self.midep_trgs = kwargs.get("midep_trgs", False)
 
     def set_rand_trgs(self):
         trgs = {}
@@ -393,7 +422,6 @@ class UniformNoiseyTargets(gym.Wrapper):
                 self.do_set_trgs()
 
         return self.env.step(action)
-
 
     def reset(self):
         self.set_rand_trgs()
@@ -423,7 +451,7 @@ class ALPGMMTeacher(gym.Wrapper):
         trg_vec = self.alp_gmm.sample_task()
         self.trg_vec = trg_vec
         trgs = {k: trg_vec[i] for (i, k) in enumerate(self.usable_metrics)}
-#       print(trgs)
+        #       print(trgs)
         self.set_trgs(trgs)
         self.trial_reward = 0
         self.n_trial_steps = 0
