@@ -3,6 +3,7 @@ Launch a batch of experiments on a SLURM cluster.
 
 dead processes.
 """
+from pdb import set_trace as TT
 import argparse
 import copy
 import json
@@ -103,7 +104,7 @@ def launch_batch(exp_name):
                         with open("rl_train.sh", "r") as f:
                             content = f.read()
                             new_content = re.sub(
-                                "python {} -la \d+".format(script_name),
+                                "python .* -la \d+",
                                 "python {} -la {}".format(script_name, i),
                                 content,
                             )
