@@ -71,8 +71,12 @@ alp_gmms = [
 def launch_batch(exp_name):
     if LOCAL:
         print("Testing locally.")
+        n_maps = 1
+        n_bins = 2
     else:
         print("Launching batch of experiments on SLURM.")
+        n_maps = 50
+        n_bins = 10
     with open("configs/rl/default_settings.json", "r") as f:
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))
@@ -133,9 +137,9 @@ def launch_batch(exp_name):
                             exp_config.update(
                                 {
                                     "resume": True,
-                                    "n_maps": 50,
+                                    "n_maps": n_maps,
                                     "render": False,
-                                    "n_bins": (10,),
+                                    "n_bins": (n_bins,),
                                 }
                             )
                         print("Saving experiment config:\n{}".format(exp_config))

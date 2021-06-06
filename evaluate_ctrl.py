@@ -889,6 +889,7 @@ kwargs = {
     "change_percentage": train_change_percentage,
     "conditional": conditional,
     "cond_metrics": cond_metrics,
+    "alp_gmm": alp_gmm,
     # 'target_path': 105,
     # 'n': 4, # rank of saved experiment (by default, n is max possible)
 }
