@@ -62,7 +62,7 @@ local_controls: Dict[str, List] = {
 }
 change_percentages = np.arange(2, 11, 2) / 10
 alp_gmms = [
-    # True,
+    True,
     False
 ]
 
@@ -94,6 +94,10 @@ def launch_batch(exp_name):
                         continue
 
                     for alp_gmm in alp_gmms:
+
+                        if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
+                            # For now we're only looking at uniform-random target-sampling with both controls
+                            continue
 
                         if EVALUATE:
                             script_name = "evaluate_ctrl.py"
