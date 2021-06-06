@@ -100,6 +100,9 @@ def launch_batch(exp_name):
 
                     for alp_gmm in alp_gmms:
 
+                        if alp_gmm and controls == ["NONE"]:
+                            continue
+
                         if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
                             # For now we're only looking at uniform-random target-sampling with both controls
                             continue
