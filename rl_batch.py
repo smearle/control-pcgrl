@@ -46,7 +46,7 @@ local_controls: Dict[str, List] = {
         # ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        ["crate"],
+        # ["crate"],
         ["sol-length"],
         ["crate", "sol-length"],
         # ["emptiness", "sol-length"],
