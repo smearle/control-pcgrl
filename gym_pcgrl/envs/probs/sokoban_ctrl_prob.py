@@ -1,6 +1,8 @@
 from pdb import set_trace as T
-from gym_pcgrl.envs.probs.sokoban_prob import SokobanProblem
+
 import numpy as np
+
+from gym_pcgrl.envs.probs.sokoban_prob import SokobanProblem
 
 
 class SokobanCtrlProblem(SokobanProblem):
@@ -8,7 +10,7 @@ class SokobanCtrlProblem(SokobanProblem):
         super(SokobanCtrlProblem, self).__init__()
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         # like _rewards but for use with ParamRew
-#       self.weights = self._rewards
+        #       self.weights = self._rewards
         self.weights = {
             "player": 3,
             "crate": 1,
@@ -18,28 +20,30 @@ class SokobanCtrlProblem(SokobanProblem):
             "dist-win": 0.0,
             "sol-length": 1,
         }
- 
 
         self.static_trgs = {
-                'player': 1,
-                'crate': (2, self._max_crates),
-                'target': (1, self._max_crates),
-                'regions': 1,
-                'ratio': 0,
-                'dist-win': 0,
-                'sol-length': self._max_path_length,
-                }
+            "player": 1,
+            "crate": (2, self._max_crates),
+            "target": (1, self._max_crates),
+            "regions": 1,
+            "ratio": 0,
+            "dist-win": 0,
+            "sol-length": self._max_path_length,
+        }
 
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
-                'player': (1, self._width * self._height),
-                'crate': (1, self._width * self._height / 2 - max(self._width, self._height)),
-                'target': (1, self._width * self._height),
-                'ratio': (0, self._width * self._height),
-                'dist-win': (0, self._width * self._height * (self._width + self._height)),
-                'sol-length': (0, 2 * self._max_path_length),
-                'regions': (0, self._width * self._height / 2),
-                }
+            "player": (1, self._width * self._height),
+            "crate": (
+                1,
+                self._width * self._height / 2 - max(self._width, self._height),
+            ),
+            "target": (1, self._width * self._height),
+            "ratio": (0, self._width * self._height),
+            "dist-win": (0, self._width * self._height * (self._width + self._height)),
+            "sol-length": (0, 2 * self._max_path_length),
+            "regions": (0, self._width * self._height / 2),
+        }
 
     # We do these things in the ParamRew wrapper
     def get_episode_over(self, new_stats, old_stats):
@@ -50,12 +54,9 @@ class SokobanCtrlProblem(SokobanProblem):
 
     def get_stats(self, map):
         stats = super().get_stats(map)
-        stats['sol-length'] = len(stats['solution'])
-        stats['ratio'] = abs(stats['crate'] - stats['target'])
-#       if stats['dist-win'] == self._width * self._height * (self._width + self._height):
-#           stats['dist-win'] = 0
+        stats["sol-length"] = len(stats["solution"])
+        stats["ratio"] = abs(stats["crate"] - stats["target"])
+        #       if stats['dist-win'] == self._width * self._height * (self._width + self._height):
+        #           stats['dist-win'] = 0
 
         return stats
-
-
-

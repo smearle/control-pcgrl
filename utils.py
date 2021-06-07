@@ -15,9 +15,9 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 def get_crop_size(game):
     if "binary" in game:
-        return 28
+        return 32
     elif "zelda" in game:
-        return 22
+        return 32
     elif "sokoban" in game:
         return 10
     else:

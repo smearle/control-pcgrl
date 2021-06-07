@@ -61,7 +61,7 @@ local_controls: Dict[str, List] = {
         # ['income'],
     ],
 }
-change_percentages = np.arange(2, 11, 2) / 10
+change_percentages = np.arange(2, 11, 4) / 10
 alp_gmms = [
     True,
     False
@@ -71,8 +71,8 @@ alp_gmms = [
 def launch_batch(exp_name):
     if LOCAL:
         print("Testing locally.")
-        n_maps = 1
-        n_bins = 2
+        n_maps = 50
+        n_bins = 10
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
@@ -104,7 +104,7 @@ def launch_batch(exp_name):
                             continue
 
                         if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
-                            # For now we're only looking at uniform-random target-sampling with both controls
+                            # For now we're only looking at uniform-random target-sampling with both control metrics
                             continue
 
                         if EVALUATE:
@@ -127,6 +127,7 @@ def launch_batch(exp_name):
                         exp_config = copy.deepcopy(default_config)
                         exp_config.update(
                             {
+                                "n_cpu": 48,
                                 "problem": prob,
                                 "representation": rep,
                                 "conditionals": controls,
@@ -166,7 +167,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="0",
+        default="2",
     )
     opts.add_argument(
         "-ev",

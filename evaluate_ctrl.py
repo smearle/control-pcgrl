@@ -390,6 +390,7 @@ def eval_episodes(
         while not done:
             #           if i == max_steps - 1:
 
+            # Where the fuck is this stupid ass reset occuring I'll murder the fuck out of that ho
             if True:
                 if RENDER_LEVELS:
                     image = env.render("rgb_array")
@@ -419,9 +420,9 @@ def eval_episodes(
                     curr_tokens = env.envs[0].state.argmax(axis=0)
                 elif RCT:
                     curr_tokens = env.envs[0].rct_env.park.map[0]
+            #           epi_rewards[i] = rewards
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
-            #           epi_rewards[i] = rewards
             i += 1
 
         #       print('final loss, net: {}, static: {}, ctrl: {}'.format(final_loss, final_static_loss, final_ctrl_loss))
@@ -890,6 +891,7 @@ kwargs = {
     "conditional": conditional,
     "cond_metrics": cond_metrics,
     "alp_gmm": alp_gmm,
+    "max_step": 256,
     # 'target_path': 105,
     # 'n': 4, # rank of saved experiment (by default, n is max possible)
 }
@@ -922,7 +924,7 @@ infer_kwargs = {
     # 'target_path': 200,
     "conditional": conditional,
     "cond_metrics": cond_metrics,
-    "max_step": max_step,
+    "max_step": 256,
     "render": opts.render,
     # TODO: multiprocessing
     #       'n_cpu': opts.n_cpu,

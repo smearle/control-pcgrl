@@ -18,21 +18,11 @@ class BinaryProblem(Problem):
         self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
-        self._target_path = np.inf
+        self._target_path = 20
         self._random_probs = True
-        # for use with ParamRew
-        self.metric_trgs = {
-                'regions': 1, 
-                'path-length': 100
-                }
-        self.param_bounds = {'regions': (0, self._width * self._height // (3 * 3)),
-                'path-length': (0, 100)}
-        self.weights = {'regions': 1,
-                'path-length': 1,
-                }
 
         self._rewards = {
-            "regions": 0,
+            "regions": 5,
             "path-length": 1
         }
 
