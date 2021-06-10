@@ -924,7 +924,7 @@ infer_kwargs = {
     # 'target_path': 200,
     "conditional": conditional,
     "cond_metrics": cond_metrics,
-    "max_step": 256,
+    "max_step": map_width**2,
     "render": opts.render,
     # TODO: multiprocessing
     #       'n_cpu': opts.n_cpu,

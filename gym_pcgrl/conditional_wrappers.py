@@ -25,7 +25,7 @@ class ParamRew(gym.Wrapper):
 
         if cond_metrics is None:
             cond_metrics = []
-        self.usable_metrics = set(cond_metrics)  # controllable metrics
+        self.usable_metrics = cond_metrics  # controllable metrics
         # fixed metrics (i.e. playability constraints)
         self.static_metrics = set(env.static_trgs.keys())
 

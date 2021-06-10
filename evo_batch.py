@@ -13,60 +13,60 @@ from typing import List
 
 problems = [
     "binary_ctrl",
-    # 'zelda_ctrl',
-    # 'sokoban_ctrl',
-    # 'smb_ctrl',
+    'zelda_ctrl',
+    'sokoban_ctrl',
+    'smb_ctrl',
 ]
 representations = [
-    # 'cellular',
-    "wide",
+    'cellular',
+    # "wide",
     # 'narrow',
     # 'turtle',
 ]
 global_bcs: List[List] = [
-    # ['NONE'],
-    # ['emptiness', 'symmetry'],
+    ['NONE'],
+    ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     "binary_ctrl": [
-        # ['regions', 'path-length'],
-        # ['emptiness', 'path-length'],
+        ['regions', 'path-length'],
+        ['emptiness', 'path-length'],
         ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
-        # ['nearest-enemy', 'path-length'],
+        ['nearest-enemy', 'path-length'],
         ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        # ['crate', 'sol-length'],
+        ['crate', 'sol-length'],
         ["emptiness", "sol-length"],
         ["symmetry", "sol-length"],
     ],
     "smb_ctrl": [
-        # ['enemies', 'jumps'],
+        ['enemies', 'jumps'],
         ["emptiness", "jumps"],
         ["symmetry", "jumps"],
     ],
 }
 models = [
-    #   'NCA',
-    "CNN"  # Doesn't learn atm
+    'NCA',
+    #"CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
     True,
-    #   False,
+    False,
 ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
     True,
-    #   False,
+    False,
 ]
 
 
 def launch_batch(exp_name):
-    if TEST:
+    if LOCAL:
         print("Testing locally.")
     else:
         print("Launching batch of experiments on SLURM.")
@@ -74,7 +74,7 @@ def launch_batch(exp_name):
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))
 
-    if TEST:
+    if LOCAL:
         default_config["n_generations"] = 1
     i = 0
 
@@ -141,7 +141,7 @@ def launch_batch(exp_name):
                                 json.dump(exp_config, f, ensure_ascii=False, indent=4)
                             # Launch the experiment. It should load the saved settings
 
-                            if TEST:
+                            if LOCAL:
                                 os.system("python evolve.py -la {}".format(i))
                                 os.system("ray stop")
                             else:
@@ -168,13 +168,13 @@ if __name__ == "__main__":
     )
     opts.add_argument(
         "-t",
-        "--test",
+        "--local",
         help="Test the batch script, i.e. run it on a local machine and evolve for minimal number of generations.",
         action="store_true",
     )
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
     EVALUATE = args.evaluate
-    TEST = args.test
+    LOCAL = args.local
 
     launch_batch(EXP_NAME)

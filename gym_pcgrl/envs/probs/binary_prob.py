@@ -13,8 +13,8 @@ class BinaryProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 16
-        self._height = 16
+        self._width = 14
+        self._height = 14
         self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 

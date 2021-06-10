@@ -71,8 +71,8 @@ alp_gmms = [
 def launch_batch(exp_name):
     if LOCAL:
         print("Testing locally.")
-        n_maps = 50
-        n_bins = 10
+        n_maps = 2
+        n_bins = 5
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
