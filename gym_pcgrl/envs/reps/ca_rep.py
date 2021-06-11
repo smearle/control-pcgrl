@@ -5,7 +5,7 @@ from gym import spaces
 import numpy as np
 
 """
-The wide representation where the agent can pick the tile position and tile value at each update.
+The cellular (autamaton-like) representation, where the agent may change all tiles on the map at each step.
 """
 class CARepresentation(Representation):
     """
@@ -15,7 +15,7 @@ class CARepresentation(Representation):
         super().__init__()
 
     """
-    Gets the action space used by the wide representation
+    Gets the action space used by the cellular representation
 
     Parameters:
         width: the current map width
@@ -23,14 +23,14 @@ class CARepresentation(Representation):
         num_tiles: the total number of the tile values
 
     Returns:
-        MultiDiscrete: the action space used by that wide representation which
-        consists of the x position, y position, and the tile value
+        Box: the action space is the same as the observation space, and consists of selected tile-types for
+        each tile-coordinate in the level.
     """
     def get_action_space(self, width, height, num_tiles):
         return self.get_observation_space(width, height, num_tiles)
 
     """
-    Get the observation space used by the wide representation
+    Get the observation space used by the cellular representation
 
     Parameters:
         width: the current map width
@@ -57,7 +57,7 @@ class CARepresentation(Representation):
         }
 
     """
-    Update the wide representation with the input action
+    Update the cellular representation with the input action
 
     Parameters:
         action: an action that is used to advance the environment (same as action space)
