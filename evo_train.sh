@@ -7,7 +7,7 @@
 ##SBATCH --gres=gpu:1
 
 #SBATCH --time=24:00:00
-#SBATCH --mem=175GB
+#SBATCH --mem=170GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=sam.earle@nyu.edu

@@ -2283,14 +2283,15 @@ class EvoPCGRL:
             # The level spaces which we will attempt to map to
             problem_eval_bc_names = {
                 "binary": [("regions", "path-length")],
-                "zelda": [("nearest-enemy", "path-length")],
+                "zelda": [("nearest-enemy", "path-length"), ("symmetry", "path-length"), ("emptiness", "path-length")],
                 "sokoban": [("crate", "sol-length")],
             }
-            [
-                problem_eval_bc_names[k].append(["emptiness", "symmetry"])
+            for k in problem_eval_bc_names.keys():
+                problem_eval_bc_names[k] += [
+                       #("NONE"), 
+                       ("emptiness", "symmetry")
+                   ]
 
-                for k in problem_eval_bc_names.keys()
-            ]
 
             for (k, v) in problem_eval_bc_names.items():
                 if k in PROBLEM:
@@ -2304,7 +2305,7 @@ class EvoPCGRL:
                     GridArchive(
                         # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
                         # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
-                        [100 for _ in eval_bc_names],
+                        [100 for _ in eval_bcs],
                         # min/max for each BC
                         [self.bc_bounds[bc_name] for bc_name in eval_bcs],
                     )
@@ -2461,6 +2462,7 @@ class EvoPCGRL:
 
                     if SAVE_LEVELS:
                         save_levels(level_json, overwrite=i == 0)
+                    # Record directly from evolved archive since we are guaranteed to have only one elite per cell
                     record_scores(
                         id_0,
                         id_1,
@@ -2475,28 +2477,29 @@ class EvoPCGRL:
                     )
 
                     if not CMAES:
-                        for j in range(len(eval_archives)):
+                        for j, eval_archive in enumerate(eval_archives):
                             # Record componentes of the fitness for each cell in each evaluation archive
                             # NOTE: assume 2 BCs per eval archive
-                            id_0, id_1 = eval_archives[j].get_index(
-                                np.array(
-                                    final_bcs[
-                                        n_train_bcs + 2 * j: n_train_bcs + 2 * j + 2
-                                    ]
+                            eval_bcs = np.array(final_bcs[n_train_bcs + 2 * j: n_train_bcs + 2 * j + 2])
+                            id_0, id_1 = eval_archive.get_index(
+                                eval_bcs
+                            )
+                            # Add dummy solution weights for now
+                            status, _ = eval_archive.add(np.zeros(eval_archive.solution_dim), batch_reward, eval_bcs)
+                            if status != AddStatus.NOT_ADDED:
+                                # For eval archive, only record new best individuals in each filled cell
+                                record_scores(
+                                    id_0,
+                                    id_1,
+                                    batch_reward,
+                                    batch_targets_penalty,
+                                    diversity_bonus,
+                                    variance_penalty,
+                                    eval_fitness_scores[j],
+                                    eval_playability_scores[j],
+                                    eval_diversity_scores[j],
+                                    eval_reliability_scores[j],
                                 )
-                            )
-                            record_scores(
-                                id_0,
-                                id_1,
-                                batch_reward,
-                                batch_targets_penalty,
-                                diversity_bonus,
-                                variance_penalty,
-                                eval_fitness_scores[j],
-                                eval_playability_scores[j],
-                                eval_diversity_scores[j],
-                                eval_reliability_scores[j],
-                            )
                     i += 1
                 auto_garbage_collect()
 
@@ -2577,6 +2580,8 @@ class EvoPCGRL:
                 plt.savefig(os.path.join(SAVE_PATH, f_name))
                 plt.close()
 
+            stats = {"% train archive full": len(models) / archive.bins,
+                     "% eval archives full": {}}
             if not CMAES:
                 plot_score_heatmap(playability_scores,
                                    "playability", self.bc_names)
@@ -2587,24 +2592,29 @@ class EvoPCGRL:
                 plot_score_heatmap(
                     fitness_scores, "fitness_eval", self.bc_names)
 
-                for j in range(len(eval_archives)):
-                    plot_score_heatmap(
-                        eval_playability_scores[j], "playability", eval_bc_names[j]
-                    )
-                    plot_score_heatmap(
-                        eval_diversity_scores[j], "diversity", eval_bc_names[j]
-                    )
-                    plot_score_heatmap(
-                        eval_reliability_scores[j], "reliability", eval_bc_names[j]
-                    )
-                    plot_score_heatmap(
-                        eval_fitness_scores[j], "fitness_eval", eval_bc_names[j]
-                    )
-            stats = {
+                for j, eval_archive in enumerate(eval_archives):
+                    bc_names = eval_bc_names[j]
+                    if bc_names != ("NONE"):
+                        plot_score_heatmap(
+                            eval_playability_scores[j], "playability", bc_names
+                        )
+                        plot_score_heatmap(
+                            eval_diversity_scores[j], "diversity", bc_names
+                        )
+                        plot_score_heatmap(
+                            eval_reliability_scores[j], "reliability", bc_names
+                        )
+                        plot_score_heatmap(
+                            eval_fitness_scores[j], "fitness_eval", bc_names
+                        )
+                    stats["% eval archives full"].update({
+                        "-".join(bc_names): len(eval_archive._occupied_indices) / eval_archive.bins})
+
+            stats.update({
                 "playability": get_stats(playability_scores),
                 "diversity": get_stats(diversity_scores),
                 "reliability": get_stats(reliability_scores),
-            }
+            })
             f_name = "stats"
 
             if not RANDOM_INIT_LEVELS:
