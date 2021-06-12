@@ -196,7 +196,7 @@ def id_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     return action, skip
 
 
-@njit
+#@njit
 def wide_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     # only consider tiles where the generator suggests something different than the existing tile
     act_mask = action.argmax(axis=0) != int_map
@@ -207,7 +207,8 @@ def wide_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None)
     coords = np.unravel_index(action.argmax(), action.shape)
 
     if n_new_builds > 0:
-        assert act_mask[coords[0], coords[1], coords[2]] == 1
+#       TT()
+        assert act_mask[0, coords[1], coords[2]] == 1
     coords = coords[2], coords[1], coords[0]
     #   assert int_map[coords[0], coords[1]] != coords[2]
     skip = False

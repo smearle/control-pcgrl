@@ -29,7 +29,7 @@ global_bcs: List[List] = [
 ]
 local_bcs = {
     "binary_ctrl": [
-                ['regions', 'path-length'],
+        #       ['regions', 'path-length'],
         #       ['emptiness', 'path-length'],
                 ["symmetry", "path-length"]
     ],
@@ -39,7 +39,7 @@ local_bcs = {
        #["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        ["crate", "sol-length"],
+       #["crate", "sol-length"],
         ["emptiness", "sol-length"],
        #["symmetry", "sol-length"],
     ],
@@ -58,13 +58,13 @@ fix_seeds = [True, False]
 n_init_states_lst = [
         0, 
         10, 
-        20
+       #20
     ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
         10, 
-        50, 
-        100
+       #50, 
+       #100
         ]
 
 
@@ -85,6 +85,7 @@ def launch_batch(exp_name):
         prob_bcs = global_bcs + local_bcs[prob]
 
         for rep in representations:
+            evaluated_rep_default_steps = False
             for model in models:
 
                 if model == "CNN" and rep == "cellular":
@@ -103,6 +104,10 @@ def launch_batch(exp_name):
                                 continue
 
                             for n_steps in n_steps_lst:
+                                if rep != "cellular":
+                                    if evaluated_rep_default_steps
+                                        continue
+                                evaluated_rep_default_steps = True
                                 for n_init_states in n_init_states_lst:
                                     if n_init_states == 0 and not (
                                         fix_seeds and fix_el
@@ -193,7 +198,6 @@ if __name__ == "__main__":
     )
     opts.add_argument(
         "-t",
-        "--local",
         help="Test the batch script, i.e. run it on a local machine and evolve for minimal number of generations.",
         action="store_true",
     )
