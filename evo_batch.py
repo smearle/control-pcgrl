@@ -18,10 +18,10 @@ problems = [
 #   'smb_ctrl',
 ]
 representations = [
-#   "cellular",
-      "wide",
-      'narrow',
-      'turtle',
+    "cellular",
+#     "wide",
+#     'narrow',
+#     'turtle',
 ]
 global_bcs: List[List] = [
 #   ["NONE"],
@@ -29,9 +29,9 @@ global_bcs: List[List] = [
 ]
 local_bcs = {
     "binary_ctrl": [
-                ['regions', 'path-length'],
-                ['emptiness', 'path-length'],
-                ["symmetry", "path-length"]
+#               ['regions', 'path-length'],
+#               ['emptiness', 'path-length'],
+#               ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
     #   ["nearest-enemy", "path-length"],
@@ -64,13 +64,13 @@ fix_seeds = [
 n_init_states_lst = [
         0, 
         10, 
-#       20,
+        20,
     ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
         10, 
-#       50, 
-#       100,
+        50, 
+        100,
         ]
 
 
