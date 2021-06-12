@@ -85,7 +85,6 @@ def launch_batch(exp_name):
         prob_bcs = global_bcs + local_bcs[prob]
 
         for rep in representations:
-            evaluated_rep_default_steps = False
             for model in models:
 
                 if model == "CNN" and rep == "cellular":
@@ -105,7 +104,7 @@ def launch_batch(exp_name):
 
                             for n_steps in n_steps_lst:
                                 if rep != "cellular":
-                                    if evaluated_rep_default_steps:
+                                    if n_steps != n_steps_lst[0]:
                                         continue
                                 evaluated_rep_default_steps = True
                                 for n_init_states in n_init_states_lst:
