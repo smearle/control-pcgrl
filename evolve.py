@@ -2757,12 +2757,12 @@ if __name__ == "__main__":
     SAVE_LEVELS = arg_dict["save_levels"]
 
     #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
-    exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
-    )
-#   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch_{}-pass".format(
-#       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
+#   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
+#       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
 #   )
+    exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch_{}-pass".format(
+        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
+    )
 
     if CASCADE_REWARD:
         exp_name += "_cascRew"
