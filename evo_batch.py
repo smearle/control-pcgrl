@@ -12,10 +12,10 @@ import re
 from typing import List
 
 problems = [
-    "binary_ctrl",
+#   "binary_ctrl",
     'zelda_ctrl',
-    'sokoban_ctrl',
-    'smb_ctrl',
+#   'sokoban_ctrl',
+#   'smb_ctrl',
 ]
 representations = [
     "cellular",
@@ -24,12 +24,12 @@ representations = [
     # 'turtle',
 ]
 global_bcs: List[List] = [
-    ["NONE"],
-    ['emptiness', 'symmetry'],
+#   ["NONE"],
+#   ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     "binary_ctrl": [
-        #       ['regions', 'path-length'],
+                ['regions', 'path-length'],
         #       ['emptiness', 'path-length'],
                 ["symmetry", "path-length"]
     ],
@@ -39,7 +39,7 @@ local_bcs = {
        #["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-       #["crate", "sol-length"],
+        ["crate", "sol-length"],
         ["emptiness", "sol-length"],
        #["symmetry", "sol-length"],
     ],
@@ -56,15 +56,15 @@ fix_seeds = [True, False]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-       #0, 
+        0, 
         10, 
-       #20
+        20
     ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
         10, 
-       #50, 
-       #100
+        50, 
+        100
         ]
 
 
@@ -139,6 +139,7 @@ def launch_batch(exp_name):
                                             "save_levels": True,
                                             "n_steps": n_steps,
                                             "n_init_states": n_init_states,
+                                            "n_generations": 10000,
                                         }
                                     )
 
