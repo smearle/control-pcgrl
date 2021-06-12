@@ -2332,7 +2332,7 @@ class EvoPCGRL:
             n_train_bcs = len(self.bc_names)
 
             if THREADS:
-                if not args.fix_level_seeds and args.n_init_states != 0:
+                if RANDOM_INIT_LEVELS and args.n_init_states != 0:
                     init_states_archive = archive.init_states_archive
                 else:
                     init_states_archive = None
