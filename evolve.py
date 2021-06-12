@@ -360,7 +360,7 @@ class InitStatesArchive(GridArchive):
         return status, dtype_improvement
 
 
-class FlexArchive(GridArchive):
+class FlexArchive(InitStatesArchive):
     """ Subclassing a pyribs archive class to do some funky stuff."""
 
     def __init__(self, *args, **kwargs):
@@ -2724,8 +2724,8 @@ if __name__ == "__main__":
     MODEL = arg_dict["model"]
     REPRESENTATION = arg_dict["representation"]
     CASCADE_REWARD = arg_dict["cascade_reward"]
-    RANDOM_INIT_LEVELS = not arg_dict["fix_level_seeds"] and arg_dict["n_init_states"] != 0
     REEVALUATE_ELITES = not arg_dict["fix_elites"] and arg_dict["n_init_states"] != 0
+    RANDOM_INIT_LEVELS = not arg_dict["fix_level_seeds"] and arg_dict["n_init_states"] != 0 or REEVALUATE_ELITES
 
     if REEVALUATE_ELITES:
         # Otherwise there is no point in re-evaluating them
@@ -2805,12 +2805,12 @@ if __name__ == "__main__":
 
 #           if not RANDOM_INIT_LEVELS:
             # evaluate on random initial level seeds
-            RANDOM_INIT_LEVELS = False
-            evolver.infer()
-            # evaluate on initial level seeds that each generator has seen before
             RANDOM_INIT_LEVELS = True
             evolver.infer()
             save_grid(csv_name="eval_levels")
+            # evaluate on initial level seeds that each generator has seen before
+            RANDOM_INIT_LEVELS = False
+            evolver.infer()
             save_grid(csv_name="eval_levels_fixLvls")
 #           save_grid(csv_name="levels")
 
