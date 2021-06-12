@@ -1945,7 +1945,9 @@ class EvoPCGRL:
                 self.save()
 
             if itr % VIS_INTERVAL == 0 or itr == 1:
-                os.mkdir(os.path.join(SAVE_PATH, "checkpoint_{}".format(itr)))
+                ckp_dir = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+                if not os.path.isdir(ckp_dir):
+                    os.mkdir(ckp_dir)
                 if not CMAES:
                     # Otherwise the heatmap would just be a single cell
                     self.visualize(itr=itr)
