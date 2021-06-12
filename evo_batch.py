@@ -36,7 +36,7 @@ local_bcs = {
     "zelda_ctrl": [
        #["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-       #["symmetry", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
