@@ -2079,7 +2079,7 @@ class EvoPCGRL:
             #           "narrow": max_changes,
             "narrow": max_changes,
             #           "turtle": max_changes * 2,
-            "turtle": max_changes,
+            "turtle": 2 * max_changes,
             # So that it can move around to each tile I guess
         }
         N_STEPS = reps_to_steps[REPRESENTATION]
