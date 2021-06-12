@@ -2392,19 +2392,21 @@ class EvoPCGRL:
                     )
 
 
-            if RANDOM_INIT_LEVELS:
+            if RANDOM_INIT_LEVELS and args.n_init_states != 0:
                 # Effectively doing inference on a (presumed) held-out set of levels
 
                 if CMAES:
                     N_EVAL_STATES = N_INIT_STATES = 100
                 else:
                     N_EVAL_STATES = N_INIT_STATES = 100  # e.g. 10
-                init_states = np.random.randint(
-                    0,
-                    self.n_tile_types,
-                    size=(N_EVAL_STATES, *self.init_states.shape[1:]),
-                )
-            elif RANDOM_INIT_LEVELS or args.n_init_states == 0:
+
+                init_states = gen_random_levels(N_INIT_STATES, self.env)
+#               init_states = np.random.randint(
+#                   0,
+#                   self.n_tile_types,
+#                   size=(N_EVAL_STATES, *self.init_states.shape[1:]),
+#               )
+            elif not args.fix_level_seeds or args.n_init_states == 0:
                 # If level seeds were fixed throughout training, use those
                 init_states = self.init_states
                 N_EVAL_STATES = N_INIT_STATES = init_states.shape[0]
@@ -2415,10 +2417,12 @@ class EvoPCGRL:
             n_train_bcs = len(self.bc_names)
 
             if THREADS:
+                init_states_archive = None
                 if init_states is None:
-                    init_states_archive = archive.init_states_archive
-                else:
-                    init_states_archive = None
+                    if args.fix_level_seeds:
+                        init_states = self.init_states
+                    else:
+                        init_states_archive = archive.init_states_archive
                 futures = [
                     multi_evo.remote(
                         self.env,
