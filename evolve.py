@@ -163,6 +163,7 @@ def save_grid(csv_name="levels", d=6):
                     )
 
             # Set map
+            env._rep._x = env._rep._y = 0
             env._rep._map = level
             img = env.render(mode="rgb_array")
             axs[row_num, col_num].imshow(img, aspect="auto")
@@ -178,20 +179,23 @@ def auto_garbage_collect(pct=80.0):
         gc.collect()
 
 
-def id_action(action, **kwargs):
+# usually, if action does not turn out to change the map, then the episode is terminated
+# the skip boolean tells us whether, for some representation-specific reason, the agent has chosen not to act, but 
+# without ending the episode
+@njit
+def id_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     # the argmax along tile_type dimension is performed inside the representation's update function
     skip = False
 
     return action, skip
 
 
-def wide_action(action, **kwargs):
+@njit
+def wide_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     # only consider tiles where the generator suggests something different than the existing tile
-    int_map = kwargs.get("int_map")
     act_mask = action.argmax(axis=0) != int_map
     n_new_builds = np.sum(act_mask)
     act_mask = act_mask.reshape((1, *act_mask.shape))
-    act_mask = np.repeat(act_mask, kwargs.get("n_tiles"), axis=0)
     #   action = action * act_mask
     action = np.where(act_mask == False, action.min() - 10, action)
     coords = np.unravel_index(action.argmax(), action.shape)
@@ -205,9 +209,8 @@ def wide_action(action, **kwargs):
     return coords, skip
 
 
-def narrow_action(action, **kwargs):
-    x = kwargs.get("x")
-    y = kwargs.get("y")
+@njit
+def narrow_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     act = action[:, y, x].argmax()
 
     if act == 0:
@@ -218,10 +221,8 @@ def narrow_action(action, **kwargs):
     return act, skip
 
 
-def turtle_action(action, **kwargs):
-    x = kwargs.get("x")
-    y = kwargs.get("y")
-    n_dirs = kwargs.get("n_dirs")
+@njit
+def turtle_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     act = action[:, y, x].argmax()
     # moving is counted as a skip, so lack of change does not end episode
 
@@ -233,28 +234,27 @@ def turtle_action(action, **kwargs):
     return act, skip
 
 
-def flat_to_box(action, **kwargs):
-    int_map = kwargs.get("int_map")
-    n_tiles = kwargs.get("n_tiles")
+@njit
+def flat_to_box(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     action = action.reshape((n_tiles, *int_map.shape))
     skip = False
 
     return action, skip
 
 
-def flat_to_wide(action, **kwargs):
-    int_map = kwargs.get("int_map")
+@njit
+def flat_to_wide(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     w = int_map.shape[0]
     h = int_map.shape[1]
-    n_tiles = kwargs.get("n_tiles")
     assert len(action) == int_map.shape[0] + int_map.shape[1] + n_tiles
-    action = (action[:w].argmax(), action[w : w + h].argmax(), action[w + h :].argmax())
+    action = (action[:w].argmax(), action[w: w + h].argmax(), action[w + h:].argmax())
     skip = False
 
     return action, skip
 
 
-def flat_to_narrow(action, **kwargs):
+@njit
+def flat_to_narrow(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     act = action.argmax()
 
     if act == 0:
@@ -265,8 +265,8 @@ def flat_to_narrow(action, **kwargs):
     return act, skip
 
 
-def flat_to_turtle(action, **kwargs):
-    n_dirs = kwargs.get("n_dirs")
+@njit
+def flat_to_turtle(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     act = action.argmax()
 
     if act < n_dirs:
@@ -1118,8 +1118,8 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
             env._rep._map = int_map
             done = (int_map == last_int_map).all() or n_step >= N_STEPS
 
-            if INFER and not EVALUATE:
-                time.sleep(1 / 30)
+#           if INFER and not EVALUATE:
+#               time.sleep(1 / 30)
 
             if done:
                 env._rep._old_map = int_map
@@ -1214,11 +1214,13 @@ def simulate(
 
     for (n_episode, init_state) in enumerate(init_states):
         # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
+        # Set the representation to begin in the upper left corner
         env._rep._map = init_state.copy()
         # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
         # TODO: wrap the env instead
-        env._rep._x = np.random.randint(env._prob._width)
-        env._rep._y = np.random.randint(env._prob._height)
+        env._rep._x = env._rep._y = 0
+        # env._rep._x = np.random.randint(env._prob._width)
+        # env._rep._y = np.random.randint(env._prob._height)
         int_map = init_state
         obs = get_one_hot_map(int_map, n_tile_types)
 
@@ -1257,8 +1259,8 @@ def simulate(
             done = not (change or skip) or n_step >= N_STEPS
             # done = n_step >= N_STEPS
 
-            if INFER and not EVALUATE:
-                time.sleep(1 / 30)
+#           if INFER and not EVALUATE:
+#               time.sleep(1 / 30)
 
             if done:
                 final_levels[n_episode] = int_map
@@ -1321,7 +1323,7 @@ def simulate(
 
             if done and INFER:  # and not (EVALUATE and THREADS):
                 if not EVALUATE:
-                    time.sleep(5 / 30)
+#                   time.sleep(5 / 30)
                     print(
                         "stats: {}\n\ntime_penalty: {}\n targets_penalty: {}".format(
                             stats, time_penalty, targets_penalty
@@ -2004,17 +2006,20 @@ class EvoPCGRL:
 
         global N_STEPS
 
-        if N_STEPS is None:
-            max_ca_steps = 10
-            max_changes = self.env._prob._width * self.env._prob._height
-            reps_to_steps = {
-                "cellular": max_ca_steps,
-                "wide": max_changes,
-                "narrow": max_changes,
-                "turtle": max_changes
-                * 2,  # So that it can move around to each tile I guess
-            }
-            N_STEPS = reps_to_steps[REPRESENTATION]
+#       if N_STEPS is None:
+#       if REPRESENTATION != "cellular":
+        max_ca_steps = args.n_steps
+        max_changes = self.env._prob._width * self.env._prob._height
+        reps_to_steps = {
+            "cellular": max_ca_steps,
+            "wide": max_changes,
+#           "narrow": max_changes,
+            "narrow": max_changes,
+#           "turtle": max_changes * 2,  
+            "turtle": max_changes,
+            # So that it can move around to each tile I guess
+        }
+        N_STEPS = reps_to_steps[REPRESENTATION]
 
     def visualize(self, itr=None):
         archive = self.gen_archive
@@ -2080,9 +2085,9 @@ class EvoPCGRL:
 
         global N_INIT_STATES
         global N_EVAL_STATES
+        global RENDER
+        global RANDOM_INIT_LEVELS
         if RENDER_LEVELS:
-            global RENDER
-            global N_INIT_STATES
             RENDER = False
             N_INIT_STATES = 1
 
@@ -2474,7 +2479,7 @@ class EvoPCGRL:
 
                 if SHOW_VIS:
                     plt.show()
-                f_name = score_name
+                f_name = score_name + "_" + "-".join(bc_names)
 
                 if not RANDOM_INIT_LEVELS:
                     f_name = f_name + "_fixLvls"
@@ -2490,16 +2495,16 @@ class EvoPCGRL:
 
                 for j in range(len(eval_archives)):
                     plot_score_heatmap(
-                        eval_playability_scores[j], "playability_{}".format(j), eval_bc_names[j]
+                        eval_playability_scores[j], "playability", eval_bc_names[j]
                     )
                     plot_score_heatmap(
-                        eval_diversity_scores[j], "diversity_{}".format(j), eval_bc_names[j]
+                        eval_diversity_scores[j], "diversity", eval_bc_names[j]
                     )
                     plot_score_heatmap(
-                        eval_reliability_scores[j], "reliability_{}".format(j), eval_bc_names[j]
+                        eval_reliability_scores[j], "reliability", eval_bc_names[j]
                     )
                     plot_score_heatmap(
-                        eval_fitness_scores[j], "fitness_eval_{}".format(j), eval_bc_names[j]
+                        eval_fitness_scores[j], "fitness_eval", eval_bc_names[j]
                     )
             stats = {
                 "playability": get_stats(playability_scores),
@@ -2522,7 +2527,7 @@ class EvoPCGRL:
             model = models[i]
             init_nn = set_weights(self.gen_model, model)
 
-            if RANDOM_INIT_LEVELS:
+            if RANDOM_INIT_LEVELS and args.n_init_states != 0:
                 init_states = np.random.randint(
                     0, self.n_tile_types, size=self.init_states.shape
                 )
@@ -2591,7 +2596,8 @@ if __name__ == "__main__":
     opts.add_argument(
         "-ns",
         "--n_steps",
-        help="Maximum number of steps in each generation episode.",
+        help="Maximum number of steps in each generation episode. Only applies to NCA model and cellular"
+        "representation at the moment.",
         type=int,
         default=10,
     )
@@ -2747,14 +2753,15 @@ if __name__ == "__main__":
     #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict["render_levels"]
     THREADS = arg_dict["multi_thread"]
-    SAVE_INTERVAL = 100
+#   SAVE_INTERVAL = 100
+    SAVE_INTERVAL = 20
     VIS_INTERVAL = 50
     preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
     preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
     if THREADS:
         ray.init()
-    SAVE_LEVELS = arg_dict["save_levels"]
+    SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
     #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
 #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
@@ -2804,14 +2811,14 @@ if __name__ == "__main__":
             N_STEPS = N_INFER_STEPS
 
 #           if not RANDOM_INIT_LEVELS:
-            # evaluate on random initial level seeds
-            RANDOM_INIT_LEVELS = True
-            evolver.infer()
-            save_grid(csv_name="eval_levels")
             # evaluate on initial level seeds that each generator has seen before
             RANDOM_INIT_LEVELS = False
             evolver.infer()
             save_grid(csv_name="eval_levels_fixLvls")
+            # evaluate on random initial level seeds
+            RANDOM_INIT_LEVELS = True
+            evolver.infer()
+            save_grid(csv_name="eval_levels")
 #           save_grid(csv_name="levels")
 
         if not (INFER or VISUALIZE):

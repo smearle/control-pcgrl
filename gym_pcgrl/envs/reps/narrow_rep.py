@@ -30,6 +30,8 @@ class NarrowRepresentation(Representation):
         super().reset(width, height, prob)
         self._x = self._random.randint(width)
         self._y = self._random.randint(height)
+#       self._x = 0
+#       self._y = 0
 
     """
     Gets the action space used by the narrow representation
