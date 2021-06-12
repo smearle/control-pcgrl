@@ -23,17 +23,3 @@ conda activate evo-pcgrl
 
 python evolve.py -la 47
 
-#python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'cellular' -m -e 0
-#python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'wide' -m -e 0
-#python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'narrow' -m -e 0
-#python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'turtle' -m -e 0
-
-#python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -nis 100 -rand -m -e 1
-#python evolve.py --problem 'binary_ctrl' -bcs 'regions' 'path-length' -ng 100000 -nis 100 -rand -m
-
-#python evolve.py --problem zelda -bcs nearest-enemy path-length -ng 1000000 -e "0" -m
-#python evolve.py -e 'crate_sol_0' -bcs 'crate' 'sol-length' -p 'sokoban_ctrl' -m
-#python evolve.py -e 'empty_sym_0' -bcs 'emptiness' 'symmetry' -p 'sokoban_ctrl' -m
-#python evolve.py -e 'symmetry_empty_0' -bcs 'emptiness' 'symmetry' -p 'smb_ctrl' -m
-#python evolve.py -e 'jumps_empty_1' -bcs 'emptiness' 'jumps' -p 'smb_ctrl' -m
-#python evolve.py -e 'empty_sym' -bcs 'emptiness' 'symmetry' -p ‘zeldaplay’ -m
