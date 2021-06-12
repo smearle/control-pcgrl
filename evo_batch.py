@@ -112,14 +112,18 @@ def launch_batch(exp_name):
                                         continue
 
                                     # Edit the sbatch file to load the correct config file
-                                    with open("evo_train.sh", "r") as f:
+                                    if EVALUATE:
+                                        script_name = "evo_eval.sh"
+                                    else:
+                                        script_name = "evo_train.sh"
+                                    with open(script_name, "r") as f:
                                         content = f.read()
                                         new_content = re.sub(
                                             "python evolve.py -la \d+",
                                             "python evolve.py -la {}".format(i),
                                             content,
                                         )
-                                    with open("evo_train.sh", "w") as f:
+                                    with open(script_name, "w") as f:
                                         f.write(new_content)
                                     # Write the config file with the desired settings
                                     exp_config = copy.deepcopy(default_config)
@@ -165,7 +169,7 @@ def launch_batch(exp_name):
                                         os.system("python evolve.py -la {}".format(i))
                                         os.system("ray stop")
                                     else:
-                                        os.system("sbatch evo_train.sh")
+                                        os.system("sbatch {}".format(script_name))
                                     i += 1
 
 
