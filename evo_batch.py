@@ -18,10 +18,10 @@ problems = [
 #   'smb_ctrl',
 ]
 representations = [
-    "cellular",
-    # "wide",
-    # 'narrow',
-    # 'turtle',
+#   "cellular",
+      "wide",
+      'narrow',
+      'turtle',
 ]
 global_bcs: List[List] = [
 #   ["NONE"],
@@ -36,7 +36,7 @@ local_bcs = {
     "zelda_ctrl": [
        #["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+    #   ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
        #["crate", "sol-length"],
@@ -105,7 +105,7 @@ def launch_batch(exp_name):
 
                             for n_steps in n_steps_lst:
                                 if rep != "cellular":
-                                    if evaluated_rep_default_steps
+                                    if evaluated_rep_default_steps:
                                         continue
                                 evaluated_rep_default_steps = True
                                 for n_init_states in n_init_states_lst:
@@ -197,7 +197,8 @@ if __name__ == "__main__":
         action="store_true",
     )
     opts.add_argument(
-        "-t",
+        "-l",
+        "--local",
         help="Test the batch script, i.e. run it on a local machine and evolve for minimal number of generations.",
         action="store_true",
     )
