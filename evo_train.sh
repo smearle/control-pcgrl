@@ -21,7 +21,7 @@ source activate
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate evo-pcgrl
 
-python evolve.py -la 59
+python evolve.py -la 26
 
 #python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'cellular' -m -e 0
 #python evolve.py --problem 'binary_ctrl' -bcs 'NONE' -ng 100000 -rep 'wide' -m -e 0

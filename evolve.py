@@ -88,9 +88,21 @@ RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
+
+def save_train_stats(objs, itr=None):
+    train_time_stats = {
+        "objective": get_stats(objs)
+    }
+    if itr is not None:
+        save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+    else:
+        save_path = SAVE_PATH
+    json.dump(train_time_stats, open(os.path.join(save_path, "train_time_stats.json"), "w"), indent=4)
+
+
 def get_stats(stats):
     '''Take 1D numpy array of data and return some fun facts in the form of a dictionary.'''
-    return {'mean': stats.mean(), 'std': stats.std(), 'max': stats.max(), 'min': stats.min(), }
+    return {'mean': np.nanmean(stats), 'std': np.nanstd(stats), 'max': np.nanmax(stats), 'min': np.nanmin(stats), }
 
 
 def save_grid(csv_name="levels", d=6):
@@ -1425,7 +1437,7 @@ class EvoPCGRL:
 
         self.static_targets = self.env._prob.static_trgs
 
-        if REEVALUATE_ELITES or RANDOM_INIT_LEVELS and not args.n_init_states == 0:
+        if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0):
             init_level_archive_args = (N_INIT_STATES, self.width, self.height)
 #           init_level_archive_args = ()
         if REEVALUATE_ELITES:
@@ -1930,6 +1942,14 @@ class EvoPCGRL:
                 # Save checkpoint during generator evolution loop
                 self.save()
 
+            if itr % VIS_INTERVAL == 0 or itr == 1:
+                os.mkdir(os.path.join(SAVE_PATH, "checkpoint_{}".format(itr)))
+                if not CMAES:
+                    # Otherwise the heatmap would just be a single cell
+                    self.visualize(itr=itr)
+                archive_objs = np.array(self.gen_archive.as_pandas(include_solutions=False).loc[:, "objective"])
+                save_train_stats(archive_objs, itr=itr)
+
             self.n_itr += 1
 
     def save(self):
@@ -1996,7 +2016,7 @@ class EvoPCGRL:
             }
             N_STEPS = reps_to_steps[REPRESENTATION]
 
-    def visualize(self):
+    def visualize(self, itr=None):
         archive = self.gen_archive
         # # Visualize Result
         plt.figure(figsize=(8, 6))
@@ -2018,7 +2038,11 @@ class EvoPCGRL:
         if not CMAES:
             plt.xlabel(self.bc_names[0])
             plt.ylabel(self.bc_names[1])
-        plt.savefig(os.path.join(SAVE_PATH, "fitness.png"))
+        if itr is not None:
+            save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+        else:
+            save_path = SAVE_PATH
+        plt.savefig(os.path.join(save_path, "fitness.png"))
 
         if SHOW_VIS:
             plt.show()
@@ -2027,7 +2051,7 @@ class EvoPCGRL:
         # Print table of results
         df = archive.as_pandas()
         # high_performing = df[df["objective"] > 200].sort_values("objective", ascending=False)
-        print(df)
+#       print(df)
 
     def infer(self):
         assert INFER
@@ -2178,10 +2202,7 @@ class EvoPCGRL:
                 # visualize if we haven't already
                 self.visualize()
             # aggregate scores of individuals currently in the grid
-            train_time_stats = {
-                "objective": get_stats(objs)
-            }
-            json.dump(train_time_stats, open(os.path.join(SAVE_PATH, "train_time_stats.json"), "w"))
+            save_train_stats(objs)
 
             # The level spaces which we will attempt to map to
             problem_eval_bc_names = {
@@ -2432,13 +2453,13 @@ class EvoPCGRL:
                         reliability_scores,
                     )
 
-            def plot_score_heatmap(scores, score_name, cmap_str="magma"):
+            def plot_score_heatmap(scores, score_name, bc_names, cmap_str="magma"):
                 scores = scores.T
                 ax = plt.gca()
                 ax.set_xlim(lower_bounds[0], upper_bounds[0])
                 ax.set_ylim(lower_bounds[1], upper_bounds[1])
-                ax.set_xlabel(self.bc_names[0])
-                ax.set_ylabel(self.bc_names[1])
+                ax.set_xlabel(bc_names[0])
+                ax.set_ylabel(bc_names[1])
                 vmin = np.nanmin(scores)
                 vmax = np.nanmax(scores)
                 t = ax.pcolormesh(
@@ -2462,23 +2483,23 @@ class EvoPCGRL:
                 plt.close()
 
             if not CMAES:
-                plot_score_heatmap(playability_scores, "playability")
-                plot_score_heatmap(diversity_scores, "diversity")
-                plot_score_heatmap(reliability_scores, "reliability")
-                plot_score_heatmap(fitness_scores, "fitness_eval")
+                plot_score_heatmap(playability_scores, "playability", self.bc_names)
+                plot_score_heatmap(diversity_scores, "diversity", self.bc_names)
+                plot_score_heatmap(reliability_scores, "reliability", self.bc_names)
+                plot_score_heatmap(fitness_scores, "fitness_eval", self.bc_names)
 
                 for j in range(len(eval_archives)):
                     plot_score_heatmap(
-                        eval_playability_scores[j], "playability_{}".format(j)
+                        eval_playability_scores[j], "playability_{}".format(j), eval_bc_names[j]
                     )
                     plot_score_heatmap(
-                        eval_diversity_scores[j], "diversity_{}".format(j)
+                        eval_diversity_scores[j], "diversity_{}".format(j), eval_bc_names[j]
                     )
                     plot_score_heatmap(
-                        eval_reliability_scores[j], "reliability_{}".format(j)
+                        eval_reliability_scores[j], "reliability_{}".format(j), eval_bc_names[j]
                     )
                     plot_score_heatmap(
-                        eval_fitness_scores[j], "fitness_eval_{}".format(j)
+                        eval_fitness_scores[j], "fitness_eval_{}".format(j), eval_bc_names[j]
                     )
             stats = {
                 "playability": get_stats(playability_scores),
@@ -2572,7 +2593,7 @@ if __name__ == "__main__":
         "--n_steps",
         help="Maximum number of steps in each generation episode.",
         type=int,
-        default=None,
+        default=10,
     )
     opts.add_argument(
         "-bcs",
@@ -2662,6 +2683,11 @@ if __name__ == "__main__":
         help="(Do not) re-evaluate the elites on new random seeds to ensure their generality.",
         action="store_true",
     )
+    opts.add_argument(
+        "--save_gif",
+        help="Save screenshots (and gif?) of level during agent generation process.",
+        action="store_true",
+    )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
     args = opts.parse_args()
@@ -2716,12 +2742,13 @@ if __name__ == "__main__":
     PROBLEM = arg_dict["problem"]
     CUDA = False
     VISUALIZE = arg_dict["visualize"]
-    INFER = arg_dict["infer"]
+    INFER = arg_dict["infer"] or EVALUATE
     N_INFER_STEPS = N_STEPS
     #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict["render_levels"]
     THREADS = arg_dict["multi_thread"]
     SAVE_INTERVAL = 100
+    VIS_INTERVAL = 50
     preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
     preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
@@ -2733,6 +2760,9 @@ if __name__ == "__main__":
     exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
         PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     )
+#   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch_{}-pass".format(
+#       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
+#   )
 
     if CASCADE_REWARD:
         exp_name += "_cascRew"

@@ -18,51 +18,54 @@ problems = [
     'smb_ctrl',
 ]
 representations = [
-    'cellular',
+    "cellular",
     # "wide",
     # 'narrow',
     # 'turtle',
 ]
 global_bcs: List[List] = [
-    ['NONE'],
+    ["NONE"],
     ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     "binary_ctrl": [
-        ['regions', 'path-length'],
-        ['emptiness', 'path-length'],
-        ["symmetry", "path-length"]
+        #       ['regions', 'path-length'],
+        #       ['emptiness', 'path-length'],
+                ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
-        ['nearest-enemy', 'path-length'],
+       #["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+       #["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        ['crate', 'sol-length'],
+       #["crate", "sol-length"],
         ["emptiness", "sol-length"],
-        ["symmetry", "sol-length"],
+       #["symmetry", "sol-length"],
     ],
-    "smb_ctrl": [
-        ['enemies', 'jumps'],
-        ["emptiness", "jumps"],
-        ["symmetry", "jumps"],
-    ],
+    "smb_ctrl": [["enemies", "jumps"], ["emptiness", "jumps"], ["symmetry", "jumps"]],
 }
 models = [
-    'NCA',
-    #"CNN"  # Doesn't learn atm
+    "NCA",
+    # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
-fix_elites = [
-    True,
-    False,
-]
+fix_elites = [True, False]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
-fix_seeds = [
-    True,
-    False,
-]
+fix_seeds = [True, False]
+# How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
+# in the center)
+n_init_states_lst = [
+       #0, 
+        10, 
+       #20
+    ]
+# How many steps in an episode of level editing?
+n_steps_lst = [
+        10, 
+       #50, 
+       #100
+        ]
 
 
 def launch_batch(exp_name):
@@ -75,7 +78,7 @@ def launch_batch(exp_name):
     print("Loaded default config:\n{}".format(default_config))
 
     if LOCAL:
-        default_config["n_generations"] = 1
+        default_config["n_generations"] = 50
     i = 0
 
     for prob in problems:
@@ -85,7 +88,7 @@ def launch_batch(exp_name):
             for model in models:
 
                 if model == "CNN" and rep == "cellular":
-                    # This would necessitate an explosive number of model params so we'll not run it
+                    # This would necessitate an explosive number of model params so we'll not run it                   
 
                     continue
 
@@ -99,54 +102,71 @@ def launch_batch(exp_name):
                             if fix_seed and not fix_el:
                                 continue
 
-                            # Edit the sbatch file to load the correct config file
-                            with open("evo_train.sh", "r") as f:
-                                content = f.read()
-                                new_content = re.sub(
-                                    "python evolve.py -la \d+",
-                                    "python evolve.py -la {}".format(i),
-                                    content,
-                                )
-                            with open("evo_train.sh", "w") as f:
-                                f.write(new_content)
-                            # Write the config file with the desired settings
-                            exp_config = copy.deepcopy(default_config)
-                            exp_config.update(
-                                {
-                                    "problem": prob,
-                                    "representation": rep,
-                                    "behavior_characteristics": bc_pair,
-                                    "model": model,
-                                    "fix_elites": fix_el,
-                                    "fix_level_seeds": fix_seed,
-                                    "exp_name": exp_name,
-                                    "save_levels": True,
-                                }
-                            )
+                            for n_steps in n_steps_lst:
+                                for n_init_states in n_init_states_lst:
+                                    if n_init_states == 0 and not (
+                                        fix_seeds and fix_el
+                                    ):
+                                        # The hand-made seed cannot be randomized
 
-                            if EVALUATE:
-                                exp_config.update(
-                                    {
-                                        "infer": True,
-                                        "evaluate": True,
-                                        "render_levels": True,
-                                        "save_levels": True,
-                                        "visualize": True,
-                                    }
-                                )
-                            print("Saving experiment config:\n{}".format(exp_config))
-                            with open(
-                                "configs/evo/settings_{}.json".format(i), "w"
-                            ) as f:
-                                json.dump(exp_config, f, ensure_ascii=False, indent=4)
-                            # Launch the experiment. It should load the saved settings
+                                        continue
 
-                            if LOCAL:
-                                os.system("python evolve.py -la {}".format(i))
-                                os.system("ray stop")
-                            else:
-                                os.system("sbatch evo_train.sh")
-                            i += 1
+                                    # Edit the sbatch file to load the correct config file
+                                    with open("evo_train.sh", "r") as f:
+                                        content = f.read()
+                                        new_content = re.sub(
+                                            "python evolve.py -la \d+",
+                                            "python evolve.py -la {}".format(i),
+                                            content,
+                                        )
+                                    with open("evo_train.sh", "w") as f:
+                                        f.write(new_content)
+                                    # Write the config file with the desired settings
+                                    exp_config = copy.deepcopy(default_config)
+                                    exp_config.update(
+                                        {
+                                            "problem": prob,
+                                            "representation": rep,
+                                            "behavior_characteristics": bc_pair,
+                                            "model": model,
+                                            "fix_elites": fix_el,
+                                            "fix_level_seeds": fix_seed,
+                                            "exp_name": exp_name,
+                                            "save_levels": True,
+                                            "n_steps": n_steps,
+                                            "n_init_states": n_init_states,
+                                        }
+                                    )
+
+                                    if EVALUATE:
+                                        exp_config.update(
+                                            {
+                                                "infer": True,
+                                                "evaluate": True,
+                                                "render_levels": True,
+                                                "save_levels": True,
+                                                "visualize": True,
+                                            }
+                                        )
+                                    print(
+                                        "Saving experiment config:\n{}".format(
+                                            exp_config
+                                        )
+                                    )
+                                    with open(
+                                        "configs/evo/settings_{}.json".format(i), "w"
+                                    ) as f:
+                                        json.dump(
+                                            exp_config, f, ensure_ascii=False, indent=4
+                                        )
+                                    # Launch the experiment. It should load the saved settings
+
+                                    if LOCAL:
+                                        os.system("python evolve.py -la {}".format(i))
+                                        os.system("ray stop")
+                                    else:
+                                        os.system("sbatch evo_train.sh")
+                                    i += 1
 
 
 if __name__ == "__main__":
@@ -158,7 +178,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="test_0",
+        default="0",
     )
     opts.add_argument(
         "-ev",
