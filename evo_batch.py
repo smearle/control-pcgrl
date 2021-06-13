@@ -4,12 +4,15 @@ Launch a batch of experiments on a SLURM cluster.
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
 dead processes.
 """
+from pdb import set_trace as TT
 import argparse
 import copy
 import json
 import os
 import re
 from typing import List
+
+from cross_eval import compile_results
 
 problems = [
 #   "binary_ctrl",
@@ -74,7 +77,10 @@ n_steps_lst = [
         ]
 
 
-def launch_batch(exp_name):
+def launch_batch(exp_name, collect_params=False):
+    if collect_params:
+        settings_list = []
+        assert not EVALUATE
     if LOCAL:
         print("Testing locally.")
     else:
@@ -112,10 +118,9 @@ def launch_batch(exp_name):
                                 if rep != "cellular":
                                     if n_steps != n_steps_lst[0]:
                                         continue
-                                evaluated_rep_default_steps = True
                                 for n_init_states in n_init_states_lst:
                                     if n_init_states == 0 and not (
-                                        fix_seeds and fix_el
+                                        fix_seed and fix_el
                                     ):
                                         # The hand-made seed cannot be randomized
 
@@ -176,12 +181,15 @@ def launch_batch(exp_name):
                                         )
                                     # Launch the experiment. It should load the saved settings
 
-                                    if LOCAL:
+                                    if collect_params:
+                                        settings_list.append(exp_config)
+                                    elif LOCAL:
                                         os.system("python evolve.py -la {}".format(i))
                                         os.system("ray stop")
                                     else:
                                         os.system("sbatch {}".format(script_name))
                                     i += 1
+    return settings_list
 
 
 if __name__ == "__main__":
@@ -207,9 +215,19 @@ if __name__ == "__main__":
         help="Test the batch script, i.e. run it on a local machine and evolve for minimal number of generations.",
         action="store_true",
     )
+    opts.add_argument(
+        "-ce",
+        "--cross_eval",
+        help="Compile stats from previous evaluations into a table",
+        action="store_true",
+    )
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
     EVALUATE = args.evaluate
     LOCAL = args.local
 
-    launch_batch(EXP_NAME)
+    if args.cross_eval:
+        settings_list = launch_batch(EXP_NAME, collect_params=True)
+        compile_results(settings_list)
+    else:
+        launch_batch(EXP_NAME)

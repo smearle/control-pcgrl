@@ -37,6 +37,7 @@ from torch.utils.tensorboard import SummaryWriter
 # Use for .py file
 from tqdm import tqdm
 
+from evo_args import get_args
 import gym_pcgrl
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 
@@ -2694,146 +2695,7 @@ if __name__ == "__main__":
     """
     seed = 420
     CA_ACTION = True
-
-    opts = argparse.ArgumentParser(
-        description="Evolving Neural Cellular Automata for PCGRL"
-    )
-    opts.add_argument(
-        "-p",
-        "--problem",
-        help='Which game to generate levels for (PCGRL "problem").',
-        default="binary_ctrl",
-    )
-    opts.add_argument(
-        "-e",
-        "--exp_name",
-        help="Name of the experiment, for save files.",
-        default="test_0",
-    )
-    opts.add_argument(
-        "-ng",
-        "--n_generations",
-        type=int,
-        help="Number of generations for which to run evolution.",
-        default=10000,
-    )
-    opts.add_argument(
-        "-nis",
-        "--n_init_states",
-        help="The number of initial states on which to evaluate our models. 0 for a single fixed map with a square of wall in the centre.",
-        type=int,
-        default=10,
-    )
-    opts.add_argument(
-        "-ns",
-        "--n_steps",
-        help="Maximum number of steps in each generation episode. Only applies to NCA model and cellular"
-        "representation at the moment.",
-        type=int,
-        default=10,
-    )
-    opts.add_argument(
-        "-bcs",
-        "--behavior_characteristics",
-        nargs="+",
-        help="A list of strings corresponding to the behavior characteristics that will act as the dimensions for our grid of elites during evolution.",
-        default=["NONE"],
-    )
-    opts.add_argument(
-        "-r", "--render", help="Render the environment.", action="store_true"
-    )
-    opts.add_argument(
-        "-i",
-        "--infer",
-        help="Run inference with evolved archive of individuals.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "-v",
-        "--visualize",
-        help="Visualize heatmap of the archive of individuals.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "--show_vis",
-        help="Render visualizations in matplotlib rather than saving them to png.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "-g", "--render_levels", help="Save grid of levels to png.", action="store_true"
-    )
-    opts.add_argument(
-        "-m",
-        "--multi_thread",
-        help="Use multi-thread evolution process.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "--play_level",
-        help="Use a playing agent to evaluate generated levels.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "-ev",
-        "--evaluate",
-        help="Run evaluation on the archive of elites.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "-s", "--save_levels", help="Save all levels to a csv.", action="store_true"
-    )
-    opts.add_argument(
-        "--fix_level_seeds",
-        help="Use a fixed set of random levels throughout evolution, rather than providing the generators with new random initial levels during evaluation.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "-cr",
-        "--cascade_reward",
-        help="Incorporate diversity/variance bonus/penalty into fitness only if targets are met perfectly (rather than always incorporating them).",
-        action="store_true",
-    )
-    opts.add_argument(
-        "-rep",
-        "--representation",
-        help="The interface between generator-agent and environment. cellular: agent acts as cellular automaton, observing and"
-        " supplying entire next stats. wide: agent observes entire stats, and changes any one tile. narrow: agent "
-        "observes state and target tile, and selects built at target tile. turtle: agent selects build at current "
-        "tile or navigates to adjacent tile.",
-        default="cellular",
-    )
-    opts.add_argument(
-        "-la",
-        "--load_args",
-        help="Rather than having the above args supplied by the command-line, load them from a settings.json file. (Of "
-        "course, the value of this arg in the json will have no effect.)",
-        type=int,
-        default=None,
-    )
-    opts.add_argument(
-        "--model",
-        help="Which neural network architecture to use for the generator. NCA: just conv layers. CNN: Some conv layers, then a dense layer.",
-        default="NCA",
-    )
-    opts.add_argument(
-        "--fix_elites",
-        help="(Do not) re-evaluate the elites on new random seeds to ensure their generality.",
-        action="store_true",
-    )
-    opts.add_argument(
-        "--save_gif",
-        help="Save screenshots (and gif?) of level during agent generation process.",
-        action="store_true",
-    )
-    opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
-
-    args = opts.parse_args()
-    arg_dict = vars(args)
-
-    if args.load_args is not None:
-        with open("configs/evo/settings_{}.json".format(args.load_args)) as f:
-            new_arg_dict = json.load(f)
-            arg_dict.update(new_arg_dict)
+    args, arg_dict = get_args()
     global INFER
     global EVO_DIR
     global CUDA
@@ -2891,11 +2753,7 @@ if __name__ == "__main__":
     #   SAVE_INTERVAL = 100
     SAVE_INTERVAL = 100
     VIS_INTERVAL = 50
-    preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
-    preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
-    if THREADS:
-        ray.init()
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
     #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
@@ -2919,6 +2777,10 @@ if __name__ == "__main__":
         exp_name += "_MEGA"
     exp_name += "_" + arg_dict["exp_name"]
     SAVE_PATH = os.path.join("evo_runs", exp_name)
+    preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
+    preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
+    if THREADS:
+        ray.init()
 
     def init_tensorboard():
         assert not INFER
