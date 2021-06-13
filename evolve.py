@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from pdb import set_trace as TT
 from random import randint
+
 # import cv2
 from typing import Tuple
 
@@ -27,18 +28,22 @@ from gym import envs
 from numba import njit
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
-from ribs.emitters import (GradientImprovementEmitter, ImprovementEmitter,
-                           OptimizingEmitter)
+from ribs.emitters import (
+    GradientImprovementEmitter,
+    ImprovementEmitter,
+    OptimizingEmitter,
+)
 from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
 from torch.nn import Conv2d, CrossEntropyLoss, Linear
 from torch.utils.tensorboard import SummaryWriter
+
 # Use for .py file
 from tqdm import tqdm
 
-from evo_args import get_args
 import gym_pcgrl
+from evo_args import get_args
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 
 # from example_play_call import random_player
@@ -83,6 +88,24 @@ https://arxiv.org/pdf/2009.01398.pdf
 RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
+
+
+def save_level_frames(level_frames, model_name):
+
+    renders_dir = os.path.join(SAVE_PATH, "renders")
+    if not os.path.isdir(renders_dir):
+        os.mkdir(renders_dir)
+    model_dir = os.path.join(renders_dir, "model_{}".format(model_name))
+    if not os.path.isdir(model_dir):
+        os.mkdir(model_dir)
+    for j, im in enumerate(level_frames):
+        im.save(
+            os.path.join(
+                model_dir, "frame_{}.png".format(j)
+            )
+        )
+
+
 
 
 def save_train_stats(objs, itr=None):
@@ -145,8 +168,7 @@ def save_grid(csv_name="levels", d=6):
 
     df_g = df.sort_values(by=["bc0", "bc1"], ascending=False)
 
-    df_g["row"] = np.floor(np.linspace(
-        0, d, len(df_g), endpoint=False)).astype(int)
+    df_g["row"] = np.floor(np.linspace(0, d, len(df_g), endpoint=False)).astype(int)
 
     for row_num in range(d):
         row = df_g[df_g["row"] == row_num]
@@ -165,8 +187,7 @@ def save_grid(csv_name="levels", d=6):
             for i, l_rows in enumerate(grid_models[col_num].split("], [")):
                 for j, l_col in enumerate(l_rows.split(",")):
                     level[i, j] = int(
-                        l_col.replace("[", "").replace("]",
-                                                       "").replace(" ", "")
+                        l_col.replace("[", "").replace("]", "").replace(" ", "")
                     )
 
             # Set map
@@ -197,7 +218,7 @@ def id_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     return action, skip
 
 
-#@njit
+# @njit
 def wide_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None):
     # only consider tiles where the generator suggests something different than the existing tile
     act_mask = action.argmax(axis=0) != int_map
@@ -208,7 +229,7 @@ def wide_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None)
     coords = np.unravel_index(action.argmax(), action.shape)
 
     if n_new_builds > 0:
-#       TT()
+        #       TT()
         assert act_mask[0, coords[1], coords[2]] == 1
     coords = coords[2], coords[1], coords[0]
     #   assert int_map[coords[0], coords[1]] != coords[2]
@@ -255,8 +276,7 @@ def flat_to_wide(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None
     w = int_map.shape[0]
     h = int_map.shape[1]
     assert len(action) == int_map.shape[0] + int_map.shape[1] + n_tiles
-    action = (action[:w].argmax(), action[w: w +
-                                          h].argmax(), action[w + h:].argmax())
+    action = (action[:w].argmax(), action[w : w + h].argmax(), action[w + h :].argmax())
     skip = False
 
     return action, skip
@@ -349,8 +369,7 @@ class InitStatesArchive(GridArchive):
     reproduce their behavior at evaluation time (and compare it to generalization to other seeds)."""
 
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
-        super(InitStatesArchive, self).__init__(
-            bin_sizes, bin_bounds, **kwargs)
+        super(InitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
         self.init_states_archive = np.empty(
             shape=(*bin_sizes, n_init_states, map_w, map_h)
         )
@@ -369,8 +388,7 @@ class InitStatesArchive(GridArchive):
         # NOTE: for now we won't delete these when popping an elite for re-evaluation
 
         if status != AddStatus.NOT_ADDED:
-            archive_init_states(self.init_states_archive,
-                                self.init_states, index)
+            archive_init_states(self.init_states_archive, self.init_states, index)
 
         return status, dtype_improvement
 
@@ -396,9 +414,7 @@ class FlexArchive(InitStatesArchive):
     def _remove_occupied_index(self, index):
         self._occupied_indices.remove(index)
         self._occupied_indices_cols = tuple(
-            [self._occupied_indices[i][j]
-                for i in range(len(self._occupied_indices))]
-
+            [self._occupied_indices[i][j] for i in range(len(self._occupied_indices))]
             for j in range(len(self._storage_dims))
         )
 
@@ -419,7 +435,6 @@ class FlexArchive(InitStatesArchive):
         mean_bcs = np.array(
             [
                 (old_bcs[i] * n_evals + bcs[i]) / (n_evals + 1)
-
                 for i in range(len(old_bcs))
             ]
         )
@@ -609,8 +624,7 @@ class GeneratorNNDense(nn.Module):
         self.conv3 = Conv2d(n_hid_2, n_hid_2, kernel_size=3, stride=2)
         self.flatten = torch.nn.Flatten()
         n_flat = self.flatten(
-            self.conv3(self.conv2(self.conv1(
-                torch.zeros(size=observation_shape))))
+            self.conv3(self.conv2(self.conv1(torch.zeros(size=observation_shape))))
         ).shape[-1]
         #       self.fc1 = Linear(n_flat, n_flat_actions)
         self.fc1 = Linear(n_flat, n_hid_2)
@@ -724,12 +738,12 @@ def set_weights(nn, weights):
         n_el = 0
 
         for layer in nn.layers:
-            l_weights = weights[n_el: n_el + layer.weight.numel()]
+            l_weights = weights[n_el : n_el + layer.weight.numel()]
             n_el += layer.weight.numel()
             l_weights = l_weights.reshape(layer.weight.shape)
             layer.weight = torch.nn.Parameter(torch.Tensor(l_weights))
             layer.weight.requires_grad = False
-            b_weights = weights[n_el: n_el + layer.bias.numel()]
+            b_weights = weights[n_el : n_el + layer.bias.numel()]
             n_el += layer.bias.numel()
             b_weights = b_weights.reshape(layer.bias.shape)
             layer.bias = torch.nn.Parameter(torch.Tensor(b_weights))
@@ -783,7 +797,6 @@ def get_counts(int_map, env):
 
     return [
         np.sum(int_map.flatten() == tile) / max_val
-
         for tile in range(len(env._prob._prob))
     ]
 
@@ -814,7 +827,7 @@ def get_hor_sym(int_map, env):
         m = np.sum(
             (
                 int_map[: int(int_map.shape[0] / 2)]
-                == np.flip(int_map[int(int_map.shape[0] / 2):], 0)
+                == np.flip(int_map[int(int_map.shape[0] / 2) :], 0)
             ).astype(int)
         )
         m = m / max_val
@@ -822,7 +835,7 @@ def get_hor_sym(int_map, env):
         m = np.sum(
             (
                 int_map[: int(int_map.shape[0] / 2)]
-                == np.flip(int_map[int(int_map.shape[0] / 2) + 1:], 0)
+                == np.flip(int_map[int(int_map.shape[0] / 2) + 1 :], 0)
             ).astype(int)
         )
         m = m / max_val
@@ -844,7 +857,7 @@ def get_ver_sym(int_map, env):
         m = np.sum(
             (
                 int_map[:, : int(int_map.shape[1] / 2)]
-                == np.flip(int_map[:, int(int_map.shape[1] / 2):], 1)
+                == np.flip(int_map[:, int(int_map.shape[1] / 2) :], 1)
             ).astype(int)
         )
         m = m / max_val
@@ -852,7 +865,7 @@ def get_ver_sym(int_map, env):
         m = np.sum(
             (
                 int_map[:, : int(int_map.shape[1] / 2)]
-                == np.flip(int_map[:, int(int_map.shape[1] / 2) + 1:], 1)
+                == np.flip(int_map[:, int(int_map.shape[1] / 2) + 1 :], 1)
             ).astype(int)
         )
         m = m / max_val
@@ -958,8 +971,7 @@ def log_archive(archive, name, itr, start_time, level_json=None):
     df = archive.as_pandas(include_solutions=False)
     elapsed_time = time.time() - start_time
     writer.add_scalar("{} ArchiveSize".format(name), len(df), itr)
-    writer.add_scalar("{} score/mean".format(name),
-                      df["objective"].mean(), itr)
+    writer.add_scalar("{} score/mean".format(name), df["objective"].mean(), itr)
     writer.add_scalar("{} score/max".format(name), df["objective"].max(), itr)
     writer.add_scalar("{} score/min".format(name), df["objective"].min(), itr)
 
@@ -1040,10 +1052,8 @@ def play_level(env, level, player):
     local_action_entropy = np.mean(
         [
             scipy.stats.entropy(
-                np.bincount(action_hist[i: i + 10],
-                            minlength=len(env.player_actions))
+                np.bincount(action_hist[i : i + 10], minlength=len(env.player_actions))
             )
-
             for i in np.arange(0, len(action_hist) - 10, 6)
         ]
     )
@@ -1175,8 +1185,7 @@ def player_simulate(
         net_reward += p_1_rew
 
     reward = net_reward / len(playable_levels * n_evals)
-    bcs = [np.mean([bcs[j][i] for j in range(len(bcs))])
-           for i in range(len(bcs[0]))]
+    bcs = [np.mean([bcs[j][i] for j in range(len(bcs))]) for i in range(len(bcs[0]))]
 
     return reward, bcs
 
@@ -1191,6 +1200,7 @@ def simulate(
     seed=None,
     player_1=None,
     player_2=None,
+    render_levels=False
 ):
     """
     Function to run a single trajectory and return results.
@@ -1237,6 +1247,9 @@ def simulate(
     batch_targets_penalty = 0
     batch_play_bonus = 0
 
+    if render_levels:
+        level_frames = []
+
     for (n_episode, init_state) in enumerate(init_states):
         # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
         # Set the representation to begin in the upper left corner
@@ -1261,6 +1274,8 @@ def simulate(
         n_step = 0
 
         while not done:
+            if render_levels:
+                level_frames.append(env.render(mode="rgb_array"))
             #           in_tensor = torch.unsqueeze(
             #               torch.unsqueeze(torch.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
@@ -1276,8 +1291,7 @@ def simulate(
             )
             change, x, y = env._rep.update(action)
             int_map = env._rep._map
-            obs = get_one_hot_map(env._rep.get_observation()[
-                                  "map"], n_tile_types)
+            obs = get_one_hot_map(env._rep.get_observation()["map"], n_tile_types)
             preprocess_observation(obs, x=env._rep._x, y=env._rep._y)
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
@@ -1289,6 +1303,9 @@ def simulate(
             #               time.sleep(1 / 30)
 
             if done:
+                if render_levels:
+                    # get final level state
+                    level_frames.append(env.render(mode="rgb_array"))
                 final_levels[n_episode] = int_map
                 stats = env._prob.get_stats(
                     get_string_map(int_map, env._prob.get_tile_types())
@@ -1380,24 +1397,20 @@ def simulate(
             # perfectly valid.
             # Variance penalty is the negative average (per-BC) standard deviation from the mean BC vector.
             variance_penalty = (
-                -np.sum([bcs[i].std()
-                         for i in range(bcs.shape[0])]) / bcs.shape[0]
+                -np.sum([bcs[i].std() for i in range(bcs.shape[0])]) / bcs.shape[0]
             )
             # Diversity bonus. We want minimal variance along BCS *and* diversity in terms of the map.
             # Sum pairwise hamming distances between all generated maps.
             diversity_bonus = np.sum(
                 [
                     np.sum(final_levels[j] != final_levels[k]) if j != k else 0
-
                     for k in range(N_INIT_STATES)
-
                     for j in range(N_INIT_STATES)
                 ]
             ) / (N_INIT_STATES * N_INIT_STATES - 1)
             # ad hoc scaling :/
             diversity_bonus = 10 * diversity_bonus / (width * height)
-            batch_reward = batch_reward + \
-                max(0, variance_penalty + diversity_bonus)
+            batch_reward = batch_reward + max(0, variance_penalty + diversity_bonus)
         else:
             variance_penalty = None
             diversity_bonus = None
@@ -1424,6 +1437,9 @@ def simulate(
             "diversity": [diversity_bonus] * len(final_levels.tolist()),
             "targets": trg.tolist(),
         }
+
+    if render_levels:
+        return level_frames
 
     if not INFER:
         return level_json, batch_reward, final_bcs
@@ -1509,8 +1525,7 @@ class EvoPCGRL:
                 # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
                 [100 for _ in self.play_bc_names],
                 # min/max for each BC
-                [self.play_bc_bounds[bc_name]
-                    for bc_name in self.play_bc_names],
+                [self.play_bc_bounds[bc_name] for bc_name in self.play_bc_names],
             )
         else:
             if CMAES:
@@ -1560,8 +1575,7 @@ class EvoPCGRL:
             if isinstance(self.env.action_space, gym.spaces.Box):
                 action_shape = self.env.action_space.shape
                 assert len(action_shape) == 3
-                n_flat_actions = action_shape[0] * \
-                    action_shape[1] * action_shape[2]
+                n_flat_actions = action_shape[0] * action_shape[1] * action_shape[2]
             elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
                 nvec = self.env.action_space.nvec
                 assert len(nvec) == 3
@@ -1610,7 +1624,6 @@ class EvoPCGRL:
                     selection_rule="mu",
                     batch_size=30,
                 )
-
                 for _ in range(5)  # Create 5 separate emitters.
             ]
         else:
@@ -1623,7 +1636,6 @@ class EvoPCGRL:
                     init_step_size,  # Initial step size.
                     batch_size=30,
                 )
-
                 for _ in range(5)  # Create 5 separate emitters.
             ]
 
@@ -1644,7 +1656,6 @@ class EvoPCGRL:
                     1,  # Initial step size.
                     batch_size=30,
                 )
-
                 for _ in range(5)  # Create 5 separate emitters.
             ]
             self.play_optimizer = Optimizer(self.play_archive, play_emitters)
@@ -1657,9 +1668,9 @@ class EvoPCGRL:
             self.init_states = np.zeros(shape=(1, self.width, self.height))
             self.init_states[0, 5:-5, 5:-5] = 1
         else:
-#           self.init_states = np.random.randint(
-#               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)
-#           )
+            #           self.init_states = np.random.randint(
+            #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)
+            #           )
             self.init_states = gen_random_levels(N_INIT_STATES, self.env)
 
         self.start_time = time.time()
@@ -1721,7 +1732,6 @@ class EvoPCGRL:
                         player_1=self.player_1,
                         player_2=self.player_2,
                     )
-
                     for model_w in gen_sols
                 ]
                 results = ray.get(futures)
@@ -1742,8 +1752,7 @@ class EvoPCGRL:
                             )
                     objs.append(m_obj)
                     bcs.append([*m_bcs])
-                    [stat_json[stat].extend(level_json[stat])
-                     for stat in stats]
+                    [stat_json[stat].extend(level_json[stat]) for stat in stats]
                 del results
                 auto_garbage_collect()
             else:
@@ -1775,8 +1784,7 @@ class EvoPCGRL:
                             )
                     objs.append(m_obj)
                     bcs.append(m_bcs)
-                    [stat_json[stat].extend(level_json[stat])
-                     for stat in stats]
+                    [stat_json[stat].extend(level_json[stat]) for stat in stats]
 
             if RANDOM_INIT_LEVELS:
                 # Tell the archive what the initial states are, so that we can record them in case an individual is
@@ -1792,8 +1800,7 @@ class EvoPCGRL:
                 #               curr_archive_size = len(df)
                 high_performing = df.sample(frac=1)
                 elite_models = np.array(high_performing.loc[:, "solution_0":])
-                elite_bcs = np.array(
-                    high_performing.loc[:, "behavior_0":"behavior_1"])
+                elite_bcs = np.array(high_performing.loc[:, "behavior_0":"behavior_1"])
 
                 if THREADS:
                     futures = [
@@ -1809,7 +1816,6 @@ class EvoPCGRL:
                             player_1=self.player_1,
                             player_2=self.player_2,
                         )
-
                         for i in range(min(max(len(elite_models) // 2, 1), 150 // 2))
                     ]
                     results = ray.get(futures)
@@ -1834,8 +1840,7 @@ class EvoPCGRL:
                         results[el_i] = self.gen_archive.pop_elite(
                             el_obj, el_bcs, old_el_bcs
                         )
-                        [stat_json[stat].extend(level_json[stat])
-                         for stat in stats]
+                        [stat_json[stat].extend(level_json[stat]) for stat in stats]
 
                     for (el_i, result) in enumerate(results):
                         self.gen_archive.update_elite(*result)
@@ -1865,16 +1870,14 @@ class EvoPCGRL:
                             player_2=self.player_2,
                         )
                         idx = self.gen_archive.get_index(old_el_bcs)
-                        [stat_json[stat].extend(level_json[stat])
-                         for stat in stats]
+                        [stat_json[stat].extend(level_json[stat]) for stat in stats]
                         self.gen_archive.update_elite(
                             *self.gen_archive.pop_elite(el_obj, el_bcs, old_el_bcs)
                         )
 
             #               last_archive_size = len(self.gen_archive.as_pandas(include_solutions=False))
 
-            log_archive(self.gen_archive, "Generator",
-                        itr, self.start_time, stat_json)
+            log_archive(self.gen_archive, "Generator", itr, self.start_time, stat_json)
 
             # FIXME: implement these
             #           self.play_bc_names = ['action_entropy', 'action_entropy_local']
@@ -1921,7 +1924,6 @@ class EvoPCGRL:
                                     player_2=self.player_2,
                                     playable_levels=playable_levels,
                                 )
-
                                 for player_w in play_sols
                             ]
                             results = ray.get(futures)
@@ -1952,15 +1954,12 @@ class EvoPCGRL:
 
                         # TODO: parallelize me
                         df = self.play_archive.as_pandas()
-                        high_performing = df.sort_values(
-                            "objective", ascending=False)
-                        elite_models = np.array(
-                            high_performing.loc[:, "solution_0":])
+                        high_performing = df.sort_values("objective", ascending=False)
+                        elite_models = np.array(high_performing.loc[:, "solution_0":])
 
                         for elite_i in range(10):
                             play_model_weights = elite_models[elite_i]
-                            init_nn = set_weights(
-                                self.play_model, play_model_weights)
+                            init_nn = set_weights(self.play_model, play_model_weights)
 
                             obj, bcs = player_simulate(
                                 self.env,
@@ -1977,26 +1976,22 @@ class EvoPCGRL:
                         # obj = np.mean(m_objs)
                         # objs.append(obj)
                         # bcs.append([bc_a])
-                        log_archive(self.play_archive, "Player",
-                                    p_itr, play_start_time)
+                        log_archive(self.play_archive, "Player", p_itr, play_start_time)
 
                         if net_p_itr > 0 and net_p_itr % SAVE_INTERVAL == 0:
                             # Save checkpoint during player evolution loop
                             self.save()
 
                         df = self.play_archive.as_pandas()
-                        high_performing = df.sort_values(
-                            "objective", ascending=False)
-                        elite_scores = np.array(
-                            high_performing.loc[:, "objective"])
+                        high_performing = df.sort_values("objective", ascending=False)
+                        elite_scores = np.array(high_performing.loc[:, "objective"])
 
                         if np.array(elite_scores).max() >= self.env._prob.max_reward:
                             break
 
                     # TODO: assuming an archive of one here! Make it more general, like above for generators
                     set_weights(
-                        self.play_model, self.play_archive.get_random_elite()[
-                            0]
+                        self.play_model, self.play_archive.get_random_elite()[0]
                     )
 
             if itr % SAVE_INTERVAL == 0 or itr == 1:
@@ -2005,6 +2000,7 @@ class EvoPCGRL:
 
             if itr % VIS_INTERVAL == 0 or itr == 1:
                 ckp_dir = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+
                 if not os.path.isdir(ckp_dir):
                     os.mkdir(ckp_dir)
 
@@ -2027,8 +2023,7 @@ class EvoPCGRL:
         evo_path = os.path.join(SAVE_PATH, "evolver.pkl")
 
         os.system(
-            'mv "{}" "{}"'.format(evo_path, os.path.join(
-                SAVE_PATH, "last_evolver.pkl"))
+            'mv "{}" "{}"'.format(evo_path, os.path.join(SAVE_PATH, "last_evolver.pkl"))
         )
         pickle.dump(
             self, open(os.path.join(SAVE_PATH, "evolver.pkl"), "wb"), protocol=4
@@ -2161,7 +2156,7 @@ class EvoPCGRL:
 
         if RENDER_LEVELS:
             RENDER = False
-            N_INIT_STATES = 1
+            #           N_INIT_STATES = 1
 
             if "smb" in PROBLEM:
                 d = 4
@@ -2181,6 +2176,7 @@ class EvoPCGRL:
                 )
                 df_g = df.sort_values(by=["objective"], ascending=False)
                 grid_models = np.array(df_g.loc[:, "solution_0":])
+
                 for (i, model) in enumerate(grid_models):
                     for j in range(n_figs):
                         n_row = j // d
@@ -2189,32 +2185,36 @@ class EvoPCGRL:
                         # TODO: select for diversity?
                         # parallelization would be kind of pointelss here
                         init_nn = set_weights(self.gen_model, model)
-                        init_state = np.random.randint(
-                            0, self.n_tile_types, size=(1, *self.init_states.shape[1:])
-                        )
-                        # run simulation, but only on the first level-seed
-                        _, _, _, (
-                            time_penalty,
-                            targets_penalty,
-                            variance_penalty,
-                            diversity_bonus,
-                        ) = simulate(
+                        # run simulation, but only on a single level-seed
+                        init_state = gen_random_levels(1, self.env)
+                        #                       init_state = np.random.randint(
+                        #                           0, self.n_tile_types, size=(1, *self.init_states.shape[1:])
+                        #                       )
+                        #                       _, _, _, (
+                        #                           time_penalty,
+                        #                           targets_penalty,
+                        #                           variance_penalty,
+                        #                           diversity_bonus,
+                        #                       ) = simulate(
+                        level_frames = simulate(
                             self.env,
                             init_nn,
                             self.n_tile_types,
-                            init_state[0:1],
+                            init_state,
                             self.bc_names,
                             self.static_targets,
                             seed=None,
+                            render_levels=True,
                         )
+                        save_level_frames(level_frames, i)
                         # Get image
-                        img = self.env.render(mode="rgb_array")
+#                       img = self.env.render(mode="rgb_array")
+                        img = level_frames[-1]
                         axs[n_row, n_col].imshow(img, aspect=1)
 
             else:
                 fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
-                df_g = df.sort_values(
-                    by=["behavior_0", "behavior_1"], ascending=False)
+                df_g = df.sort_values(by=["behavior_0", "behavior_1"], ascending=False)
 
                 df_g["row"] = np.floor(
                     np.linspace(0, d, len(df_g), endpoint=False)
@@ -2237,12 +2237,13 @@ class EvoPCGRL:
                         init_nn = set_weights(self.gen_model, model)
 
                         # run simulation, but only on the first level-seed
-                        _, _, _, (
-                            time_penalty,
-                            targets_penalty,
-                            variance_penalty,
-                            diversity_bonus,
-                        ) = simulate(
+                        #                       _, _, _, (
+                        #                           time_penalty,
+                        #                           targets_penalty,
+                        #                           variance_penalty,
+                        #                           diversity_bonus,
+                        #                       ) = simulate(
+                        level_frames = simulate(
                             self.env,
                             init_nn,
                             self.n_tile_types,
@@ -2250,9 +2251,12 @@ class EvoPCGRL:
                             self.bc_names,
                             self.static_targets,
                             seed=None,
+                            render_levels=True,
                         )
+                        save_level_frames(level_frames, '{}_{}'.format(row_num, col_num))
                         # Get image
-                        img = self.env.render(mode="rgb_array")
+                        #                       img = self.env.render(mode="rgb_array")
+                        img = level_frames[-1]
                         axs[row_num, col_num].imshow(img, aspect="auto")
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
             plt.tight_layout()
@@ -2284,15 +2288,19 @@ class EvoPCGRL:
             # The level spaces which we will attempt to map to
             problem_eval_bc_names = {
                 "binary": [("regions", "path-length")],
-                "zelda": [("nearest-enemy", "path-length"), ("symmetry", "path-length"), ("emptiness", "path-length")],
+                "zelda": [
+                    ("nearest-enemy", "path-length"),
+                    ("symmetry", "path-length"),
+                    ("emptiness", "path-length"),
+                ],
                 "sokoban": [("crate", "sol-length")],
             }
+
             for k in problem_eval_bc_names.keys():
                 problem_eval_bc_names[k] += [
-                       #("NONE"), 
-                       ("emptiness", "symmetry")
-                   ]
-
+                    # ("NONE"),
+                    ("emptiness", "symmetry")
+                ]
 
             for (k, v) in problem_eval_bc_names.items():
                 if k in PROBLEM:
@@ -2310,12 +2318,10 @@ class EvoPCGRL:
                         # min/max for each BC
                         [self.bc_bounds[bc_name] for bc_name in eval_bcs],
                     )
-
                     for eval_bcs in eval_bc_names
                 ]
                 [
                     eval_archive.initialize(solution_dim=len(models[0]))
-
                     for eval_archive in eval_archives
                 ]
 
@@ -2343,12 +2349,9 @@ class EvoPCGRL:
             if not CMAES:
                 for j in range(len(eval_archives)):
                     eval_fitness_scores.append(np.full((y_dim, x_dim), np.nan))
-                    eval_playability_scores.append(
-                        np.full((y_dim, x_dim), np.nan))
-                    eval_reliability_scores.append(
-                        np.full((y_dim, x_dim), np.nan))
-                    eval_diversity_scores.append(
-                        np.full((y_dim, x_dim), np.nan))
+                    eval_playability_scores.append(np.full((y_dim, x_dim), np.nan))
+                    eval_reliability_scores.append(np.full((y_dim, x_dim), np.nan))
+                    eval_diversity_scores.append(np.full((y_dim, x_dim), np.nan))
 
             def record_scores(
                 id_0,
@@ -2393,8 +2396,8 @@ class EvoPCGRL:
                         index=False,
                     )
 
-
             init_states_archive = None
+
             if RANDOM_INIT_LEVELS:
                 # Effectively doing inference on a (presumed) held-out set of levels
 
@@ -2404,11 +2407,11 @@ class EvoPCGRL:
                     N_EVAL_STATES = N_INIT_STATES = 100  # e.g. 10
 
                 init_states = gen_random_levels(N_INIT_STATES, self.env)
-#               init_states = np.random.randint(
-#                   0,
-#                   self.n_tile_types,
-#                   size=(N_EVAL_STATES, *self.init_states.shape[1:]),
-#               )
+            #               init_states = np.random.randint(
+            #                   0,
+            #                   self.n_tile_types,
+            #                   size=(N_EVAL_STATES, *self.init_states.shape[1:]),
+            #               )
             elif args.fix_level_seeds or args.n_init_states == 0:
                 # If level seeds were fixed throughout training, use those
                 init_states = self.init_states
@@ -2438,7 +2441,6 @@ class EvoPCGRL:
                         init_states_archive=init_states_archive,
                         index=tuple(idxs[i]),
                     )
-
                     for (i, model_w) in enumerate(models)
                 ]
                 results = ray.get(futures)
@@ -2454,8 +2456,7 @@ class EvoPCGRL:
                     ) = result
                     # id_0 = idxs_0[i]
                     # id_1 = idxs_1[i]
-                    id_0, id_1 = archive.get_index(
-                        np.array(final_bcs[:n_train_bcs]))
+                    id_0, id_1 = archive.get_index(np.array(final_bcs[:n_train_bcs]))
 
                     if SAVE_LEVELS:
                         save_levels(level_json, overwrite=i == 0)
@@ -2477,12 +2478,17 @@ class EvoPCGRL:
                         for j, eval_archive in enumerate(eval_archives):
                             # Record componentes of the fitness for each cell in each evaluation archive
                             # NOTE: assume 2 BCs per eval archive
-                            eval_bcs = np.array(final_bcs[n_train_bcs + 2 * j: n_train_bcs + 2 * j + 2])
-                            id_0, id_1 = eval_archive.get_index(
-                                eval_bcs
+                            eval_bcs = np.array(
+                                final_bcs[n_train_bcs + 2 * j : n_train_bcs + 2 * j + 2]
                             )
+                            id_0, id_1 = eval_archive.get_index(eval_bcs)
                             # Add dummy solution weights for now
-                            status, _ = eval_archive.add(np.zeros(eval_archive.solution_dim), batch_reward, eval_bcs)
+                            status, _ = eval_archive.add(
+                                np.zeros(eval_archive.solution_dim),
+                                batch_reward,
+                                eval_bcs,
+                            )
+
                             if status != AddStatus.NOT_ADDED:
                                 # For eval archive, only record new best individuals in each filled cell
                                 record_scores(
@@ -2507,12 +2513,16 @@ class EvoPCGRL:
                     # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
                     model = models[i]
                     id_0, id_1 = idxs[i]
+
                     if init_states is None:
                         init_states_archive = archive.init_states_archive
                     else:
                         init_states_archive = None
+
                     if init_states is None:
-                        init_states = get_init_states(init_states_archive, np.array(idxs[i]))
+                        init_states = get_init_states(
+                            init_states_archive, np.array(idxs[i])
+                        )
 
                     # TODO: Parallelize me
                     init_nn = set_weights(self.gen_model, model)
@@ -2578,21 +2588,21 @@ class EvoPCGRL:
                 plt.close()
 
             assert len(models) == len(archive._occupied_indices)
-            stats = {"generations completed": self.n_itr,
-                    "% train archive full": len(models) / archive.bins,
-                     "% eval archives full": {}}
+            stats = {
+                "generations completed": self.n_itr,
+                "% train archive full": len(models) / archive.bins,
+                "% eval archives full": {},
+            }
+
             if not CMAES:
-                plot_score_heatmap(playability_scores,
-                                   "playability", self.bc_names)
-                plot_score_heatmap(
-                    diversity_scores, "diversity", self.bc_names)
-                plot_score_heatmap(reliability_scores,
-                                   "reliability", self.bc_names)
-                plot_score_heatmap(
-                    fitness_scores, "fitness_eval", self.bc_names)
+                plot_score_heatmap(playability_scores, "playability", self.bc_names)
+                plot_score_heatmap(diversity_scores, "diversity", self.bc_names)
+                plot_score_heatmap(reliability_scores, "reliability", self.bc_names)
+                plot_score_heatmap(fitness_scores, "fitness_eval", self.bc_names)
 
                 for j, eval_archive in enumerate(eval_archives):
                     bc_names = eval_bc_names[j]
+
                     if bc_names != ("NONE"):
                         plot_score_heatmap(
                             eval_playability_scores[j], "playability", bc_names
@@ -2606,28 +2616,40 @@ class EvoPCGRL:
                         plot_score_heatmap(
                             eval_fitness_scores[j], "fitness_eval", bc_names
                         )
+
                     if bc_names == tuple(self.bc_names):
                         # FIXME: there's a bug somewhere here, include this redundant data to try and pinpoint it
-                        pct_archive_full = len(eval_archive._occupied_indices) / eval_archive.bins
+                        pct_archive_full = (
+                            len(eval_archive._occupied_indices) / eval_archive.bins
+                        )
+
                         if not RANDOM_INIT_LEVELS:
-                            # then this will be the same as the 
-#                           if not len(eval_archive._occupied_indices) / eval_archive.bins == stats["% train archive full"]:
-#                               TT()
-#                           continue
+                            # then this will be the same as the
+                            #                           if not len(eval_archive._occupied_indices) / eval_archive.bins == stats["% train archive full"]:
+                            #                               TT()
+                            #                           continue
                             pass
                         else:
-                            stats["% elites maintained"] = pct_archive_full / stats["% train archive full"]
+                            stats["% elites maintained"] = (
+                                pct_archive_full / stats["% train archive full"]
+                            )
                         stats["% fresh train archive full"] = pct_archive_full
                     n_occupied = len(eval_archive.as_pandas(include_solutions=False))
                     assert n_occupied == len(eval_archive._occupied_indices)
-                    stats["% eval archives full"].update({
-                        "-".join(bc_names): len(eval_archive._occupied_indices) / eval_archive.bins})
+                    stats["% eval archives full"].update(
+                        {
+                            "-".join(bc_names): len(eval_archive._occupied_indices)
+                            / eval_archive.bins
+                        }
+                    )
 
-            stats.update({
-                "playability": get_stats(playability_scores),
-                "diversity": get_stats(diversity_scores),
-                "reliability": get_stats(reliability_scores),
-            })
+            stats.update(
+                {
+                    "playability": get_stats(playability_scores),
+                    "diversity": get_stats(diversity_scores),
+                    "reliability": get_stats(reliability_scores),
+                }
+            )
             f_name = "stats"
 
             if not RANDOM_INIT_LEVELS:
@@ -2645,7 +2667,7 @@ class EvoPCGRL:
             model = models[i]
             init_nn = set_weights(self.gen_model, model)
 
-#           RANDOM_INIT_LEVELS = not args.fix_level_seeds
+            #           RANDOM_INIT_LEVELS = not args.fix_level_seeds
 
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
                 init_states = gen_random_levels(N_INIT_STATES, self.env)
@@ -2674,30 +2696,29 @@ class EvoPCGRL:
             #               self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i], objs[i], time_penalty, targets_penalty, variance_penalty, diversity_bonus))
             i += 1
 
+
 #           if i == len(models):
 #               i=0
 
 
 def gen_random_levels(n_init_states, env):
-    init_states = np.zeros(
-        shape=(n_init_states,
-               env._prob._height, env._prob._width)
-    )
+    init_states = np.zeros(shape=(n_init_states, env._prob._height, env._prob._width))
     init_state_maps = []
 
     for i in range(N_INIT_STATES):
         env._rep.reset(
             env._prob._width,
             env._prob._height,
-            get_int_prob(env._prob._prob,
-                         env._prob.get_tile_types()))
-#                   init_state_maps.append(np.expand_dims(get_one_hot_map(self.env._rep._map, self.n_tile_types), axis=0))
+            get_int_prob(env._prob._prob, env._prob.get_tile_types()),
+        )
+        #                   init_state_maps.append(np.expand_dims(get_one_hot_map(self.env._rep._map, self.n_tile_types), axis=0))
         init_state_maps.append(np.expand_dims(env._rep._map, axis=0))
 
     init_states[:] = np.vstack(init_state_maps)
-# init_states = np.zeros(
-#    0, self.n_tile_types, size=self.init_states.shape
-# )
+    # init_states = np.zeros(
+    #    0, self.n_tile_types, size=self.init_states.shape
+    # )
+
     return init_states
 
 
@@ -2791,6 +2812,7 @@ if __name__ == "__main__":
     SAVE_PATH = os.path.join("evo_runs", exp_name)
     preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
     preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
+
     if THREADS:
         ray.init()
 
@@ -2804,8 +2826,7 @@ if __name__ == "__main__":
 
     try:
         try:
-            evolver = pickle.load(
-                open(os.path.join(SAVE_PATH, "evolver.pkl"), "rb"))
+            evolver = pickle.load(open(os.path.join(SAVE_PATH, "evolver.pkl"), "rb"))
         except:
             evolver = pickle.load(
                 open(os.path.join(SAVE_PATH, "last_evolver.pkl"), "rb")
