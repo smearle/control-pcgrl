@@ -2394,7 +2394,8 @@ class EvoPCGRL:
                     )
 
 
-            if RANDOM_INIT_LEVELS and args.n_init_states != 0:
+            init_states_archive = None
+            if RANDOM_INIT_LEVELS:
                 # Effectively doing inference on a (presumed) held-out set of levels
 
                 if CMAES:
@@ -2408,23 +2409,18 @@ class EvoPCGRL:
 #                   self.n_tile_types,
 #                   size=(N_EVAL_STATES, *self.init_states.shape[1:]),
 #               )
-            elif not args.fix_level_seeds or args.n_init_states == 0:
+            elif args.fix_level_seeds or args.n_init_states == 0:
                 # If level seeds were fixed throughout training, use those
                 init_states = self.init_states
                 N_EVAL_STATES = N_INIT_STATES = init_states.shape[0]
             else:
-                # Otherwise, use the init level seeds that were entered into the archive with each elite
+                init_states_archive = self.gen_archive.init_states_archive
                 init_states = None
+                # Otherwise, use the init level seeds that were entered into the archive with each elite
 
             n_train_bcs = len(self.bc_names)
 
             if THREADS:
-                init_states_archive = None
-                if init_states is None:
-                    if args.fix_level_seeds:
-                        init_states = self.init_states
-                    else:
-                        init_states_archive = archive.init_states_archive
                 futures = [
                     multi_evo.remote(
                         self.env,
@@ -2581,7 +2577,9 @@ class EvoPCGRL:
                 plt.savefig(os.path.join(SAVE_PATH, f_name))
                 plt.close()
 
-            stats = {"% train archive full": len(models) / archive.bins,
+            assert len(models) == len(archive._occupied_indices)
+            stats = {"generations completed": self.n_itr,
+                    "% train archive full": len(models) / archive.bins,
                      "% eval archives full": {}}
             if not CMAES:
                 plot_score_heatmap(playability_scores,
@@ -2608,6 +2606,20 @@ class EvoPCGRL:
                         plot_score_heatmap(
                             eval_fitness_scores[j], "fitness_eval", bc_names
                         )
+                    if bc_names == tuple(self.bc_names):
+                        # FIXME: there's a bug somewhere here, include this redundant data to try and pinpoint it
+                        pct_archive_full = len(eval_archive._occupied_indices) / eval_archive.bins
+                        if not RANDOM_INIT_LEVELS:
+                            # then this will be the same as the 
+#                           if not len(eval_archive._occupied_indices) / eval_archive.bins == stats["% train archive full"]:
+#                               TT()
+#                           continue
+                            pass
+                        else:
+                            stats["% elites maintained"] = pct_archive_full / stats["% train archive full"]
+                        stats["% fresh train archive full"] = pct_archive_full
+                    n_occupied = len(eval_archive.as_pandas(include_solutions=False))
+                    assert n_occupied == len(eval_archive._occupied_indices)
                     stats["% eval archives full"].update({
                         "-".join(bc_names): len(eval_archive._occupied_indices) / eval_archive.bins})
 

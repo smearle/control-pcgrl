@@ -4,87 +4,78 @@ Launch a batch of experiments on a SLURM cluster.
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
 dead processes.
 """
-from pdb import set_trace as TT
 import argparse
 import copy
 import json
 import os
 import re
+from pdb import set_trace as TT
 from typing import List
 
 from cross_eval import compile_results
 
 problems = [
-    "binary_ctrl",
-#   'zelda_ctrl',
-#   'sokoban_ctrl',
-#   'smb_ctrl',
-]
+       #"binary_ctrl", 
+        "zelda_ctrl", 
+       #"sokoban_ctrl", 
+       #"smb_ctrl"
+        ]
 representations = [
-#     "cellular",
-      "wide",
-      'narrow',
-      'turtle',
-]
+        "cellular", 
+       #"wide", 
+       #"narrow", 
+       #"turtle"
+        ]
 global_bcs: List[List] = [
-    ["NONE"],
-    ['emptiness', 'symmetry'],
-]
+#       ["NONE"], 
+#       ["emptiness", "symmetry"],
+        ]
 local_bcs = {
     "binary_ctrl": [
-                ['regions', 'path-length'],
-                ['emptiness', 'path-length'],
-                ["symmetry", "path-length"]
+        ["regions", "path-length"],
+        ["emptiness", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-    #   ["nearest-enemy", "path-length"],
+#       ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-    #   ["symmetry", "path-length"],
+#       ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-       #["crate", "sol-length"],
+        ["crate", "sol-length"],
         ["emptiness", "sol-length"],
         ["symmetry", "sol-length"],
     ],
-    "smb_ctrl": [
-       #["enemies", "jumps"], 
-       #["emptiness", "jumps"], 
-        ["symmetry", "jumps"]
-        ],
+    "smb_ctrl": [["enemies", "jumps"], ["emptiness", "jumps"], ["symmetry", "jumps"]],
 }
 models = [
     "NCA",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
-fix_elites = [
-        True, 
-        False
-    ]
+fix_elites = [True, False]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
-fix_seeds = [
-        True, 
-        False
-    ]
+fix_seeds = [True, False]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-        0, 
-        10, 
-#       20,
-    ]
+    0,
+    10,
+    20,
+]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-        10, 
-#       50, 
-#       100,
-        ]
+    10,
+    50,
+    100,
+]
 
 
 def launch_batch(exp_name, collect_params=False):
     if collect_params:
         settings_list = []
         assert not EVALUATE
+
     if LOCAL:
         print("Testing locally.")
     else:
@@ -104,7 +95,7 @@ def launch_batch(exp_name, collect_params=False):
             for model in models:
 
                 if model == "CNN" and rep == "cellular":
-                    # This would necessitate an explosive number of model params so we'll not run it                   
+                    # This would necessitate an explosive number of model params so we'll not run it
 
                     continue
 
@@ -122,15 +113,15 @@ def launch_batch(exp_name, collect_params=False):
                                 if rep != "cellular":
                                     if n_steps != n_steps_lst[0]:
                                         continue
+
                                 for n_init_states in n_init_states_lst:
-                                    if n_init_states == 0 and not (
-                                        fix_seed and fix_el
-                                    ):
+                                    if n_init_states == 0 and not (fix_seed and fix_el):
                                         # The hand-made seed cannot be randomized
 
                                         continue
 
                                     # Edit the sbatch file to load the correct config file
+
                                     if EVALUATE:
                                         script_name = "evo_eval.sh"
                                     else:
@@ -193,6 +184,7 @@ def launch_batch(exp_name, collect_params=False):
                                     else:
                                         os.system("sbatch {}".format(script_name))
                                     i += 1
+
     if collect_params:
         return settings_list
 
