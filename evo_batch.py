@@ -15,26 +15,26 @@ from typing import List
 from cross_eval import compile_results
 
 problems = [
-#   "binary_ctrl",
-    'zelda_ctrl',
+    "binary_ctrl",
+#   'zelda_ctrl',
 #   'sokoban_ctrl',
 #   'smb_ctrl',
 ]
 representations = [
-    "cellular",
-#     "wide",
-#     'narrow',
-#     'turtle',
+#     "cellular",
+      "wide",
+      'narrow',
+      'turtle',
 ]
 global_bcs: List[List] = [
-#   ["NONE"],
-#   ['emptiness', 'symmetry'],
+    ["NONE"],
+    ['emptiness', 'symmetry'],
 ]
 local_bcs = {
     "binary_ctrl": [
-#               ['regions', 'path-length'],
-#               ['emptiness', 'path-length'],
-#               ["symmetry", "path-length"]
+                ['regions', 'path-length'],
+                ['emptiness', 'path-length'],
+                ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
     #   ["nearest-enemy", "path-length"],
@@ -44,9 +44,13 @@ local_bcs = {
     "sokoban_ctrl": [
        #["crate", "sol-length"],
         ["emptiness", "sol-length"],
-       #["symmetry", "sol-length"],
+        ["symmetry", "sol-length"],
     ],
-    "smb_ctrl": [["enemies", "jumps"], ["emptiness", "jumps"], ["symmetry", "jumps"]],
+    "smb_ctrl": [
+       #["enemies", "jumps"], 
+       #["emptiness", "jumps"], 
+        ["symmetry", "jumps"]
+        ],
 }
 models = [
     "NCA",
@@ -67,13 +71,13 @@ fix_seeds = [
 n_init_states_lst = [
         0, 
         10, 
-        20,
+#       20,
     ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
         10, 
-        50, 
-        100,
+#       50, 
+#       100,
         ]
 
 
@@ -189,7 +193,8 @@ def launch_batch(exp_name, collect_params=False):
                                     else:
                                         os.system("sbatch {}".format(script_name))
                                     i += 1
-    return settings_list
+    if collect_params:
+        return settings_list
 
 
 if __name__ == "__main__":
