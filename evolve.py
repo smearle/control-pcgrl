@@ -2186,7 +2186,7 @@ class EvoPCGRL:
                         # parallelization would be kind of pointelss here
                         init_nn = set_weights(self.gen_model, model)
                         # run simulation, but only on a single level-seed
-                        init_state = gen_random_levels(1, self.env)
+#                       init_state = gen_random_levels(1, self.env)
                         #                       init_state = np.random.randint(
                         #                           0, self.n_tile_types, size=(1, *self.init_states.shape[1:])
                         #                       )
@@ -2200,7 +2200,7 @@ class EvoPCGRL:
                             self.env,
                             init_nn,
                             self.n_tile_types,
-                            init_state,
+                            self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
                             seed=None,

@@ -15,20 +15,20 @@ from typing import List
 from cross_eval import compile_results
 
 problems = [
-       #"binary_ctrl", 
+#       "binary_ctrl", 
         "zelda_ctrl", 
-       #"sokoban_ctrl", 
-       #"smb_ctrl"
+#       "sokoban_ctrl", 
+#       "smb_ctrl"
         ]
 representations = [
         "cellular", 
-       #"wide", 
-       #"narrow", 
-       #"turtle"
+        "wide", 
+        "narrow", 
+        "turtle"
         ]
 global_bcs: List[List] = [
-#       ["NONE"], 
-#       ["emptiness", "symmetry"],
+       #["NONE"], 
+        ["emptiness", "symmetry"],
         ]
 local_bcs = {
     "binary_ctrl": [
@@ -37,9 +37,9 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
+        ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="0",
+        default="1",
     )
     opts.add_argument(
         "-ev",
