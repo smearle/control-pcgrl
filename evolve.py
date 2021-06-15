@@ -181,7 +181,8 @@ def save_grid(csv_name="levels", d=6):
         grid_models = row["level"].tolist()
 
         for col_num in range(len(row)):
-            axs[row_num, col_num].set_axis_off()
+#           axs[row_num, col_num].set_axis_off()
+            axs[-col_num-1, -row_num-1].set_axis_off()
             level = np.zeros((map_width, map_width), dtype=int)
 
             for i, l_rows in enumerate(grid_models[col_num].split("], [")):
@@ -194,7 +195,8 @@ def save_grid(csv_name="levels", d=6):
             env._rep._x = env._rep._y = 0
             env._rep._map = level
             img = env.render(mode="rgb_array")
-            axs[row_num, col_num].imshow(img, aspect="auto")
+#           axs[row_num, col_num].imshow(img, aspect="auto")
+            axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
 
     fig.subplots_adjust(hspace=0.01, wspace=0.01)
     levels_png_path = os.path.join(SAVE_PATH, "{}_grid.png".format(csv_name))
@@ -2231,7 +2233,8 @@ class EvoPCGRL:
 
                     for col_num in range(len(row)):
                         model = grid_models[col_num]
-                        axs[row_num, col_num].set_axis_off()
+#                       axs[row_num, col_num].set_axis_off()
+                        axs[-col_num-1, -row_num-1].set_axis_off()
 
                         # initialize weights
                         init_nn = set_weights(self.gen_model, model)
@@ -2257,7 +2260,8 @@ class EvoPCGRL:
                         # Get image
                         #                       img = self.env.render(mode="rgb_array")
                         img = level_frames[-1]
-                        axs[row_num, col_num].imshow(img, aspect="auto")
+#                       axs[row_num, col_num].imshow(img, aspect="auto")
+                        axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
             plt.tight_layout()
             fig.savefig(
