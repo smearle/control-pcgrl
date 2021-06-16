@@ -149,15 +149,16 @@ midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
 kwargs = {
+    'map_width': opts.map_width,
     # 'change_percentage': 1,
     # 'target_path': 105,
     # 'n': 4, # rank of saved experiment (by default, n is max possible)
 }
 
-if problem == "sokobangoal":
-    map_width = 5
-else:
-    map_width = 16
+#if problem == "sokobangoal":
+#    map_width = 5
+#else:
+#    map_width = 16
 
 max_step = opts.max_step
 # if max_step is None:
@@ -187,7 +188,7 @@ infer_kwargs = {
     "midep_trgs": midep_trgs,
     "infer": True,
     "ca_action": ca_action,
-    "map_width": map_width,
+    "map_width": opts.map_width,
     "cropped_size": opts.crop_size,
 }
 

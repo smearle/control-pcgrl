@@ -15,47 +15,57 @@ from typing import List
 from cross_eval import compile_results
 
 problems = [
-#       "binary_ctrl", 
+        "binary_ctrl", 
         "zelda_ctrl", 
-#       "sokoban_ctrl", 
-#       "smb_ctrl"
+        "sokoban_ctrl", 
+        "smb_ctrl"
         ]
 representations = [
         "cellular", 
-        "wide", 
-        "narrow", 
-        "turtle"
+       #"wide", 
+       #"narrow", 
+       #"turtle"
         ]
 global_bcs: List[List] = [
        #["NONE"], 
-        ["emptiness", "symmetry"],
+       #["emptiness", "symmetry"],
         ]
 local_bcs = {
     "binary_ctrl": [
-        ["regions", "path-length"],
-        ["emptiness", "path-length"],
+       #["regions", "path-length"],
+       #["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
+       #["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+       #["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        ["crate", "sol-length"],
+       #["crate", "sol-length"],
         ["emptiness", "sol-length"],
-        ["symmetry", "sol-length"],
+       #["symmetry", "sol-length"],
     ],
-    "smb_ctrl": [["enemies", "jumps"], ["emptiness", "jumps"], ["symmetry", "jumps"]],
+    "smb_ctrl": [
+       #["enemies", "jumps"], 
+       #["emptiness", "jumps"], 
+       ["symmetry", "jumps"]
+       ],
 }
 models = [
     "NCA",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
-fix_elites = [True, False]
+fix_elites = [
+        True, 
+       #False
+       ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
-fix_seeds = [True, False]
+fix_seeds = [
+        True, 
+        False
+        ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [

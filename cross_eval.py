@@ -70,7 +70,8 @@ def compile_results(settings_list):
     if batch_exp_name == "0":
         EVO_DIR = "evo_runs_06-12"
     elif batch_exp_name == "1":
-        EVO_DIR = "evo_runs_06-13"
+        #       EVO_DIR = "evo_runs_06-13"
+        EVO_DIR = "evo_runs_06-14"
     #   ignored_keys = set(
     #       (
     #           "exp_name",
@@ -124,6 +125,7 @@ def compile_results(settings_list):
         fixLvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
 
         if not (os.path.isfile(stats_f) and os.path.isfile(fixLvl_stats_f)):
+            print("skipping evaluation of experiment due to missing stats file(s): {}".format(exp_name))
             continue
         vals.append(tuple(val_lst))
         data.append([])
@@ -155,7 +157,14 @@ def compile_results(settings_list):
     df = pd.DataFrame(data=data, index=index, columns=columns).sort_values(by=new_keys)
     #   print(index)
 
-    tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
+    csv_name = r"{}/cross_eval_{}.csv".format(EVO_DIR, batch_exp_name)
+    html_name = r"{}/cross_eval_{}.html".format(EVO_DIR, batch_exp_name)
+    df.to_csv(csv_name)
+    df.to_html(html_name)
+    print(df)
+
+#   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
+    tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(EVO_DIR, batch_exp_name)
     # FIXME: FUCKING ROUND YOURSELF DUMB BITCH
     df = df.round(1)
     df_zelda = df.loc["zelda_ctrl", "emptiness-path-length", "cellular"].round(1)
@@ -167,26 +176,27 @@ def compile_results(settings_list):
                 lambda data: bold_extreme_values(data, data_max=df_zelda[k].max())
             )
     df_zelda = df_zelda.round(1)
-    print(df_zelda)
-    with open(tex_name, "w") as tex_f:
-        col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}p{0.8cm}"
-        df_zelda.to_latex(
-            tex_f,
-            columns=z_cols,
-            column_format=col_widths,
-            escape=False,
-            caption=(
-                "Zelda, with emptiness and path-length as measures, and a cellular action representation. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
-            ),
-#           label={'tbl:zelda_empty-path_cell_{}'.format(batch_exp_name)},
-        )
+    df.reset_index(level=0, inplace=True)
+    if False:
+        print(df_zelda)
+        with open(tex_name, "w") as tex_f:
+            col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}p{0.8cm}"
+            df_zelda.to_latex(
+                tex_f,
+                index=True,
+                columns=z_cols,
+                column_format=col_widths,
+                escape=False,
+                caption=(
+                    "Zelda, with emptiness and path-length as measures, and a cellular action representation. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
+                ),
+                label={'tbl:zelda_empty-path_cell_{}'.format(batch_exp_name)},
+            )
 
 
 #   # Remove duplicate row indices for readability in the csv
 #   df.reset_index(inplace=True)
 #   for k in new_keys:
 #       df.loc[df[k].duplicated(), k] = ''
-#   print(df)
-    csv_name = r"{}/cross_eval_{}.csv".format(EVO_DIR, batch_exp_name)
-    df.to_csv(csv_name)
+#   csv_name = r"{}/cross_eval_{}.csv".format(OVERLEAF_DIR, batch_exp_name)
 

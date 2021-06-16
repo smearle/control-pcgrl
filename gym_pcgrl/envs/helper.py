@@ -2,6 +2,7 @@
 A helper module that can be used by all problems
 """
 import numpy as np
+from pdb import set_trace as TT
 
 """
 Public function to get a dictionary of all location of all tiles

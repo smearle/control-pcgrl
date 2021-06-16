@@ -1,3 +1,4 @@
+from pdb import set_trace as TT
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
@@ -54,11 +55,11 @@ class PcgrlEnv(gym.Env):
         self.weights = self._prob.weights
 #       self.param_bounds = self._prob.cond_bounds
 
-    def configure(self, map_width, max_step=300):
+    def configure(self, map_width, **kwargs):  # , max_step=300):
         self._prob._width = map_width
         self._prob._height = map_width
         self.width = map_width
-        self._prob.max_step = max_step
+#       self._prob.max_step = max_step
 
 
 #   def get_param_bounds(self):

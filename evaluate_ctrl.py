@@ -18,6 +18,7 @@ from envs import make_vec_envs
 from utils import (
     get_action,
     get_crop_size,
+    get_map_width,
     get_env_name,
     get_exp_name,
     load_model,
@@ -206,7 +207,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             ctrl_names = prob_cond_metrics[problem]
             ctrl_bounds = [(k, env.envs[0].cond_bounds[k]) for k in ctrl_names]
 
-    if len(ctrl_bounds) == 1:
+    elif len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1]
         step_size = max((bounds[1] - bounds[0]) / (N_BINS[0] - 1), 1)
@@ -768,7 +769,7 @@ class EvalData:
         # plt.gca().xaxis.set_major_locator(plt.NullLocator())
         # plt.gca().yaxis.set_major_locator(plt.NullLocator())
         plt.savefig(self.levels_im_path, bbox_inches="tight", pad_inches=pad_inches)
-        plt.show()
+#       plt.show()
 
 
 # NOTE: let's not try multiproc how about that :~)
@@ -900,10 +901,11 @@ RENDER_LEVELS = opts.render_levels
 # NOTE: For now rendering levels and doing any sort of evaluation are separate processes because we don't need to render all that and it would be inefficient but we do need many runs for statistical significance. Pray for representative levels.
 DIVERSITY_EVAL = not RENDER_LEVELS
 
-if problem == "sokobangoal":
-    map_width = 5
-else:
-    map_width = 16
+map_width = get_map_width(problem)
+#if problem == "sokobangoal":
+#    map_width = 5
+#else:
+#    map_width = 16
 
 if conditional:
     max_step = opts.max_step
@@ -917,6 +919,8 @@ if conditional:
         max_step = 50
 else:
     max_step = None
+
+max_step = 1000
 
 # For inference
 infer_kwargs = {
@@ -952,9 +956,9 @@ else:
 
 if __name__ == "__main__":
 
-    # Evaluate controllability
-    evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
     # Evaluate fixed quality of levels, or controls at default targets
+    evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
+    # Evaluate controllability
     evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

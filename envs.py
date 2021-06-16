@@ -1,9 +1,9 @@
 from gym_pcgrl import wrappers, conditional_wrappers
 #from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
-from utils import RenderMonitor
+from utils import RenderMonitor, get_map_width
 from gym import spaces
-from pdb import set_trace as T
+from pdb import set_trace as TT
 
 def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     '''
@@ -14,7 +14,9 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     conditional = kwargs.get('conditional', False)
     evaluate = kwargs.get('evaluate', False)
     ALP_GMM = kwargs.get('alp_gmm', False)
-    evo_compare = kwargs.get('evo_compare', False)
+    map_width = kwargs.get('map_width')
+
+#   evo_compare = kwargs.get('evo_compare', False)
     def _thunk():
         if representation == 'wide':
             ca_action = kwargs.get('ca_action', False)
@@ -27,30 +29,30 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
-        if evo_compare:
-            # FIXME: THIS DOES NOT WORK
+#       if evo_compare:
+#           # FIXME: THIS DOES NOT WORK
 
-            # Give a little wiggle room from targets, to allow for some diversity
-            if "binary" in env_name:
-                path_trg = env.unwrapped._prob.static_trgs['path-length']
-                env.unwrapped._prob.static_trgs.update({'path-length': (path_trg - 20, path_trg)})
-            elif "zelda" in env_name:
-                path_trg = env.unwrapped._prob.static_trgs['path-length']
-                env.unwrapped._prob.static_trgs.update({'path-length': (path_trg - 40, path_trg)})
-            elif "sokoban" in env_name:
-                sol_trg = env.unwrapped._prob.static_trgs['sol-length']
-                env.unwrapped._prob.static_trgs.update({'sol-length': (sol_trg - 10, sol_trg)})
-            elif "smb" in env_name:
-                pass
-            else:
-                raise NotImplemented
+#           # Give a little wiggle room from targets, to allow for some diversity
+#           if "binary" in env_name:
+#               path_trg = env.unwrapped._prob.static_trgs['path-length']
+#               env.unwrapped._prob.static_trgs.update({'path-length': (path_trg - 20, path_trg)})
+#           elif "zelda" in env_name:
+#               path_trg = env.unwrapped._prob.static_trgs['path-length']
+#               env.unwrapped._prob.static_trgs.update({'path-length': (path_trg - 40, path_trg)})
+#           elif "sokoban" in env_name:
+#               sol_trg = env.unwrapped._prob.static_trgs['sol-length']
+#               env.unwrapped._prob.static_trgs.update({'sol-length': (sol_trg - 10, sol_trg)})
+#           elif "smb" in env_name:
+#               pass
+#           else:
+#               raise NotImplementedError
+        env.configure(**kwargs)
         if max_step is not None:
             env = wrappers.MaxStep(env, max_step)
         if log_dir is not None and kwargs.get('add_bootstrap', False):
             env = wrappers.EliteBootStrapping(env,
                                               os.path.join(log_dir, "bootstrap{}/".format(rank)))
         env = conditional_wrappers.ParamRew(env, cond_metrics=kwargs.pop('cond_metrics'), **kwargs)
-        env.configure(**kwargs)
         if not evaluate:
             if not ALP_GMM:
                 env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)
@@ -68,7 +70,8 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     '''
     Prepare a vectorized environment using a list of 'make_env' functions.
     '''
-    map_width = kwargs.get('map_width', None)
+    map_width = get_map_width(env_name)
+    kwargs['map_width'] = map_width
     n_cpu = kwargs.pop('n_cpu')
     if n_cpu > 1:
         env_lst = []
@@ -85,9 +88,10 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     elif isinstance(action_space, spaces.MultiDiscrete):
         n_tools = action_space.nvec[2]
     elif isinstance(action_space, spaces.Box):
-        n_tools = action_space.shape[0] // kwargs.get('map_width') ** 2
+        n_tools = action_space.shape[0] // map_width ** 2
     else:
         raise Exception
+    dummy_env.env.close()
     del(dummy_env)
 
     return env, action_space, n_tools

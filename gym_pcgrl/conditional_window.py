@@ -1,6 +1,7 @@
 import gi 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
+from pdb import set_trace as TT
 
 #FIXME: sometimes the mere existence of this class will break a multi-env micropolis run
 class ParamRewWindow(Gtk.Window):
@@ -61,7 +62,6 @@ class ParamRewWindow(Gtk.Window):
         self.prog_bars = prog_bars
         self.scales = scales
         self.prog_labels = prog_labels
-
 
 
     def step(self):

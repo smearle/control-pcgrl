@@ -26,6 +26,7 @@ class ParamRew(gym.Wrapper):
         if cond_metrics is None:
             cond_metrics = []
         self.usable_metrics = cond_metrics  # controllable metrics
+#       self.usable_metrics = cond_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
         # fixed metrics (i.e. playability constraints)
         self.static_metrics = set(env.static_trgs.keys())
 
@@ -359,6 +360,9 @@ class ParamRew(gym.Wrapper):
 
         return done
 
+    def close(self):
+        if self.render_gui:
+            self.win.destroy()
 
 # TODO: What the fuck is this actually doing and why does it kind of work?
 # class PerlinNoiseyTargets(gym.Wrapper):

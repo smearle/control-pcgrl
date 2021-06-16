@@ -143,6 +143,7 @@ def launch_batch(exp_name):
                                     "resume": True,
                                     "n_maps": n_maps,
                                     "render": False,
+#                                   "render_levels": True,
                                     "n_bins": (n_bins,),
                                 }
                             )

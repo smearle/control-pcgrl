@@ -72,6 +72,13 @@ def get_args():
         default="narrow",
     )
     args.add_argument(
+        "-mw",
+        "--map_width",
+        help="Width of the game level.",
+        type=int,
+        default=None,
+    )
+    args.add_argument(
         "-ca",
         "--ca_action",
         help="Cellular automaton-type action. The entire next game state is sampled from the model output.",
@@ -135,11 +142,11 @@ def get_args():
         help="Fancy ish teacher algorithm for controllable targets.",
         action="store_true",
     )
-    args.add_argument(
-        "--evo_compare",
-        help="Compare with work in evo-pcgrl using pyribs to train NNs as generators.",
-        action="store_true",
-    )
+#   args.add_argument(
+#       "--evo_compare",
+#       help="Compare with work in evo-pcgrl using pyribs to train NNs as generators.",
+#       action="store_true",
+#   )
 
     # Not for training:
     args.add_argument(

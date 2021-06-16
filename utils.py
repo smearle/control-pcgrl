@@ -6,12 +6,20 @@ import os
 import re
 
 import numpy as np
-
-from gym_pcgrl import wrappers
 from stable_baselines import PPO2
 from stable_baselines.bench import Monitor
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 
+from gym_pcgrl import wrappers
+
+MAP_WIDTHS = {"binary": 16, "zelda": 16, "sokoban": 5}
+
+
+def get_map_width(game):
+    for (k, v) in MAP_WIDTHS.items():
+        if k in game:
+            return v
+    return 16
 
 def get_crop_size(game):
     if "binary" in game:
@@ -126,7 +134,7 @@ def get_exp_name(game, representation, **kwargs):
 
     if kwargs.get("conditional"):
         exp_name += "_conditional"
-        exp_name += '_' + '-'.join(['ctrl'] + kwargs.get("cond_metrics"))
+        exp_name += "_" + "-".join(["ctrl"] + kwargs.get("cond_metrics"))
     else:
         exp_name += "_vanilla"
         exp_name += "_chng-{}".format(kwargs.get("change_percentage"))
