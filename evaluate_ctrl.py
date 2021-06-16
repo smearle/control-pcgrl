@@ -22,7 +22,7 @@ from utils import (
     get_env_name,
     get_exp_name,
     load_model,
-    max_exp_idx,
+#   max_exp_idx,
 )
 
 # For 1D data, do we use a bar chart instead of a heatmap?
@@ -55,7 +55,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
     infer_kwargs = {**infer_kwargs, "inference": True, "evaluate": True}
     #   max_trials = kwargs.get("max_trials", -1)
-    n = kwargs.get("n", None)
+#   n = kwargs.get("n", None)
+    exp_id = kwargs.get('experiment_id')
     #   map_width = infer_kwargs.get("map_width")
     max_steps = infer_kwargs.get("max_step")
     eval_controls = infer_kwargs.get("eval_controls")
@@ -64,16 +65,16 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     exp_name = get_exp_name(game, representation, **kwargs)
     levels_im_name = "{}_{}-bins_levels.png"
 
-    if n is None:
-        if EXPERIMENT_ID is None:
-            n = max_exp_idx(exp_name)
-            print(
-                "Experiment index not specified, setting index automatically to {}".format(
-                    n
-                )
-            )
-        else:
-            n = EXPERIMENT_ID
+#   if n is None:
+#       if EXPERIMENT_ID is None:
+#           n = max_exp_idx(exp_name)
+#           print(
+#               "Experiment index not specified, setting index automatically to {}".format(
+#                   n
+#               )
+#           )
+#       else:
+#           n = EXPERIMENT_ID
 
     if n == 0:
         raise Exception(
@@ -83,7 +84,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
     if crop_size == -1:
         infer_kwargs["cropped_size"] = get_crop_size(game)
-    log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, n)
+    log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, exp_id)
     data_path = os.path.join(log_dir, "{}_eval_data.pkl".format(N_BINS))
     data_path_levels = os.path.join(log_dir, "{}_eval_data_levels.pkl".format(N_BINS))
 
@@ -940,6 +941,7 @@ infer_kwargs = {
     "map_width": map_width,
     "eval_controls": opts.eval_controls,
     "cropped_size": opts.crop_size,
+    "experiment_id": opts.experiment_id,
 }
 
 global N_BINS

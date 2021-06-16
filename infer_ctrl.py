@@ -8,7 +8,8 @@ import numpy as np
 
 from arguments import parse_args
 from envs import make_vec_envs
-from utils import get_crop_size, get_env_name, get_exp_name, load_model, max_exp_idx
+from utils import get_crop_size, get_env_name, get_exp_name, load_model, 
+#max_exp_idx
 
 print("importing tensorflow stuff, if a hang happens after this just reboot :~)\n")
 
@@ -26,16 +27,17 @@ def infer(game, representation, infer_kwargs, **kwargs):
     """
     infer_kwargs = {**infer_kwargs, "inference": True, "render": True}
     max_trials = kwargs.get("max_trials", -1)
-    n = kwargs.get("n", None)
+#   n = kwargs.get("n", None)
+    exp_id = kwargs('experiment_id')
     map_width = infer_kwargs.get("map_width")
     env_name = get_env_name(game, representation)
     exp_name = get_exp_name(game, representation, **infer_kwargs)
 
-    if n is None:
-        if EXPERIMENT_ID is None:
-            n = max_exp_idx(exp_name)
-        else:
-            n = EXPERIMENT_ID
+#   if n is None:
+#       if EXPERIMENT_ID is None:
+#           n = max_exp_idx(exp_name)
+#       else:
+#           n = EXPERIMENT_ID
 
     if n == 0:
         raise Exception(
@@ -45,7 +47,8 @@ def infer(game, representation, infer_kwargs, **kwargs):
 
     if crop_size == -1:
         infer_kwargs["cropped_size"] = get_crop_size(game)
-    log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, n)
+#   log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, n)
+    log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, exp_id)
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get("n_cpu")
     env, dummy_action_space, n_tools = make_vec_envs(
@@ -190,6 +193,8 @@ infer_kwargs = {
     "ca_action": ca_action,
     "map_width": opts.map_width,
     "cropped_size": opts.crop_size,
+    "alp_gmm": alp_gmm,
+    "experiment_id": opts.experiment_id,
 }
 
 if __name__ == "__main__":

@@ -91,16 +91,16 @@ def get_args():
         help="Which game level metrics to use as conditionals for the generator",
         default=["NONE"],
     )
-    args.add_argument(
-        "--resume",
-        help="Are we resuming from a saved training run?",
-        action="store_true",
-    )
+#   args.add_argument(
+#       "--resume",
+#       help="Are we resuming from a saved training run?",
+#       action="store_true",
+#   )
     args.add_argument(
         "--experiment_id",
         help="An experiment ID for tracking different runs of experiments with identical hyperparameters.",
         type=int, 
-        default=None,
+        default=0,
     )
     args.add_argument(
         "--midep_trgs",

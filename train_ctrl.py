@@ -18,7 +18,8 @@ from stable_baselines import PPO2
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines.results_plotter import load_results, ts2xy
 from utils import (get_crop_size, get_env_name, get_exp_name, load_model,
-                   max_exp_idx)
+#                  max_exp_idx
+                   )
 
 n_steps = 0
 log_dir = './'
@@ -102,15 +103,18 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     if crop_size == -1:
         kwargs['cropped_size'] = get_crop_size(game)
 
-    n = kwargs.get('experiment_id')
+    exp_id = kwargs.get('experiment_id')
+#   n = kwargs.get('experiment_id')
 
-    if n is None:
-        n = max_exp_idx(exp_name)
-        if not resume:
-            n += 1
+#   if n is None:
+#       n = max_exp_idx(exp_name)
+#       if not resume:
+#           n += 1
     global log_dir
 
-    log_dir = 'rl_runs/{}_{}_log'.format(exp_name, n)
+    exp_name_id = '{}_{}'.format(exp_name, exp_id)
+#   log_dir = 'rl_runs/{}_{}_log'.format(exp_name, n)
+    log_dir = 'rl_runs/{}_log'.format(exp_name_id)
 
     kwargs = {
         **kwargs,
@@ -118,16 +122,20 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         'render': render,
     }
 
-    if not resume:
-        os.mkdir(log_dir)
+#   if not resume:
     try:
+        os.mkdir(log_dir)
+        print("Log directory does not exist, starting anew, bb.")
+        resume = False
+    except Exception:
+        print("Log directory exists, fumbling on. Will try to load model.")
         env, dummy_action_space, n_tools = make_vec_envs(
             env_name, representation, log_dir, **kwargs)
     except Exception as e:
         # if this is a new experiment, clean up the logging directory if we fail to start up
 
-        if not resume:
-            os.rmdir(log_dir)
+#       if not resume:
+#           os.rmdir(log_dir)
         raise e
 
     with open(os.path.join(log_dir, 'settings.json'),
@@ -167,11 +175,12 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     #model.policy = model.policy.to('cuda:0')
 #   if torch.cuda.is_available():
 #       model.policy = model.policy.cuda()
+    tb_log_name = '{}_tb'.format(exp_name_id)
     if not logging:
-        model.learn(total_timesteps=n_frames, tb_log_name=exp_name)
+        model.learn(total_timesteps=n_frames, tb_log_name=tb_log_name)
     else:
         model.learn(total_timesteps=n_frames,
-                    tb_log_name=exp_name, callback=callback)
+                    tb_log_name=tb_log_name, callback=callback)
 
 
 opts = parse_args()
@@ -187,11 +196,11 @@ n_frames = opts.n_frames
 render = opts.render
 logging = True
 n_cpu = opts.n_cpu
-resume = opts.resume
+#resume = opts.resume
+resume = True
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
-evo_compare = opts.evo_compare
 #################
 
 if 'sokoban' in problem:
@@ -226,8 +235,8 @@ kwargs = {
     'ca_action': ca_action,
     'cropped_size': opts.crop_size,
     'alp_gmm': alp_gmm,
-    'evo_compare': evo_compare,
     'change_percentage': change_percentage,
+    'experiment_id': opts.experiment_id,
 }
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 """
 Helper functions for train, infer, and eval modules.
 """
+from pdb import set_trace as TT
 import glob
 import os
 import re
@@ -151,17 +152,17 @@ def get_exp_name(game, representation, **kwargs):
     return exp_name
 
 
-def max_exp_idx(exp_name):
-    log_dir = os.path.join("./rl_runs", exp_name)
-    log_files = glob.glob("{}*".format(log_dir))
-
-    if len(log_files) == 0:
-        n = 0
-    else:
-        log_ns = [int(re.search("_(\d+)", f).group(1)) for f in log_files]
-        n = max(log_ns)
-
-    return int(n)
+#def max_exp_idx(exp_name):
+#    log_dir = os.path.join("./rl_runs", exp_name)
+#    log_files = glob.glob("{}*".format(log_dir))
+#
+#    if len(log_files) == 0:
+#        n = 0
+#    else:
+#        log_ns = [int(re.search("_(\d+)", f).group(1)) for f in log_files]
+#        n = max(log_ns)
+#
+#    return int(n)
 
 
 def load_model(log_dir, n_tools=None, load_best=False):
@@ -179,9 +180,12 @@ def load_model(log_dir, n_tools=None, load_best=False):
 
         if len(files) > 0:
             # selects the last file listed by os.listdir
+            # What the fuck is up with the random thing
             model_path = os.path.join(log_dir, np.random.choice(files))
         else:
-            raise Exception("No models are saved at {}".format(model_path))
+            print("No models are saved at {}".format(model_path))
+            return None
+#           raise Exception("No models are saved at {}".format(model_path))
     print("Loading model at {}".format(model_path))
 
     if n_tools:

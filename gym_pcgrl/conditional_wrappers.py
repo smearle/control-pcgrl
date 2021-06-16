@@ -449,6 +449,7 @@ class ALPGMMTeacher(gym.Wrapper):
         self.n_trial_steps = 0
 
     def reset(self):
+        print(self.trg_vec)
         if self.trg_vec is not None:
             rew = self.trial_reward / self.n_trial_steps
             self.alp_gmm.update(self.trg_vec, rew)
