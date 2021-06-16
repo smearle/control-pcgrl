@@ -129,6 +129,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         resume = False
     except Exception:
         print("Log directory exists, fumbling on. Will try to load model.")
+    try:
         env, dummy_action_space, n_tools = make_vec_envs(
             env_name, representation, log_dir, **kwargs)
     except Exception as e:
