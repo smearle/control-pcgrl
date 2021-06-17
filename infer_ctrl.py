@@ -57,6 +57,8 @@ def infer(game, representation, infer_kwargs, **kwargs):
     model = load_model(
         log_dir, load_best=infer_kwargs.get("load_best"), n_tools=n_tools
     )
+    if model is None:
+        raise Exception("No model loaded")
     #   model.set_env(env)
     env.action_space = dummy_action_space
     obs = env.reset()

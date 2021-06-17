@@ -69,7 +69,11 @@ alp_gmms = [
 
 
 def launch_batch(exp_name):
-    if LOCAL:
+    if args.render_levels:
+        print('Rendering levels')
+        n_bins = 4
+        n_maps = 2
+    elif LOCAL:
         print("Testing locally.")
         n_maps = 2
         n_bins = 5
@@ -143,7 +147,7 @@ def launch_batch(exp_name):
                                     "resume": True,
                                     "n_maps": n_maps,
                                     "render": False,
-#                                   "render_levels": True,
+                                    "render_levels": args.render_levels,
                                     "n_bins": (n_bins,),
                                 }
                             )
@@ -162,6 +166,13 @@ def launch_batch(exp_name):
 if __name__ == "__main__":
     opts = argparse.ArgumentParser(
         description="Launch a batch of experiments/evaluations for (controllable) pcgrl"
+    )
+
+    opts.add_argument(
+        "-rl",
+        "--render_levels",
+        help="",
+        action="store_true",
     )
 
     opts.add_argument(

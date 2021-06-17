@@ -277,7 +277,6 @@ class ParamRew(gym.Wrapper):
     def get_loss(self):
         loss = 0
 
-        TT()
         for metric in self.all_metrics:
             if metric in self.metric_trgs:
                 trg = self.metric_trgs[metric]

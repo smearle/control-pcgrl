@@ -15,7 +15,7 @@ class SokobanCtrlProblem(SokobanProblem):
         self.weights = {
             "player": 3,
             "crate": 1,
-            "target": 1,
+#           "target": 1,
             "regions": 5,
             "ratio": 2,
             "dist-win": 0.0,
@@ -25,7 +25,7 @@ class SokobanCtrlProblem(SokobanProblem):
         self.static_trgs = {
             "player": 1,
             "crate": (2, self._max_crates),
-            "target": (1, self._max_crates),
+#           "target": (1, self._max_crates),
             "regions": 1,
             "ratio": 0,
             "dist-win": 0,

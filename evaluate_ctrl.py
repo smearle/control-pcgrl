@@ -210,8 +210,10 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             image.save(
                 os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS))
             )
+        else:
+            image = None
 
-        return cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens
+        return cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens, image
 
     if len(ctrl_bounds) == 0:
         # If we didn't train with controls, we'll evaluate inside a grid of targets (on the controllable agents' turf)
@@ -223,7 +225,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     if fix_trgs:
         ctrl_names = None
         ctrl_ranges = None
-        cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens = eval_static_trgs()
+        cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens, image = eval_static_trgs()
 
     elif len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
@@ -352,7 +354,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             levels_im_path=levels_im_path,
         )
         pickle.dump(eval_data_levels, open(data_path_levels, "wb"))
-        eval_data_levels.render_levels()
+        if not fix_trgs:
+            eval_data_levels.render_levels()
 
     if DIVERSITY_EVAL:
         eval_data = eval_data
@@ -972,13 +975,17 @@ else:
 if __name__ == "__main__":
 
     # Evaluate controllability
-    evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
-    if not conditional:
-        # Then evaluate over some default controls (otherwise use those that we trained on)
-        # TODO: for each experiment, repeat for a set of control-sets
-        eval_ctrls = PROB_CONTROLS[problem][0]
-        infer_kwargs.update({'eval_controls': eval_ctrls, 'cond_metrics': eval_ctrls})
     # Evaluate fixed quality of levels, or controls at default targets
-    evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
+    evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
+    if not conditional and not RENDER_LEVELS:
+        control_sets = PROB_CONTROLS[problem]
+        for i, eval_ctrls in enumerate(control_sets):
+
+            # Then evaluate over some default controls (otherwise use those that we trained on)
+            # TODO: for each experiment, repeat for a set of control-sets
+            infer_kwargs.update({'eval_controls': eval_ctrls, 'cond_metrics': eval_ctrls})
+            evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
+    else:
+            evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()
