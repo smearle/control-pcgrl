@@ -22,11 +22,12 @@ from utils import (
     get_env_name,
     get_exp_name,
     load_model,
+    PROB_CONTROLS,
 #   max_exp_idx,
 )
 
 # For 1D data, do we use a bar chart instead of a heatmap?
-BAR_CHART = True
+BAR_CHART = False
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10, 500)
@@ -56,7 +57,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     infer_kwargs = {**infer_kwargs, "inference": True, "evaluate": True}
     #   max_trials = kwargs.get("max_trials", -1)
 #   n = kwargs.get("n", None)
-    exp_id = kwargs.get('experiment_id')
+    exp_id = infer_kwargs.get('experiment_id')
     #   map_width = infer_kwargs.get("map_width")
     max_steps = infer_kwargs.get("max_step")
     eval_controls = infer_kwargs.get("eval_controls")
@@ -76,17 +77,26 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 #       else:
 #           n = EXPERIMENT_ID
 
-    if n == 0:
-        raise Exception(
-            "Did not find ranked saved model of experiment: {}".format(exp_name)
-        )
+#   if n == 0:
+#       raise Exception(
+#           "Did not find ranked saved model of experiment: {}".format(exp_name)
+#       )
     crop_size = infer_kwargs.get("cropped_size")
 
     if crop_size == -1:
         infer_kwargs["cropped_size"] = get_crop_size(game)
-    log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, exp_id)
-    data_path = os.path.join(log_dir, "{}_eval_data.pkl".format(N_BINS))
-    data_path_levels = os.path.join(log_dir, "{}_eval_data_levels.pkl".format(N_BINS))
+    log_dir = os.path.join(EXPERIMENT_DIR, '{}_{}_log'.format(exp_name, exp_id))
+    eval_dir = os.path.join(log_dir, 'eval')
+    if not os.path.isdir(eval_dir):
+        os.mkdir(eval_dir)
+#   log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, exp_id)
+    data_path = os.path.join(eval_dir, "{}_eval_data".format(N_BINS))
+    data_path_levels = os.path.join(eval_dir, "{}_eval_data_levels".format(N_BINS))
+    if fix_trgs:
+        data_path += "_fixTrgs"
+        data_path_levels += "_fixTrgs"
+    data_path += ".pkl"
+    data_path_levels += ".pkl"
 
     if VIS_ONLY:
         if RENDER_LEVELS:
@@ -96,9 +106,9 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             return
         eval_data = pickle.load(open(data_path, "rb"))
         # FIXME: just for backward compatibility
-        eval_data.log_dir = log_dir
-        eval_data.visualize_data(log_dir, fix_trgs)
-        eval_data.hamming_heatmap(None, eval_data.div_scores)
+        eval_data.eval_dir = eval_dir
+        eval_data.visualize_data(eval_dir, fix_trgs)
+#       eval_data.hamming_heatmap(None, eval_data.div_scores)
 
         return
     # no log dir, 1 parallel environment
@@ -131,6 +141,10 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
     if not eval_controls:
         eval_controls = control_bounds.keys()
+    if len(control_bounds) == 0:
+        # Then this is a non-controllable agent.
+        # Can't we just do this in all cases though?
+        control_bounds = env.envs[0].cond_bounds
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
 
     #   if len(ctrl_bounds) == 0 and DIVERSITY_EVAL:
@@ -147,66 +161,69 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
 
+    def eval_static_trgs():
+        '''Run an evaluation on the default values for all level metrics. For both controllable and vanilla agents. 
+        The latter's "home turf."'''
+        N_BINS = None
+        level_images = []
+        cell_scores = np.zeros(shape=(1, 1, N_EVALS))
+        div_scores = np.zeros(shape=(1, 1))
+        cell_static_scores = np.zeros(shape=(1, 1, N_EVALS))
+        cell_ctrl_scores = np.zeros(shape=(1, 1, N_EVALS))
+        level_tokens = None
+
+        if DIVERSITY_EVAL:
+            n_row = 1
+            n_col = 1
+        else:
+            n_row = 2
+            n_col = 5
+
+        for i in range(n_row):
+            level_images_y = []
+
+            for j in range(n_col):
+                net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(
+                    model,
+                    env,
+                    N_EVALS,
+                    n_cpu,
+                    init_states,
+                    eval_dir,
+                    env.envs[0].unwrapped._prob.static_trgs,
+                    max_steps,
+                )
+                level_images_y.append(level_image)
+                cell_scores[0, 0, :] = net_score
+                div_score = np.sum(
+                    [np.sum(a != b) for a in tokens for b in tokens]
+                ) / (len(tokens) * (len(tokens) - 1))
+                div_score = div_score / (map_width * map_width)
+                div_scores[0, 0] = div_score
+
+            if RENDER_LEVELS:
+                level_images.append(np.hstack(level_images_y))
+
+        if RENDER_LEVELS:
+            image = np.vstack(level_images[::-1])
+            image = Image.fromarray(image)
+            image.save(
+                os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS))
+            )
+
+        return cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens
+
     if len(ctrl_bounds) == 0:
         # If we didn't train with controls, we'll evaluate inside a grid of targets (on the controllable agents' turf)
         # and record scores for the cell corresponding to the default static targets (on the vanilla turf),
         # depending on the value of fix_trgs.
+        ctrl_names = prob_cond_metrics[problem]
+        ctrl_bounds = [(k, env.envs[0].cond_bounds[k]) for k in ctrl_names]
 
-        if fix_trgs:
-
-            N_BINS = None
-            levels_im_name = "{}_{}-bins_levels.png"
-            level_images = []
-            cell_scores = np.zeros(shape=(1, 1))
-            div_scores = np.zeros(shape=(1, 1))
-            cell_static_scores = np.zeros(shape=(1, 1))
-            cell_ctrl_scores = np.zeros(shape=(1, 1))
-            level_tokens = None
-            ctrl_names = None
-
-            if DIVERSITY_EVAL:
-                n_row = 1
-                n_col = 1
-            else:
-                n_row = 2
-                n_col = 5
-
-            for i in range(n_row):
-                level_images_y = []
-
-                for j in range(n_col):
-                    net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(
-                        model,
-                        env,
-                        N_EVALS,
-                        n_cpu,
-                        init_states,
-                        log_dir,
-                        env.envs[0].unwrapped._prob.static_trgs,
-                        max_steps,
-                    )
-                    level_images_y.append(level_image)
-                    cell_scores[0, 0] = net_score
-                    div_score = np.sum(
-                        [np.sum(a != b) for a in tokens for b in tokens]
-                    ) / (len(tokens) * (len(tokens) - 1))
-                    div_score = div_score / (map_width * map_width)
-                    div_scores[0, 0] = div_score
-
-                if RENDER_LEVELS:
-                    level_images.append(np.hstack(level_images_y))
-
-            if RENDER_LEVELS:
-                image = np.vstack(level_images[::-1])
-                image = Image.fromarray(image)
-                image.save(
-                    os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
-                )
-
-            ctrl_ranges = None
-        else:
-            ctrl_names = prob_cond_metrics[problem]
-            ctrl_bounds = [(k, env.envs[0].cond_bounds[k]) for k in ctrl_names]
+    if fix_trgs:
+        ctrl_names = None
+        ctrl_ranges = None
+        cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens = eval_static_trgs()
 
     elif len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
@@ -214,9 +231,9 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         step_size = max((bounds[1] - bounds[0]) / (N_BINS[0] - 1), 1)
         eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
         level_images = []
-        cell_scores = np.zeros((len(eval_trgs), 1))
-        cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
-        cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
+        cell_scores = np.zeros((len(eval_trgs), 1, N_EVALS))
+        cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1, N_EVALS))
+        cell_static_scores = np.zeros(shape=(len(eval_trgs), 1, N_EVALS))
         level_tokens = []
         div_scores = np.zeros((len(eval_trgs), 1))
 
@@ -225,14 +242,14 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             print("evaluating control targets: {}".format(trg_dict))
             #           set_ctrl_trgs(env, {ctrl_name: trg})
             net_score, ctrl_score, static_score, level_image, tokens = eval_episodes(
-                model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps
+                model, env, N_EVALS, n_cpu, init_states, eval_dir, trg_dict, max_steps
             )
             div_score = div_calc(tokens)
             div_scores[i, 0] = div_score
             level_images.append(level_image)
-            cell_scores[i] = net_score
-            cell_ctrl_scores[i] = ctrl_score
-            cell_static_scores[i] = static_score
+            cell_scores[i, :, :] = net_score
+            cell_ctrl_scores[i, :, :] = ctrl_score
+            cell_static_scores[i, :, :] = static_score
             level_tokens.append(tokens)
         ctrl_names = (ctrl_name, None)
         ctrl_ranges = (eval_trgs, None)
@@ -243,7 +260,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         if RENDER_LEVELS:
             ims = np.hstack(level_images)
             image = Image.fromarray(ims)
-            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
+            image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
     elif len(ctrl_bounds) >= 2:
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
@@ -252,10 +269,10 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         step_1 = max((b1[1] - b1[0]) / (N_BINS[-1] - 1), 1)
         trgs_0 = np.arange(b0[0], b0[1] + 0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1] + 0.5, step_1)
-        cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1), N_EVALS))
         div_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
-        cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
-        cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1), N_EVALS))
+        cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1), N_EVALS))
         level_tokens = [[None] * len(trgs_0)] * len(trgs_1)  # Wait what?
         trg_dict = env.envs[0].static_trgs
         trg_dict = dict(
@@ -280,14 +297,14 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                     N_EVALS,
                     n_cpu,
                     init_states,
-                    log_dir,
+                    eval_dir,
                     trg_dict,
                     max_steps,
                 )
                 level_images_y.append(level_image)
-                cell_scores[i, j] = net_score
-                cell_ctrl_scores[i, j] = ctrl_score
-                cell_static_scores[i, j] = static_score
+                cell_scores[i, j, :] = net_score
+                cell_ctrl_scores[i, j, :] = ctrl_score
+                cell_static_scores[i, j, :] = static_score
                 div_score = div_calc(tokens)
                 div_scores[i, j] = div_score
             #               level_tokens[j][i] = tokens
@@ -303,23 +320,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         if RENDER_LEVELS:
             image = np.vstack(level_images[::-1])
             image = Image.fromarray(image)
-            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
-    levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
-
-    if not RENDER_LEVELS:
-        image = None
-    eval_data_levels = EvalData(
-        ctrl_names,
-        ctrl_ranges,
-        cell_scores,
-        cell_ctrl_scores,
-        cell_static_scores,
-        div_scores=div_scores,
-        log_dir=log_dir,
-        levels_image=image,
-        levels_im_path=levels_im_path,
-    )
-    pickle.dump(eval_data_levels, open(data_path_levels, "wb"))
+            image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
+    levels_im_path = os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS))
 
     if not RENDER_LEVELS:
         eval_data = EvalData(
@@ -328,15 +330,15 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             cell_scores,
             cell_ctrl_scores,
             cell_static_scores,
-            div_scores,
-            log_dir,
+            div_scores=div_scores,
+            eval_dir=eval_dir,
         )
         pickle.dump(eval_data, open(data_path, "wb"))
-        eval_data.visualize_data(log_dir, fix_trgs)
+        eval_data.visualize_data(eval_dir, fix_trgs)
 
     else:
         levels_im_path = os.path.join(
-            log_dir, levels_im_name.format(ctrl_names, N_BINS)
+            eval_dir, levels_im_name.format(ctrl_names, N_BINS)
         )
         eval_data_levels = EvalData(
             ctrl_names,
@@ -344,8 +346,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             cell_scores,
             cell_ctrl_scores,
             cell_static_scores,
-            div_scores,
-            log_dir,
+            div_scores=div_scores,
+            eval_dir=eval_dir,
             levels_image=image,
             levels_im_path=levels_im_path,
         )
@@ -353,16 +355,17 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         eval_data_levels.render_levels()
 
     if DIVERSITY_EVAL:
-        eval_data = eval_data_levels
+        eval_data = eval_data
 
-        if len(ctrl_bounds) == 0:
+        if fix_trgs:
             eval_data.save_stats(div_scores=div_scores, fix_trgs=fix_trgs)
         else:
-            eval_data.hamming_heatmap(level_tokens, div_scores=div_scores)
+            pass
+#           eval_data.hamming_heatmap(level_tokens, div_scores=div_scores)
 
 
 def eval_episodes(
-    model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps
+    model, env, n_trials, n_envs, init_states, eval_dir, trg_dict, max_steps
 ):
     env.envs[0].set_trgs(trg_dict)
     eval_scores = np.zeros(n_trials)
@@ -451,12 +454,12 @@ def eval_episodes(
 
     if RENDER_LEVELS and not SC:
         # we hackishly save it for SC up above already
-        image.save(os.path.join(log_dir, "{}_level.png".format(trg_dict)))
+        image.save(os.path.join(eval_dir, "{}_level.png".format(trg_dict)))
         level_image = asarray(image)
     else:
         level_image = None
 
-    return eval_score, eval_ctrl_score, eval_static_score, level_image, tokens
+    return eval_scores, eval_ctrl_scores, eval_static_scores, level_image, tokens
 
 
 class EvalData:
@@ -468,7 +471,7 @@ class EvalData:
         cell_ctrl_scores,
         cell_static_scores,
         div_scores,
-        log_dir,
+        eval_dir,
         levels_image=None,
         levels_im_path=None,
     ):
@@ -480,15 +483,16 @@ class EvalData:
         self.div_scores = div_scores
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
-        self.log_dir = log_dir
+        self.eval_dir = eval_dir
 
-    def visualize_data(self, log_dir, fix_trgs):
-        self.save_stats(fix_trgs=fix_trgs)
+    def visualize_data(self, eval_dir, fix_trgs):
+        self.save_stats(div_scores=self.div_scores, fix_trgs=fix_trgs)
 
         if fix_trgs:
             return
 
-        def create_heatmap(title, data):
+        def create_heatmap(title, data, vrange=(0,100), cmap_name=None):
+            vmin, vmax = vrange
             fig, ax = plt.subplots()
             # percentages from ratios
             data = data * 100
@@ -496,6 +500,7 @@ class EvalData:
             #           data = data.T
 
             if data.shape[1] == 1:
+                plt.xlabel(ctrl_names[0])
                 data = data.T
                 fig.set_size_inches(10, 2)
                 tick_idxs = np.arange(
@@ -516,7 +521,6 @@ class EvalData:
                     high = 100
                     plt.ylim([low, high])
                     ax.bar(ticks, data[0])
-                    plt.xlabel(ctrl_names[0])
                 else:
                     ax.set_yticks([])
             else:
@@ -528,18 +532,23 @@ class EvalData:
             # Create the heatmap
             #           im = ax.imshow(data, aspect='auto', vmin=-100, vmax=100)
 
-            if not BAR_CHART or data.shape[0] != 1:
-                im = ax.imshow(data, aspect="auto", vmin=0, vmax=100)
+            if not BAR_CHART or data.shape[1] != 1:
 
                 # Create colorbar
-                cmap = colors.ListedColormap(["b", "r", "y", "r"])
+                if cmap_name:
+                    cmap = plt.get_cmap(cmap_name)
+                else:
+                    cmap = None
+#                   cmap = colors.ListedColormap(["b", "r", "y", "r"])
+                im = ax.imshow(data, aspect="auto", vmin=vmin, vmax=vmax, cmap=cmap)
                 cbar = ax.figure.colorbar(im, ax=ax)
                 cbar.ax.set_ylabel("", rotation=90, va="bottom")
 
                 # We want to show all ticks...
-                # ... and label them with the respective list entries
-                plt.xlabel(ctrl_names[1])
-                plt.ylabel(ctrl_names[0])
+                if data.shape[0] != 1:
+                    # ... and label them with the respective list entries
+                    plt.xlabel(ctrl_names[1])
+                    plt.ylabel(ctrl_names[0])
 
             # Rotate the tick labels and set their alignment.
             plt.setp(
@@ -551,7 +560,7 @@ class EvalData:
 
             plt.savefig(
                 os.path.join(
-                    log_dir, "{}_{}.png".format(ctrl_names, title.replace("%", ""))
+                    eval_dir, "{}_{}.png".format(ctrl_names, title.replace("%", ""))
                 )
             )
 
@@ -564,13 +573,16 @@ class EvalData:
         cell_static_scores = self.cell_static_scores
 
         title = "All goals (mean progress, %)"
-        create_heatmap(title, cell_scores)
+        create_heatmap(title, cell_scores.mean(-1))
 
         title = "Controlled goals (mean progress, %)"
-        create_heatmap(title, cell_ctrl_scores)
+        create_heatmap(title, cell_ctrl_scores.mean(-1))
 
         title = "Fixed goals (mean progress, %)"
-        create_heatmap(title, cell_static_scores)
+        create_heatmap(title, cell_static_scores.mean(-1))
+
+        title = "Diversity"
+        create_heatmap(title, self.div_scores, cmap_name="inferno")
 
     def pairwise_hamming(self, a, b):
         return np.sum(a != b)
@@ -691,7 +703,7 @@ class EvalData:
 
         plt.savefig(
             os.path.join(
-                self.log_dir,
+                self.eval_dir,
                 "{}_{}.png".format(self.ctrl_names, title.replace("%", "")),
             )
         )
@@ -713,7 +725,7 @@ class EvalData:
             filename = "scores_fixTrgs.json"
         else:
             filename = "scores_ctrlTrgs.json"
-        with open(os.path.join(self.log_dir, filename), "w") as fp:
+        with open(os.path.join(self.eval_dir, filename), "w") as fp:
             json.dump(scores, fp, ensure_ascii=False, indent=4)
 
     def render_levels(self):
@@ -900,6 +912,7 @@ kwargs = {
 
 RENDER_LEVELS = opts.render_levels
 # NOTE: For now rendering levels and doing any sort of evaluation are separate processes because we don't need to render all that and it would be inefficient but we do need many runs for statistical significance. Pray for representative levels.
+# TODO: render the best of the levels during eval you dummy
 DIVERSITY_EVAL = not RENDER_LEVELS
 
 map_width = get_map_width(problem)
@@ -958,9 +971,14 @@ else:
 
 if __name__ == "__main__":
 
-    # Evaluate fixed quality of levels, or controls at default targets
-    evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
     # Evaluate controllability
     evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
+    if not conditional:
+        # Then evaluate over some default controls (otherwise use those that we trained on)
+        # TODO: for each experiment, repeat for a set of control-sets
+        eval_ctrls = PROB_CONTROLS[problem][0]
+        infer_kwargs.update({'eval_controls': eval_ctrls, 'cond_metrics': eval_ctrls})
+    # Evaluate fixed quality of levels, or controls at default targets
+    evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

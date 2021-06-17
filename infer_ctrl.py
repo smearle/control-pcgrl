@@ -1,15 +1,14 @@
 """
 Run a trained agent for qualitative analysis.
 """
-from pdb import set_trace as T
+from pdb import set_trace as TT
 
 import cv2
 import numpy as np
 
 from arguments import parse_args
 from envs import make_vec_envs
-from utils import get_crop_size, get_env_name, get_exp_name, load_model, 
-#max_exp_idx
+from utils import get_crop_size, get_env_name, get_exp_name, load_model
 
 print("importing tensorflow stuff, if a hang happens after this just reboot :~)\n")
 
@@ -28,7 +27,7 @@ def infer(game, representation, infer_kwargs, **kwargs):
     infer_kwargs = {**infer_kwargs, "inference": True, "render": True}
     max_trials = kwargs.get("max_trials", -1)
 #   n = kwargs.get("n", None)
-    exp_id = kwargs('experiment_id')
+    exp_id = infer_kwargs.get('experiment_id')
     map_width = infer_kwargs.get("map_width")
     env_name = get_env_name(game, representation)
     exp_name = get_exp_name(game, representation, **infer_kwargs)
@@ -39,10 +38,10 @@ def infer(game, representation, infer_kwargs, **kwargs):
 #       else:
 #           n = EXPERIMENT_ID
 
-    if n == 0:
-        raise Exception(
-            "Did not find ranked saved model of experiment: {}".format(exp_name)
-        )
+#   if n == 0:
+#       raise Exception(
+#           "Did not find ranked saved model of experiment: {}".format(exp_name)
+#       )
     crop_size = infer_kwargs.get("cropped_size")
 
     if crop_size == -1:

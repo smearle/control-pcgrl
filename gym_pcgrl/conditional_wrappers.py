@@ -11,8 +11,18 @@ import numpy as np
 from gym_pcgrl.envs.helper import get_range_reward
 
 
+#FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
+# In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ParamRew(gym.Wrapper):
     def __init__(self, env, cond_metrics, rand_params=False, **kwargs):
+        # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
+        # reward and establish baseline performance
+        self.conditional = kwargs.get("conditional")
+        if self.conditional:
+            assert cond_metrics
+        else:
+            if cond_metrics:
+                print('Dummy controllable metrics: {}, will not be observed.'.format(cond_metrics))
         self.CA_action = kwargs.get("ca_action")
 
         self.render_gui = kwargs.get("render")
@@ -86,43 +96,45 @@ class ParamRew(gym.Wrapper):
         # FIXME: hack for gym-pcgrl
         print("conditional wrapper, original observation space", self.observation_space)
         self.action_space = self.env.action_space
-        orig_obs_shape = self.observation_space.shape
-        # TODO: adapt to (c, w, h) vs (w, h, c)
 
-        if self.CA_action:
-            #       if self.CA_action and False:
-            n_new_obs = 2 * len(self.usable_metrics)
-        #           n_new_obs = 1 * len(self.usable_metrics)
-        else:
-            n_new_obs = 1 * len(self.usable_metrics)
+        if self.conditional:
+            orig_obs_shape = self.observation_space.shape
+            # TODO: adapt to (c, w, h) vs (w, h, c)
 
-        if self.SC_RCT:
-            self.CHAN_LAST = True
-            obs_shape = (
-                orig_obs_shape[1],
-                orig_obs_shape[2],
-                orig_obs_shape[0] + n_new_obs,
-            )
-            low = self.observation_space.low.transpose(1, 2, 0)
-            high = self.observation_space.high.transpose(1, 2, 0)
-        else:
-            self.CHAN_LAST = False
-            obs_shape = (
-                orig_obs_shape[0],
-                orig_obs_shape[1],
-                orig_obs_shape[2] + n_new_obs,
-            )
-            low = self.observation_space.low
-            high = self.observation_space.high
-        metrics_shape = (obs_shape[0], obs_shape[1], n_new_obs)
-        self.metrics_shape = metrics_shape
-        metrics_low = np.full(metrics_shape, fill_value=0)
-        metrics_high = np.full(metrics_shape, fill_value=1)
-        low = np.concatenate((metrics_low, low), axis=2)
-        high = np.concatenate((metrics_high, high), axis=2)
-        self.observation_space = gym.spaces.Box(low=low, high=high)
-        # Yikes lol (this is to appease SB3)
-        #       self.unwrapped.observation_space = self.observation_space
+            if self.CA_action:
+                #       if self.CA_action and False:
+                n_new_obs = 2 * len(self.usable_metrics)
+            #           n_new_obs = 1 * len(self.usable_metrics)
+            else:
+                n_new_obs = 1 * len(self.usable_metrics)
+
+            if self.SC_RCT:
+                self.CHAN_LAST = True
+                obs_shape = (
+                    orig_obs_shape[1],
+                    orig_obs_shape[2],
+                    orig_obs_shape[0] + n_new_obs,
+                )
+                low = self.observation_space.low.transpose(1, 2, 0)
+                high = self.observation_space.high.transpose(1, 2, 0)
+            else:
+                self.CHAN_LAST = False
+                obs_shape = (
+                    orig_obs_shape[0],
+                    orig_obs_shape[1],
+                    orig_obs_shape[2] + n_new_obs,
+                )
+                low = self.observation_space.low
+                high = self.observation_space.high
+            metrics_shape = (obs_shape[0], obs_shape[1], n_new_obs)
+            self.metrics_shape = metrics_shape
+            metrics_low = np.full(metrics_shape, fill_value=0)
+            metrics_high = np.full(metrics_shape, fill_value=1)
+            low = np.concatenate((metrics_low, low), axis=2)
+            high = np.concatenate((metrics_high, high), axis=2)
+            self.observation_space = gym.spaces.Box(low=low, high=high)
+            # Yikes lol (this is to appease SB3)
+            #       self.unwrapped.observation_space = self.observation_space
         print("conditional observation space: {}".format(self.observation_space))
         self.next_trgs = None
 
@@ -184,7 +196,8 @@ class ParamRew(gym.Wrapper):
         if self.next_trgs:
             self.do_set_trgs()
         ob = super().reset()
-        ob = self.observe_metric_trgs(ob)
+        if self.conditional:
+            ob = self.observe_metric_trgs(ob)
         self.metrics = self.unwrapped.metrics
         self.last_metrics = copy.deepcopy(self.metrics)
         self.last_loss = self.get_loss()
@@ -230,7 +243,8 @@ class ParamRew(gym.Wrapper):
             self.win.step()
 
         ob, rew, done, info = super().step(action)
-        ob = self.observe_metric_trgs(ob)
+        if self.conditional:
+            ob = self.observe_metric_trgs(ob)
         self.metrics = self.unwrapped.metrics
         rew = self.get_reward()
         self.last_metrics = self.metrics
@@ -263,6 +277,7 @@ class ParamRew(gym.Wrapper):
     def get_loss(self):
         loss = 0
 
+        TT()
         for metric in self.all_metrics:
             if metric in self.metric_trgs:
                 trg = self.metric_trgs[metric]
@@ -286,7 +301,10 @@ class ParamRew(gym.Wrapper):
         for metric in self.usable_metrics:
             trg = self.metric_trgs[metric]
             val = self.metrics[metric]
-            loss_m = -abs(trg - val)
+            if isinstance(trg, tuple):
+                loss_m = -abs(np.arange(*trg) - val).min()
+            else:
+                loss_m = -abs(trg - val)
             loss_m = loss_m * self.weights[metric]
             loss += loss_m
 
@@ -350,6 +368,7 @@ class ParamRew(gym.Wrapper):
 
         for k, v in trg_dict.items():
             if isinstance(v, tuple):
+                # FIXME: Missing the upper bound here!
                 if self.metrics[k] in np.arange(*v):
                     done = False
             elif int(self.metrics[k]) != int(v):
@@ -449,9 +468,12 @@ class ALPGMMTeacher(gym.Wrapper):
         self.n_trial_steps = 0
 
     def reset(self):
-        print(self.trg_vec)
         if self.trg_vec is not None:
-            rew = self.trial_reward / self.n_trial_steps
+            if self.n_trial_steps == 0:
+                # This is some whack shit that happens when we reset manually from the inference script.
+                rew = 0
+            else:
+                rew = self.trial_reward / self.n_trial_steps
             self.alp_gmm.update(self.trg_vec, rew)
         trg_vec = self.alp_gmm.sample_task()
         self.trg_vec = trg_vec

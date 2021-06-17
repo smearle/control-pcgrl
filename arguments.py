@@ -47,7 +47,7 @@ def parse_pcgrl_args(args):
 
     if opts.conditionals == ["NONE"]:
         opts.conditionals = []
-        opts.conditionall = False
+        opts.conditional = False
     elif opts.conditionals == ["DEFAULT"]:
         opts.conditionals = prob_cond_metrics[opts.problem]
     elif opts.conditionals == ["ALL"]:
