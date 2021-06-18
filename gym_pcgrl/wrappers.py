@@ -3,8 +3,19 @@ from pdb import set_trace as TT
 import numpy as np
 
 import gym
-import gym_city
-import micro_rct
+
+try:
+    import gym_city
+except ImportError:
+    print(
+        "gym-city module not installed, cannot use SimCity RL environment. You can install from  source at: https://github.com/smearle/gym-city"
+    )
+try:
+    import micro_rct
+except ImportError:
+    print(
+        "micro-rct module not installed, cannot use micro-RollerCoaster Tycoon RL environment. You can install from  source at: https://github.com/smearle/micro-rct"
+    )
 
 
 # clean the input action
