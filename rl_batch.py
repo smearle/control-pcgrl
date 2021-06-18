@@ -82,13 +82,14 @@ def launch_batch(exp_name, collect_params=False):
 #       print('Rendering levels')
 #       n_bins = 4
 #       n_maps = 2
-    n_bins = 13
     if LOCAL:
         print("Testing locally.")
         n_maps = 2
+        n_bins = 13
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
+        n_bins = 25
     with open("configs/rl/default_settings.json", "r") as f:
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))
