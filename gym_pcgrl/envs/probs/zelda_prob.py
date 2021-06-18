@@ -37,6 +37,8 @@ class ZeldaProblem(Problem):
             "path-length": 1
         }
 
+        self.render_path = False
+
     """
     Get a list of all the different tile names
 
@@ -64,7 +66,7 @@ class ZeldaProblem(Problem):
 
         self._target_enemy_dist = kwargs.get('target_enemy_dist', self._target_enemy_dist)
         self._target_path = kwargs.get('target_path', self._target_path)
-
+        self.render_path = kwargs.get('render_path', self.render_path)
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:

@@ -217,14 +217,16 @@ else:
 
 change_percentage = opts.change_percentage
 max_step = opts.max_step
+# TODO: play with change percentage for controllable agents?
+change_percentage = opts.change_percentage
 global COND_METRICS
 
 if conditional:
     COND_METRICS = opts.conditionals
-    change_percentage = 1.0
+#   change_percentage = 1.0
 else:
     COND_METRICS = None
-    change_percentage = opts.change_percentage
+#   change_percentage = opts.change_percentage
 kwargs = {
     'map_width': map_width,
     'change_percentage': change_percentage,

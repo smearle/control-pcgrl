@@ -237,6 +237,8 @@ def run_dikjstra(x, y, map, passable_values):
             queue.append((nx, ny, cd + 1))
     return dikjstra_map, visited_map
 
+ADJ_FILTER = np.array([[0,1,0],[1,0,1],[0,1,0]])
+
 """
 Calculate the longest path on the map
 
@@ -248,7 +250,50 @@ Parameters:
 Returns:
     int: the longest path in tiles in the current map
 """
-def calc_longest_path(map, map_locations, passable_values):
+def calc_longest_path(map, map_locations, passable_values, get_path=False):
+    width, height = len(map), len(map[0])
+    empty_tiles = _get_certain_tiles(map_locations, passable_values)
+    final_visited_map = np.zeros((width, height))
+    final_value = 0
+    for (x,y) in empty_tiles:
+        if final_visited_map[y][x] > 0:
+            continue
+        dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
+        final_visited_map += visited_map
+        (my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
+        dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
+        max_value = np.max(dikjstra_map)
+        if max_value > final_value:
+            final_value = max_value
+            if get_path:
+                path_map = dikjstra_map
+    # Return path for the purpose of rendering (binary problem)
+    path = None
+    if get_path and final_value > 0:
+        # Work from the greatest cell value (end of the path) backward
+        pad_path_map = np.zeros(shape=(width + 2, height + 2), dtype=np.int32)
+        pad_path_map.fill(0)
+        pad_path_map[1:width + 1, 1:height + 1] = path_map + 1
+        max_cell = pad_path_map.max()
+        max_coords = np.array(np.where(pad_path_map == max_cell))
+        xi, yi = max_coords[:, 0]
+        path = np.zeros(shape=(max_cell, 2), dtype=np.int32)
+        i = 0
+        while max_cell > 1:
+            path[i, :] = [xi-1, yi-1]
+            pad_path_map[xi, yi] = -1
+            max_cell -= 1
+            x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
+            adj_mask = np.zeros((width + 2, height + 2), dtype=np.int32)
+            adj_mask[x0: x1, y0: y1] = ADJ_FILTER
+            max_coords = np.array(np.where(adj_mask * pad_path_map == max_cell))
+            xi, yi = max_coords[:, 0]
+            i += 1
+        path[i, :] = [xi-1, yi-1]
+
+    return final_value, path
+
+def calc_longest_path_old(map, map_locations, passable_values):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0])))
     final_value = 0
@@ -263,6 +308,8 @@ def calc_longest_path(map, map_locations, passable_values):
         if max_value > final_value:
             final_value = max_value
     return final_value
+
+
 
 """
 Calculate the number of tiles that have certain values in the map

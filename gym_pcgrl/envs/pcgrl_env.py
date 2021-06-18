@@ -207,7 +207,7 @@ class PcgrlEnv(gym.Env):
         img or boolean: img for rgb_array rendering and boolean for human rendering
     """
     def render(self, mode='human'):
-        tile_size=16
+        tile_size = 16
         img = self._prob.render(get_string_map(self._rep._map, self._prob.get_tile_types()))
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 

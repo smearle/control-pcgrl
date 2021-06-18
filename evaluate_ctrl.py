@@ -366,6 +366,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             pass
 #           eval_data.hamming_heatmap(level_tokens, div_scores=div_scores)
 
+    env.close()
+
 
 def eval_episodes(
     model, env, n_trials, n_envs, init_states, eval_dir, trg_dict, max_steps
@@ -398,7 +400,8 @@ def eval_episodes(
         while not done:
             #           if i == max_steps - 1:
 
-            # Where the fuck is this stupid ass reset occuring I'll murder the fuck out of that ho
+            # TODO: destroy this ***friend*** of a reset
+            # Where the fuck is this stupid ass reset occuring I'll murder the fuck out of that ***friend***
             if True:
                 if RENDER_LEVELS:
                     image = env.render("rgb_array")
@@ -431,6 +434,8 @@ def eval_episodes(
             #           epi_rewards[i] = rewards
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
+#           if done: 
+#               TT()
             i += 1
 
         #       print('final loss, net: {}, static: {}, ctrl: {}'.format(final_loss, final_static_loss, final_ctrl_loss))

@@ -1,3 +1,4 @@
+from pdb import set_trace as TT
 from gym.utils import seeding
 from PIL import Image
 
@@ -131,13 +132,15 @@ class Problem:
         Image: a pillow image on how the map will look like using the problem
         graphics or default grey scale colors
     """
-    def render(self, map):
+    def render(self, map, render_path=None):
         tiles = self.get_tile_types()
         if self._graphics == None:
             self._graphics = {}
             for i in range(len(tiles)):
                 color = (i*255/len(tiles),i*255/len(tiles),i*255/len(tiles),255)
                 self._graphics[tile[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
+            if render_path:
+                self._graphics["path"] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
 
         full_width = len(map[0])+2*self._border_size[0]
         full_height = len(map)+2*self._border_size[1]
@@ -153,4 +156,9 @@ class Problem:
         for y in range(len(map)):
             for x in range(len(map[y])):
                 lvl_image.paste(self._graphics[map[y][x]], ((x+self._border_size[0])*self._tile_size, (y+self._border_size[1])*self._tile_size, (x+self._border_size[0]+1)*self._tile_size, (y+self._border_size[1]+1)*self._tile_size))
+
+        if render_path is not None:
+            tile_graphics = self._graphics["path"]
+            for (y, x) in render_path:
+                lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size))
         return lvl_image

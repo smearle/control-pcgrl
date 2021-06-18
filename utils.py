@@ -73,15 +73,18 @@ class RenderMonitor(Monitor):
     def __init__(self, env, rank, log_dir, **kwargs):
         self.log_dir = log_dir
         self.rank = rank
-        self.render_gui = kwargs.get("render", False)
-        self.render_rank = kwargs.get("render_rank", 0)
+        global_render = kwargs.get("render", False)
+        render_rank = kwargs.get("render_rank", 0)
+        self.render_me = False
+        if global_render and self.rank == render_rank:
+            self.render_me = True
 
         if log_dir is not None:
             log_dir = os.path.join(log_dir, str(rank))
         Monitor.__init__(self, env, log_dir)
 
     def step(self, action):
-        if self.render_gui and self.rank == self.render_rank:
+        if self.render_me:
             self.render()
         ret = Monitor.step(self, action)
 
@@ -164,13 +167,16 @@ def get_env_name(game, representation):
 
 def get_exp_name(game, representation, **kwargs):
     exp_name = "{}_{}".format(game, representation)
+    change_percentage = kwargs.get("change_percentage")
 
     if kwargs.get("conditional"):
         exp_name += "_conditional"
         exp_name += "_" + "-".join(["ctrl"] + kwargs.get("cond_metrics"))
+        if change_percentage != 1.0:
+            exp_name += "_chng-{}".format(change_percentage)
     else:
         exp_name += "_vanilla"
-        exp_name += "_chng-{}".format(kwargs.get("change_percentage"))
+        exp_name += "_chng-{}".format(change_percentage)
 
     if kwargs.get("midep_trgs"):
         exp_name += "_midEpTrgs"
