@@ -908,27 +908,6 @@ train_change_percentage = opts.change_percentage
 infer_change_percentage = 1.0
 # TODO: properly separate these kwarg dictionaries, so that one is for loading (specifying training run 
 # hyperparameters), and the other is for inference (what settings to evaluate with)
-kwargs = {
-    "change_percentage": train_change_percentage,
-    "conditional": conditional,
-    "cond_metrics": cond_metrics,
-    "alp_gmm": alp_gmm,
-    "max_step": 256,
-    # 'target_path': 105,
-    # 'n': 4, # rank of saved experiment (by default, n is max possible)
-}
-
-RENDER_LEVELS = opts.render_levels
-# NOTE: For now rendering levels and doing any sort of evaluation are separate processes because we don't need to render all that and it would be inefficient but we do need many runs for statistical significance. Pray for representative levels.
-# TODO: render the best of the levels during eval you dummy
-DIVERSITY_EVAL = not RENDER_LEVELS
-
-map_width = get_map_width(problem)
-#if problem == "sokobangoal":
-#    map_width = 5
-#else:
-#    map_width = 16
-
 if conditional:
     max_step = opts.max_step
     #   if max_step is None:
@@ -944,13 +923,35 @@ else:
 
 max_step = 1000
 
+
+kwargs = {
+    "change_percentage": train_change_percentage,
+    "conditional": conditional,
+    "cond_metrics": cond_metrics,
+    "alp_gmm": alp_gmm,
+    "max_step": max_step,
+    # 'target_path': 105,
+    # 'n': 4, # rank of saved experiment (by default, n is max possible)
+}
+
+RENDER_LEVELS = opts.render_levels
+# NOTE: For now rendering levels and doing any sort of evaluation are separate processes because we don't need to render all that and it would be inefficient but we do need many runs for statistical significance. Pray for representative levels.
+# TODO: render the best of the levels during eval you dummy
+DIVERSITY_EVAL = not RENDER_LEVELS
+
+map_width = get_map_width(problem)
+#if problem == "sokobangoal":
+#    map_width = 5
+#else:
+#    map_width = 16
+
 # For inference
 infer_kwargs = {
     "change_percentage": infer_change_percentage,
     # 'target_path': 200,
     "conditional": conditional,
     "cond_metrics": cond_metrics,
-    "max_step": map_width**2,
+    "max_step": max_step,
     "render": opts.render,
     # TODO: multiprocessing
     #       'n_cpu': opts.n_cpu,
