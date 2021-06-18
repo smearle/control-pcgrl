@@ -468,7 +468,7 @@ def eval_episodes(
 
     if RENDER_LEVELS and not SC:
         # we hackishly save it for SC up above already
-        image.save(os.path.join(eval_dir, "{}_level.png".format(trg_dict)))
+#       image.save(os.path.join(eval_dir, "{}_level.png".format(trg_dict)))
         level_image = asarray(image)
     else:
         level_image = None
