@@ -1,7 +1,7 @@
 #!/bin/bash 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=1
 
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
@@ -19,5 +19,4 @@ source activate vanilla_pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
-python evaluate_ctrl.py -la 19
-
+python evaluate_ctrl.py -la 24

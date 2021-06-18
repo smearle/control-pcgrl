@@ -14,9 +14,9 @@ from typing import Dict, List
 import numpy as np
 
 problems: List[str] = [
-    "binary_ctrl",
+#   "binary_ctrl",
     "zelda_ctrl",
-    "sokoban_ctrl",
+#   "sokoban_ctrl",
     # 'smb_ctrl',
 ]
 representations: List[str] = [
@@ -27,21 +27,21 @@ representations: List[str] = [
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-    ["NONE"],
+#   ["NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {
     "binary_ctrl": [
-        ["regions"],
-        ["path-length"],
-        ["regions", "path-length"],
+#       ["regions"],
+#       ["path-length"],
+#       ["regions", "path-length"],
         # ['emptiness', 'path-length'],
         # ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
-        ["nearest-enemy"],
+#       ["nearest-enemy"],
         ["path-length"],
-        ["nearest-enemy", "path-length"],
+#       ["nearest-enemy", "path-length"],
         # ["emptiness", "path-length"],
         # ["symmetry", "path-length"],
     ],
@@ -63,7 +63,7 @@ local_controls: Dict[str, List] = {
 }
 change_percentages = np.arange(2, 11, 4) / 10
 alp_gmms = [
-    True,
+#   True,
     False
 ]
 
@@ -76,7 +76,7 @@ def launch_batch(exp_name):
     elif LOCAL:
         print("Testing locally.")
         n_maps = 2
-        n_bins = 5
+        n_bins = 4
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
@@ -107,9 +107,9 @@ def launch_batch(exp_name):
                         if alp_gmm and controls == ["NONE"]:
                             continue
 
-                        if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
-                            # For now we're only looking at uniform-random target-sampling with both control metrics
-                            continue
+#                       if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
+#                           # For now we're only looking at uniform-random target-sampling with both control metrics
+#                           continue
 
                         if EVALUATE:
                             py_script_name = "evaluate_ctrl.py"
