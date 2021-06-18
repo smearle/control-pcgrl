@@ -12,6 +12,7 @@ import re
 from typing import Dict, List
 
 import numpy as np
+from rl_cross_eval import compile_results
 
 problems: List[str] = [
     "binary_ctrl",
@@ -27,28 +28,28 @@ representations: List[str] = [
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-#   ["NONE"],
+    ["NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {
     "binary_ctrl": [
-#       ["regions"],
+        ["regions"],
         ["path-length"],
-#       ["regions", "path-length"],
+        ["regions", "path-length"],
         # ['emptiness', 'path-length'],
         # ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy"],
+        ["nearest-enemy"],
         ["path-length"],
-#       ["nearest-enemy", "path-length"],
+        ["nearest-enemy", "path-length"],
         # ["emptiness", "path-length"],
         # ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         # ["crate"],
         ["sol-length"],
-#       ["crate", "sol-length"],
+        ["crate", "sol-length"],
         # ["emptiness", "sol-length"],
         # ["symmetry", "sol-length"],
     ],
@@ -63,9 +64,9 @@ local_controls: Dict[str, List] = {
 }
 #change_percentages = np.arange(2, 11, 4) / 10
 change_percentages = [
-#   0.2,
+    0.2,
     0.6,
-#   1.0,
+    1.0,
 ]
 alp_gmms = [
     True,
@@ -73,19 +74,21 @@ alp_gmms = [
 ]
 
 
-def launch_batch(exp_name):
-    if args.render_levels:
-        print('Rendering levels')
-        n_bins = 4
-        n_maps = 2
-    elif LOCAL:
+def launch_batch(exp_name, collect_params=False):
+    if collect_params:
+        settings_list = []
+        assert not EVALUATE
+#   if args.render_levels:
+#       print('Rendering levels')
+#       n_bins = 4
+#       n_maps = 2
+    n_bins = 13
+    if LOCAL:
         print("Testing locally.")
         n_maps = 2
-        n_bins = 4
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
-        n_bins = 10
     with open("configs/rl/default_settings.json", "r") as f:
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))
@@ -151,7 +154,7 @@ def launch_batch(exp_name):
                                     "resume": True,
                                     "n_maps": n_maps,
                                     "render": False,
-                                    "render_levels": args.render_levels,
+#                                   "render_levels": args.render_levels,
                                     "n_bins": (n_bins,),
                                 }
                             )
@@ -160,11 +163,15 @@ def launch_batch(exp_name):
                             json.dump(exp_config, f, ensure_ascii=False, indent=4)
                         # Launch the experiment. It should load the saved settings
 
-                        if LOCAL:
+                        if collect_params:
+                            settings_list.append(exp_config)
+                        elif LOCAL:
                             os.system("python {} -la {}".format(py_script_name, i))
                         else:
                             os.system("sbatch {}".format(sbatch_name))
                         i += 1
+    if collect_params:
+        return settings_list
 
 
 if __name__ == "__main__":
@@ -172,12 +179,12 @@ if __name__ == "__main__":
         description="Launch a batch of experiments/evaluations for (controllable) pcgrl"
     )
 
-    opts.add_argument(
-        "-rl",
-        "--render_levels",
-        help="",
-        action="store_true",
-    )
+#   opts.add_argument(
+#       "-rl",
+#       "--render_levels",
+#       help="",
+#       action="store_true",
+#   )
 
     opts.add_argument(
         "-ex",
@@ -203,9 +210,19 @@ if __name__ == "__main__":
         help="Just load data from previous evaluation and visualize it.",
         action="store_true",
     )
+    opts.add_argument(
+        "-ce",
+        "--cross_eval",
+        help="Compile stats from previous evaluations into a table",
+        action="store_true",
+    )
+
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
     EVALUATE = args.evaluate
     LOCAL = args.local
-
-    launch_batch(EXP_NAME)
+    if args.cross_eval:
+        settings_list = launch_batch(EXP_NAME, collect_params=True)
+        compile_results(settings_list)
+    else:
+        launch_batch(EXP_NAME)

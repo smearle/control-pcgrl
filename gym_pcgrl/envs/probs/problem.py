@@ -1,6 +1,8 @@
 from pdb import set_trace as TT
 from gym.utils import seeding
 from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 
 """
 The base class for all the problems that can be handled by the interface
@@ -161,4 +163,9 @@ class Problem:
             tile_graphics = self._graphics["path"]
             for (y, x) in render_path:
                 lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size))
+            draw = ImageDraw.Draw(lvl_image)
+            # font = ImageFont.truetype(<font-file>, <font-size>)
+            font = ImageFont.truetype("arial.ttf", 32)
+            # draw.text((x, y),"Sample Text",(r,g,b))
+            draw.text(((full_width - 1) * self._tile_size / 2, 0),"{}".format(self.path_length),(255,255,255),font=font)
         return lvl_image

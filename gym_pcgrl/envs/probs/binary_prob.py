@@ -56,7 +56,7 @@ class BinaryProblem(Problem):
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
         rewards = kwargs.get('rewards')
-        self.render_path = kwargs.get('render', self.render_path)
+        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         if rewards is not None:
             for t in rewards:
                 if t in self._rewards:
@@ -84,10 +84,10 @@ class BinaryProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
-        path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
+        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
         return {
             "regions": calc_num_regions(map, map_locations, ["empty"]),
-            "path-length": path_length,
+            "path-length": self.path_length,
         }
 
     """
@@ -157,6 +157,6 @@ class BinaryProblem(Problem):
             self._graphics = {
                 "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
                 "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
-                "path" : Image.open(os.path.dirname(__file__) + "/binary/path.png").convert('RGBA'),
+                "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
             }
         return super().render(map, render_path=self.path_coords)

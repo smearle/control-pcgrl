@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from pdb import set_trace as T
 
 prob_cond_metrics = {
@@ -25,17 +26,21 @@ all_metrics = {
 }
 
 
-def parse_args():
+def parse_args(load_args=None):
     args = get_args()
 
-    return parse_pcgrl_args(args)
+    return parse_pcgrl_args(args, load_args=load_args)
 
 
-def parse_pcgrl_args(args):
+def parse_pcgrl_args(args, load_args=None):
+    if load_args is not None:
+        sys.argv = sys.argv[:1]
     opts = args.parse_args()
     opts.conditional = True
 
     arg_dict = vars(opts)
+    if load_args is not None:
+        arg_dict.update(load_args)
 
     if opts.load_args is not None:
         with open('configs/rl/settings_{}.json'.format(opts.load_args)) as f:

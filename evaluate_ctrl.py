@@ -99,20 +99,22 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     data_path_levels += ".pkl"
 
     if VIS_ONLY:
-        if RENDER_LEVELS:
-            eval_data_levels = pickle.load(open(data_path_levels, "rb"))
-            eval_data_levels.render_levels()
+#       if RENDER_LEVELS:
+#           eval_data_levels = pickle.load(open(data_path_levels, "rb"))
+#           eval_data_levels.render_levels()
 
-            return
+#           return
         eval_data = pickle.load(open(data_path, "rb"))
         # FIXME: just for backward compatibility
         eval_data.eval_dir = eval_dir
+        eval_data.render_levels()
         eval_data.visualize_data(eval_dir, fix_trgs)
 #       eval_data.hamming_heatmap(None, eval_data.div_scores)
 
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get("n_cpu")
+    infer_kwargs['render_path'] = True
     env, dummy_action_space, n_tools = make_vec_envs(
         env_name, representation, None, **infer_kwargs
     )
@@ -121,6 +123,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     )
     #   model.set_env(env)
     env.action_space = dummy_action_space
+    env = env.envs[0]
     # Record final values of each trial
     #   if 'binary' in env_name:
     #       path_lengths = []
@@ -133,8 +136,10 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     #           }
 
     if n_cpu == 1:
-        control_bounds = env.envs[0].get_control_bounds()
+#       control_bounds = env.envs[0].get_control_bounds()
+        control_bounds = env.get_control_bounds()
     elif n_cpu > 1:
+        raise Exception("no homie, no")
         # supply args and kwargs
         env.remotes[0].send(("env_method", ("get_control_bounds", [], {})))
         control_bounds = env.remotes[0].recv()
@@ -144,7 +149,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     if len(control_bounds) == 0:
         # Then this is a non-controllable agent.
         # Can't we just do this in all cases though?
-        control_bounds = env.envs[0].cond_bounds
+        control_bounds = env.cond_bounds
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
 
     #   if len(ctrl_bounds) == 0 and DIVERSITY_EVAL:
@@ -154,11 +159,11 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     init_states = []
 
     for i in range(N_MAPS):
-        env.envs[0].reset()
+        env.reset()
         # TODO: set initial states in either of these domains?
 
         if not (RCT or SC):
-            init_states.append(env.envs[0].unwrapped._rep._map)
+            init_states.append(env.unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
 
     def eval_static_trgs():
@@ -172,12 +177,12 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         cell_ctrl_scores = np.zeros(shape=(1, 1, N_EVALS))
         level_tokens = None
 
-        if DIVERSITY_EVAL:
-            n_row = 1
-            n_col = 1
-        else:
-            n_row = 2
-            n_col = 5
+#       if DIVERSITY_EVAL:
+#           n_row = 1
+#           n_col = 1
+#       else:
+        n_row = 2
+        n_col = 5
 
         for i in range(n_row):
             level_images_y = []
@@ -190,7 +195,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                     n_cpu,
                     init_states,
                     eval_dir,
-                    env.envs[0].unwrapped._prob.static_trgs,
+                    env.unwrapped._prob.static_trgs,
                     max_steps,
                 )
                 level_images_y.append(level_image)
@@ -201,17 +206,13 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                 div_score = div_score / (map_width * map_width)
                 div_scores[0, 0] = div_score
 
-            if RENDER_LEVELS:
-                level_images.append(np.hstack(level_images_y))
+            level_images.append(np.hstack(level_images_y))
 
-        if RENDER_LEVELS:
-            image = np.vstack(level_images[::-1])
-            image = Image.fromarray(image)
-            image.save(
-                os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS))
-            )
-        else:
-            image = None
+        image = np.vstack(level_images[::-1])
+        image = Image.fromarray(image)
+        image.save(
+            os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS))
+        )
 
         return cell_scores, cell_static_scores, cell_ctrl_scores, div_scores, level_tokens, image
 
@@ -220,7 +221,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         # and record scores for the cell corresponding to the default static targets (on the vanilla turf),
         # depending on the value of fix_trgs.
         ctrl_names = prob_cond_metrics[problem]
-        ctrl_bounds = [(k, env.envs[0].cond_bounds[k]) for k in ctrl_names]
+        ctrl_bounds = [(k, env.cond_bounds[k]) for k in ctrl_names]
 
     if fix_trgs:
         ctrl_names = None
@@ -248,7 +249,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             )
             div_score = div_calc(tokens)
             div_scores[i, 0] = div_score
-            level_images.append(level_image)
+            if i % LVL_RENDER_INTERVAL == 0:
+                level_images.append(level_image)
             cell_scores[i, :, :] = net_score
             cell_ctrl_scores[i, :, :] = ctrl_score
             cell_static_scores[i, :, :] = static_score
@@ -259,10 +261,9 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         #           # hack it to ensure our default static trgs are in the heatmap, so we can compare on baseline's turf
         #           ctrl_ranges["regions"][0] = 1
 
-        if RENDER_LEVELS:
-            ims = np.hstack(level_images)
-            image = Image.fromarray(ims)
-            image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
+        ims = np.hstack(level_images)
+        image = Image.fromarray(ims)
+        image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
     elif len(ctrl_bounds) >= 2:
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
@@ -276,7 +277,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1), N_EVALS))
         cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1), N_EVALS))
         level_tokens = [[None] * len(trgs_0)] * len(trgs_1)  # Wait what?
-        trg_dict = env.envs[0].static_trgs
+        trg_dict = env.static_trgs
         trg_dict = dict(
             [
                 (k, min(v)) if isinstance(v, tuple) else (k, v)
@@ -303,7 +304,9 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                     trg_dict,
                     max_steps,
                 )
-                level_images_y.append(level_image)
+
+                if j % LVL_RENDER_INTERVAL == 0:
+                    level_images_y.append(level_image)
                 cell_scores[i, j, :] = net_score
                 cell_ctrl_scores[i, j, :] = ctrl_score
                 cell_static_scores[i, j, :] = static_score
@@ -311,7 +314,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                 div_scores[i, j] = div_score
             #               level_tokens[j][i] = tokens
 
-            if RENDER_LEVELS:
+            if i % LVL_RENDER_INTERVAL == 0:
                 level_images.append(np.hstack(level_images_y))
 
         #           level_tokens.append(tokens)
@@ -319,46 +322,46 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         ctrl_ranges = (trgs_0, trgs_1)
         image = None
 
-        if RENDER_LEVELS:
-            image = np.vstack(level_images[::-1])
-            image = Image.fromarray(image)
-            image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
+        image = np.vstack(level_images[::-1])
+        image = Image.fromarray(image)
+        image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
     levels_im_path = os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS))
 
-    if not RENDER_LEVELS:
-        eval_data = EvalData(
-            ctrl_names,
-            ctrl_ranges,
-            cell_scores,
-            cell_ctrl_scores,
-            cell_static_scores,
-            div_scores=div_scores,
-            eval_dir=eval_dir,
-        )
-        pickle.dump(eval_data, open(data_path, "wb"))
-        eval_data.visualize_data(eval_dir, fix_trgs)
+    eval_data = EvalData(
+        ctrl_names,
+        ctrl_ranges,
+        cell_scores,
+        cell_ctrl_scores,
+        cell_static_scores,
+        div_scores=div_scores,
+        eval_dir=eval_dir,
+        levels_image=image,
+        levels_im_path=levels_im_path,
+    )
+    pickle.dump(eval_data, open(data_path, "wb"))
+    eval_data.visualize_data(eval_dir, fix_trgs)
 
-    else:
-        levels_im_path = os.path.join(
-            eval_dir, levels_im_name.format(ctrl_names, N_BINS)
-        )
-        eval_data_levels = EvalData(
-            ctrl_names,
-            ctrl_ranges,
-            cell_scores,
-            cell_ctrl_scores,
-            cell_static_scores,
-            div_scores=div_scores,
-            eval_dir=eval_dir,
-            levels_image=image,
-            levels_im_path=levels_im_path,
-        )
-        pickle.dump(eval_data_levels, open(data_path_levels, "wb"))
-        if not fix_trgs:
-            eval_data_levels.render_levels()
+#   else:
+#       levels_im_path = os.path.join(
+#           eval_dir, levels_im_name.format(ctrl_names, N_BINS)
+#       )
+#       eval_data_levels = EvalData(
+#           ctrl_names,
+#           ctrl_ranges,
+#           cell_scores,
+#           cell_ctrl_scores,
+#           cell_static_scores,
+#           div_scores=div_scores,
+#           eval_dir=eval_dir,
+#           levels_image=image,
+#           levels_im_path=levels_im_path,
+#       )
+#       pickle.dump(eval_data_levels, open(data_path_levels, "wb"))
+    if not fix_trgs:
+        eval_data.render_levels()
 
     if DIVERSITY_EVAL:
-        eval_data = eval_data
+#       eval_data = eval_data
 
         if fix_trgs:
             eval_data.save_stats(div_scores=div_scores, fix_trgs=fix_trgs)
@@ -372,7 +375,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 def eval_episodes(
     model, env, n_trials, n_envs, init_states, eval_dir, trg_dict, max_steps
 ):
-    env.envs[0].set_trgs(trg_dict)
+    env.set_trgs(trg_dict)
     eval_scores = np.zeros(n_trials)
     eval_ctrl_scores = np.zeros(n_trials)
     eval_static_scores = np.zeros(n_trials)
@@ -380,63 +383,66 @@ def eval_episodes(
     # FIXME: why do we need this?
     tokens = []
 
+    max_rew = -np.inf
     while n < n_trials:
         if not (RCT or SC):
-            env.envs[0].set_map(init_states[n % N_MAPS])
+            env.set_map(init_states[n % N_MAPS])
         elif SC:
             # Resize gui window for simcity
-            env.envs[0].win1.editMapView.changeScale(0.77)
-            env.envs[0].win1.editMapView.centerOnTile(20, 16)
+            env.win1.editMapView.changeScale(0.77)
+            env.win1.editMapView.centerOnTile(20, 16)
         obs = env.reset()
         #       epi_rewards = np.zeros((max_step, n_envs))
         i = 0
         # note that this is weighted loss
-        init_loss = env.envs[0].get_loss()
-        init_ctrl_loss = env.envs[0].get_ctrl_loss()
-        init_static_loss = env.envs[0].get_static_loss()
+        init_loss = env.get_loss()
+        init_ctrl_loss = env.get_ctrl_loss()
+        init_static_loss = env.get_static_loss()
         #       print('initial loss, net: {}, static: {}, ctrl: {}'.format(init_loss, init_static_loss, init_ctrl_loss))
         done = False
 
         while not done:
             #           if i == max_steps - 1:
 
-            # TODO: destroy this ***friend*** of a reset
-            # Where the fuck is this stupid ass reset occuring I'll murder the fuck out of that ***friend***
-            if True:
-                if RENDER_LEVELS:
-                    image = env.render("rgb_array")
-
-                    if SC and i == max_steps - 1:
-                        # FIXME lmao fucking stupid as all heck
-                        im_path = os.path.join(log_dir, "{}_level.png".format(trg_dict))
-                        image = env.envs[0].win1.editMapView.buffer.write_to_png(
-                            im_path
-                        )
-                        em = env.envs[0].win1.editMapView
-                        image = Image.open(im_path)
-                        image = np.array(image)
-                        print(image.shape)
-                        image = image[:, 400:-400, :]
-                        print(image.shape)
-
-                    if RCT and i == max_steps - 1:
-                        image = Image.fromarray(image.transpose(1, 0, 2))
-                final_loss = env.envs[0].get_loss()
-                final_ctrl_loss = env.envs[0].get_ctrl_loss()
-                final_static_loss = env.envs[0].get_static_loss()
-
-                if not (SC or RCT):
-                    curr_tokens = env.envs[0].unwrapped._rep._map
-                elif SC:
-                    curr_tokens = env.envs[0].state.argmax(axis=0)
-                elif RCT:
-                    curr_tokens = env.envs[0].rct_env.park.map[0]
-            #           epi_rewards[i] = rewards
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
 #           if done: 
 #               TT()
             i += 1
+
+        final_loss = env.get_loss()
+        final_ctrl_loss = env.get_ctrl_loss()
+        final_static_loss = env.get_static_loss()
+        if RENDER_LEVELS and final_loss > max_rew:
+            max_rew = final_loss
+            image = env.render("rgb_array")
+
+            if SC and i == max_steps - 1:
+                # FIXME lmao fucking stupid as all heck
+                im_path = os.path.join(log_dir, "{}_level.png".format(trg_dict))
+                image = env.win1.editMapView.buffer.write_to_png(
+                    im_path
+                )
+                em = env.win1.editMapView
+                image = Image.open(im_path)
+                image = np.array(image)
+                print(image.shape)
+                image = image[:, 400:-400, :]
+                print(image.shape)
+
+            if RCT and i == max_steps - 1:
+                image = Image.fromarray(image.transpose(1, 0, 2))
+
+        # Ayo wtf is this garbage?
+        if not (SC or RCT):
+            curr_tokens = env.unwrapped._rep._map
+        elif SC:
+            curr_tokens = env.state.argmax(axis=0)
+        elif RCT:
+            curr_tokens = env.rct_env.park.map[0]
+    #           epi_rewards[i] = rewards
+
+
 
         #       print('final loss, net: {}, static: {}, ctrl: {}'.format(final_loss, final_static_loss, final_ctrl_loss))
         # what percentage of loss (distance from target) was recovered?
@@ -753,8 +759,8 @@ class EvalData:
             # wut
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[0]
             plt.xticks(
-                np.arange(self.cell_scores.shape[0]) * im_width + im_width / 2,
-                labels=[int(round(x, 0)) for x in self.ctrl_ranges[0]],
+                np.arange(N_LVL_BINS) * im_width + im_width / 2,
+                labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             )
             pad_inches = 0
             hspace = 0
@@ -768,12 +774,12 @@ class EvalData:
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[1]
             im_height = np.array(self.levels_image).shape[0] / self.cell_scores.shape[0]
             plt.xticks(
-                np.arange(self.cell_scores.shape[0]) * im_width + im_width / 2,
-                labels=[int(round(x, 0)) for x in self.ctrl_ranges[0]],
+                np.arange(N_LVL_BINS) * im_width + im_width / 2,
+                labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             )
             plt.yticks(
-                np.arange(self.cell_scores.shape[1]) * im_height + im_height / 2,
-                labels=[int(round(y, 0)) for y in self.ctrl_ranges[1][::-1]],
+                np.arange(N_LVL_BINS) * im_height + im_height / 2,
+                labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             )
             #           ax.set_xticklabels([round(x, 1) for x in ctrl_ranges[0]])
             #           ax.set_yticklabels([round(x, 1) for x in ctrl_ranges[1][::-1]])
@@ -934,10 +940,9 @@ kwargs = {
     # 'n': 4, # rank of saved experiment (by default, n is max possible)
 }
 
-RENDER_LEVELS = opts.render_levels
-# NOTE: For now rendering levels and doing any sort of evaluation are separate processes because we don't need to render all that and it would be inefficient but we do need many runs for statistical significance. Pray for representative levels.
-# TODO: render the best of the levels during eval you dummy
-DIVERSITY_EVAL = not RENDER_LEVELS
+#RENDER_LEVELS = opts.render_levels
+RENDER_LEVELS = True
+DIVERSITY_EVAL = True
 
 map_width = get_map_width(problem)
 #if problem == "sokobangoal":
@@ -968,22 +973,21 @@ infer_kwargs = {
 
 global N_BINS
 N_BINS = tuple(opts.n_bins)
+N_LVL_BINS = 4
+assert N_BINS[0] % (N_LVL_BINS - 1) == 1
+LVL_RENDER_INTERVAL = N_BINS[0] // (N_LVL_BINS - 1)
 
 N_TRIALS = 1
 
-if RENDER_LEVELS and not DIVERSITY_EVAL:
-    # FIXME: this is not ob
-    N_MAPS = 1
-else:
-    N_MAPS = opts.n_maps
-    #   N_TRIALS = opts.n_trials
+N_MAPS = opts.n_maps
+#   N_TRIALS = opts.n_trials
 
 if __name__ == "__main__":
 
     # Evaluate controllability
     # Evaluate fixed quality of levels, or controls at default targets
     evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
-    if not conditional and not RENDER_LEVELS:
+    if not conditional:
         control_sets = PROB_CONTROLS[problem]
         for i, eval_ctrls in enumerate(control_sets):
 

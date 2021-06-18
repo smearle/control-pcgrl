@@ -8,10 +8,10 @@
 
 #SBATCH --time=12:00:00
 #SBATCH --mem=30GB
-#SBATCH --job-name=pcgrl
+#SBATCH --job-name=evalpcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=sam.earle@nyu.edu
-#SBATCH --output=pcgrl_%j.out
+#SBATCH --output=evalpcgrl_%j.out
 
 cd /scratch/se2161/evo-pcgrl || exit
 
@@ -19,4 +19,4 @@ source activate vanilla_pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
-python evaluate_ctrl.py -la 24
+python evaluate_ctrl.py -la 56
