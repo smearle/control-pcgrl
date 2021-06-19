@@ -6,7 +6,8 @@ from gym_pcgrl.envs.probs.binary_prob import BinaryProblem
 class BinaryCtrlProblem(BinaryProblem):
     def __init__(self):
         super(BinaryCtrlProblem, self).__init__()
-        self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
+        self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self.height/2)
+#       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
 
         # default conditional targets
         self.static_trgs = {"regions": 1, "path-length": self._max_path_length}

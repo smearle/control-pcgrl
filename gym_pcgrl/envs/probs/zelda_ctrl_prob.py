@@ -17,7 +17,10 @@ class ZeldaCtrlProblem(ZeldaProblem):
         super(ZeldaCtrlProblem, self).__init__()
         self._max_nearest_enemy = np.ceil(self._width / 2 + 1) * (self._height)
         #FIXME lmao this is half what it should be. Seennndddiiinggg me!! :~)
-        self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
+        # TODO: Do not assume it's a square
+        # Twice the optimal zig-zag minus one for the end-point at which the player turns around
+        self._max_path_length = (np.ceil(self._width / 2) * (self._height) + np.floor(self._height / 2)) * 2 - 1
+#       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         # like "_rewards" but for use with ParamRew
         self.weights = {
             "player": 3,
