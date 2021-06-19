@@ -13,7 +13,7 @@ from utils import get_exp_name
 # Map names of metrics recorded to the names we want to display in a table
 
 def newline(t0, t1):
-    return "\\begin{tabular}[c]{@{}l@{}}" + t0 + ".\\\ " + t1 + "\\end{tabular}"
+    return "\\begin{tabular}[c]{@{}l@{}}" + t0 + "\\\ " + t1 + "\\end{tabular}"
 
 local_controls = {
     "binary_ctrl": [
@@ -51,14 +51,16 @@ header_text = {
     "zelda_ctrl": "zelda",
     "binary_ctrl": "binary",
     "sokoban_ctrl": "sokoban",
+    "NONE": "None",
     "change_percentage": newline("chng", "\%"), 
     'net_score (mean)': newline('net', 'score'),
     '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
-    "diversity_score (mean)": "diversity",
+    "diversity_score (mean)": newline("div-", "ersity"),
     "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
     '(controls) ctrl_score (mean)': newline('\\textit{control}', 'ctrl score'),
     '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
-    "alp_gmm": newline("ALP", "GMM"),
+#   "alp_gmm": newline("ALP", "GMM"),
+    "alp_gmm": "regime",
     "conditionals": "controls",
 }
 
@@ -155,11 +157,27 @@ def compile_results(settings_list):
     for i, settings in enumerate(settings_list):
         val_lst = []
 
+        controllable = False
         for k in keys:
+            v = settings[k]
+            if k == 'conditionals':
+                if k != ['NONE']:
+                    controllable = True
             if isinstance(settings[k], list):
-                val_lst.append("-".join(settings[k]))
+                if len(settings[k]) < 2:
+                    val_lst.append("-".join(settings[k]))
+                else:
+                    val_lst.append(newline(settings[k][0]+'-', v[1]))
+            elif k == 'alp_gmm':
+                if not controllable:
+                    v = ''
+                elif v:
+                    v = 'learning'
+                else:
+                    v = 'random'
+                val_lst.append(v)
             else:
-                val_lst.append(settings[k])
+                val_lst.append(v)
         args = parse_args(load_args=settings)
         arg_dict = vars(args)
         # FIXME: well this is stupid
@@ -234,9 +252,10 @@ def compile_results(settings_list):
         tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
         df_tex = df.loc[p, "narrow"]
         p_name = p + '_ctrl'
-        lcl_conds = ['NONE'] + ['-'.join(pi) for pi in local_controls[p_name]]
+        lcl_conds = ['None'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0]+'-',pi[1]) for pi in local_controls[p_name]]
         print(lcl_conds)
         df_tex = df_tex.loc[lcl_conds]
+#       df_tex = df_tex.sort_values(by=['ALP GMM'])
         z_cols = [
             header_text["net_score (mean)"],
             header_text["diversity_score (mean)"],
@@ -249,8 +268,12 @@ def compile_results(settings_list):
         df_tex = df_tex.loc[:, z_cols]
         df_tex = df_tex * 100
         df_tex = df_tex.round(0)
+        dual_conds = ['None', lcl_conds[1]]
         for k in z_cols:
             if k in df_tex:
+#               df_tex.loc[dual_conds][k] = df_tex.loc[dual_conds][k].apply(
+#                   lambda data: bold_extreme_values(data, data_max=df_tex.loc[dual_conds][k].max())
+#               )
                 df_tex[k] = df_tex[k].apply(
                     lambda data: bold_extreme_values(data, data_max=df_tex[k].max())
                 )

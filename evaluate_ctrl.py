@@ -769,17 +769,17 @@ class EvalData:
                 axis="y", which="both", left=False, right=False, labelleft=False
             )
         else:
-            plt.xlabel(ctrl_names[0])
-            plt.ylabel(ctrl_names[1])
+            plt.xlabel(ctrl_names[1])
+            plt.ylabel(ctrl_names[0])
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[1]
             im_height = np.array(self.levels_image).shape[0] / self.cell_scores.shape[0]
             plt.xticks(
-                np.arange(N_LVL_BINS) * im_width + im_width / 2,
-                labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
+                np.arange(N_LVL_BINS) * (im_width * LVL_RENDER_INTERVAL) + im_width / 2,
+                labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             )
             plt.yticks(
-                np.arange(N_LVL_BINS) * im_height + im_height / 2,
-                labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
+                np.arange(N_LVL_BINS) * (im_height * LVL_RENDER_INTERVAL) + im_height / 2,
+                labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)][::-1],
             )
             #           ax.set_xticklabels([round(x, 1) for x in ctrl_ranges[0]])
             #           ax.set_yticklabels([round(x, 1) for x in ctrl_ranges[1][::-1]])
