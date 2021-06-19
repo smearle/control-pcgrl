@@ -15,6 +15,37 @@ from utils import get_exp_name
 def newline(t0, t1):
     return "\\begin{tabular}[c]{@{}l@{}}" + t0 + ".\\\ " + t1 + "\\end{tabular}"
 
+local_controls = {
+    "binary_ctrl": [
+        ["regions", "path-length"],
+        ["regions"],
+        ["path-length"],
+        # ['emptiness', 'path-length'],
+        # ["symmetry", "path-length"]
+    ],
+    "zelda_ctrl": [
+        ["nearest-enemy", "path-length"],
+        ["nearest-enemy"],
+        ["path-length"],
+        # ["emptiness", "path-length"],
+        # ["symmetry", "path-length"],
+    ],
+    "sokoban_ctrl": [
+        # ["crate"],
+        ["crate", "sol-length"],
+        ["sol-length"],
+        # ["emptiness", "sol-length"],
+        # ["symmetry", "sol-length"],
+    ],
+    "smb_ctrl": [
+        # ['enemies', 'jumps'],
+        # ["emptiness", "jumps"],
+        # ["symmetry", "jumps"],
+    ],
+    "RCT": [
+        # ['income'],
+    ],
+}
 
 header_text = {
     "zelda_ctrl": "zelda",
@@ -35,14 +66,19 @@ header_text = {
 
 
 def bold_extreme_values(data, data_max=-1):
-
+    data_max = data_max
+    data = int(data)
+    print(data)
     if data == data_max:
-        return "\\bfseries {:.2f}".format(data)
+#       return "\\bfseries {:.2f}".format(data)
+        return "\\bfseries {}".format(data)
 
     else:
-        return "{:.1f}".format(data)
+#       return "{:.1f}".format(data)
+        return "{}".format(data)
 
     return data
+    return "{}".format(data)
 
 
 def flatten_stats(stats, controllable=False):
@@ -193,27 +229,32 @@ def compile_results(settings_list):
 
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
     # FIXME: FUCKING ROUND YOURSELF DUMB FRIEND
-    df = df.round(2)
+#   df = df.round(2)
     for p in ["binary", "zelda", "sokoban"]:
         tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
-        df_tex = df.loc[p, "narrow"].round(2)
+        df_tex = df.loc[p, "narrow"]
+        p_name = p + '_ctrl'
+        lcl_conds = ['NONE'] + ['-'.join(pi) for pi in local_controls[p_name]]
+        print(lcl_conds)
+        df_tex = df_tex.loc[lcl_conds]
         z_cols = [
             header_text["net_score (mean)"],
             header_text["diversity_score (mean)"],
             header_text["(controls) net_score (mean)"],
-            header_text["(controls) ctrl_score (mean)"],
-            header_text["(controls) fixed_score (mean)"],
+#           header_text["(controls) ctrl_score (mean)"],
+#           header_text["(controls) fixed_score (mean)"],
             header_text["(controls) diversity_score (mean)"],
         ]
         #   df_tex = df.drop(columns=z_cols)
         df_tex = df_tex.loc[:, z_cols]
-
+        df_tex = df_tex * 100
+        df_tex = df_tex.round(0)
         for k in z_cols:
             if k in df_tex:
                 df_tex[k] = df_tex[k].apply(
                     lambda data: bold_extreme_values(data, data_max=df_tex[k].max())
                 )
-        df_tex = df_tex.round(2)
+#       df_tex = df_tex.round(2)
 #       df_tex.reset_index(level=0, inplace=True)
         print(df_tex)
 
@@ -223,6 +264,7 @@ def compile_results(settings_list):
                 tex_f,
                 index=True,
                 columns=z_cols,
+                multirow=True,
     #           column_format=col_widths,
                 escape=False,
                 caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes and baseline (single-objective) agents with various change percentage allowances.".format(p)),

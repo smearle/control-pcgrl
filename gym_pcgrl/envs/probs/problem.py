@@ -166,7 +166,10 @@ class Problem:
                 lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size))
             draw = ImageDraw.Draw(lvl_image)
             # font = ImageFont.truetype(<font-file>, <font-size>)
-            font = ImageFont.truetype("arial.ttf", 32)
+            try:
+                font = ImageFont.truetype("arial.ttf", 32)
+            except OSError:
+                font = ImageFont.truetype("LiberationMono-Regular.ttf", 32)
             # draw.text((x, y),"Sample Text",(r,g,b))
             draw.text(((full_width - 1) * self._tile_size / 2, 0),"{}".format(self.path_length),(255,255,255),font=font)
         return lvl_image
