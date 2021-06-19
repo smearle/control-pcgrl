@@ -85,7 +85,7 @@ def launch_batch(exp_name, collect_params=False):
     if LOCAL:
         print("Testing locally.")
         n_maps = 2
-        n_bins = 13
+        n_bins = 10
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
@@ -157,6 +157,7 @@ def launch_batch(exp_name, collect_params=False):
                                     "render": False,
 #                                   "render_levels": args.render_levels,
                                     "n_bins": (n_bins,),
+                                    "vis_only": args.vis_only,
                                 }
                             )
                         print("Saving experiment config:\n{}".format(exp_config))

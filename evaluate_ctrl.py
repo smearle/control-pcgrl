@@ -506,11 +506,14 @@ class EvalData:
             return
 
         def create_heatmap(title, data, vrange=(0,100), cmap_name=None):
-            vmin, vmax = vrange
-            fig, ax = plt.subplots()
-            # percentages from ratios
             data = data * 100
             data = np.clip(data, -100, 100)
+            if vrange is None:
+                vmin, vmax = data.min(), data.max()
+            else:
+                vmin, vmax = vrange
+            fig, ax = plt.subplots()
+            # percentages from ratios
             #           data = data.T
 
             if data.shape[1] == 1:
@@ -596,7 +599,7 @@ class EvalData:
         create_heatmap(title, cell_static_scores.mean(-1))
 
         title = "Diversity"
-        create_heatmap(title, self.div_scores, cmap_name="inferno")
+        create_heatmap(title, self.div_scores, vrange=None, cmap_name="inferno")
 
     def pairwise_hamming(self, a, b):
         return np.sum(a != b)
