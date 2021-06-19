@@ -773,13 +773,25 @@ class EvalData:
             plt.ylabel(ctrl_names[0])
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[1]
             im_height = np.array(self.levels_image).shape[0] / self.cell_scores.shape[0]
+            # FIXME: hack
+            if len(self.ctrl_ranges[1]) < N_LVL_BINS:
+                x_labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
+            else:
+                ranges = np.arange(self.ctrl_ranges[1][0], self.ctrl_ranges[1][1]+1, (self.ctrl_ranges[1][1] - self.ctrl_ranges[1][0]) / N_BINS)
+                x_labels=[int(round(ranges[i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)]
+            if len(self.ctrl_ranges[0]) < N_LVL_BINS:
+                x_labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
+            else:
+                ranges = np.arange(self.ctrl_ranges[0][0], self.ctrl_ranges[0][1]+1, (self.ctrl_ranges[0][1] - self.ctrl_ranges[0][0]) / N_BINS)
+                y_labels=[int(round(ranges[i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)]
+
             plt.xticks(
                 np.arange(N_LVL_BINS) * (im_width * LVL_RENDER_INTERVAL) + im_width / 2,
-                labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
+                labels=x_labels
             )
             plt.yticks(
                 np.arange(N_LVL_BINS) * (im_height * LVL_RENDER_INTERVAL) + im_height / 2,
-                labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)][::-1],
+                labels=y_labels[::-1],
             )
             #           ax.set_xticklabels([round(x, 1) for x in ctrl_ranges[0]])
             #           ax.set_yticklabels([round(x, 1) for x in ctrl_ranges[1][::-1]])
