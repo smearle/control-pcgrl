@@ -89,7 +89,7 @@ def launch_batch(exp_name, collect_params=False):
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
-        n_bins = 25
+        n_bins = 10
     with open("configs/rl/default_settings.json", "r") as f:
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))

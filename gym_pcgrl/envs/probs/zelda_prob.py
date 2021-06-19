@@ -1,9 +1,8 @@
-from pdb import set_trace as TT
 import os
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dikjstra
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dikjstra, get_path_coords
 
 """
 Generate a fully connected GVGAI zelda level where the player can reach key then the door.
@@ -39,6 +38,7 @@ class ZeldaProblem(Problem):
 
         self.render_path = False
 
+
     """
     Get a list of all the different tile names
 
@@ -66,7 +66,7 @@ class ZeldaProblem(Problem):
 
         self._target_enemy_dist = kwargs.get('target_enemy_dist', self._target_enemy_dist)
         self._target_path = kwargs.get('target_path', self._target_path)
-        self.render_path = kwargs.get('render_path', self.render_path)
+        self.render_path = kwargs.get('render') or kwargs.get('render_path', self.render_path)
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
@@ -81,6 +81,7 @@ class ZeldaProblem(Problem):
         The used status are "reigons": number of connected empty tiles, "path-length": the longest path across the map
     """
     def get_stats(self, map):
+        self.path = []
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
@@ -110,10 +111,13 @@ class ZeldaProblem(Problem):
             if map_stats["key"] == 1 and map_stats["door"] == 1:
                 k_x,k_y = map_locations["key"][0]
                 d_x,d_y = map_locations["door"][0]
-                dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
-                map_stats["path-length"] += dikjstra[k_y][k_x]
-                dikjstra,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
-                map_stats["path-length"] += dikjstra[d_y][d_x]
+                dikjstra_k,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
+                map_stats["path-length"] += dikjstra_k[k_y][k_x]
+                dikjstra_d,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
+                map_stats["path-length"] += dikjstra_d[d_y][d_x]
+                if self.render_path:
+                    self.path = np.hstack((get_path_coords(dikjstra_k, init_coords=(k_x, k_y)),
+                                          get_path_coords(dikjstra_d, init_coords=(d_x, d_y))))
 
         return map_stats
 
@@ -203,5 +207,6 @@ class ZeldaProblem(Problem):
                 "spider": Image.open(os.path.dirname(__file__) + "/zelda/spider.png").convert('RGBA'),
                 "bat": Image.open(os.path.dirname(__file__) + "/zelda/bat.png").convert('RGBA'),
                 "scorpion": Image.open(os.path.dirname(__file__) + "/zelda/scorpion.png").convert('RGBA'),
+                "path": Image.open(os.path.dirname(__file__) + "/zelda/path_g.png").convert('RGBA'),
             }
-        return super().render(map)
+        return super().render(map, render_path=self.path)

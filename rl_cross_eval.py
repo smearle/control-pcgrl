@@ -11,7 +11,25 @@ from utils import get_exp_name
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
 
 # Map names of metrics recorded to the names we want to display in a table
-header_text = {}
+
+def newline(t0, t1):
+    return "\\begin{tabular}[c]{@{}l@{}}" + t0 + ".\\\ " + t1 + "\\end{tabular}"
+
+
+header_text = {
+    "zelda_ctrl": "zelda",
+    "binary_ctrl": "binary",
+    "sokoban_ctrl": "sokoban",
+    "change_percentage": newline("chng", "\%"), 
+    'net_score (mean)': newline('net', 'score'),
+    '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
+    "diversity_score (mean)": "diversity",
+    "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
+    '(controls) ctrl_score (mean)': newline('\\textit{control}', 'ctrl score'),
+    '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
+    "alp_gmm": newline("ALP", "GMM"),
+    "conditionals": "controls",
+}
 
 # flatten the dictionary here
 
@@ -19,7 +37,7 @@ header_text = {}
 def bold_extreme_values(data, data_max=-1):
 
     if data == data_max:
-        return "\\bfseries {:.1f}".format(data)
+        return "\\bfseries {:.2f}".format(data)
 
     else:
         return "{:.1f}".format(data)
@@ -87,7 +105,13 @@ def compile_results(settings_list):
     #   for k in settings_list[0].keys():
     #       if k not in ignored_keys:
     #           keys.append(k)
-    keys = ["problem", "conditionals", "representation", "alp_gmm", "change_percentage"]
+    keys = [
+            "problem", 
+            "representation", 
+            "conditionals", 
+            "alp_gmm", 
+            "change_percentage"
+            ]
     columns = None
     data = []
     vals = []
@@ -147,6 +171,15 @@ def compile_results(settings_list):
             new_keys.append(header_text[k])
         else:
             new_keys.append(k)
+    for (i, lst) in enumerate(tuples):
+        new_lst = []
+        for v in lst:
+            if v in header_text:
+                new_lst.append(header_text[v])
+            else:
+                new_lst.append(v)
+        tuples[i] = new_lst
+
     index = pd.MultiIndex.from_tuples(tuples, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
     df = pd.DataFrame(data=data, index=index, columns=columns).sort_values(by=new_keys)
@@ -159,48 +192,46 @@ def compile_results(settings_list):
     print(df)
 
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
-    tex_name = r"{}/cross_eval_{}.tex".format(RL_DIR, batch_exp_name)
     # FIXME: FUCKING ROUND YOURSELF DUMB FRIEND
-    df = df.round(1)
-    df_tex = df.loc[:, :, "narrow"].round(1)
-    z_cols = [
-        "net_score (mean)",
-        "diversity_score (mean)",
-        "(controls) net_score (mean)",
-        "(controls) ctrl_score (mean)",
-        "(controls) fixed_score (mean)",
-        "(controls) diversity_score (mean)",
-    ]
-    #   df_tex = df.drop(columns=z_cols)
-    df_tex = df.loc[:, z_cols]
+    df = df.round(2)
+    for p in ["binary", "zelda", "sokoban"]:
+        tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
+        df_tex = df.loc[p, "narrow"].round(2)
+        z_cols = [
+            header_text["net_score (mean)"],
+            header_text["diversity_score (mean)"],
+            header_text["(controls) net_score (mean)"],
+            header_text["(controls) ctrl_score (mean)"],
+            header_text["(controls) fixed_score (mean)"],
+            header_text["(controls) diversity_score (mean)"],
+        ]
+        #   df_tex = df.drop(columns=z_cols)
+        df_tex = df_tex.loc[:, z_cols]
 
-    for k in z_cols:
-        if k in df_tex:
-            df_tex[k] = df_tex[k].apply(
-                lambda data: bold_extreme_values(data, data_max=df_zelda[k].max())
-            )
-    df_zelda = df_tex.round(1)
-    df.reset_index(level=0, inplace=True)
-
-    if False:
+        for k in z_cols:
+            if k in df_tex:
+                df_tex[k] = df_tex[k].apply(
+                    lambda data: bold_extreme_values(data, data_max=df_tex[k].max())
+                )
+        df_tex = df_tex.round(2)
+#       df_tex.reset_index(level=0, inplace=True)
         print(df_tex)
+
         with open(tex_name, "w") as tex_f:
-            col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}p{0.8cm}"
-            df_zelda.to_latex(
+            col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}"
+            df_tex.to_latex(
                 tex_f,
                 index=True,
                 columns=z_cols,
-                column_format=col_widths,
+    #           column_format=col_widths,
                 escape=False,
-                caption=(
-                    "Zelda, with emptiness and path-length as measures, and a cellular action representation. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
-                ),
-                label={"tbl:zelda_empty-path_cell_{}".format(batch_exp_name)},
+                caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes and baseline (single-objective) agents with various change percentage allowances.".format(p)),
+                label={"tbl:{}".format(p)},
             )
 
 
-#   # Remove duplicate row indices for readability in the csv
-#   df.reset_index(inplace=True)
-#   for k in new_keys:
-#       df.loc[df[k].duplicated(), k] = ''
-#   csv_name = r"{}/cross_eval_{}.csv".format(OVERLEAF_DIR, batch_exp_name)
+    #   # Remove duplicate row indices for readability in the csv
+    #   df.reset_index(inplace=True)
+    #   for k in new_keys:
+    #       df.loc[df[k].duplicated(), k] = ''
+    #   csv_name = r"{}/cross_eval_{}.csv".format(OVERLEAF_DIR, batch_exp_name)

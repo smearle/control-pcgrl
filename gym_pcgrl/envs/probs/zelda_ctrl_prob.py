@@ -1,4 +1,5 @@
 import numpy as np
+from pdb import set_trace as TT
 
 from gym_pcgrl.envs.helper import (
     calc_certain_tile,
@@ -6,6 +7,7 @@ from gym_pcgrl.envs.helper import (
     get_range_reward,
     get_tile_locations,
     run_dikjstra,
+    get_path_coords,
 )
 from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
 
@@ -14,8 +16,9 @@ class ZeldaCtrlProblem(ZeldaProblem):
     def __init__(self):
         super(ZeldaCtrlProblem, self).__init__()
         self._max_nearest_enemy = np.ceil(self._width / 2 + 1) * (self._height)
+        #FIXME lmao this is half what it should be. Seennndddiiinggg me!! :~)
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
-        # like _rewards but for use with ParamRew
+        # like "_rewards" but for use with ParamRew
         self.weights = {
             "player": 3,
             "key": 3,
@@ -80,6 +83,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
     """
 
     def get_stats(self, map):
+        self.path = []
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
@@ -126,19 +130,34 @@ class ZeldaCtrlProblem(ZeldaProblem):
             if map_stats["key"] == 1 and map_stats["door"] == 1:
                 k_x, k_y = map_locations["key"][0]
                 d_x, d_y = map_locations["door"][0]
-                dikjstra, _ = run_dikjstra(
+                dikjstra_k, _ = run_dikjstra(
                     p_x,
                     p_y,
                     map,
                     ["empty", "key", "player", "bat", "spider", "scorpion"],
                 )
-                map_stats["path-length"] += dikjstra[k_y][k_x]
-                dikjstra, _ = run_dikjstra(
+                map_stats["path-length"] += dikjstra_k[k_y][k_x]
+                dikjstra_d, _ = run_dikjstra(
                     k_x,
                     k_y,
                     map,
                     ["empty", "player", "key", "door", "bat", "spider", "scorpion"],
                 )
-                map_stats["path-length"] += dikjstra[d_y][d_x]
+                map_stats["path-length"] += dikjstra_d[d_y][d_x]
+
+                if self.render_path and map_stats["regions"] == 1:
+                    self.path = np.vstack((get_path_coords(dikjstra_k, init_coords=(k_y, k_x))[1:-1],
+                        get_path_coords(dikjstra_d, init_coords=(d_y, d_x))[1:-1]))
+                    front_tiles = set(((k_x, k_y), (d_x, d_y), (p_x, p_y)))
+                    i = 0
+                    render_path = self.path.copy()
+                    # slice out any tiles that need to be visualized "in front of" the path (then trim the path as needed)
+                    for (x, y) in self.path:
+                        if (x, y) in front_tiles:
+                            continue
+                        render_path[i] = [x, y]
+                        i += 1
+                    self.path = render_path[:i]
+        self.path_length = map_stats['path-length']
 
         return map_stats

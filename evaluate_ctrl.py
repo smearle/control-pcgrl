@@ -759,7 +759,7 @@ class EvalData:
             # wut
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[0]
             plt.xticks(
-                np.arange(N_LVL_BINS) * im_width + im_width / 2,
+                np.arange(N_LVL_BINS) * (im_width * LVL_RENDER_INTERVAL) + im_width / 2,
                 labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             )
             pad_inches = 0
@@ -986,7 +986,8 @@ if __name__ == "__main__":
 
     # Evaluate controllability
     # Evaluate fixed quality of levels, or controls at default targets
-    evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
+    if not VIS_ONLY:
+        evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
     if not conditional:
         control_sets = PROB_CONTROLS[problem]
         for i, eval_ctrls in enumerate(control_sets):
