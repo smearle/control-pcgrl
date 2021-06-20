@@ -2,8 +2,7 @@
 Launch a batch of experiments on a SLURM cluster.
 
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
-dead processes.
-"""
+dead processes.  """
 import argparse
 import copy
 import json
@@ -13,12 +12,15 @@ from pdb import set_trace as TT
 from typing import List
 
 from cross_eval import compile_results
+from render_gifs import render_gifs
+
+RENDER_LEVELS = False
 
 problems = [
 #       "binary_ctrl", 
         "zelda_ctrl", 
-        "sokoban_ctrl", 
-        "smb_ctrl"
+#       "sokoban_ctrl", 
+#       "smb_ctrl"
         ]
 representations = [
         "cellular", 
@@ -28,7 +30,7 @@ representations = [
         ]
 global_bcs: List[List] = [
 #       ["NONE"], 
-        ["emptiness", "symmetry"],
+#       ["emptiness", "symmetry"],
         ]
 local_bcs = {
     "binary_ctrl": [
@@ -37,9 +39,9 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
+#       ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+#       ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
@@ -168,7 +170,7 @@ def launch_batch(exp_name, collect_params=False):
                                             {
                                                 "infer": True,
                                                 "evaluate": True,
-                                                "render_levels": True,
+                                                "render_levels": RENDER_LEVELS,
                                                 "save_levels": True,
                                                 "visualize": True,
                                             }
@@ -228,13 +230,21 @@ if __name__ == "__main__":
         help="Compile stats from previous evaluations into a table",
         action="store_true",
     )
+    opts.add_argument(
+        "--gif",
+        help="Make gifs from previously-rendered level-generation episodes.",
+        action="store_true",
+    )
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
     EVALUATE = args.evaluate
     LOCAL = args.local
 
-    if args.cross_eval:
+    if args.cross_eval or args.gif:
         settings_list = launch_batch(EXP_NAME, collect_params=True)
+    if args.cross_eval:
         compile_results(settings_list)
+    elif args.gif:
+        render_gifs(settings_list)
     else:
         launch_batch(EXP_NAME)
