@@ -16,6 +16,7 @@ class ZeldaProblem(Problem):
     """
     def __init__(self):
         super().__init__()
+        self.path_length = 0
         self.path = []
         self._width = 16
         self._height = 16
@@ -120,6 +121,7 @@ class ZeldaProblem(Problem):
                     self.path = np.hstack((get_path_coords(dikjstra_k, init_coords=(k_x, k_y)),
                                           get_path_coords(dikjstra_d, init_coords=(d_x, d_y))))
 
+        self.path_length = map_stats["path-length"]
         return map_stats
 
     """
