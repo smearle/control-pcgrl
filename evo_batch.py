@@ -15,20 +15,20 @@ from typing import List
 from cross_eval import compile_results
 
 problems = [
-        "binary_ctrl", 
+#       "binary_ctrl", 
         "zelda_ctrl", 
         "sokoban_ctrl", 
         "smb_ctrl"
         ]
 representations = [
         "cellular", 
-       #"wide", 
-       #"narrow", 
-       #"turtle"
+#       "wide", 
+#       "narrow", 
+#       "turtle"
         ]
 global_bcs: List[List] = [
-       #["NONE"], 
-       #["emptiness", "symmetry"],
+#       ["NONE"], 
+        ["emptiness", "symmetry"],
         ]
 local_bcs = {
     "binary_ctrl": [
@@ -37,18 +37,18 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-       #["nearest-enemy", "path-length"],
+        ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-       #["symmetry", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-       #["crate", "sol-length"],
+        ["crate", "sol-length"],
         ["emptiness", "sol-length"],
-       #["symmetry", "sol-length"],
+        ["symmetry", "sol-length"],
     ],
     "smb_ctrl": [
-       #["enemies", "jumps"], 
-       #["emptiness", "jumps"], 
+        ["enemies", "jumps"], 
+        ["emptiness", "jumps"], 
        ["symmetry", "jumps"]
        ],
 }
@@ -159,7 +159,7 @@ def launch_batch(exp_name, collect_params=False):
                                             "save_levels": True,
                                             "n_steps": n_steps,
                                             "n_init_states": n_init_states,
-                                            "n_generations": 10000,
+                                            "n_generations": 100000,
                                         }
                                     )
 
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="1",
+        default="2",
     )
     opts.add_argument(
         "-ev",
