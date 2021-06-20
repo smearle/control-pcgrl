@@ -2000,21 +2000,21 @@ class EvoPCGRL:
                 # Save checkpoint during generator evolution loop
                 self.save()
 
-            if itr % VIS_INTERVAL == 0 or itr == 1:
-                ckp_dir = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+#           if itr % VIS_INTERVAL == 0 or itr == 1:
+#               ckp_dir = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
 
-                if not os.path.isdir(ckp_dir):
-                    os.mkdir(ckp_dir)
+#               if not os.path.isdir(ckp_dir):
+#                   os.mkdir(ckp_dir)
 
-                if not CMAES:
-                    # Otherwise the heatmap would just be a single cell
-                    self.visualize(itr=itr)
-                archive_objs = np.array(
-                    self.gen_archive.as_pandas(include_solutions=False).loc[
-                        :, "objective"
-                    ]
-                )
-                save_train_stats(archive_objs, itr=itr)
+#               if not CMAES:
+#                   # Otherwise the heatmap would just be a single cell
+#                   self.visualize(itr=itr)
+#               archive_objs = np.array(
+#                   self.gen_archive.as_pandas(include_solutions=False).loc[
+#                       :, "objective"
+#                   ]
+#               )
+#               save_train_stats(archive_objs, itr=itr)
 
             self.n_itr += 1
 
