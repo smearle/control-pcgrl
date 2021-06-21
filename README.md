@@ -1,6 +1,30 @@
-# gym_city_glue branch
+# controllable PCGRL Readme
 
-This branch is intended only to run using the training environment from the relevant [gym-city](https://github.com/smearle/gym-city) branch.
+## Installation
+
+First, we'll need some system-wide packages.
+
+## Mac OS
+
+To install the `gi` (GTK3) module for rendering a user interface with control sliders, run
+`brew install gtk+3 pygobject3`
+
+## Ubuntu
+
+TODO -- I think it's
+`sudo apt-get install python3-gi`
+
+## Windows
+
+TODO
+
+## Python packages
+
+It is recommended to use a virtual environment using anaconda or similar.
+
+To install the required python packages, run
+`python -m pip install -r requirements.txt`
+
 
 # master branch Readme
 
