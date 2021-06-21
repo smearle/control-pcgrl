@@ -14,7 +14,7 @@ from typing import List
 from cross_eval import compile_results
 from render_gifs import render_gifs
 
-RENDER_LEVELS = False
+RENDER_LEVELS = True
 
 problems = [
 #       "binary_ctrl", 
@@ -34,8 +34,8 @@ global_bcs: List[List] = [
         ]
 local_bcs = {
     "binary_ctrl": [
-       #["regions", "path-length"],
-       #["emptiness", "path-length"],
+        ["regions", "path-length"],
+        ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
@@ -72,8 +72,8 @@ fix_seeds = [
 # in the center)
 n_init_states_lst = [
     0,
-    10,
-    20,
+#   10,
+#   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
@@ -210,7 +210,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="3",
+        default="2",
     )
     opts.add_argument(
         "-ev",

@@ -4,6 +4,8 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
+GVGAI_SPRITES = True
+
 """
 The base class for all the problems that can be handled by the interface
 """
@@ -22,7 +24,12 @@ class Problem:
 #       self._border_size = (1,1)
         self._border_size = (1,2)
         self._border_tile = tiles[0]
-        self._tile_size=16
+        if GVGAI_SPRITES:
+            self._tile_size=24
+            self.GVGAI_SPRITES = True
+        else:
+            self._tile_size = 16
+            self.GVGAI_SPRITES = False
         self._graphics = None
 
     """
@@ -148,6 +155,11 @@ class Problem:
         full_width = len(map[0])+2*self._border_size[0]
         full_height = len(map)+2*self._border_size[1]
         lvl_image = Image.new("RGBA", (full_width*self._tile_size, full_height*self._tile_size), (0,0,0,255))
+        # Background floor everywhere
+        for y in range(full_height):
+            for x in range(full_width):
+                lvl_image.paste(self._graphics['empty'], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
+        # Borders
         for y in range(full_height):
             for x in range(self._border_size[0]):
                 lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
@@ -156,20 +168,27 @@ class Problem:
             for y in range(self._border_size[1]):
                 lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
                 lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, (full_height-y-1)*self._tile_size, (x+1)*self._tile_size, (full_height-y)*self._tile_size))
+        # Map tiles
         for y in range(len(map)):
             for x in range(len(map[y])):
-                lvl_image.paste(self._graphics[map[y][x]], ((x+self._border_size[0])*self._tile_size, (y+self._border_size[1])*self._tile_size, (x+self._border_size[0]+1)*self._tile_size, (y+self._border_size[1]+1)*self._tile_size))
+                tile_image = self._graphics[map[y][x]]
+                lvl_image.paste(self._graphics[map[y][x]], ((x+self._border_size[0])*self._tile_size, (y+self._border_size[1])*self._tile_size, (x+self._border_size[0]+1)*self._tile_size, (y+self._border_size[1]+1)*self._tile_size), mask=tile_image)
 
+        # Path, if applicable
         if render_path is not None:
             tile_graphics = self._graphics["path"]
             for (y, x) in render_path:
-                lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size))
+                lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)
             draw = ImageDraw.Draw(lvl_image)
             # font = ImageFont.truetype(<font-file>, <font-size>)
+            font_size = 32
             try:
-                font = ImageFont.truetype("arial.ttf", 32)
+                font = ImageFont.truetype("arial.ttf", font_size)
             except OSError:
-                font = ImageFont.truetype("LiberationMono-Regular.ttf", 32)
+                try:
+                    font = ImageFont.truetype("LiberationMono-Regular.ttf", font_size)
+                except OSError:
+                    font = ImageFont.truetype("SFNSMono.ttf", 32)
             # draw.text((x, y),"Sample Text",(r,g,b))
             draw.text(((full_width - 1) * self._tile_size / 2, 0),"{}".format(self.path_length),(255,255,255),font=font)
         return lvl_image

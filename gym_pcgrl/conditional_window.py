@@ -18,7 +18,7 @@ class ParamRewWindow(Gtk.Window):
 
         auto_reset_button = Gtk.CheckButton("auto reset")
         auto_reset_button.connect('clicked', lambda item: self.env.enable_auto_reset(item))
-        auto_reset_button.set_active(True)
+        self.env.auto_reset = False
         hbox.pack_start(auto_reset_button, False, False, 0)
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)

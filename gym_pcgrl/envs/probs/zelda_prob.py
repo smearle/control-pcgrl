@@ -1,4 +1,5 @@
 import os
+from pdb import set_trace as TT
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
@@ -200,16 +201,29 @@ class ZeldaProblem(Problem):
         Image: a pillow image on how the map will look like using the binary graphics
     """
     def render(self, map):
-        if self._graphics == None:
-            self._graphics = {
-                "empty": Image.open(os.path.dirname(__file__) + "/zelda/empty.png").convert('RGBA'),
-                "solid": Image.open(os.path.dirname(__file__) + "/zelda/solid.png").convert('RGBA'),
-                "player": Image.open(os.path.dirname(__file__) + "/zelda/player.png").convert('RGBA'),
-                "key": Image.open(os.path.dirname(__file__) + "/zelda/key.png").convert('RGBA'),
-                "door": Image.open(os.path.dirname(__file__) + "/zelda/door.png").convert('RGBA'),
-                "spider": Image.open(os.path.dirname(__file__) + "/zelda/spider.png").convert('RGBA'),
-                "bat": Image.open(os.path.dirname(__file__) + "/zelda/bat.png").convert('RGBA'),
-                "scorpion": Image.open(os.path.dirname(__file__) + "/zelda/scorpion.png").convert('RGBA'),
-                "path": Image.open(os.path.dirname(__file__) + "/zelda/path_g.png").convert('RGBA'),
-            }
+        if self._graphics is None:
+            if self.GVGAI_SPRITES:
+                self._graphics = {
+                    "empty": Image.open(os.path.dirname(__file__) + "/sprites/oryx/floor3.png").convert('RGBA'),
+                    "solid": Image.open(os.path.dirname(__file__) + "/sprites/oryx/wall3.png").convert('RGBA'),
+                    "player": Image.open(os.path.dirname(__file__) + "/sprites/oryx/swordman1_0.png").convert('RGBA'),
+                    "key": Image.open(os.path.dirname(__file__) + "/sprites/oryx/key2.png").convert('RGBA').resize((24,24)),
+                    "door": Image.open(os.path.dirname(__file__) + "/sprites/oryx/doorclosed1.png").convert('RGBA'),
+                    "spider": Image.open(os.path.dirname(__file__) + "/sprites/oryx/spider1.png").convert('RGBA'),
+                    "bat": Image.open(os.path.dirname(__file__) + "/sprites/oryx/bat2.png").convert('RGBA'),
+                    "scorpion": Image.open(os.path.dirname(__file__) + "/sprites/oryx/scorpion1.png").convert('RGBA'),
+                    "path" : Image.open(os.path.dirname(__file__) + "/sprites/newset/snowmanchest.png").convert('RGBA'),
+                }
+            else:
+                self._graphics = {
+                    "empty": Image.open(os.path.dirname(__file__) + "/zelda/empty.png").convert('RGBA'),
+                    "solid": Image.open(os.path.dirname(__file__) + "/zelda/solid.png").convert('RGBA'),
+                    "player": Image.open(os.path.dirname(__file__) + "/zelda/player.png").convert('RGBA'),
+                    "key": Image.open(os.path.dirname(__file__) + "/zelda/key.png").convert('RGBA'),
+                    "door": Image.open(os.path.dirname(__file__) + "/zelda/door.png").convert('RGBA'),
+                    "spider": Image.open(os.path.dirname(__file__) + "/zelda/spider.png").convert('RGBA'),
+                    "bat": Image.open(os.path.dirname(__file__) + "/zelda/bat.png").convert('RGBA'),
+                    "scorpion": Image.open(os.path.dirname(__file__) + "/zelda/scorpion.png").convert('RGBA'),
+                    "path": Image.open(os.path.dirname(__file__) + "/zelda/path_g.png").convert('RGBA'),
+                }
         return super().render(map, render_path=self.path)

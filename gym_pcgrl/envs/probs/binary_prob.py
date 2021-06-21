@@ -4,6 +4,7 @@ from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
+
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
@@ -26,7 +27,7 @@ class BinaryProblem(Problem):
             "path-length": 1
         }
 
-        self._max_path_length = np.ceil(self._width / 2) * self._height + np.floor(self._height)
+        self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
         self.render_path = False
 
     """
@@ -154,9 +155,16 @@ class BinaryProblem(Problem):
     """
     def render(self, map):
         if self._graphics == None:
-            self._graphics = {
-                "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
-                "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
-            }
+            if self.GVGAI_SPRITES:
+                self._graphics = {
+                    "empty": Image.open(os.path.dirname(__file__) + "/sprites/oryx/floor3.png").convert('RGBA'),
+                    "solid": Image.open(os.path.dirname(__file__) + "/sprites/oryx/wall3.png").convert('RGBA'),
+                    "path" : Image.open(os.path.dirname(__file__) + "/sprites/newset/snowmanchest.png").convert('RGBA'),
+                }
+            else:
+                self._graphics = {
+                    "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
+                    "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
+                    "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
+                }
         return super().render(map, render_path=self.path_coords)
