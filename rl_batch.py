@@ -15,9 +15,9 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-    "binary_ctrl",
+#   "binary_ctrl",
     "zelda_ctrl",
-    "sokoban_ctrl",
+#   "sokoban_ctrl",
     # 'smb_ctrl',
 ]
 representations: List[str] = [
@@ -28,7 +28,7 @@ representations: List[str] = [
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-    ["NONE"],
+#   ["NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {

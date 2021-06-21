@@ -30,7 +30,7 @@ representations = [
         ]
 global_bcs: List[List] = [
 #       ["NONE"], 
-#       ["emptiness", "symmetry"],
+        ["emptiness", "symmetry"],
         ]
 local_bcs = {
     "binary_ctrl": [
@@ -39,9 +39,9 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
+        ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
@@ -210,7 +210,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="2",
+        default="3",
     )
     opts.add_argument(
         "-ev",

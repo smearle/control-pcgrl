@@ -2706,24 +2706,29 @@ class EvoPCGRL:
 
 
 def gen_random_levels(n_init_states, env):
-    init_states = np.zeros(shape=(n_init_states, env._prob._height, env._prob._width))
-    init_state_maps = []
-
-    for i in range(N_INIT_STATES):
-        env._rep.reset(
-            env._prob._width,
-            env._prob._height,
-            get_int_prob(env._prob._prob, env._prob.get_tile_types()),
-        )
-        #                   init_state_maps.append(np.expand_dims(get_one_hot_map(self.env._rep._map, self.n_tile_types), axis=0))
-        init_state_maps.append(np.expand_dims(env._rep._map, axis=0))
-
-    init_states[:] = np.vstack(init_state_maps)
-    # init_states = np.zeros(
-    #    0, self.n_tile_types, size=self.init_states.shape
-    # )
-
+    init_states = np.random.randint(
+        0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob.width, env._prob.height)
+    )
     return init_states
+
+#   init_states = np.zeros(shape=(n_init_states, env._prob._height, env._prob._width))
+#   init_state_maps = []
+
+#   for i in range(N_INIT_STATES):
+#       env._rep.reset(
+#           env._prob._width,
+#           env._prob._height,
+#           get_int_prob(env._prob._prob, env._prob.get_tile_types()),
+#       )
+#       #                   init_state_maps.append(np.expand_dims(get_one_hot_map(self.env._rep._map, self.n_tile_types), axis=0))
+#       init_state_maps.append(np.expand_dims(env._rep._map, axis=0))
+
+#   init_states[:] = np.vstack(init_state_maps)
+#   # init_states = np.zeros(
+#   #    0, self.n_tile_types, size=self.init_states.shape
+#   # )
+
+#   return init_states
 
 
 if __name__ == "__main__":
