@@ -2,11 +2,12 @@
 
 ## Installation
 
-First, we'll need some system-wide packages.
+First, we'll need some system-wide packages. It is recommended to use anaconda for python packages, but it will also allow us to install the `gi` (GTK3) module for rendering a user interface with control sliders, in an OS-independent manner, with
+`conda install -c conda-forge pygobject gtk3`. Otherwise, try:
 
 ## Mac OS
 
-To install the `gi` (GTK3) module for rendering a user interface with control sliders, run
+
 `brew install gtk+3 pygobject3`
 
 ## Ubuntu
