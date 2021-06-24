@@ -2707,7 +2707,7 @@ class EvoPCGRL:
 
 def gen_random_levels(n_init_states, env):
     init_states = np.random.randint(
-        0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob.width, env._prob.height)
+        0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._width, env._prob._height)
     )
     return init_states
 

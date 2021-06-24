@@ -69,7 +69,7 @@ def compile_results(settings_list):
     batch_exp_name = settings_list[0]["exp_name"]
     if batch_exp_name == "0":
         EVO_DIR = "evo_runs_06-12"
-    elif batch_exp_name == "1":
+    else:
         #       EVO_DIR = "evo_runs_06-13"
         EVO_DIR = "evo_runs_06-14"
     #   ignored_keys = set(
