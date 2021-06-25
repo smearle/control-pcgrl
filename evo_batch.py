@@ -72,8 +72,8 @@ fix_seeds = [
 # in the center)
 n_init_states_lst = [
     0,
-#   10,
-#   20,
+    10,
+    20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
@@ -158,7 +158,7 @@ def launch_batch(exp_name, collect_params=False):
                                             "fix_elites": fix_el,
                                             "fix_level_seeds": fix_seed,
                                             "exp_name": exp_name,
-                                            "save_levels": True,
+                                            "save_levels": False,
                                             "n_steps": n_steps,
                                             "n_init_states": n_init_states,
                                             "n_generations": 100000,
