@@ -29,6 +29,8 @@ class BinaryProblem(Problem):
 
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
         self.render_path = False
+        self.path_coords = []
+        self.path_length = None
 
     """
     Get a list of all the different tile names

@@ -1364,6 +1364,10 @@ def simulate(
                     batch_play_bonus += max_regret + p_1_rew - p_2_rew
 
             if RENDER:
+                if INFER:
+                    stats = env._prob.get_stats(
+                        get_string_map(int_map, env._prob.get_tile_types())
+                    )
                 env.render()
 
             if done and INFER:  # and not (EVALUATE and THREADS):
@@ -2037,6 +2041,7 @@ class EvoPCGRL:
 
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
+        self.env.adjust_param(render=RENDER)
 
         if CMAES:
             # Give a little wiggle room from targets, to allow for some diversity
