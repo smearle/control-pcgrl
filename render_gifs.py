@@ -37,6 +37,8 @@ def render_gifs(settings_list):
             frames_to_gif(os.path.join(render_path, '{}.gif'.format(m_dir)), frames)
 
 def frames_to_gif(gif_path, filenames):
+    # Repeat the last frame a bunch, so that we "pause" on the final generated level
+    filenames = filenames + [filenames[-1]] * 20
     with imageio.get_writer(gif_path, mode='I') as writer:
         for filename in filenames:
             image = imageio.imread(filename)

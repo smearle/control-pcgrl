@@ -148,17 +148,17 @@ class ZeldaCtrlProblem(ZeldaProblem):
                 )
                 map_stats["path-length"] += dikjstra_d[d_y][d_x]
 
-                if self.render_path and map_stats["regions"] == 1:
-                    self.path = np.vstack((get_path_coords(dikjstra_k, init_coords=(k_y, k_x))[1:-1],
-                        get_path_coords(dikjstra_d, init_coords=(d_y, d_x))[1:-1]))
+                if self.render_path:  # and map_stats["regions"] == 1:
+                    self.path = np.vstack((get_path_coords(dikjstra_k, init_coords=(k_y, k_x))[:],
+                        get_path_coords(dikjstra_d, init_coords=(d_y, d_x))[:]))
                     front_tiles = set(((k_x, k_y), (d_x, d_y), (p_x, p_y)))
                     i = 0
                     render_path = self.path.copy()
                     # slice out any tiles that need to be visualized "in front of" the path (then trim the path as needed)
-                    for (x, y) in self.path:
+                    for (y, x) in self.path:
                         if (x, y) in front_tiles:
                             continue
-                        render_path[i] = [x, y]
+                        render_path[i] = [y, x]
                         i += 1
                     self.path = render_path[:i]
         self.path_length = map_stats['path-length']
