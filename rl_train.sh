@@ -21,5 +21,5 @@ source activate vanilla_pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
-python train_ctrl.py -la 17
+python train_ctrl.py -la 56
 

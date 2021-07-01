@@ -21,17 +21,17 @@ problems = [
         "zelda_ctrl", 
 #       "sokoban_ctrl", 
 #       "smb_ctrl"
-        ]
+]
 representations = [
         "cellular", 
 #       "wide", 
 #       "narrow", 
 #       "turtle"
-        ]
+]
 global_bcs: List[List] = [
 #       ["NONE"], 
         ["emptiness", "symmetry"],
-        ]
+]
 local_bcs = {
     "binary_ctrl": [
         ["regions", "path-length"],

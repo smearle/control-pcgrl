@@ -15,9 +15,9 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-#   "binary_ctrl",
+    "binary_ctrl",
     "zelda_ctrl",
-#   "sokoban_ctrl",
+    "sokoban_ctrl",
     # 'smb_ctrl',
 ]
 representations: List[str] = [
@@ -28,7 +28,7 @@ representations: List[str] = [
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-#   ["NONE"],
+    ["NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {
@@ -218,6 +218,12 @@ if __name__ == "__main__":
         help="Compile stats from previous evaluations into a table",
         action="store_true",
     )
+    opts.add_argument(
+        "-np",
+        "--no_plot",
+        help="Do no plot output from monitor files during cross-evaluation.",
+        action="store_true",
+    )
 
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
@@ -225,6 +231,6 @@ if __name__ == "__main__":
     LOCAL = args.local
     if args.cross_eval:
         settings_list = launch_batch(EXP_NAME, collect_params=True)
-        compile_results(settings_list)
+        compile_results(settings_list, no_plot=args.no_plot)
     else:
         launch_batch(EXP_NAME)

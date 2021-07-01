@@ -114,7 +114,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get("n_cpu")
-    infer_kwargs['render_path'] = True
+    if 'path-length' in eval_controls:
+        infer_kwargs['render_path'] = True
     env, dummy_action_space, n_tools = make_vec_envs(
         env_name, representation, None, **infer_kwargs
     )
@@ -150,7 +151,17 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         # Then this is a non-controllable agent.
         # Can't we just do this in all cases though?
         control_bounds = env.cond_bounds
-    ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
+    ctrl_bounds = []
+    for k in eval_controls:
+        bounds = control_bounds[k]
+        if 'path-length' in k:
+            if 'zelda' in game:
+                bounds = (3, bounds[1])
+            else:
+                bounds = (1, bounds[1])
+        if 'sol-length' in k:
+            bounds = (1, bounds[1])
+        ctrl_bounds.append(bounds)
 
     #   if len(ctrl_bounds) == 0 and DIVERSITY_EVAL:
     #       N_MAPS = 100
@@ -1006,7 +1017,6 @@ if __name__ == "__main__":
     if not conditional:
         control_sets = PROB_CONTROLS[problem]
         for i, eval_ctrls in enumerate(control_sets):
-
             # Then evaluate over some default controls (otherwise use those that we trained on)
             # TODO: for each experiment, repeat for a set of control-sets
             infer_kwargs.update({'eval_controls': eval_ctrls, 'cond_metrics': eval_ctrls})

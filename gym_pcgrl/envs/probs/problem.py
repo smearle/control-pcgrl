@@ -4,7 +4,7 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-GVGAI_SPRITES = True
+GVGAI_SPRITES = False
 
 """
 The base class for all the problems that can be handled by the interface
