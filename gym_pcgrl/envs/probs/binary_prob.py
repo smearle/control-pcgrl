@@ -10,7 +10,7 @@ Generate a fully connected top down layout where the longest path is greater tha
 """
 class BinaryProblem(Problem):
     """
-    The constructor is responsible of initializing all the game parameters
+    The constructor is responsible for initializing all the game parameters
     """
     def __init__(self):
         super().__init__()
@@ -48,7 +48,7 @@ class BinaryProblem(Problem):
         width (int): change the width of the problem level
         height (int): change the height of the problem level
         probs (dict(string, float)): change the probability of each tile
-        intiialization, the names are "empty", "solid"
+        initialization, the names are "empty", "solid"
         target_path (int): the current path length that the episode turn when it reaches
         rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
     """

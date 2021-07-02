@@ -3,7 +3,7 @@ from gym_pcgrl.envs.probs.binary_ctrl_prob import BinaryCtrlProblem
 from gym_pcgrl.envs.probs.ddave_prob import DDaveProblem
 from gym_pcgrl.envs.probs.mdungeon_prob import MDungeonProblem
 from gym_pcgrl.envs.probs.sokoban_prob import SokobanProblem
-from gym_pcgrl.envs.probs.sokoban_ctrl_prob import SokobanCtrlProblem
+#from gym_pcgrl.envs.probs.simcity_prob import SimCityProblem
 from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
 from gym_pcgrl.envs.probs.zelda_ctrl_prob import ZeldaCtrlProblem
 from gym_pcgrl.envs.probs.smb_prob import SMBProblem

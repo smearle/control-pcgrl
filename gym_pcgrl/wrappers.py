@@ -1,4 +1,8 @@
-from pdb import set_trace as TT
+import gym
+import gym_pcgrl
+from stable_baselines.bench import Monitor
+#from gym_city import envs
+#from envs import MicropolisMonitor
 
 import numpy as np
 
@@ -72,6 +76,23 @@ class MaxStep(gym.Wrapper):
         return obs
 
 
+
+class Wrapper(gym.Wrapper):
+    def __init__(self, game, filename='./', **kwargs):
+        pass
+
+
+"""
+Does not intervene.
+"""
+class Full(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.env = gym.make(game)
+        self.env.adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+        # ignore position information
+        self.observation_space = self.env.observation_space
+
 """
 Return a Box instead of dictionary by stacking different similar objects
 
@@ -113,6 +134,7 @@ class ToImage(gym.Wrapper):
         )
 
     def step(self, action):
+        print('action {}'.format(action.shape))
         action = get_action(action)
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
@@ -153,11 +175,8 @@ class OneHotEncoding(gym.Wrapper):
         get_pcgrl_env(self.env).adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
-        assert (
-            name in self.env.observation_space.spaces.keys()
-        ), "This wrapper only works for representations thave have a {} key".format(
-            name
-        )
+        print(self.env.observation_space, self.env.observation_space.spaces.keys())
+        assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a {} key'.format(name)
         self.name = name
 
         self.observation_space = gym.spaces.Dict({})
@@ -338,28 +357,16 @@ The wrappers we use for narrow and turtle experiments
 class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
-        # These envs don't use a lot of PCGRL conventions and are wide be default
-
-        if "micropolis" in game.lower():
-            self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
-            import gym_city
-
-        if "RCT" in game:
-            self.pcgrl_env = RCTWrapper(self.pcgrl_env)
-        else:
-            self.pcgrl_env.adjust_param(**kwargs)
-            # Cropping the map to the correct crop_size
-            env = Cropped(
-                self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), "map"
-            )
-            # Transform to one hot encoding if not binary
-
-            if "binary" not in game:
-                env = OneHotEncoding(env, "map")
-            # Indices for flatting
-            flat_indices = ["map"]
-            # Final Wrapper has to be ToImage or ToFlat
-            self.env = ToImage(env, flat_indices)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Cropping the map to the correct crop_size
+        env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map', **kwargs)
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Indices for flatting
+        flat_indices = ['map']
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 

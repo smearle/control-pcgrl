@@ -11,7 +11,7 @@ setup(name='gym_pcgrl',
       description="A package for \"Procedural Content Generation via Reinforcement Learning\" OpenAI Gym interface.",
       long_description=long_description,
       long_description_content_type="text/markdown",
-      url="https://github.com/amidos2006/gym-pcgrl",
+      url="https://github.com/smearle/gym-pcgrl-sc",
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
