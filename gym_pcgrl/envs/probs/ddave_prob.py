@@ -2,7 +2,7 @@ from PIL import Image
 import os
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions, get_floor_dist
 from gym_pcgrl.envs.probs.ddave.engine import State,BFSAgent,AStarAgent
 
 """
@@ -20,6 +20,8 @@ class DDaveProblem(Problem):
         self._prob = {"empty":0.5, "solid":0.3, "player":0.02, "exit":0.02, "diamond":0.04, "key": 0.02, "spike":0.1}
         self._border_tile = "solid"
 
+        self._solver_power = 5000
+
         self._max_diamonds = 3
         self._min_spikes = 10
 
@@ -28,12 +30,13 @@ class DDaveProblem(Problem):
 
         self._rewards = {
             "player": 3,
+            "dist-floor": 2,
             "exit": 3,
             "diamonds": 1,
             "key": 3,
             "spikes": 1,
             "regions": 5,
-            "num-jumps": 2,
+            "num-jumps": 3,
             "dist-win": 0.1,
             "sol-length": 1
         }
@@ -63,6 +66,8 @@ class DDaveProblem(Problem):
     """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
+
+        self._solver_power = kwargs.get('solver_power', self._solver_power)
 
         self._max_diamonds = kwargs.get('max_diamonds', self._max_diamonds)
         self._min_spikes = kwargs.get('min_spikes', self._min_spikes)
@@ -114,16 +119,16 @@ class DDaveProblem(Problem):
         aStarAgent = AStarAgent()
         bfsAgent = BFSAgent()
 
-        sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 1, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0.5, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = bfsAgent.getSolution(state, 5000)
+        sol,solState,iters = bfsAgent.getSolution(state, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
 
@@ -145,6 +150,7 @@ class DDaveProblem(Problem):
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
+            "dist-floor": get_floor_dist(map, ["player"], ["solid"]),
             "exit": calc_certain_tile(map_locations, ["exit"]),
             "diamonds": calc_certain_tile(map_locations, ["diamond"]),
             "key": calc_certain_tile(map_locations, ["key"]),
@@ -155,7 +161,8 @@ class DDaveProblem(Problem):
             "dist-win": self._width * self._height,
             "sol-length": 0
         }
-        if map_stats["player"] == 1 and map_stats["exit"] == 1 and map_stats["key"] == 1 and map_stats["regions"] == 1:
+        if map_stats["player"] == 1:
+            if map_stats["exit"] == 1 and map_stats["key"] == 1 and map_stats["regions"] == 1:
                 map_stats["dist-win"], map_stats["sol-length"], play_stats = self._run_game(map)
                 map_stats["num-jumps"] = play_stats["num_jumps"]
                 map_stats["col-diamonds"] = play_stats["col_diamonds"]
@@ -177,6 +184,7 @@ class DDaveProblem(Problem):
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
             "exit": get_range_reward(new_stats["exit"], old_stats["exit"], 1, 1),
             "diamonds": get_range_reward(new_stats["diamonds"], old_stats["diamonds"], -np.inf, self._max_diamonds),
+            "dist-floor": get_range_reward(new_stats["dist-floor"], old_stats["dist-floor"], 0, 0),
             "key": get_range_reward(new_stats["key"], old_stats["key"], 1, 1),
             "spikes": get_range_reward(new_stats["spikes"], old_stats["spikes"], self._min_spikes, np.inf),
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
@@ -186,6 +194,7 @@ class DDaveProblem(Problem):
         }
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
+            rewards["dist-floor"] * self._rewards["dist-floor"] +\
             rewards["exit"] * self._rewards["exit"] +\
             rewards["spikes"] * self._rewards["spikes"] +\
             rewards["diamonds"] * self._rewards["diamonds"] +\

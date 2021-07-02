@@ -5,7 +5,10 @@ from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dikjstra
 
 """
-Generate a fully connected top down layout where the longest path is greater than a certain threshold
+Generate a fully connected GVGAI zelda level where the player can reach key then the door.
+
+Args:
+    target_enemy_dist: enemies should be at least this far from the player on spawn
 """
 class ZeldaProblem(Problem):
     """
@@ -24,12 +27,12 @@ class ZeldaProblem(Problem):
         self._target_path = 16
 
         self._rewards = {
-            "player": 2,
-            "key": 2,
-            "door": 2,
-            "regions": 3,
+            "player": 3,
+            "key": 3,
+            "door": 3,
+            "regions": 5,
             "enemies": 1,
-            "nearest-enemy": 1,
+            "nearest-enemy": 2,
             "path-length": 1
         }
 

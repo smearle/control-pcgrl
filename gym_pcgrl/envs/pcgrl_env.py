@@ -4,6 +4,7 @@ from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 import numpy as np
 import gym
 from gym import spaces
+import PIL
 
 import PIL
 
@@ -25,8 +26,7 @@ class PcgrlEnv(gym.Env):
         rep (string): the current representation. This name has to be defined in REPRESENTATIONS
         constant in gym_pcgrl.envs.reps.__init__.py
     """
-    def __init__(self, prob="binary", rep = "narrow"):
-        self.rank = None
+    def __init__(self, prob="binary", rep="narrow"):
         self._prob = PROBLEMS[prob]()
         self._prob_str = prob
         self._rep = REPRESENTATIONS[rep]()
@@ -55,7 +55,9 @@ class PcgrlEnv(gym.Env):
         int[]: An array of 1 element (the used seed)
     """
     def seed(self, seed=None):
-        return [self._rep.seed(seed)]
+        seed = self._rep.seed(seed)
+        self._prob.seed(seed)
+        return [seed]
 
     """
     Resets the environment to the start state
@@ -69,6 +71,7 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         observation = self._rep.get_observation()
@@ -118,8 +121,7 @@ class PcgrlEnv(gym.Env):
     """
     def adjust_param(self, **kwargs):
         if 'change_percentage' in kwargs:
-            epsilon = 1e-6
-            percentage = min(1-epsilon, max(epsilon, kwargs.get('change_percentage')))
+            percentage = min(1, max(0, kwargs.get('change_percentage')))
             self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
@@ -192,7 +194,7 @@ class PcgrlEnv(gym.Env):
             from gym.envs.classic_control import rendering
             if self.viewer is None:
                 self.viewer = rendering.SimpleImageViewer()
-            if type(img) == PIL.Image.Image: # why does this happen?
+            if not hasattr(img, 'shape'):
                 img = np.array(img)
             self.viewer.imshow(img)
             return self.viewer.isopen

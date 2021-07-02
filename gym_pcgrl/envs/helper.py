@@ -23,6 +23,120 @@ def get_tile_locations(map, tile_values):
     return tiles
 
 """
+Get the vertical distance to certain type of tiles
+
+Parameters:
+    map (any[][]): the actual map
+    x (int): the x position of the start location
+    y (int): the y position of the start location
+    types (any[]): an array of types of tiles
+
+Returns:
+    int: the distance to certain types underneath a certain location
+"""
+def _calc_dist_floor(map, x, y, types):
+    for dy in range(len(map)):
+        if y+dy >= len(map):
+            break
+        if map[y+dy][x] in types:
+            return dy-1
+    return len(map) - 1
+
+"""
+Public function to calculate the distance of a certain tiles to the floor tiles
+
+Parameters:
+    map (any[][]): the current map
+    from (any[]): an array of all the tile values that the method is calculating the distance to the floor
+    floor (any[]): an array of all the tile values that are considered floor
+
+Returns:
+    int: a value of how far each tile from the floor where 0 means on top of floor and positive otherwise
+"""
+def get_floor_dist(map, fromTypes, floorTypes):
+    result = 0
+    for y in range(len(map)):
+        for x in range(len(map[y])):
+            if map[y][x] in fromTypes:
+                result += _calc_dist_floor(map, x, y, floorTypes)
+    return result
+
+"""
+Get number of tiles that have certain value arround certain position
+
+Parameters:
+    map (any[][]): the current map
+    x (int): the x position of the start location
+    y (int): the y position of the start location
+    types (any[]): an array of types of tiles
+    relLocs ((int,int)[]): a tuple array of all the relative positions
+
+Returns:
+    int: the number of similar tiles around a certain location
+"""
+def _calc_group_value(map, x, y, types, relLocs):
+    result = 0
+    for l in relLocs:
+        nx, ny = x+l[0], y+l[1]
+        if nx < 0 or ny < 0 or nx >= len(map[0]) or ny >= len(map):
+            continue
+        if map[ny][nx] in types:
+            result += 1
+    return result
+
+"""
+Get the number of tiles that is a group of certain size
+
+Parameters:
+    map (any[][]): the current map
+    types (any[]): an array of types of tiles
+    relLocs ((int,int)[]): a tuple array of all the relative positions
+    min (int): min number of tiles around
+    max (int): max number of tiles around
+
+Returns:
+    int: the number of tiles that have surrounding between min and max
+"""
+def get_type_grouping(map, types, relLocs, min, max):
+    result = 0
+    for y in range(len(map)):
+        for x in range(len(map[y])):
+            if map[y][x] in types:
+                value = _calc_group_value(map, x, y, types, relLocs)
+                if value >= min and value <= max:
+                    result += 1
+    return result
+
+"""
+Get the number of changes of tiles in either vertical or horizontal direction
+
+Parameters:
+    map (any[][]): the current map
+    vertical (boolean): calculate the vertical changes instead of horizontal
+
+Returns:
+    int: number of different tiles either in vertical or horizontal direction
+"""
+def get_changes(map, vertical=False):
+    start_y = 0
+    start_x = 0
+    if vertical:
+        start_y = 1
+    else:
+        start_x = 1
+    value = 0
+    for y in range(start_y, len(map)):
+        for x in range(start_x, len(map[y])):
+            same = False
+            if vertical:
+                same = map[y][x] == map[y-1][x]
+            else:
+                same = map[y][x] == map[y][x-1]
+            if not same:
+                value += 1
+    return value
+
+"""
 Private function to get a list of all tile locations on the map that have any of
 the tile_values
 
@@ -91,6 +205,7 @@ def calc_num_regions(map, map_locations, passable_values):
         else:
             continue
     return region_index
+
 
 """
 Public function that runs dikjstra algorithm and return the map
@@ -193,16 +308,7 @@ Returns:
     int[][]: the random generated map
 """
 def gen_random_map(random, width, height, prob):
-    map = np.zeros((height, width), dtype=np.uint8)
-    for y in range(height):
-        for x in range(width):
-            total = 0
-            randv = random.rand()
-            for v in prob:
-                total += prob[v]
-                if randv < total:
-                    map[y][x] = int(v)
-                    break
+    map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
     return map
 
 """

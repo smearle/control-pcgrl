@@ -4,10 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='gym_pcgrl',
-      version='0.3.6',
-      install_requires=['gym', 'numpy>=1.17', 'pillow',#'baselines',
-          'stable_baselines',
-          'opencv-python'],
+      version='0.4.0',
+      install_requires=['gym', 'numpy>=1.17', 'pillow'],
       author="Ahmed Khalifa",
       author_email="ahmed@akhalifa.com",
       description="A package for \"Procedural Content Generation via Reinforcement Learning\" OpenAI Gym interface.",
