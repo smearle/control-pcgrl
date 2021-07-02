@@ -230,6 +230,6 @@ def load_model(log_dir, n_tools=None, load_best=False):
         policy_kwargs = {"n_tools": n_tools}
     else:
         policy_kwargs = {}
-    model = PPO2.load(model_path)
+    model = PPO2.load(model_path, reset_num_timesteps=False)
 
     return model

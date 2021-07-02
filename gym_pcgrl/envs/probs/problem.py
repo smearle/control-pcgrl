@@ -19,13 +19,16 @@ class Problem:
         tiles = self.get_tile_types()
         self._prob = []
         for _ in range(len(tiles)):
-            self._prob.append(1.0/len(tiles))
+            self._prob.append(1.0 / len(tiles))
 
 #       self._border_size = (1,1)
-        self._border_size = (1,2)
+        if 'Zelda' in str(self) or 'Binary' in str(self):
+            self._border_size = (1, 2)
+        else:
+            self._border_size = (1, 1)
         self._border_tile = tiles[0]
         if GVGAI_SPRITES:
-            self._tile_size=24
+            self._tile_size = 24
             self.GVGAI_SPRITES = True
         else:
             self._tile_size = 16

@@ -285,22 +285,31 @@ class SokobanProblem(Problem):
 
     def render(self, map):
         if self._graphics is None:
-            self._graphics = {
-                "empty": Image.open(
-                    os.path.dirname(__file__) + "/sprites/oryx/floor3.png"
-                ).convert("RGBA"),
-                "solid": Image.open(
-                    os.path.dirname(__file__) + "/sprites/oryx/wall3.png"
-                ).convert("RGBA"),
-                "player": Image.open(
-                    os.path.dirname(__file__) + "/sprites/oryx/knight1.png"
-                ).convert("RGBA"),
-                "crate": Image.open(
-                    os.path.dirname(__file__) + "/sprites/newset/block2.png"
-                ).convert("RGBA"),
-                "target": Image.open(
-                    os.path.dirname(__file__) + "/sprites/oryx/cspell4.png"
-                ).convert("RGBA"),
-            }
+            if self.GVGAI_SPRITES:
+                self._graphics = {
+                    "empty": Image.open(
+                        os.path.dirname(__file__) + "/sprites/oryx/floor3.png"
+                    ).convert("RGBA"),
+                    "solid": Image.open(
+                        os.path.dirname(__file__) + "/sprites/oryx/wall3.png"
+                    ).convert("RGBA"),
+                    "player": Image.open(
+                        os.path.dirname(__file__) + "/sprites/oryx/knight1.png"
+                    ).convert("RGBA"),
+                    "crate": Image.open(
+                        os.path.dirname(__file__) + "/sprites/newset/block2.png"
+                    ).convert("RGBA"),
+                    "target": Image.open(
+                        os.path.dirname(__file__) + "/sprites/oryx/cspell4.png"
+                    ).convert("RGBA"),
+                }
+            else:
+                self._graphics = {
+                    "empty": Image.open(os.path.dirname(__file__) + "/sokoban/empty.png").convert('RGBA'),
+                    "solid": Image.open(os.path.dirname(__file__) + "/sokoban/solid.png").convert('RGBA'),
+                    "player": Image.open(os.path.dirname(__file__) + "/sokoban/player.png").convert('RGBA'),
+                    "crate": Image.open(os.path.dirname(__file__) + "/sokoban/crate.png").convert('RGBA'),
+                    "target": Image.open(os.path.dirname(__file__) + "/sokoban/target.png").convert('RGBA')
+                }
 
         return super().render(map)

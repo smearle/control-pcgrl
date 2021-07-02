@@ -178,10 +178,16 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 #       model.policy = model.policy.cuda()
     tb_log_name = '{}_tb'.format(exp_name_id)
     if not logging:
-        model.learn(total_timesteps=n_frames, tb_log_name=tb_log_name)
+        model.learn(total_timesteps=n_frames, 
+                    reset_num_timesteps=False,
+                    tb_log_name=tb_log_name
+                    )
     else:
         model.learn(total_timesteps=n_frames,
-                    tb_log_name=tb_log_name, callback=callback)
+                    tb_log_name=tb_log_name, 
+                    reset_num_timesteps=False,
+                    callback=callback
+                    )
 
 
 opts = parse_args()
