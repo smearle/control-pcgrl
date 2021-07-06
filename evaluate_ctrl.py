@@ -518,17 +518,13 @@ class EvalData:
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
         self.eval_dir = eval_dir
-        self.ctrl_names = list(self.ctrl_names)
-        for i, cn in enumerate(self.ctrl_names):
-            if cn == 'sol-length':
-                self.ctrl_names[i] = 'solution-length'
+        if self.ctrl_names:
+            self.ctrl_names = list(self.ctrl_names)
+            for i, cn in enumerate(self.ctrl_names):
+                if cn == 'sol-length':
+                    self.ctrl_names[i] = 'solution-length'
 
     def visualize_data(self, eval_dir, fix_trgs):
-        # FIXME: don't need this
-        self.ctrl_names = list(self.ctrl_names)
-        for i, cn in enumerate(self.ctrl_names):
-            if cn == 'sol-length':
-                self.ctrl_names[i] = 'solution-length'
         self.save_stats(div_scores=self.div_scores, fix_trgs=fix_trgs)
 
         if fix_trgs:
@@ -651,21 +647,17 @@ class EvalData:
             "diversity_score": get_stat_subdict(div_scores),
             "n_maps_per_cell": N_MAPS,
             "n_trials_per_map": N_TRIALS,
+            "controls": self.ctrl_names,
         }
 
         if fix_trgs:
             filename = "scores_fixTrgs.json"
         else:
-            filename = "scores_ctrlTrgs.json"
+            filename = "scores_{}_ctrlTrgs.json".format(self.ctrl_names)
         with open(os.path.join(self.eval_dir, filename), "w") as fp:
             json.dump(scores, fp, ensure_ascii=False, indent=4)
 
     def render_levels(self):
-        # FIXME: don't need this
-        self.ctrl_names = list(self.ctrl_names)
-        for i, cn in enumerate(self.ctrl_names):
-            if cn == 'sol-length':
-                self.ctrl_names[i] = 'solution-length'
         ctrl_names = self.ctrl_names
         if 'sokoban_ctrl' in self.eval_dir:
             plt.rcParams.update({'font.size': 12})
