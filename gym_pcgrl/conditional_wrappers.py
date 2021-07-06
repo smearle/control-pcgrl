@@ -14,15 +14,20 @@ from gym_pcgrl.envs.helper import get_range_reward
 #FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ParamRew(gym.Wrapper):
-    def __init__(self, env, cond_metrics, rand_params=False, **kwargs):
+    def __init__(self, env, ctrl_metrics, rand_params=False, **kwargs):
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
         self.conditional = kwargs.get("conditional")
+        # We'll use these for calculating loss (for evaluation during inference) but not worry about oberving them
+        # (we didn't necessarily train with all of them)
+        ctrl_loss_metrics = kwargs.get("eval_controls")
+        if not ctrl_loss_metrics:
+            ctrl_loss_metrics = ctrl_metrics
         if self.conditional:
-            assert cond_metrics
+            assert ctrl_metrics
         else:
-            if cond_metrics:
-                print('Dummy controllable metrics: {}, will not be observed.'.format(cond_metrics))
+            if ctrl_metrics:
+                print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
         self.CA_action = kwargs.get("ca_action")
 
         self.render_gui = kwargs.get("render")
@@ -33,31 +38,31 @@ class ParamRew(gym.Wrapper):
         super().__init__(self.env)
         #       cond_trgs = self.unwrapped.cond_trgs
 
-        if cond_metrics is None:
-            cond_metrics = []
-        self.usable_metrics = cond_metrics  # controllable metrics
-#       self.usable_metrics = cond_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
+        if ctrl_metrics is None:
+            ctrl_metrics = []
+        self.ctrl_metrics = ctrl_metrics  # controllable metrics
+#       self.ctrl_metrics = ctrl_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
         # fixed metrics (i.e. playability constraints)
         self.static_metrics = set(env.static_trgs.keys())
 
-        for k in self.usable_metrics:
+        for k in ctrl_loss_metrics:
             if k in self.static_metrics:
                 self.static_metrics.remove(k)
-        self.num_params = len(self.usable_metrics)
+        self.num_params = len(self.ctrl_metrics)
         self.auto_reset = True
         self.weights = {}
 
         #       self.unwrapped.configure(**kwargs)
         self.metrics = self.unwrapped.metrics
         # NB: self.metrics needs to be an OrderedDict
-        print("usable metrics for conditional wrapper:", self.usable_metrics)
+        print("usable metrics for conditional wrapper:", self.ctrl_metrics)
         print("unwrapped env's current metrics: {}".format(self.unwrapped.metrics))
         self.last_metrics = copy.deepcopy(self.metrics)
         self.cond_bounds = self.unwrapped.cond_bounds
         self.param_ranges = {}
         #       self.max_improvement = 0
 
-        for k in self.usable_metrics:
+        for k in self.ctrl_metrics:
             v = self.cond_bounds[k]
             improvement = abs(v[1] - v[0])
             self.param_ranges[k] = improvement
@@ -66,12 +71,13 @@ class ParamRew(gym.Wrapper):
         self.metric_trgs = {}
         # we might be using a subset of possible conditional targets supplied by the problem
 
-        for k in self.usable_metrics:
+        for k in self.ctrl_metrics:
             self.metric_trgs[k] = self.unwrapped.static_trgs[k]
 
         # All metrics that we will consider for reward
         self.all_metrics = set()
-        self.all_metrics.update(self.usable_metrics)
+        self.all_metrics.update(self.ctrl_metrics)
+        self.all_metrics.update(ctrl_loss_metrics)  # probably some overlap here
         self.all_metrics.update(self.static_metrics)
 
         if "RCT" in str(type(env.unwrapped)) or "Micropolis" in str(
@@ -84,12 +90,12 @@ class ParamRew(gym.Wrapper):
         for k in self.all_metrics:
             v = self.metrics[k]
 
-            if self.SC_RCT and k not in self.usable_metrics:
+            if self.SC_RCT and k not in self.ctrl_metrics:
                 self.weights[k] = 0
             else:
                 self.weights[k] = self.unwrapped.weights[k]
 
-        #       for k in self.usable_metrics:
+        #       for k in self.ctrl_metrics:
         #           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
         self.width = self.unwrapped.width
         self.observation_space = self.env.observation_space
@@ -103,10 +109,10 @@ class ParamRew(gym.Wrapper):
 
             if self.CA_action:
                 #       if self.CA_action and False:
-                n_new_obs = 2 * len(self.usable_metrics)
-            #           n_new_obs = 1 * len(self.usable_metrics)
+                n_new_obs = 2 * len(self.ctrl_metrics)
+            #           n_new_obs = 1 * len(self.ctrl_metrics)
             else:
-                n_new_obs = 1 * len(self.usable_metrics)
+                n_new_obs = 1 * len(self.ctrl_metrics)
 
             if self.SC_RCT:
                 self.CHAN_LAST = True
@@ -149,14 +155,16 @@ class ParamRew(gym.Wrapper):
             self.win = win
         self.infer = kwargs.get("infer", False)
         self.last_loss = None
+        self.ctrl_loss_metrics = ctrl_loss_metrics
+
 
     def get_control_bounds(self):
-        controllable_bounds = {k: self.cond_bounds[k] for k in self.usable_metrics}
+        controllable_bounds = {k: self.cond_bounds[k] for k in self.ctrl_metrics}
 
         return controllable_bounds
 
     def get_control_vals(self):
-        control_vals = {k: self.metrics[k] for k in self.usable_metrics}
+        control_vals = {k: self.metrics[k] for k in self.ctrl_metrics}
 
         return control_vals
 
@@ -187,7 +195,7 @@ class ParamRew(gym.Wrapper):
         for k, trg in trgs.items():
             # Here we will allow setting targets that are not controlled for in training.
             # These will not be observed, but will factor into reward.
-            #           if k in self.usable_metrics:
+            #           if k in self.ctrl_metrics:
             self.metric_trgs[k] = trg
 
         self.display_metric_trgs()
@@ -209,7 +217,7 @@ class ParamRew(gym.Wrapper):
         metrics_ob = np.zeros(self.metrics_shape)
         i = 0
 
-        for k in self.usable_metrics:
+        for k in self.ctrl_metrics:
             trg = self.metric_trgs[k]
             metric = self.metrics[k]
 
@@ -280,8 +288,11 @@ class ParamRew(gym.Wrapper):
         for metric in self.all_metrics:
             if metric in self.metric_trgs:
                 trg = self.metric_trgs[metric]
-            elif metric in self.static_metrics:
+            # elif metric in self.static_metrics or metric in self.ctrl_loss_metrics:
+            else:
                 trg = self.static_trgs[metric]
+            # else:
+            #     raise Exception("Metric should have static target.")
             val = self.metrics[metric]
 
             if isinstance(trg, tuple):
@@ -297,7 +308,7 @@ class ParamRew(gym.Wrapper):
     def get_ctrl_loss(self):
         loss = 0
 
-        for metric in self.usable_metrics:
+        for metric in self.ctrl_loss_metrics:
             trg = self.metric_trgs[metric]
             val = self.metrics[metric]
             if isinstance(trg, tuple):
@@ -313,8 +324,9 @@ class ParamRew(gym.Wrapper):
         loss = 0
 
         for metric in self.static_metrics:
-            if metric in self.usable_metrics:
-                continue
+            # We already pop these from static_metrics during init
+            # if metric in self.ctrl_metrics:
+            #     continue
             trg = self.static_trgs[metric]
             val = self.metrics[metric]
 
@@ -330,7 +342,7 @@ class ParamRew(gym.Wrapper):
     def get_reward(self):
         reward = 0
         # for k in self.all_metrics:
-        #    if k in self.usable_metrics:
+        #    if k in self.ctrl_metrics:
         #        trg = self.cond_trgs[k]
         #    elif k in self.static_trgs:
         #        trg = self.static_trgs[k]
@@ -399,13 +411,13 @@ class ParamRew(gym.Wrapper):
 #        trgs = {}
 #        i = 0
 #
-#        for k in self.env.usable_metrics:
+#        for k in self.env.ctrl_metrics:
 #            trgs[k] = self.noise.noise2d(x=self.X + self.n_step/400, y=self.Y + i*100)
 #            i += 1
 #
 #        i = 0
 #
-#        for k in self.env.usable_metrics:
+#        for k in self.env.ctrl_metrics:
 #            (ub, lb) = cond_bounds[k]
 #            trgs[k] = ((trgs[k] + 1) / 2 * (ub - lb)) + lb
 #            i += 1
@@ -432,7 +444,7 @@ class UniformNoiseyTargets(gym.Wrapper):
     def set_rand_trgs(self):
         trgs = {}
 
-        for k in self.env.usable_metrics:
+        for k in self.env.ctrl_metrics:
             (lb, ub) = self.cond_bounds[k]
             trgs[k] = np.random.random() * (ub - lb) + lb
         self.env.set_trgs(trgs)
@@ -459,8 +471,8 @@ class ALPGMMTeacher(gym.Wrapper):
         super(ALPGMMTeacher, self).__init__(env)
         self.cond_bounds = self.env.unwrapped.cond_bounds
         self.midep_trgs = False
-        env_param_lw_bounds = [self.cond_bounds[k][0] for k in self.usable_metrics]
-        env_param_hi_bounds = [self.cond_bounds[k][1] for k in self.usable_metrics]
+        env_param_lw_bounds = [self.cond_bounds[k][0] for k in self.ctrl_metrics]
+        env_param_hi_bounds = [self.cond_bounds[k][1] for k in self.ctrl_metrics]
         self.alp_gmm = ALPGMM(env_param_lw_bounds, env_param_hi_bounds)
         self.trg_vec = None
         self.trial_reward = 0
@@ -476,7 +488,7 @@ class ALPGMMTeacher(gym.Wrapper):
             self.alp_gmm.update(self.trg_vec, rew)
         trg_vec = self.alp_gmm.sample_task()
         self.trg_vec = trg_vec
-        trgs = {k: trg_vec[i] for (i, k) in enumerate(self.usable_metrics)}
+        trgs = {k: trg_vec[i] for (i, k) in enumerate(self.ctrl_metrics)}
         #       print(trgs)
         self.set_trgs(trgs)
         self.trial_reward = 0

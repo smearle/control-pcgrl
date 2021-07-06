@@ -53,13 +53,13 @@ class BinaryProblem(Problem):
         rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
     """
     def adjust_param(self, **kwargs):
+        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         super().adjust_param(**kwargs)
 
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
         rewards = kwargs.get('rewards')
-        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         if rewards is not None:
             for t in rewards:
                 if t in self._rewards:

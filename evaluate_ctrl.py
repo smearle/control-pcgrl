@@ -26,6 +26,8 @@ from utils import (
 #   max_exp_idx,
 )
 
+DPI = 100
+
 # For 1D data, do we use a bar chart instead of a heatmap?
 BAR_CHART = False
 
@@ -90,7 +92,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     if not os.path.isdir(eval_dir):
         os.mkdir(eval_dir)
 #   log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, exp_id)
-    data_path = os.path.join(eval_dir, "{}_eval_data".format(N_BINS))
+    data_path = os.path.join(eval_dir, "{}_{}_eval_data".format(N_BINS, eval_controls))
     data_path_levels = os.path.join(eval_dir, "{}_eval_data_levels".format(N_BINS))
     if fix_trgs:
         data_path += "_fixTrgs"
@@ -114,7 +116,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get("n_cpu")
-    if 'path-length' in eval_controls:
+    if 'path-length' in eval_controls or not eval_controls:
         infer_kwargs['render_path'] = True
     env, dummy_action_space, n_tools = make_vec_envs(
         env_name, representation, None, **infer_kwargs
@@ -138,7 +140,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
     if n_cpu == 1:
 #       control_bounds = env.envs[0].get_control_bounds()
-        control_bounds = env.get_control_bounds()
+        # control_bounds = env.get_control_bounds()
+        control_bounds = env.cond_bounds
     elif n_cpu > 1:
         raise Exception("no homie, no")
         # supply args and kwargs
@@ -161,7 +164,9 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                 bounds = (1, bounds[1])
         if 'sol-length' in k:
             bounds = (1, bounds[1])
-        ctrl_bounds.append(bounds)
+        if 'regions' in k:
+            bounds = (1, bounds[1])
+        ctrl_bounds.append((k, bounds))
 
     #   if len(ctrl_bounds) == 0 and DIVERSITY_EVAL:
     #       N_MAPS = 100
@@ -242,6 +247,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     elif len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1]
+        print(ctrl_bounds)
         step_size = max((bounds[1] - bounds[0]) / (N_BINS[0] - 1), 1)
         eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
         level_images = []
@@ -274,7 +280,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
         ims = np.hstack(level_images)
         image = Image.fromarray(ims)
-        image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
+        # image.save(os.path.join(eval_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
     elif len(ctrl_bounds) >= 2:
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
@@ -340,6 +346,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
     eval_data = EvalData(
         ctrl_names,
+        env.static_metrics,
         ctrl_ranges,
         cell_scores,
         cell_ctrl_scores,
@@ -418,9 +425,9 @@ def eval_episodes(
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
 #           if done: 
-#               TT()
+#               pass
             i += 1
-
+        # print('total episode steps:', i)
         final_loss = env.get_loss()
         final_ctrl_loss = env.get_ctrl_loss()
         final_static_loss = env.get_static_loss()
@@ -491,6 +498,7 @@ class EvalData:
     def __init__(
         self,
         ctrl_names,
+        static_names,
         ctrl_ranges,
         cell_scores,
         cell_ctrl_scores,
@@ -501,6 +509,7 @@ class EvalData:
         levels_im_path=None,
     ):
         self.ctrl_names = ctrl_names
+        self.static_names = static_names
         self.ctrl_ranges = ctrl_ranges
         self.cell_scores = cell_scores
         self.cell_ctrl_scores = cell_ctrl_scores
@@ -509,21 +518,30 @@ class EvalData:
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
         self.eval_dir = eval_dir
+        self.ctrl_names = list(self.ctrl_names)
+        for i, cn in enumerate(self.ctrl_names):
+            if cn == 'sol-length':
+                self.ctrl_names[i] = 'solution-length'
 
     def visualize_data(self, eval_dir, fix_trgs):
+        # FIXME: don't need this
+        self.ctrl_names = list(self.ctrl_names)
+        for i, cn in enumerate(self.ctrl_names):
+            if cn == 'sol-length':
+                self.ctrl_names[i] = 'solution-length'
         self.save_stats(div_scores=self.div_scores, fix_trgs=fix_trgs)
 
         if fix_trgs:
             return
 
-        def create_heatmap(title, data, vrange=(0,100), cmap_name=None):
+        def create_heatmap(title, cbar_label, data, vrange=(0,100), cmap_name=None):
             data = data * 100
             data = np.clip(data, -100, 100)
             if vrange is None:
                 vmin, vmax = data.min(), data.max()
             else:
                 vmin, vmax = vrange
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(dpi=100)
             # percentages from ratios
             #           data = data.T
 
@@ -570,7 +588,7 @@ class EvalData:
 #                   cmap = colors.ListedColormap(["b", "r", "y", "r"])
                 im = ax.imshow(data, aspect="auto", vmin=vmin, vmax=vmax, cmap=cmap)
                 cbar = ax.figure.colorbar(im, ax=ax)
-                cbar.ax.set_ylabel("", rotation=90, va="bottom")
+                # cbar.ax.set_ylabel("", rotation=90, va="bottom")
 
                 # We want to show all ticks...
                 if data.shape[0] != 1:
@@ -578,6 +596,7 @@ class EvalData:
                     plt.xlabel(ctrl_names[1])
                     plt.ylabel(ctrl_names[0])
 
+            cbar.set_label(cbar_label, labelpad=6)
             # Rotate the tick labels and set their alignment.
             plt.setp(
                 ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor"
@@ -588,7 +607,7 @@ class EvalData:
 
             plt.savefig(
                 os.path.join(
-                    eval_dir, "{}_{}.png".format(ctrl_names, title.replace("%", ""))
+                    eval_dir, "{}_{}.svg".format(ctrl_names, title.replace("%", ""))
                 )
             )
 
@@ -600,141 +619,26 @@ class EvalData:
         cell_ctrl_scores = self.cell_ctrl_scores
         cell_static_scores = self.cell_static_scores
 
-        title = "All goals (mean progress, %)"
-        create_heatmap(title, cell_scores.mean(-1))
+        title = "All goals"
+        cbar_label = "progress (%)"
+        create_heatmap(title, cbar_label, cell_scores.mean(-1))
 
-        title = "Controlled goals (mean progress, %)"
-        create_heatmap(title, cell_ctrl_scores.mean(-1))
+        title = "Controlled goals"
+        create_heatmap(title, cbar_label, cell_ctrl_scores.mean(-1))
 
-        title = "Fixed goals (mean progress, %)"
-        create_heatmap(title, cell_static_scores.mean(-1))
+#       title = "Fixed goals: {}".format(', '.join(self.static_names))
+        title = "Fixed goals"
+        create_heatmap(title, cbar_label, cell_static_scores.mean(-1))
 
         title = "Diversity"
-        create_heatmap(title, self.div_scores, vrange=None, cmap_name="inferno")
+        if self.div_scores.shape[1] == 1:
+            cbar_label = "per-tile \ndifference (%)"
+        else:
+            cbar_label = "per-tile difference (%)"
+        create_heatmap(title, cbar_label, self.div_scores, vrange=None, cmap_name="inferno")
 
     def pairwise_hamming(self, a, b):
         return np.sum(a != b)
-
-    def hamming_heatmap(self, level_tokens, div_scores=None):
-        if N_MAPS == 1:
-            return
-
-        fig, ax = plt.subplots()
-        title = "Diversity"
-
-        if div_scores is not None:
-            hamming_scores = div_scores.T
-        else:
-            # get the hamming distance between all possible pairs of chromosomes in each cell
-            # 1) make the evaldata function have the tilemap for each env in each bucket.
-            # 2) feed THAT info to this function.
-            print(len(level_tokens))
-            print(len(level_tokens[0]))
-            print(len(level_tokens[0][0]))
-
-            if type(level_tokens[0][0]) == list:
-                hamming_scores = np.zeros(
-                    shape=(len(level_tokens[0]), len(level_tokens))
-                )
-
-                for i, row in enumerate(level_tokens):
-                    for j, col in enumerate(level_tokens[i]):
-                        hamming = 0
-                        counter = 0
-
-                        for k in range(len(col) - 1):
-                            for l in range(k + 1, len(col)):
-                                print("index: ", k, l)
-                                hamming += self.pairwise_hamming(col[k], col[l])
-                                counter += 1
-                        # Division by zero can happen here, why?
-
-                        if counter > 0:
-                            hamming = hamming / counter
-                        print(hamming_scores.shape)
-                        hamming_scores[j, i] = hamming
-            else:
-                hamming_scores = np.zeros(shape=(len(level_tokens), 1))
-
-                for i in range(len(level_tokens[0])):
-                    for j in range(len(level_tokens)):
-                        print("bin ", j)
-                        print(level_tokens[j][i][0])
-
-                for i, tokens in enumerate(level_tokens):
-                    hamming = 0
-                    counter = 0
-
-                    for j in range(len(tokens) - 1):
-                        for k in range(j + 1, len(tokens)):
-                            print("index: ", j, k)
-                            hamming += self.pairwise_hamming(tokens[j], tokens[k])
-                            counter += 1
-                    hamming = hamming / counter
-                    hamming_scores[i] = hamming
-            hamming_scores = hamming_scores.T
-            print("ctr", counter)
-        print(hamming_scores)
-
-        if hamming_scores.shape[0] == 1:
-            fig.set_size_inches(10, 2)
-            tick_idxs = np.arange(
-                0, self.cell_scores.shape[0], max(1, (self.cell_scores.shape[0] // 10))
-            )
-            ticks = np.arange(self.cell_scores.shape[0])
-            ticks = ticks[tick_idxs]
-            ax.set_xticks(ticks)
-            labels = np.array(
-                [int(round(x, 0)) for (i, x) in enumerate(self.ctrl_ranges[0])]
-            )
-            labels = labels[tick_idxs]
-            ax.set_xticklabels(labels)
-
-            if BAR_CHART:
-                low = 0
-                high = 0.7
-                #               low = hamming_scores[0].min()
-                #               high = hamming_scores[0].max()
-                plt.ylim([low, high])
-                plt.bar(ticks, hamming_scores[0], color="purple")
-                plt.xlabel(self.ctrl_names[0])
-            else:
-                ax.set_yticks([])
-        else:
-            hamming_scores = hamming_scores[::-1, :]
-            ax.set_xticks(np.arange(self.cell_scores.shape[1]))
-            ax.set_yticks(np.arange(self.cell_scores.shape[0]))
-            ax.set_xticklabels([int(round(x, 0)) for x in self.ctrl_ranges[1]])
-            ax.set_yticklabels([int(round(x, 0)) for x in self.ctrl_ranges[0][::-1]])
-
-        if not BAR_CHART or hamming_scores.shape[0] != 1:
-            # Create the heatmap
-
-            # Create colorbar
-            #           cmap = colors.ListedColormap(['r','y','b','r'])
-            cmap = plt.get_cmap("inferno")
-            #           im = ax.imshow(hamming_scores, aspect='auto', cmap=cmap, vmin=0, vmax=0.7)
-            im = ax.imshow(hamming_scores, aspect="auto", cmap=cmap)
-            cbar = ax.figure.colorbar(im, ax=ax)
-            cbar.ax.set_ylabel("", rotation=90, va="bottom")
-
-            # We want to show all ticks...
-            # ... and label them with the respective list entries
-            plt.xlabel(self.ctrl_names[1])
-            plt.ylabel(self.ctrl_names[0])
-
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-        ax.set_title(title)
-        fig.tight_layout()
-
-        plt.savefig(
-            os.path.join(
-                self.eval_dir,
-                "{}_{}.png".format(self.ctrl_names, title.replace("%", "")),
-            )
-        )
 
     def save_stats(self, div_scores=np.zeros(shape=(1, 1)), fix_trgs=False):
         def get_stat_subdict(stats):
@@ -757,8 +661,24 @@ class EvalData:
             json.dump(scores, fp, ensure_ascii=False, indent=4)
 
     def render_levels(self):
+        # FIXME: don't need this
+        self.ctrl_names = list(self.ctrl_names)
+        for i, cn in enumerate(self.ctrl_names):
+            if cn == 'sol-length':
+                self.ctrl_names[i] = 'solution-length'
         ctrl_names = self.ctrl_names
-        fig, ax = plt.subplots()
+        if 'sokoban_ctrl' in self.eval_dir:
+            plt.rcParams.update({'font.size': 12})
+        else:
+            plt.rcParams.update({'font.size': 22})
+        if ctrl_names[1] is not None:
+            fig, ax = plt.subplots()
+            fig.set_figwidth(np.array(self.levels_image).shape[0] / DPI)
+            fig.set_figheight(np.array(self.levels_image).shape[1] / DPI)
+        else:
+            fig, ax = plt.subplots()
+            fig.set_figwidth(np.array(self.levels_image).shape[1] / DPI)
+            fig.set_figheight(np.array(self.levels_image).shape[0] / DPI)
         ax.imshow(self.levels_image)
         #       ax.axis["xzero"].set_axisline_style("-|>")
         # plt.tick_params(
@@ -770,10 +690,11 @@ class EvalData:
 
         if ctrl_names[1] is None:
             plt.xlabel(ctrl_names[0])
-            # wut
+            # wHut???
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[0]
             plt.xticks(
-                np.arange(N_LVL_BINS) * (im_width * LVL_RENDER_INTERVAL) + im_width / 2,
+                (np.arange(N_LVL_BINS) * im_width + im_width / 2) * (N_BINS[-1] / N_LVL_BINS),
+                # np.arange(N_LVL_BINS) * (im_width * LVL_RENDER_INTERVAL) + im_width / 2,
                 labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             )
             pad_inches = 0
@@ -791,20 +712,20 @@ class EvalData:
             if len(self.ctrl_ranges[1]) < N_LVL_BINS:
                 x_labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             else:
-                ranges = np.arange(self.ctrl_ranges[1][0], self.ctrl_ranges[1][1]+1, (self.ctrl_ranges[1][1] - self.ctrl_ranges[1][0]) / N_BINS)
+                ranges = np.arange(self.ctrl_ranges[1][0], self.ctrl_ranges[1][-1]+1, (self.ctrl_ranges[1][1] - self.ctrl_ranges[1][0]))
                 x_labels=[int(round(ranges[i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)]
             if len(self.ctrl_ranges[0]) < N_LVL_BINS:
-                x_labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
+                y_labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
             else:
-                ranges = np.arange(self.ctrl_ranges[0][0], self.ctrl_ranges[0][1]+1, (self.ctrl_ranges[0][1] - self.ctrl_ranges[0][0]) / N_BINS)
+                ranges = np.arange(self.ctrl_ranges[0][0], self.ctrl_ranges[0][-1]+1, (self.ctrl_ranges[0][1] - self.ctrl_ranges[0][0]))
                 y_labels=[int(round(ranges[i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)]
 
             plt.xticks(
-                np.arange(N_LVL_BINS) * (im_width * LVL_RENDER_INTERVAL) + im_width / 2,
+                (np.arange(N_LVL_BINS) * im_width + im_width / 2) * (N_BINS[-1] / N_LVL_BINS),
                 labels=x_labels
             )
             plt.yticks(
-                np.arange(N_LVL_BINS) * (im_height * LVL_RENDER_INTERVAL) + im_height / 2,
+                (np.arange(N_LVL_BINS) * im_height + im_height / 2) * (N_BINS[-1] / N_LVL_BINS),
                 labels=y_labels[::-1],
             )
             #           ax.set_xticklabels([round(x, 1) for x in ctrl_ranges[0]])
@@ -821,8 +742,10 @@ class EvalData:
         plt.margins(0, 0)
         # plt.gca().xaxis.set_major_locator(plt.NullLocator())
         # plt.gca().yaxis.set_major_locator(plt.NullLocator())
-        plt.savefig(self.levels_im_path, bbox_inches="tight", pad_inches=pad_inches)
-#       plt.show()
+        # plt.savefig(self.levels_im_path, bbox_inches="tight", pad_inches=pad_inches, dpi=DPI)
+        plt.savefig(self.levels_im_path.replace('.png', '.svg'), bbox_inches="tight", pad_inches=pad_inches, format='svg', dpi=DPI)
+        # plt.show()
+        plt.rcParams.update({'font.size': 13})
 
 
 # NOTE: let's not try multiproc how about that :~)
@@ -854,8 +777,7 @@ class EvalData:
 # env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply args and kwargs
 ##       final_metric_vals = env.remotes[0].recv()
 #        eval_scores[n] = score
-#        n += n_envs
-#    return eval_scores.mean()
+#        n += n_envs #    return eval_scores.mean()
 #
 # def set_ctrl_trgs(env, trg_dict):
 #    [remote.send(('env_method', ('set_trgs', [trg_dict], {}))) for remote in env.remotes]
@@ -937,7 +859,8 @@ midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
 train_change_percentage = opts.change_percentage
-infer_change_percentage = 1.0
+# Ignore change percentage, we care only about reaching targets or hitting a max number of steps
+infer_change_percentage = 1
 # TODO: properly separate these kwarg dictionaries, so that one is for loading (specifying training run 
 # hyperparameters), and the other is for inference (what settings to evaluate with)
 if conditional:
@@ -953,7 +876,7 @@ if conditional:
 else:
     max_step = None
 
-max_step = 1000
+max_step = 2000
 
 
 kwargs = {
@@ -1014,14 +937,17 @@ if __name__ == "__main__":
     # Evaluate fixed quality of levels, or controls at default targets
     if not VIS_ONLY:
         evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
-    if not conditional:
-        control_sets = PROB_CONTROLS[problem]
-        for i, eval_ctrls in enumerate(control_sets):
-            # Then evaluate over some default controls (otherwise use those that we trained on)
-            # TODO: for each experiment, repeat for a set of control-sets
-            infer_kwargs.update({'eval_controls': eval_ctrls, 'cond_metrics': eval_ctrls})
-            evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
-    else:
-            evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
+#   if not conditional:
+    control_sets = PROB_CONTROLS[problem]
+    for i, eval_ctrls in enumerate(control_sets):
+        # Then evaluate over some default controls (otherwise use those that we trained on)
+        # TODO: for each experiment, repeat for a set of control-sets
+#       cond_metrics = set(infer_kwargs.get('cond_metrics'))
+#       cond_metrics.update(set(eval_ctrls))
+#       cond_metrics = [e for e in cond_metrics]
+        infer_kwargs.update({'eval_controls': eval_ctrls, 'cond_metrics': cond_metrics})
+        evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
+#   else:
+#           evaluate(problem, representation, infer_kwargs, fix_trgs=False, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

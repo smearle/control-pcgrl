@@ -1,3 +1,4 @@
+import numpy as np
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
 
 class PcgrlCtrlEnv(PcgrlEnv):
@@ -29,3 +30,8 @@ class PcgrlCtrlEnv(PcgrlEnv):
         ret = super().step(actions)
         self.metrics = self._rep_stats
         return ret
+
+    def adjust_param(self, **kwargs):
+        super().adjust_param(**kwargs)
+        if kwargs.get('change_percentage') == -1:
+            self._max_changes = np.inf

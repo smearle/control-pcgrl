@@ -21,11 +21,7 @@ class Problem:
         for _ in range(len(tiles)):
             self._prob.append(1.0 / len(tiles))
 
-#       self._border_size = (1,1)
-        if 'Zelda' in str(self) or 'Binary' in str(self):
-            self._border_size = (1, 2)
-        else:
-            self._border_size = (1, 1)
+        self._border_size = (1, 1)
         self._border_tile = tiles[0]
         if GVGAI_SPRITES:
             self._tile_size = 24
@@ -34,6 +30,7 @@ class Problem:
             self._tile_size = 16
             self.GVGAI_SPRITES = False
         self._graphics = None
+        self.render_path = False
 
     """
     Seeding the used random variable to get the same result. If the seed is None,
@@ -84,6 +81,11 @@ class Problem:
             for t in prob:
                 if t in self._prob:
                     self._prob[t] = prob[t]
+        if self.render_path:
+            # Make room for displaying path length
+            self._border_size = (1, 2)
+        else:
+            self._border_size = (1, 1)
 
     """
     Get the current stats of the map

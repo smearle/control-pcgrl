@@ -17,22 +17,22 @@ MAP_WIDTHS = {"binary": 16, "zelda": 16, "sokoban": 5}
 
 PROB_CONTROLS = {
     "binary_ctrl": [
-#       ["regions"],
-#       ["path-length"],
+        ["regions"],
+        ["path-length"],
         ["regions", "path-length"],
         # ['emptiness', 'path-length'],
         # ["symmetry", "path-length"]
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy"],
-#       ["path-length"],
+        ["nearest-enemy"],
+        ["path-length"],
         ["nearest-enemy", "path-length"],
         # ["emptiness", "path-length"],
         # ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         # ["crate"],
-#       ["sol-length"],
+        ["sol-length"],
         ["crate", "sol-length"],
         # ["emptiness", "sol-length"],
         # ["symmetry", "sol-length"],
