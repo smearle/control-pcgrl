@@ -181,6 +181,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         if not (RCT or SC):
             init_states.append(env.unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
+    levels_x_labels = []
+    levels_y_labels = []
 
     def eval_static_trgs():
         '''Run an evaluation on the default values for all level metrics. For both controllable and vanilla agents. 
@@ -268,6 +270,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
             div_scores[i, 0] = div_score
             if i % LVL_RENDER_INTERVAL == 0:
                 level_images.append(level_image)
+                levels_x_labels.append(trg)
             cell_scores[i, :, :] = net_score
             cell_ctrl_scores[i, :, :] = ctrl_score
             cell_static_scores[i, :, :] = static_score
@@ -286,7 +289,9 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
         b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
         step_0 = max((b0[1] - b0[0]) / (N_BINS[0] - 1), 1)
+        # step_0 = (b0[1] - b0[0]) / (N_BINS[0] - 1)
         step_1 = max((b1[1] - b1[0]) / (N_BINS[-1] - 1), 1)
+        # step_1 = (b1[1] - b1[0]) / (N_BINS[-1] - 1)
         trgs_0 = np.arange(b0[0], b0[1] + 0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1] + 0.5, step_1)
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1), N_EVALS))
@@ -324,6 +329,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
                 if j % LVL_RENDER_INTERVAL == 0:
                     level_images_y.append(level_image)
+                    levels_y_labels.append(t1)
                 cell_scores[i, j, :] = net_score
                 cell_ctrl_scores[i, j, :] = ctrl_score
                 cell_static_scores[i, j, :] = static_score
@@ -333,6 +339,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 
             if i % LVL_RENDER_INTERVAL == 0:
                 level_images.append(np.hstack(level_images_y))
+                levels_x_labels.append(t0)
 
         #           level_tokens.append(tokens)
         ctrl_names = (ctrl_0, ctrl_1)
@@ -355,6 +362,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         eval_dir=eval_dir,
         levels_image=image,
         levels_im_path=levels_im_path,
+        levels_x_labels=levels_x_labels,
+        levels_y_labels=levels_y_labels,
     )
     pickle.dump(eval_data, open(data_path, "wb"))
     eval_data.visualize_data(eval_dir, fix_trgs)
@@ -507,6 +516,8 @@ class EvalData:
         eval_dir,
         levels_image=None,
         levels_im_path=None,
+        levels_x_labels=None,
+        levels_y_labels=None,
     ):
         self.ctrl_names = ctrl_names
         self.static_names = static_names
@@ -518,6 +529,8 @@ class EvalData:
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
         self.eval_dir = eval_dir
+        self.levels_x_labels = levels_x_labels
+        self.levels_y_labels = levels_y_labels
         if self.ctrl_names:
             self.ctrl_names = list(self.ctrl_names)
             for i, cn in enumerate(self.ctrl_names):
@@ -660,7 +673,7 @@ class EvalData:
     def render_levels(self):
         ctrl_names = self.ctrl_names
         if 'sokoban_ctrl' in self.eval_dir:
-            plt.rcParams.update({'font.size': 12})
+            plt.rcParams.update({'font.size': 10})
         else:
             plt.rcParams.update({'font.size': 22})
         if ctrl_names[1] is not None:
@@ -700,25 +713,15 @@ class EvalData:
             plt.ylabel(ctrl_names[0])
             im_width = np.array(self.levels_image).shape[1] / self.cell_scores.shape[1]
             im_height = np.array(self.levels_image).shape[0] / self.cell_scores.shape[0]
-            # FIXME: hack
-            if len(self.ctrl_ranges[1]) < N_LVL_BINS:
-                x_labels=[int(round(self.ctrl_ranges[1][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
-            else:
-                ranges = np.arange(self.ctrl_ranges[1][0], self.ctrl_ranges[1][-1]+1, (self.ctrl_ranges[1][1] - self.ctrl_ranges[1][0]))
-                x_labels=[int(round(ranges[i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)]
-            if len(self.ctrl_ranges[0]) < N_LVL_BINS:
-                y_labels=[int(round(self.ctrl_ranges[0][i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)],
-            else:
-                ranges = np.arange(self.ctrl_ranges[0][0], self.ctrl_ranges[0][-1]+1, (self.ctrl_ranges[0][1] - self.ctrl_ranges[0][0]))
-                y_labels=[int(round(ranges[i * LVL_RENDER_INTERVAL], 0)) for i in range(N_LVL_BINS)]
-
+            n_x_lvls = len(self.levels_y_labels)
             plt.xticks(
-                (np.arange(N_LVL_BINS) * im_width + im_width / 2) * (N_BINS[-1] / N_LVL_BINS),
-                labels=x_labels
+                (np.arange(n_x_lvls) * im_width + im_width / 2) * (N_BINS[-1] / N_LVL_BINS),
+                labels=[int(round(i, 0)) for i in self.levels_y_labels]
             )
+            n_y_lvls = len(self.levels_x_labels)
             plt.yticks(
-                (np.arange(N_LVL_BINS) * im_height + im_height / 2) * (N_BINS[-1] / N_LVL_BINS),
-                labels=y_labels[::-1],
+                (np.arange(n_y_lvls) * im_height + im_height / 2) * (N_BINS[-1] / N_LVL_BINS),
+                labels=[int(round(i, 0)) for i in self.levels_x_labels][::-1],
             )
             #           ax.set_xticklabels([round(x, 1) for x in ctrl_ranges[0]])
             #           ax.set_yticklabels([round(x, 1) for x in ctrl_ranges[1][::-1]])
@@ -868,7 +871,7 @@ if conditional:
 else:
     max_step = None
 
-max_step = 2000
+max_step = 1000
 
 
 kwargs = {
@@ -927,8 +930,8 @@ if __name__ == "__main__":
 
     # Evaluate controllability
     # Evaluate fixed quality of levels, or controls at default targets
-    if not VIS_ONLY:
-        evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
+#   if not VIS_ONLY:
+#       evaluate(problem, representation, infer_kwargs, fix_trgs=True, **kwargs)
 #   if not conditional:
     control_sets = PROB_CONTROLS[problem]
     for i, eval_ctrls in enumerate(control_sets):

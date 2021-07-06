@@ -15,9 +15,9 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-#   "binary_ctrl",
+    "binary_ctrl",
 #   "zelda_ctrl",
-    "sokoban_ctrl",
+#   "sokoban_ctrl",
     # 'smb_ctrl',
 ]
 representations: List[str] = [
@@ -34,8 +34,8 @@ global_controls: List[List] = [
 local_controls: Dict[str, List] = {
     "binary_ctrl": [
         ["regions"],
-        # ["path-length"],
-        # ["regions", "path-length"],
+        ["path-length"],
+        ["regions", "path-length"],
         # ['emptiness', 'path-length'],
         # ["symmetry", "path-length"]
     ],
@@ -64,13 +64,13 @@ local_controls: Dict[str, List] = {
 }
 #change_percentages = np.arange(2, 11, 4) / 10
 change_percentages = [
-#   0.2,
-#   0.6,
+    0.2,
+    0.6,
     1.0,
 ]
 alp_gmms = [
     True,
-#   False
+    False
 ]
 
 

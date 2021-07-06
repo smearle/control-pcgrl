@@ -57,16 +57,16 @@ header_text = {
     "binary_ctrl": "binary",
     "sokoban_ctrl": "sokoban",
     "NONE": "None",
-    "change_percentage": newline("chng", "\%"), 
+    "change_percentage": newline("change", "percentage"), 
     'net_score (mean)': newline('net', 'score'),
     '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
-    "diversity_score (mean)": newline("div-", "ersity"),
+    "diversity_score (mean)": "diversity",
     "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
     '(controls) ctrl_score (mean)': newline('\\textit{control}', 'ctrl score'),
     '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
 #   "alp_gmm": newline("ALP", "GMM"),
-    "alp_gmm": "regime",
-    "conditionals": "controls",
+    "alp_gmm": newline("control", "regime"),
+    "conditionals": newline("learned", " controls"),
 }
 
 # flatten the dictionary here
@@ -169,16 +169,16 @@ def compile_results(settings_list, no_plot=False):
                     controllable = True
             if isinstance(settings[k], list):
                 if len(settings[k]) < 2:
-                    val_lst.append("-".join(settings[k]))
+                    val_lst.append(", ".join(settings[k]))
                 else:
-                    val_lst.append(newline(settings[k][0]+'-', v[1]))
+                    val_lst.append(newline(settings[k][0]+', ', v[1]))
             elif k == 'alp_gmm':
                 if not controllable:
                     v = ''
                 elif v:
-                    v = 'learning'
+                    v = 'ALP-GMM'
                 else:
-                    v = 'random'
+                    v = newline('uniform', 'random')
                 val_lst.append(v)
             else:
                 val_lst.append(v)
@@ -192,10 +192,15 @@ def compile_results(settings_list, no_plot=False):
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
         exp_name = os.path.join(RL_DIR, exp_name)
-        stats_f = os.path.join(exp_name, "eval", "scores_ctrlTrgs.json")
-        fixTrgs_stats_f = os.path.join(exp_name, "eval", "scores_fixTrgs.json")
+        eval_dir = os.path.join(exp_name, "eval")
+        if not os.path.isdir(eval_dir):
+            print("skipping evaluation of experiment due to missing directory: {}".format(eval_dir))
+            continue
+        ctrl_stats_files = [f for f in os.listdir(eval_dir) if re.match(r"scores_.*_ctrlTrgs.json", f)]
+        # stats_f = os.path.join(eval_dir, "scores_ctrlTrgs.json")
+        fixTrgs_stats_f = os.path.join(eval_dir, "scores_fixTrgs.json")
 
-        if not (os.path.isfile(stats_f) and os.path.isfile(fixTrgs_stats_f)):
+        if not ctrl_stats_files and os.path.isfile(fixTrgs_stats_f):
 #           print(stats_f)
             print(
                 "skipping evaluation of experiment due to missing stats file(s): {}".format(
@@ -204,15 +209,17 @@ def compile_results(settings_list, no_plot=False):
             )
 
             continue
+        ctrl_stats_files = [os.path.join(eval_dir, f) for f in ctrl_stats_files]
         # TODO: This is just here for convenience, but not really a part of cross-eval, semantically-speaking
         if not no_plot:
             plot_csv(exp_name)
         vals.append(tuple(val_lst))
         data.append([])
-        stats = json.load(open(stats_f, "r"))
         fixLvl_stats = json.load(open(fixTrgs_stats_f, "r"))
         flat_stats = flatten_stats(fixLvl_stats)
-        flat_stats.update(flatten_stats(stats, controllable=True))
+        for stats_f in ctrl_stats_files:
+            stats = json.load(open(stats_f, "r"))
+            flat_stats.update(flatten_stats(stats, controllable=True))
 
         if columns is None:
             columns = list(flat_stats.keys())
@@ -226,6 +233,15 @@ def compile_results(settings_list, no_plot=False):
     tuples = vals
     # Rename headers
     new_keys = []
+    # alp_gmm is always "False" for non-controllable agents. But we don't want to display them as having any control regime.
+    controls_id = keys.index('conditionals')
+    regime_id = keys.index('alp_gmm')
+    for i, tpl in enumerate(tuples):
+        if tpl[controls_id] == 'NONE':
+            tpl = list(tpl)
+            tpl[regime_id] = '---'
+            tpl = tuple(tpl)
+            tuples[i] = tpl
 
     for k in keys:
         if k in header_text:
@@ -263,7 +279,7 @@ def compile_results(settings_list, no_plot=False):
             continue
         print(p)
         p_name = p + '_ctrl'
-        lcl_conds = ['None'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0]+'-',pi[1]) for pi in local_controls[p_name]]
+        lcl_conds = ['None'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0]+', ',pi[1]) for pi in local_controls[p_name]]
         print(lcl_conds)
         df_tex = df_tex.loc[lcl_conds]
 #       df_tex = df_tex.sort_values(by=['ALP GMM'])
@@ -301,7 +317,7 @@ def compile_results(settings_list, no_plot=False):
                 multirow=True,
     #           column_format=col_widths,
                 escape=False,
-                caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes and baseline (single-objective) agents with various change percentage allowances.".format(p)),
+                caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes, and baseline (single-objective) agents with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
                 label={"tbl:{}".format(p)},
             )
 
