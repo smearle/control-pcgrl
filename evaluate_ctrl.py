@@ -163,6 +163,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
                 bounds = (3, bounds[1])
             else:
                 bounds = (1, bounds[1])
+        if 'nearest-enemy' in k:
+            bounds = (1, bounds[1])
         if 'sol-length' in k:
             bounds = (1, bounds[1])
         if 'regions' in k:

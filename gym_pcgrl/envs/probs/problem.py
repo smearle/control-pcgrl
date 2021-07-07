@@ -180,7 +180,7 @@ class Problem:
                 lvl_image.paste(self._graphics[map[y][x]], ((x+self._border_size[0])*self._tile_size, (y+self._border_size[1])*self._tile_size, (x+self._border_size[0]+1)*self._tile_size, (y+self._border_size[1]+1)*self._tile_size), mask=tile_image)
 
         # Path, if applicable
-        if render_path is not None:
+        if render_path is not None and self.render_path:
             tile_graphics = self._graphics["path"]
             for (y, x) in render_path:
                 lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)

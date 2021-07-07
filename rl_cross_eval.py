@@ -286,7 +286,8 @@ def compile_results(settings_list, no_plot=False):
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
 
 #   for p in ["binary", "zelda", "sokoban"]:
-    for p in ["binary"]:
+    for p in ["binary", "zelda"]:
+#   for p in ["binary"]:
         tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
         try:
             df_tex = df.loc[p, "narrow"]
@@ -351,7 +352,7 @@ def compile_results(settings_list, no_plot=False):
             multicolumn_format='c|',
             # column_format= 'r|' * len(index) + 'c|' * len(df_tex.columns),
             escape=False,
-            caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes, and baseline (single-objective) agents with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
+            caption=("Performance of controllable {}-generating agents with learning-progress-informed (ALP-GMM) and uniform-random control regimes, and baseline (single-objective) agents, with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
             label={"tbl:{}".format(p)},
         )
 

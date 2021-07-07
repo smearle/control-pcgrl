@@ -28,7 +28,7 @@ representations: List[str] = [
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-    ["NONE"],
+#   ["NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {
@@ -85,7 +85,8 @@ def launch_batch(exp_name, collect_params=False):
     if LOCAL:
         print("Testing locally.")
         n_maps = 2
-        n_bins = 10
+#       n_bins = 10
+        n_bins = 4
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50

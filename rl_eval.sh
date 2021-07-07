@@ -19,4 +19,4 @@ source activate vanilla_pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
-python evaluate_ctrl.py -la 56
+python evaluate_ctrl.py -la 0
