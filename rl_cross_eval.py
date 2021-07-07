@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 
 import pandas as pd
 from arguments import parse_args
-from utils import get_exp_name
+from utils import get_exp_name, PROB_CONTROLS
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
 
@@ -56,14 +56,15 @@ header_text = {
     "zelda_ctrl": "zelda",
     "binary_ctrl": "binary",
     "sokoban_ctrl": "sokoban",
-    "NONE": "None",
+    "NONE": "---",
     "change_percentage": newline("change", "percentage"), 
-    'net_score (mean)': newline('net', 'score'),
-    '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
+#   'net_score (mean)': newline('target', 'progress'),
+    'net_score (mean)': 'success',
+#   '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
     "diversity_score (mean)": "diversity",
-    "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
-    '(controls) ctrl_score (mean)': newline('\\textit{control}', 'ctrl score'),
-    '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
+#   "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
+    'ctrl_score (mean)': newline('control', 'success'),
+#   '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
 #   "alp_gmm": newline("ALP", "GMM"),
     "alp_gmm": newline("control", "regime"),
     "conditionals": newline("learned", " controls"),
@@ -93,7 +94,10 @@ def flatten_stats(stats, controllable=False):
 
     def add_key_val(key, val):
         if controllable and key != "% train archive full":
-            key = "(controls) " + key
+#           key = "(controls) " + key
+            if key in header_text:
+                key = header_text[key]
+            key = ', '.join([c for c in stats['controls'] if c is not None]) + '||' + key
 
         if "%" in key:
             val *= 100
@@ -259,8 +263,19 @@ def compile_results(settings_list, no_plot=False):
 
     index = pd.MultiIndex.from_tuples(tuples, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
-    df = pd.DataFrame(data=data, index=index, columns=columns).sort_values(by=new_keys)
-    #   print(index)
+    # Hierarchical columns!
+    col_tuples = []
+    for col in columns:
+        if '||' not in col:
+            col_tuples.append(('fixed targets', '---', col))
+        else:
+            controls = col.split('||')[0]
+            col_tuples.append(('controlled targets', controls, col.split('||')[-1]))
+    columns = pd.MultiIndex.from_tuples(col_tuples, names=['', 'evaluated controls', ''])
+    df = pd.DataFrame(data=data, index=index, columns=columns)
+#   df = df.sort_values(by=new_keys, axis=0)
+#   new_keys = [tuple(t) for t in tuples]
+#   df = df.sort_values(by=new_keys, axis=0)
 
     csv_name = r"{}/cross_eval_{}.csv".format(RL_DIR, batch_exp_name)
     html_name = r"{}/cross_eval_{}.html".format(RL_DIR, batch_exp_name)
@@ -269,38 +284,50 @@ def compile_results(settings_list, no_plot=False):
 #   print(df)
 
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
-    # FIXME: FUCKING ROUND YOURSELF DUMB FRIEND
-#   df = df.round(2)
-    for p in ["binary", "zelda", "sokoban"]:
+
+#   for p in ["binary", "zelda", "sokoban"]:
+    for p in ["binary"]:
         tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
         try:
             df_tex = df.loc[p, "narrow"]
         except KeyError:
             continue
-        print(p)
+#       print(p)
         p_name = p + '_ctrl'
-        lcl_conds = ['None'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0]+', ',pi[1]) for pi in local_controls[p_name]]
-        print(lcl_conds)
-        df_tex = df_tex.loc[lcl_conds]
+        lcl_conds = ['---'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0] + ', ', pi[1]) for pi in local_controls[p_name]]
+#       print(lcl_conds)
+#       df_tex = df_tex.loc[lcl_conds]
 #       df_tex = df_tex.sort_values(by=['ALP GMM'])
-        z_cols = [
+        z_cols_fixed = [
             header_text["net_score (mean)"],
             header_text["diversity_score (mean)"],
-            header_text["(controls) net_score (mean)"],
-#           header_text["(controls) ctrl_score (mean)"],
-#           header_text["(controls) fixed_score (mean)"],
-            header_text["(controls) diversity_score (mean)"],
         ]
+        z_cols_ctrl = [
+#           header_text["net_score (mean)"],
+            header_text["ctrl_score (mean)"],
+#           header_text["(controls) fixed_score (mean)"],
+            header_text["diversity_score (mean)"],
+        ]
+        n_col_heads = len(z_cols_fixed)
+        z_cols = list(zip(['fixed targets'] * n_col_heads, ['---'] * n_col_heads, z_cols_fixed))
+        for ctrl_set in PROB_CONTROLS[p + '_ctrl']:
+            n_col_heads = len(z_cols_ctrl)
+            z_cols += list(zip(['controlled targets'] * n_col_heads, [', '.join(ctrl_set)] * n_col_heads, z_cols_ctrl))
+        df_tex = df_tex[z_cols]
         #   df_tex = df.drop(columns=z_cols)
-        df_tex = df_tex.loc[:, z_cols]
+#       df_tex['fixed targets'] = df_tex['fixed targets'][z_cols[0:2]]
+#       df_tex['controlled targets'] = df_tex['fixed targets'][z_cols[2:]]
         df_tex = df_tex * 100
-        df_tex = df_tex.round(0)
-        dual_conds = ['None', lcl_conds[1]]
+        df_tex = df_tex.astype(float).round(0)
+        dual_conds = ['---', lcl_conds[1]]
         for k in z_cols:
+            print(k)
             if k in df_tex:
+                print(k)
 #               df_tex.loc[dual_conds][k] = df_tex.loc[dual_conds][k].apply(
 #                   lambda data: bold_extreme_values(data, data_max=df_tex.loc[dual_conds][k].max())
 #               )
+                print(df_tex[k].max())
                 df_tex[k] = df_tex[k].apply(
                     lambda data: bold_extreme_values(data, data_max=df_tex[k].max())
                 )
@@ -308,25 +335,94 @@ def compile_results(settings_list, no_plot=False):
 #       df_tex.reset_index(level=0, inplace=True)
 #       print(df_tex)
 
-        with open(tex_name, "w") as tex_f:
-            col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}"
-            df_tex.to_latex(
-                tex_f,
-                index=True,
-                columns=z_cols,
-                multirow=True,
-    #           column_format=col_widths,
-                escape=False,
-                caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes, and baseline (single-objective) agents with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
-                label={"tbl:{}".format(p)},
-            )
-
+#       with open(tex_name, "w") as tex_f:
+#           col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}"
+        pandas_to_latex(
+            df_tex,
+#           df_tex.to_latex(
+            tex_name,
+            vertical_bars=True,
+            index=True,
+            bold_rows=True,
+            header=True,
+            columns=z_cols,
+            multirow=True,
+            multicolumn=True,
+            multicolumn_format='c|',
+            # column_format= 'r|' * len(index) + 'c|' * len(df_tex.columns),
+            escape=False,
+            caption=("Performance of controllable {}-generating agents with learning-progress-informed and uniform-random control regimes, and baseline (single-objective) agents with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
+            label={"tbl:{}".format(p)},
+        )
 
     #   # Remove duplicate row indices for readability in the csv
     #   df.reset_index(inplace=True)
     #   for k in new_keys:
     #       df.loc[df[k].duplicated(), k] = ''
     #   csv_name = r"{}/cross_eval_{}.csv".format(OVERLEAF_DIR, batch_exp_name)
+
+def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first_column=True, header=True, index=False,
+                    escape=False, multicolumn=False, **kwargs) -> None:
+    """
+    Function that augments pandas DataFrame.to_latex() capability.
+    :param df_table: dataframe
+    :param latex_file: filename to write latex table code to
+    :param vertical_bars: Add vertical bars to the table (note that latex's booktabs table format that pandas uses is
+                          incompatible with vertical bars, so the top/mid/bottom rules are changed to hlines.
+    :param right_align_first_column: Allows option to turn off right-aligned first column
+    :param header: Whether or not to display the header
+    :param index: Whether or not to display the index labels
+    :param escape: Whether or not to escape latex commands. Set to false to pass deliberate latex commands yourself
+    :param multicolumn: Enable better handling for multi-index column headers - adds midrules
+    :param kwargs: additional arguments to pass through to DataFrame.to_latex()
+    :return: None
+    """
+    n = len(df_table.columns) + len(df_table.index[0])
+
+    if right_align_first_column:
+        cols = 'r' + 'c' * (n - 1)
+    else:
+        cols = 'c' * n
+
+    if vertical_bars:
+        # Add the vertical lines
+        cols = '|' + '|'.join(cols) + '|'
+
+    latex = df_table.to_latex(escape=escape, index=index, column_format=cols, header=header, multicolumn=multicolumn,
+                              **kwargs)
+    latex = latex.replace('\\begin{table}', '\\begin{table*}')
+    latex = latex.replace('\end{table}', '\end{table*}')
+
+    if vertical_bars:
+        # Remove the booktabs rules since they are incompatible with vertical lines
+        latex = re.sub(r'\\(top|mid|bottom)rule', r'\\hline', latex)
+
+    # Multicolumn improvements - center level 1 headers and add midrules
+    if multicolumn:
+        latex = latex.replace(r'{l}', r'{c}')
+
+        offset = len(df_table.index[0])
+#       offset = 1
+        midrule_str = ''
+        for i, col in enumerate(df_table.columns.levels[0]):
+            indices = np.nonzero(np.array(df_table.columns.codes[0]) == i)[0]
+            hstart = 1 + offset + indices[0]
+            hend = 1 + offset + indices[-1]
+#           midrule_str += rf'\cmidrule(lr){{{hstart}-{hend}}} '
+            midrule_str += rf'\cline{{{hstart}-{hend}}}'
+
+        # Ensure that headers don't get colored by row highlighting
+#       midrule_str += r'\rowcolor{white}'
+
+        latex_lines = latex.splitlines()
+        # FIXME: ad-hoc row indices here
+        # TODO: get row index automatically then iterate until we get to the end of the multi-cols
+        latex_lines.insert(7, midrule_str)
+        latex_lines.insert(9, midrule_str)
+        latex = '\n'.join(latex_lines)
+
+    with open(latex_file, 'w') as f:
+        f.write(latex)
 
 def listolists_to_arr(a):
     b = np.empty([len(a), len(max(a, key=lambda x: len(x)))])

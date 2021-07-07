@@ -16,8 +16,8 @@ from rl_cross_eval import compile_results
 
 problems: List[str] = [
     "binary_ctrl",
-#   "zelda_ctrl",
-#   "sokoban_ctrl",
+    "zelda_ctrl",
+    "sokoban_ctrl",
     # 'smb_ctrl',
 ]
 representations: List[str] = [
@@ -62,15 +62,15 @@ local_controls: Dict[str, List] = {
         # ['income'],
     ],
 }
+alp_gmms = [
+    False,
+    True,
+]
 #change_percentages = np.arange(2, 11, 4) / 10
 change_percentages = [
     0.2,
     0.6,
     1.0,
-]
-alp_gmms = [
-    True,
-    False
 ]
 
 
@@ -85,7 +85,7 @@ def launch_batch(exp_name, collect_params=False):
     if LOCAL:
         print("Testing locally.")
         n_maps = 2
-        n_bins = 4
+        n_bins = 10
     else:
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
@@ -104,13 +104,13 @@ def launch_batch(exp_name, collect_params=False):
 
         for rep in representations:
             for controls in prob_controls:
-                for change_percentage in change_percentages:
 
 #                   if controls != ["NONE"] and change_percentage != 1:
 
 #                       continue
 
-                    for alp_gmm in alp_gmms:
+                for alp_gmm in alp_gmms:
+                    for change_percentage in change_percentages:
 
                         if alp_gmm and controls == ["NONE"]:
                             continue

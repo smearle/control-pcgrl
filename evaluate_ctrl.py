@@ -36,6 +36,7 @@ bottomLeftCornerOfText = (10, 500)
 fontScale = 1
 fontColor = (255, 255, 255)
 lineType = 2
+plt.rcParams.update({'font.size': 13})
 
 
 def div_calc(tokens):
@@ -109,8 +110,8 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         eval_data = pickle.load(open(data_path, "rb"))
         # FIXME: just for backward compatibility
         eval_data.eval_dir = eval_dir
-        eval_data.render_levels()
         eval_data.visualize_data(eval_dir, fix_trgs)
+        eval_data.render_levels()
 #       eval_data.hamming_heatmap(None, eval_data.div_scores)
 
         return
@@ -651,6 +652,8 @@ class EvalData:
 
     def save_stats(self, div_scores=np.zeros(shape=(1, 1)), fix_trgs=False):
         def get_stat_subdict(stats):
+            # Prevent explosive negative scores from initializing close to targets
+            stats = np.clip(stats, 0, stats.max())
             return {"mean": stats.mean(), "std_dev": stats.std()}
 
         scores = {
