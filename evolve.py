@@ -1308,6 +1308,7 @@ def simulate(
                 if render_levels:
                     # get final level state
                     level_frames.append(env.render(mode="rgb_array"))
+                # we'll need this to compute Hamming diversity
                 final_levels[n_episode] = int_map
                 stats = env._prob.get_stats(
                     get_string_map(int_map, env._prob.get_tile_types())
@@ -1334,9 +1335,10 @@ def simulate(
                         continue
 
                     if isinstance(static_targets[k], tuple):
-                        # take the smalles distance from current value to any point in range
+                        # take the smallest distance from current value to any point in range
+                        # NOTE: we're assuming this metric is integer-valued
                         targets_penalty += abs(
-                            np.arange(*static_targets[k]) - stats[k]
+                            np.arange(static_targets[k][0], static_targets[k][1]) - stats[k]
                         ).min()
                     else:
                         targets_penalty += abs(static_targets[k] - stats[k])
@@ -1797,7 +1799,12 @@ class EvoPCGRL:
                 # added.
                 self.gen_archive.set_init_states(init_states)
             # Send the results back to the optimizer.
-            self.gen_optimizer.tell(objs, bcs)
+            if args.mega:
+                # TODO: Here we need the jacobian
+                jacobian = None
+                self.gen_optimizer.tell(objs, bcs, jacobian=jacobian)
+            else:
+                self.gen_optimizer.tell(objs, bcs)
 
             # Re-evaluate elite generators. If doing CMAES, re-evaluate every iteration. Otherwise, try to let the archive grow.
 

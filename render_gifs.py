@@ -41,6 +41,10 @@ def frames_to_gif(gif_path, filenames):
     filenames = filenames + [filenames[-1]] * 20
     with imageio.get_writer(gif_path, mode='I') as writer:
         for filename in filenames:
-            image = imageio.imread(filename)
+            try:
+                image = imageio.imread(filename)
+            except ValueError:
+                print('Failed to read image {}, aborting.'.format(filename))
+                return
             writer.append_data(image)
     print(gif_path)

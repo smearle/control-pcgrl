@@ -59,11 +59,12 @@ header_text = {
     "NONE": "---",
     "change_percentage": newline("change", "percentage"), 
 #   'net_score (mean)': newline('target', 'progress'),
-    'net_score (mean)': 'success',
+    'net_score (mean)': 'pct. targets reached ',
 #   '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
     "diversity_score (mean)": "diversity",
 #   "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
-    'ctrl_score (mean)': newline('control', 'success'),
+#   'ctrl_score (mean)': newline('control', 'success'),
+    'ctrl_score (mean)': 'pct. targets reached',
 #   '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
 #   "alp_gmm": newline("ALP", "GMM"),
     "alp_gmm": newline("control", "regime"),
@@ -271,6 +272,7 @@ def compile_results(settings_list, no_plot=False):
         else:
             controls = col.split('||')[0]
             col_tuples.append(('controlled targets', controls, col.split('||')[-1]))
+    columns = pd.MultiIndex.from_tuples(col_tuples, names=['', newline('evaluated', 'controls'), ''])
     columns = pd.MultiIndex.from_tuples(col_tuples, names=['', 'evaluated controls', ''])
     df = pd.DataFrame(data=data, index=index, columns=columns)
 #   df = df.sort_values(by=new_keys, axis=0)
@@ -285,8 +287,8 @@ def compile_results(settings_list, no_plot=False):
 
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
 
-#   for p in ["binary", "zelda", "sokoban"]:
-    for p in ["binary", "zelda"]:
+    for p in ["binary", "zelda", "sokoban"]:
+#   for p in ["binary", "zelda"]:
 #   for p in ["binary"]:
         tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
         try:
@@ -312,6 +314,8 @@ def compile_results(settings_list, no_plot=False):
         n_col_heads = len(z_cols_fixed)
         z_cols = list(zip(['fixed targets'] * n_col_heads, ['---'] * n_col_heads, z_cols_fixed))
         for ctrl_set in PROB_CONTROLS[p + '_ctrl']:
+            if 'sol-length' in ctrl_set:
+                ctrl_set[ctrl_set.index('sol-length')] = 'solution-length'
             n_col_heads = len(z_cols_ctrl)
             z_cols += list(zip(['controlled targets'] * n_col_heads, [', '.join(ctrl_set)] * n_col_heads, z_cols_ctrl))
         df_tex = df_tex[z_cols]
@@ -352,7 +356,7 @@ def compile_results(settings_list, no_plot=False):
             multicolumn_format='c|',
             # column_format= 'r|' * len(index) + 'c|' * len(df_tex.columns),
             escape=False,
-            caption=("Performance of controllable {}-generating agents with learning-progress-informed (ALP-GMM) and uniform-random control regimes, and baseline (single-objective) agents, with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
+            caption=("Performance of controllable {} level-generating agents with learning-progress-informed (ALP-GMM) and uniform-random control regimes, and baseline (single-objective) agents, with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
             label={"tbl:{}".format(p)},
         )
 
