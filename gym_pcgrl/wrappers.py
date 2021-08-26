@@ -261,6 +261,62 @@ class ActionMap(gym.Wrapper):
         return obs, reward, done, info
 
 
+
+class CAMap(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert (
+                "map" in self.env.observation_space.spaces.keys()
+        ), "This wrapper only works if you have a map key"
+        self.old_obs = None
+        print(self.env.observation_space)
+        self.one_hot = len(self.env.observation_space.spaces["map"].shape) > 2
+        w, h, dim = 0, 0, 0
+
+        if self.one_hot:
+            h, w, dim = self.env.observation_space.spaces["map"].shape
+        else:
+            h, w = self.env.observation_space.spaces["map"].shape
+            dim = self.env.observation_space.spaces["map"].high.max()
+        self.h = self.unwrapped.h = h
+        self.w = self.unwrapped.w = w
+        self.dim = self.unwrapped.dim = self.env.get_num_tiles()
+        # self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
+        self.action_space = gym.spaces.MultiDiscrete([self.dim] * self.h * self.w)
+
+    def reset(self):
+        self.old_obs = self.env.reset()
+
+        return self.old_obs
+
+    def step(self, action):
+        # y, x, v = np.unravel_index(np.argmax(action), action.shape)
+        y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
+
+        if "pos" in self.old_obs:
+            o_x, o_y = self.old_obs["pos"]
+
+            if o_x == x and o_y == y:
+                obs, reward, done, info = self.env.step(v)
+            else:
+                o_v = self.old_obs["map"][o_y][o_x]
+
+                if self.one_hot:
+                    o_v = o_v.argmax()
+                obs, reward, done, info = self.env.step(o_v)
+        else:
+            obs, reward, done, info = self.env.step([x, y, v])
+        self.old_obs = obs
+
+        return obs, reward, done, info
+
+
 """
 Crops and centers the view around the agent and replace the map with cropped version
 The crop size can be larger than the actual view, it just pads the outside
@@ -386,6 +442,32 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
             env = self.pcgrl_env
             # Add the action map wrapper
             env = ActionMap(env)
+            # Transform to one hot encoding if not binary
+
+            if "binary" not in game and "RCT" not in game and "Micropolis" not in game:
+                env = OneHotEncoding(env, "map")
+            # Final Wrapper has to be ToImage or ToFlat
+            self.env = ToImage(env, flat_indices)
+        gym.Wrapper.__init__(self, self.env)
+
+
+class CAWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.pcgrl_env = gym.make(game)
+
+        if "micropolis" in game.lower():
+            self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
+            self.env = self.pcgrl_env
+        elif "RCT" in game:
+            self.pcgrl_env = RCTWrapper(self.pcgrl_env)
+            self.env = self.pcgrl_env
+        else:
+            self.pcgrl_env.adjust_param(**kwargs)
+            # Indices for flatting
+            flat_indices = ["map"]
+            env = self.pcgrl_env
+            # Add the action map wrapper
+            env = CAMap(env)
             # Transform to one hot encoding if not binary
 
             if "binary" not in game and "RCT" not in game and "Micropolis" not in game:

@@ -1,10 +1,16 @@
+from pdb import set_trace as TT
 import tensorflow as tf
 from tensorflow.keras import layers
 from gym import spaces
 import numpy as np
 from stable_baselines.common.policies import ActorCriticPolicy, FeedForwardPolicy
-from stable_baselines.common.distributions import CategoricalProbabilityDistributionType, ProbabilityDistributionType, CategoricalProbabilityDistribution, ProbabilityDistribution
+from stable_baselines.common.distributions import CategoricalProbabilityDistributionType, ProbabilityDistributionType, CategoricalProbabilityDistribution, ProbabilityDistribution, DiagGaussianProbabilityDistributionType, MultiCategoricalProbabilityDistributionType
 from stable_baselines.a2c.utils import conv, linear, conv_to_fc
+
+def NCA(image, **kwargs):
+    activ = tf.nn.relu
+    l1 = activ(conv(image, 'c1', n_filters=32, filer_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
+    l2 = activ(conv(image, 'c2', n_filters=32, filer_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
 
 def Cnn1(image, **kwargs):
     activ = tf.nn.relu
@@ -169,6 +175,7 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
                                        init_bias=0.0):
         pdparam = pi_latent_vector
         q_values = vf_latent_vector
+        TT()
         return self.proba_distribution_from_flat(pdparam), pdparam, q_values
 
     def param_shape(self):
@@ -207,6 +214,20 @@ class FullyConvPolicyBigMap(ActorCriticPolicy):
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
+class CAPolicy(ActorCriticPolicy):
+    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
+        super(CAPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
+        n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
+        # self._pdtype = DiagGaussianProbabilityDistributionType(ac_space.n)
+        self._pdtype = MultiCategoricalProbabilityDistributionType(ac_space.n)
+        with tf.variable_scope("model", reuse=kwargs['reuse']):
+            pi_latent, vf_latent = FullyConv2(self.processed_obs, n_tools, **kwargs)
+            self._value_fn = linear(vf_latent, 'vf', 1)
+            self._proba_distribution, self._policy, self.q_value = \
+                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
+        self._setup_init()
+
+#TODO: SCRAP THIS?
 class FullyConvPolicySmallMap(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
         super(FullyConvPolicySmallMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
@@ -226,6 +247,7 @@ class FullyConvPolicySmallMap(ActorCriticPolicy):
         else:
             action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
                                                    {self.obs_ph: obs})
+        TT()
         return action, value, self.initial_state, neglogp
 
     def proba_step(self, obs, state=None, mask=None):

@@ -96,7 +96,7 @@ def get_args():
         help="Which game level metrics to use as conditionals for the generator",
         default=["NONE"],
     )
-#   args.add_argument(
+#   opts.add_argument(
 #       "--resume",
 #       help="Are we resuming from a saved training run?",
 #       action="store_true",
@@ -147,7 +147,7 @@ def get_args():
         help="Fancy ish teacher algorithm for controllable targets.",
         action="store_true",
     )
-#   args.add_argument(
+#   opts.add_argument(
 #       "--evo_compare",
 #       help="Compare with work in evo-pcgrl using pyribs to train NNs as generators.",
 #       action="store_true",
@@ -168,7 +168,7 @@ def get_args():
     args.add_argument(
         '-la',
         '--load_args',
-        help='Rather than having the above args supplied by the command-line, load them from a settings.json file. (Of '
+        help='Rather than having the above opts supplied by the command-line, load them from a settings.json file. (Of '
         'course, the value of this arg in the json will have no effect.)',
         type=int,
         default=None,

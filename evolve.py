@@ -2683,7 +2683,7 @@ class EvoPCGRL:
             model = models[i]
             init_nn = set_weights(self.gen_model, model)
 
-            #           RANDOM_INIT_LEVELS = not args.fix_level_seeds
+            #           RANDOM_INIT_LEVELS = not opts.fix_level_seeds
 
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
                 init_states = gen_random_levels(N_INIT_STATES, self.env)

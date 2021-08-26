@@ -15,15 +15,15 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-#   "binary_ctrl",
+    "binary_ctrl",
 #   "zelda_ctrl",
-    "sokoban_ctrl",
+#   "sokoban_ctrl",
     # 'smb_ctrl',
 ]
 representations: List[str] = [
-    # 'cellular',
+    'cellular',
     # "wide",
-    "narrow",
+    # "narrow",
     # 'turtle',
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
@@ -33,9 +33,9 @@ global_controls: List[List] = [
 ]
 local_controls: Dict[str, List] = {
     "binary_ctrl": [
-        ["regions"],
-        ["path-length"],
-        ["regions", "path-length"],
+#       ["regions"],
+#       ["path-length"],
+#       ["regions", "path-length"],
         # ['emptiness', 'path-length'],
         # ["symmetry", "path-length"]
     ],
@@ -68,8 +68,9 @@ alp_gmms = [
 ]
 #change_percentages = np.arange(2, 11, 4) / 10
 change_percentages = [
-    0.2,
-    0.6,
+#   0.2,
+#   0.6,
+#   0.8
     1.0,
 ]
 
@@ -78,7 +79,7 @@ def launch_batch(exp_name, collect_params=False):
     if collect_params:
         settings_list = []
         assert not EVALUATE
-#   if args.render_levels:
+#   if opts.render_levels:
 #       print('Rendering levels')
 #       n_bins = 4
 #       n_maps = 2
@@ -140,13 +141,14 @@ def launch_batch(exp_name, collect_params=False):
                         exp_config = copy.deepcopy(default_config)
                         exp_config.update(
                             {
-                                "n_cpu": 48,
+                                "n_cpu": opts.n_cpu,
                                 "problem": prob,
                                 "representation": rep,
                                 "conditionals": controls,
                                 "change_percentage": change_percentage,
                                 "alp_gmm": alp_gmm,
                                 "experiment_id": exp_name,
+                                "render": opts.render,
                             }
                         )
 
@@ -156,9 +158,9 @@ def launch_batch(exp_name, collect_params=False):
                                     "resume": True,
                                     "n_maps": n_maps,
                                     "render": False,
-#                                   "render_levels": args.render_levels,
+#                                   "render_levels": opts.render_levels,
                                     "n_bins": (n_bins,),
-                                    "vis_only": args.vis_only,
+                                    "vis_only": opts.vis_only,
                                 }
                             )
                         print("Saving experiment config:\n{}".format(exp_config))
@@ -225,13 +227,22 @@ if __name__ == "__main__":
         help="Do no plot output from monitor files during cross-evaluation.",
         action="store_true",
     )
+    opts.add_argument(
+        "--render",
+        action='store_true',
+    )
+    opts.add_argument(
+        "--n_cpu",
+        type=int,
+        default=48,
+    )
 
-    args = opts.parse_args()
-    EXP_NAME = args.experiment_name
-    EVALUATE = args.evaluate
-    LOCAL = args.local
-    if args.cross_eval:
+    opts = opts.parse_args()
+    EXP_NAME = opts.experiment_name
+    EVALUATE = opts.evaluate
+    LOCAL = opts.local
+    if opts.cross_eval:
         settings_list = launch_batch(EXP_NAME, collect_params=True)
-        compile_results(settings_list, no_plot=args.no_plot)
+        compile_results(settings_list, no_plot=opts.no_plot)
     else:
         launch_batch(EXP_NAME)

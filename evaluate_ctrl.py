@@ -145,7 +145,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
         control_bounds = env.cond_bounds
     elif n_cpu > 1:
         raise Exception("no homie, no")
-        # supply args and kwargs
+        # supply opts and kwargs
         env.remotes[0].send(("env_method", ("get_control_bounds", [], {})))
         control_bounds = env.remotes[0].recv()
 
@@ -759,7 +759,7 @@ class EvalData:
 #        obs = env.reset()
 ##       epi_rewards = np.zeros((max_step, n_envs))
 #        i = 0
-# env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply args and kwargs
+# env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply opts and kwargs
 ##       init_metric_vals = env.remotes[0].recv()
 #        [remote.send(('env_method', ('get_loss', [], {}))) for remote in env.remotes]
 #        # note that this is weighted loss
@@ -774,7 +774,7 @@ class EvalData:
 #        final_loss = np.sum(rewards)
 #        # what percentage of loss (distance from target) was recovered?
 #        score = (final_loss - init_loss) / abs(init_loss)
-# env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply args and kwargs
+# env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply opts and kwargs
 ##       final_metric_vals = env.remotes[0].recv()
 #        eval_scores[n] = score
 #        n += n_envs #    return eval_scores.mean()
@@ -805,7 +805,7 @@ args.add_argument(
     default=1,
     type=int,
 )
-# args.add_argument('--step_size',
+# opts.add_argument('--step_size',
 #        help='Bin size along either dimension.',
 #        default=20,
 #        type=int,
@@ -822,7 +822,7 @@ args.add_argument(
     help="Save final maps (default to only one eval per cell)",
     action="store_true",
 )
-# args.add_argument('--diversity_eval',
+# opts.add_argument('--diversity_eval',
 #        help='Evaluate average pairwise hamming distance per cell',
 #        action='store_true',
 #        )

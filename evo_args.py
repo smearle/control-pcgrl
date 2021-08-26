@@ -117,7 +117,7 @@ def get_args(load_args=None):
     opts.add_argument(
         "-la",
         "--load_args",
-        help="Rather than having the above args supplied by the command-line, load them from a settings.json file. (Of "
+        help="Rather than having the above opts supplied by the command-line, load them from a settings.json file. (Of "
         "course, the value of this arg in the json will have no effect.)",
         type=int,
         default=None,

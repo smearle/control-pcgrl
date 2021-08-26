@@ -12,7 +12,7 @@ from envs import make_vec_envs
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
 from model import (CustomPolicyBigMap, CustomPolicySmallMap,
-                   FullyConvPolicyBigMap, FullyConvPolicySmallMap)
+                   FullyConvPolicyBigMap, FullyConvPolicySmallMap, CAPolicy)
 #from stable_baselines3 import PPO
 from stable_baselines import PPO2
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
@@ -81,16 +81,13 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     ca_action = kwargs.get('ca_action')
 
     if representation == 'wide' and not ('RCT' in game or 'Micropolis' in game):
-        if ca_action:
-            raise Exception()
-#           policy = CApolicy
-        else:
-            policy = FullyConvPolicyBigMap
-#           policy = WidePolicy
+        policy = FullyConvPolicyBigMap
 
         if game == "sokoban" or game == "sokoban_ctrl":
             #           T()
             policy = FullyConvPolicySmallMap
+    elif representation == 'cellular':
+        policy = CAPolicy
     else:
         #       policy = ActorCriticCnnPolicy
         policy = CustomPolicyBigMap
@@ -192,7 +189,6 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 
 opts = parse_args()
 
-
 ################################## MAIN ########################################
 
 # User settings
@@ -231,7 +227,7 @@ if conditional:
     COND_METRICS = opts.conditionals
 #   change_percentage = 1.0
 else:
-    COND_METRICS = None
+    COND_METRICS = []
 #   change_percentage = opts.change_percentage
 kwargs = {
     'map_width': map_width,

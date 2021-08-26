@@ -28,7 +28,7 @@ class ParamRewWindow(Gtk.Window):
         prog_bars = {}
         scales = {}
         prog_labels = {}
-        for k in self.env.usable_metrics:
+        for k in self.env.ctrl_metrics:
             metric = metrics[k]
             label = Gtk.Label()
             label.set_text(k)
@@ -76,7 +76,7 @@ class ParamRewWindow(Gtk.Window):
 
     def display_metric_trgs(self):
         for k, v in self.env.metric_trgs.items():
-            if k in self.env.usable_metrics:
+            if k in self.env.ctrl_metrics:
                 self.scales[k].set_value(v)
 
     def display_metrics(self):
