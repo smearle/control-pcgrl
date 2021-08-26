@@ -1,0 +1,3 @@
+[submodule "teachDeepRL"]
+	path = teachDeepRL
+	url = git@github.com:flowersteam/teachDeepRL

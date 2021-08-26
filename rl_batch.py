@@ -18,6 +18,7 @@ problems: List[str] = [
     "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
+#   'simcity',
     # 'smb_ctrl',
 ]
 representations: List[str] = [

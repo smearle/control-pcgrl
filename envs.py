@@ -22,7 +22,8 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
 
         if representation == 'cellular':
-           env = wrappers.CAWrapper(env_name, **kwargs)
+           # env = wrappers.CAWrapper(env_name, **kwargs)
+            env = wrappers.CAactionWrapper(env_name, **kwargs)
 #          TT()
         else:
             crop_size = kwargs.get('cropped_size', 28)

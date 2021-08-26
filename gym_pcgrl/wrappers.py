@@ -1,4 +1,5 @@
 from pdb import set_trace as TT
+from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 
 import numpy as np
 
@@ -138,6 +139,17 @@ class ToImage(gym.Wrapper):
 
         return final
 
+class ToImageCA(ToImage):
+    def __init__(self, game, name, **kwargs):
+        super().__init__(game, name, **kwargs)
+
+    def step(self, action):
+        action = action.reshape((self.h, self.w))
+        TT()
+        obs, reward, done, info = self.env.step(action)
+        obs = self.transform(obs)
+
+        return obs, reward, done, info
 
 class OneHotEncoding(gym.Wrapper):
     """
@@ -197,6 +209,10 @@ class OneHotEncoding(gym.Wrapper):
         obs[self.name] = np.eye(self.dim)[old]
 
         return obs
+
+    def get_one_hot_map(self):
+        obs = {'map': self.env._rep._map}
+        return self.transform(obs)
 
 
 """
@@ -289,32 +305,6 @@ class CAMap(gym.Wrapper):
         self.dim = self.unwrapped.dim = self.env.get_num_tiles()
         # self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
         self.action_space = gym.spaces.MultiDiscrete([self.dim] * self.h * self.w)
-
-    def reset(self):
-        self.old_obs = self.env.reset()
-
-        return self.old_obs
-
-    def step(self, action):
-        # y, x, v = np.unravel_index(np.argmax(action), action.shape)
-        y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
-
-        if "pos" in self.old_obs:
-            o_x, o_y = self.old_obs["pos"]
-
-            if o_x == x and o_y == y:
-                obs, reward, done, info = self.env.step(v)
-            else:
-                o_v = self.old_obs["map"][o_y][o_x]
-
-                if self.one_hot:
-                    o_v = o_v.argmax()
-                obs, reward, done, info = self.env.step(o_v)
-        else:
-            obs, reward, done, info = self.env.step([x, y, v])
-        self.old_obs = obs
-
-        return obs, reward, done, info
 
 
 """
@@ -473,8 +463,74 @@ class CAWrapper(gym.Wrapper):
             if "binary" not in game and "RCT" not in game and "Micropolis" not in game:
                 env = OneHotEncoding(env, "map")
             # Final Wrapper has to be ToImage or ToFlat
-            self.env = ToImage(env, flat_indices)
+            self.env = ToImageCA(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
+
+
+# This precedes the ParamRew wrapper so we only worry about the map as observation
+class CAactionWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Indices for flatting
+        flat_indices = ['map']
+        env = self.pcgrl_env
+        width = env._prob._width
+        height = env._prob._height
+        self.n_ca_tick = 0
+        # Add the action map wrapper
+        #       env = ActionMap(env)
+        # Transform to one hot encoding if not binary
+
+        # we need the observation to be one-hot, so we can reliably separate map from control observations for NCA skip connection
+        env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, flat_indices)
+        gym.Wrapper.__init__(self, self.env)
+        # NOTE: check this insanity out so cool
+        self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.env.dim] * width * height)
+        #       self.action_space = self.pcgrl_env.action_space = gym.spaces.Box(low=0, high=1, shape=(self.n_tile_types* width* height,))
+        self.last_action = None
+        self.INFER = kwargs.get('infer')
+
+    def step(self, action):
+        env = self.env
+        pcgrl_env = self.pcgrl_env
+        action = action.reshape(pcgrl_env._rep._map.shape).astype(int)
+        #       obs = get_one_hot_map(action, self.n_tile_types)
+        obs = action.reshape(1, *action.shape)
+        obs = obs.transpose(1, 2, 0)
+        pcgrl_env._rep._map = obs.squeeze(-1)
+        obs = self.env.get_one_hot_map()
+        #       print(obs['map'][:,:,-1:].transpose(1, 2, 0))
+        self.n_ca_tick += 1
+        if self.n_ca_tick <= 50 or (action == self.last_action).all():
+            done = False
+        else:
+            done = True
+        self.env._rep_stats = pcgrl_env._prob.get_stats(get_string_map(action, pcgrl_env._prob.get_tile_types()))
+        pcgrl_env.metrics = env.metrics = self.env._rep_stats
+        self.last_action = action
+
+        return obs['map'], 0, done, {}
+
+    def reset(self):
+        self.last_action = None
+        self.n_ca_tick = 0
+        #       if self.pcgrl_env.unwrapped._rep._map is None:
+        #           # get map dimensions (sloppy)
+        #           super().reset()
+        #       # load up our initial state (empty)
+        #       self.env.unwrapped._rep._random_start = True
+        #       init_state = np.zeros(self.unwrapped._rep._map.shape).astype(np.uint8)
+        #       self.unwrapped._rep._old_map = init_state
+        obs = self.env.reset()
+        #       self.pcgrl_env._map = self.env._rep._map
+
+        #       self.render()
+        #       obs = self.env.get_one_hot_map()
+
+        return obs
 
 
 class SimCityWrapper(gym.Wrapper):

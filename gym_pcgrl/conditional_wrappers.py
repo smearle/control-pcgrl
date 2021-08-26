@@ -22,7 +22,7 @@ class ParamRew(gym.Wrapper):
         # (we didn't necessarily train with all of them)
         ctrl_loss_metrics = kwargs.get("eval_controls")
         if not ctrl_loss_metrics:
-            ctrl_loss_metrics = ctrl_metrics
+            ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
         if self.conditional:
             assert ctrl_metrics
         else:
