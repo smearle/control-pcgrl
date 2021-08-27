@@ -17,10 +17,10 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-#       "binary_ctrl", 
-        "zelda_ctrl", 
-#       "sokoban_ctrl", 
-#       "smb_ctrl"
+        "binary_ctrl",
+        "zelda_ctrl",
+        "sokoban_ctrl",
+        "smb_ctrl"
 ]
 representations = [
         "cellular", 
@@ -39,9 +39,9 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
+        ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
@@ -72,14 +72,15 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
-    10,
+    0,
+#   10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
+    1
 #   10,
-    50,
+#   50,
 #   100,
 ]
 
@@ -98,7 +99,7 @@ def launch_batch(exp_name, collect_params=False):
     print("Loaded default config:\n{}".format(default_config))
 
     if LOCAL:
-        default_config["n_generations"] = 50
+        default_config["n_generations"] = 50000
     i = 0
 
     for prob in problems:
@@ -165,8 +166,16 @@ def launch_batch(exp_name, collect_params=False):
                                             "n_generations": 100000,
                                         }
                                     )
+                                    if args.render:
+                                        exp_config.update(
+                                            {
+                                                "infer": True,
+                                                "render": True,
+                                                "visualize": True,
+                                            }
+                                        )
 
-                                    if EVALUATE:
+                                    elif EVALUATE:
                                         exp_config.update(
                                             {
                                                 "infer": True,
@@ -223,6 +232,12 @@ if __name__ == "__main__":
         "-l",
         "--local",
         help="Test the batch script, i.e. run it on a local machine and evolve for minimal number of generations.",
+        action="store_true",
+    )
+    opts.add_argument(
+        "-r",
+        "--render",
+        help="Render and observe",
         action="store_true",
     )
     opts.add_argument(

@@ -90,6 +90,93 @@ https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 
 
+
+import graphviz
+import warnings
+import copy
+def draw_net(config: object, genome: object, view: object = False, filename: object = None, node_names: object = None, show_disabled: object = True,
+             prune_unused: object = False,
+             node_colors: object = None, fmt: object = 'svg') -> object:
+    """ Receives a genome and draws a neural network with arbitrary topology. """
+    # Attributes for network nodes.
+    if graphviz is None:
+        warnings.warn("This display is not available due to a missing optional dependency (graphviz)")
+        return
+
+    if node_names is None:
+        node_names = {}
+
+    assert type(node_names) is dict
+
+    if node_colors is None:
+        node_colors = {}
+
+    assert type(node_colors) is dict
+
+    node_attrs = {
+        'shape': 'circle',
+        'fontsize': '9',
+        'height': '0.2',
+        'width': '0.2'}
+
+    dot = graphviz.Digraph(format=fmt, node_attr=node_attrs)
+
+    inputs = set()
+    for k in config.genome_config.input_keys:
+        inputs.add(k)
+        name = node_names.get(k, str(k))
+        input_attrs = {'style': 'filled', 'shape': 'box', 'fillcolor': node_colors.get(k, 'lightgray')}
+        dot.node(name, _attributes=input_attrs)
+
+    outputs = set()
+    for k in config.genome_config.output_keys:
+        outputs.add(k)
+        name = node_names.get(k, str(k))
+        node_attrs = {'style': 'filled', 'fillcolor': node_colors.get(k, 'lightblue')}
+
+        dot.node(name, _attributes=node_attrs)
+
+    if prune_unused:
+        connections = set()
+        for cg in genome.connections.values():
+            if cg.enabled or show_disabled:
+                connections.add(cg.key)
+
+        used_nodes = copy.copy(outputs)
+        pending = copy.copy(outputs)
+        while pending:
+            new_pending = set()
+            for a, b in connections:
+                if b in pending and a not in used_nodes:
+                    new_pending.add(a)
+                    used_nodes.add(a)
+            pending = new_pending
+    else:
+        used_nodes = set(genome.nodes.keys())
+
+    for n in used_nodes:
+        if n in inputs or n in outputs:
+            continue
+
+        attrs = {'style': 'filled', 'fillcolor': node_colors.get(n, 'white')}
+        dot.node(str(n), _attributes=attrs)
+
+    for cg in genome.connections.values():
+        if cg.enabled or show_disabled:
+            #if cg.input not in used_nodes or cg.output not in used_nodes:
+            #    continue
+            input, output = cg.key
+            a = node_names.get(input, str(input))
+            b = node_names.get(output, str(output))
+            style = 'solid' if cg.enabled else 'dotted'
+            color = 'green' if cg.weight > 0 else 'red'
+            width = str(0.1 + abs(cg.weight / 5.0))
+            dot.edge(a, b, _attributes={'style': style, 'color': color, 'penwidth': width})
+
+    dot.render(filename, view=view)
+
+    return dot
+
 def save_level_frames(level_frames, model_name):
 
     renders_dir = os.path.join(SAVE_PATH, "renders")
@@ -582,16 +669,43 @@ class CPPN(nn.Module):
                                          neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
                                          neat_config_path)
         self.n_actions = n_actions
-        neat_config.num_outputs = n_actions
+        neat_config.genome_config.num_outputs = n_actions
+        neat_config.genome_config.num_hidden = 10
         genome = DefaultGenome(0)
         genome.configure_new(neat_config.genome_config)
-        self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)])
+        self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)]
+                                )
+
+#       draw_net(neat_config, genome,  view=True, filename='cppn')
 
     def forward(self, x):
         X = np.arange(x.shape[-2])
         Y = np.arange(x.shape[-1])
         X, Y = np.meshgrid(X, Y)
         tile_probs = [self.cppn[i](x_in=th.Tensor(X), y_in=th.Tensor(Y)) for i in range(self.n_actions)]
+        multi_hot = th.stack(tile_probs, axis=0)
+        multi_hot = multi_hot.unsqueeze(0)
+        return multi_hot
+
+    def forward_rec(self, x):
+        X = np.arange(x.shape[-2])
+        Y = np.arange(x.shape[-1])
+        X, Y = np.meshgrid(X, Y)
+        n_rec = 1
+        n_out = self.n_actions
+        if n_rec > 1:
+            n_out += 2
+        for i in range(n_rec):
+            if isinstance(X, np.ndarray):
+                X = X.astype(float)
+                Y = Y.astype(float)
+                X = th.Tensor(X)
+                Y = th.Tensor(Y)
+            tile_probs = [self.cppn[i](x_in=X, y_in=Y) for i in range(n_out)]
+            X = tile_probs[-2] + X
+            Y = tile_probs[-1] + Y
+        if n_rec > 1:
+            tile_probs = tile_probs[:-2]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
         return multi_hot
@@ -2945,88 +3059,3 @@ if __name__ == "__main__":
                     e
                 )
             )
-
-import graphviz
-import warnings
-import copy
-def draw_net(config, genome, view=False, filename=None, node_names=None, show_disabled=True, prune_unused=False,
-             node_colors=None, fmt='svg'):
-    """ Receives a genome and draws a neural network with arbitrary topology. """
-    # Attributes for network nodes.
-    if graphviz is None:
-        warnings.warn("This display is not available due to a missing optional dependency (graphviz)")
-        return
-
-    if node_names is None:
-        node_names = {}
-
-    assert type(node_names) is dict
-
-    if node_colors is None:
-        node_colors = {}
-
-    assert type(node_colors) is dict
-
-    node_attrs = {
-        'shape': 'circle',
-        'fontsize': '9',
-        'height': '0.2',
-        'width': '0.2'}
-
-    dot = graphviz.Digraph(format=fmt, node_attr=node_attrs)
-
-    inputs = set()
-    for k in config.genome_config.input_keys:
-        inputs.add(k)
-        name = node_names.get(k, str(k))
-        input_attrs = {'style': 'filled', 'shape': 'box', 'fillcolor': node_colors.get(k, 'lightgray')}
-        dot.node(name, _attributes=input_attrs)
-
-    outputs = set()
-    for k in config.genome_config.output_keys:
-        outputs.add(k)
-        name = node_names.get(k, str(k))
-        node_attrs = {'style': 'filled', 'fillcolor': node_colors.get(k, 'lightblue')}
-
-        dot.node(name, _attributes=node_attrs)
-
-    if prune_unused:
-        connections = set()
-        for cg in genome.connections.values():
-            if cg.enabled or show_disabled:
-                connections.add(cg.key)
-
-        used_nodes = copy.copy(outputs)
-        pending = copy.copy(outputs)
-        while pending:
-            new_pending = set()
-            for a, b in connections:
-                if b in pending and a not in used_nodes:
-                    new_pending.add(a)
-                    used_nodes.add(a)
-            pending = new_pending
-    else:
-        used_nodes = set(genome.nodes.keys())
-
-    for n in used_nodes:
-        if n in inputs or n in outputs:
-            continue
-
-        attrs = {'style': 'filled', 'fillcolor': node_colors.get(n, 'white')}
-        dot.node(str(n), _attributes=attrs)
-
-    for cg in genome.connections.values():
-        if cg.enabled or show_disabled:
-            #if cg.input not in used_nodes or cg.output not in used_nodes:
-            #    continue
-            input, output = cg.key
-            a = node_names.get(input, str(input))
-            b = node_names.get(output, str(output))
-            style = 'solid' if cg.enabled else 'dotted'
-            color = 'green' if cg.weight > 0 else 'red'
-            width = str(0.1 + abs(cg.weight / 5.0))
-            dot.edge(a, b, _attributes={'style': style, 'color': color, 'penwidth': width})
-
-    dot.render(filename, view=view)
-
-    return dot
