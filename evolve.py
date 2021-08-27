@@ -295,6 +295,9 @@ def auto_garbage_collect(pct=80.0):
     if psutil.virtual_memory().percent >= pct:
         gc.collect()
 
+def tran_action(action, **kwargs):
+    skip = False
+    return action.swapaxes(1, 2), skip
 
 # usually, if action does not turn out to change the map, then the episode is terminated
 # the skip boolean tells us whether, for some representation-specific reason, the agent has chosen not to act, but
@@ -318,7 +321,6 @@ def wide_action(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=None)
     coords = np.unravel_index(action.argmax(), action.shape)
 
     if n_new_builds > 0:
-        #       TT()
         assert act_mask[0, coords[1], coords[2]] == 1
     coords = coords[2], coords[1], coords[0]
     #   assert int_map[coords[0], coords[1]] != coords[2]
@@ -402,6 +404,9 @@ preprocess_action_funcs = {
         "narrow": narrow_action,
         "turtle": turtle_action,
     },
+    "CPPN": {
+        "cellular": tran_action,
+    },
     "CNN": {
         # will try to build this logic into the model
         "cellular": flat_to_box,
@@ -410,7 +415,6 @@ preprocess_action_funcs = {
         "turtle": flat_to_turtle,
     },
 }
-preprocess_action_funcs["CPPN"] = preprocess_action_funcs["NCA"]
 
 
 def id_observation(obs, **kwargs):
@@ -1655,7 +1659,7 @@ class EvoPCGRL:
         self.static_targets = self.env._prob.static_trgs
 
         if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0):
-            init_level_archive_args = (N_INIT_STATES, self.width, self.height)
+            init_level_archive_args = (N_INIT_STATES, self.height, self.width)
         #           init_level_archive_args = ()
 
         if REEVALUATE_ELITES:
@@ -1835,7 +1839,7 @@ class EvoPCGRL:
 
         if args.n_init_states == 0:
             # special square patch
-            self.init_states = np.zeros(shape=(1, self.width, self.height))
+            self.init_states = np.zeros(shape=(1, self.height, self.width))
             self.init_states[0, 5:-5, 5:-5] = 1
         else:
             #           self.init_states = np.random.randint(
@@ -2881,7 +2885,7 @@ class EvoPCGRL:
 
 def gen_random_levels(n_init_states, env):
     init_states = np.random.randint(
-        0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._width, env._prob._height)
+        0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
     )
     return init_states
 

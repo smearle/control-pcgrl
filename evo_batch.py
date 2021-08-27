@@ -17,9 +17,9 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-        "binary_ctrl",
-        "zelda_ctrl",
-        "sokoban_ctrl",
+#       "binary_ctrl",
+#       "zelda_ctrl",
+#       "sokoban_ctrl",
         "smb_ctrl"
 ]
 representations = [
@@ -55,8 +55,8 @@ local_bcs = {
        ],
 }
 models = [
-#   "NCA",
-    "CPPN",
+    "NCA",
+#   "CPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -72,15 +72,15 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
-#   10,
+#   0,
+    10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1
+#   1
 #   10,
-#   50,
+    50,
 #   100,
 ]
 
@@ -128,10 +128,16 @@ def launch_batch(exp_name, collect_params=False):
                                     if n_steps != n_steps_lst[0]:
                                         continue
 
+                                if model == "NCA" and n_steps <= 5:
+                                    continue
+
                                 for n_init_states in n_init_states_lst:
                                     if n_init_states == 0 and not (fix_seed and fix_el):
                                         # The hand-made seed cannot be randomized
 
+                                        continue
+
+                                    if model == 'CPPN' and not (n_init_states == 0 and n_steps == 1):
                                         continue
 
                                     # Edit the sbatch file to load the correct config file
@@ -220,7 +226,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="2",
+        default="4",
     )
     opts.add_argument(
         "-ev",
