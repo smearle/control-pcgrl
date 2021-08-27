@@ -68,6 +68,7 @@ class CARepresentation(Representation):
     """
     def update(self, action):
         next_map = action.argmax(axis=0)
+#       print(next_map.shape, self._map.shape, 'reppy')
         change = (next_map != self._map).any()
         self._map = next_map
         return change, None, None

@@ -297,6 +297,7 @@ def auto_garbage_collect(pct=80.0):
 
 def tran_action(action, **kwargs):
     skip = False
+    return action, skip
     return action.swapaxes(1, 2), skip
 
 # usually, if action does not turn out to change the map, then the episode is terminated
@@ -655,7 +656,7 @@ class GeneratorNN(nn.Module):
             x = th.sigmoid(x)
 
         # axis 0 is batch
-        # axis 0,0 is the 0 or 1 tile
+        # axis 1 is the tile-type (one-hot)
         # axis 0,1 is the x value
         # axis 0,2 is the y value
 
@@ -691,6 +692,7 @@ class CPPN(nn.Module):
         multi_hot = multi_hot.unsqueeze(0)
         return multi_hot
 
+    # No no you'd need to implement this logic outside of the model so that we could render the in-between!
     def forward_rec(self, x):
         X = np.arange(x.shape[-2])
         Y = np.arange(x.shape[-1])
@@ -914,7 +916,7 @@ def set_weights(nn, weights):
 
 
 def get_one_hot_map(int_map, n_tile_types):
-    obs = (np.arange(n_tile_types) == int_map[..., None] - 1).astype(int)
+    obs = (np.arange(n_tile_types) == int_map[..., None]).astype(int)
     obs = obs.transpose(2, 0, 1)
 
     return obs
@@ -1415,6 +1417,8 @@ def simulate(
         # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
         # Set the representation to begin in the upper left corner
         env._rep._map = init_state.copy()
+        env._prob.path_coords = []
+        env._prob.path_length = None
         # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
         # TODO: wrap the env instead
         env._rep._x = env._rep._y = 0
@@ -1531,6 +1535,7 @@ def simulate(
                     )
                 env.render()
 
+
             if done and INFER:  # and not (EVALUATE and THREADS):
                 if not EVALUATE:
                     #                   time.sleep(5 / 30)
@@ -1631,8 +1636,8 @@ class EvoPCGRL:
         # get number of tile types from environment's observation space
         # here we assume that all (x, y) locations in the observation space have the same upper/lower bound
         self.n_tile_types = self.env.observation_space["map"].high[0, 0] + 1
-        self.width = self.env.observation_space["map"].low.shape[0]
-        self.height = self.env.observation_space["map"].low.shape[1]
+        self.width = self.env._prob._width
+        self.height = self.env._prob._height
 
         # FIXME why not?
         # self.width = self.env._prob._width
@@ -2251,7 +2256,7 @@ class EvoPCGRL:
         #       if N_STEPS is None:
         #       if REPRESENTATION != "cellular":
         max_ca_steps = args.n_steps
-        max_changes = self.env._prob._width * self.env._prob._height
+        max_changes = self.env._prob._height * self.env._prob._width
         reps_to_steps = {
             "cellular": max_ca_steps,
             "wide": max_changes,
@@ -2476,6 +2481,7 @@ class EvoPCGRL:
                     ("emptiness", "path-length"),
                 ],
                 "sokoban": [("crate", "sol-length")],
+                "smb": [("emptiness", "jumps")],
             }
 
             for k in problem_eval_bc_names.keys():
