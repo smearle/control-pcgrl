@@ -266,6 +266,8 @@ class ParamRew(gym.Wrapper):
             assert self.infer
             done = False
 
+        # FIXME: for debugging only
+        rew = self.env.unwrapped._rep._map.sum()
         return ob, rew, done, info
 
     def get_cond_trgs(self):

@@ -11,7 +11,7 @@ import re
 from pdb import set_trace as TT
 from typing import List
 
-from cross_eval import compile_results
+from evo_cross_eval import compile_results
 from render_gifs import render_gifs
 
 RENDER_LEVELS = True
@@ -30,7 +30,7 @@ representations = [
 ]
 global_bcs: List[List] = [
 #       ["NONE"], 
-        ["emptiness", "symmetry"],
+#       ["emptiness", "symmetry"],
 ]
 local_bcs = {
     "binary_ctrl": [
@@ -39,9 +39,9 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
+#       ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+#       ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
@@ -55,31 +55,32 @@ local_bcs = {
        ],
 }
 models = [
-    "NCA",
+#   "NCA",
+    "CPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
         True, 
-       #False
+#       False
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-        True, 
+#       True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
+#   0,
     10,
-    20,
+#   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    10,
+#   10,
     50,
-    100,
+#   100,
 ]
 
 

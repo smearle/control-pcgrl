@@ -97,9 +97,9 @@ def launch_batch(exp_name, collect_params=False):
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))
 
-    if LOCAL:
-        # if running locally, just run a quick test
-        default_config["n_frames"] = 100000
+#   if LOCAL:
+#       # if running locally, just run a quick test
+#       default_config["n_frames"] = 100000
     i = 0
 
     for prob in problems:
@@ -125,19 +125,22 @@ def launch_batch(exp_name, collect_params=False):
                         if EVALUATE:
                             py_script_name = "evaluate_ctrl.py"
                             sbatch_name = "rl_eval.sh"
+                        elif opts.render:
+                            py_script_name = "infer_ctrl.py"
                         else:
                             py_script_name = "train_ctrl.py"
                             sbatch_name = "rl_train.sh"
                         # Edit the sbatch file to load the correct config file
-                        with open(sbatch_name, "r") as f:
-                            content = f.read()
-                            new_content = re.sub(
-                                "python .* -la \d+",
-                                "python {} -la {}".format(py_script_name, i),
-                                content,
-                            )
-                        with open(sbatch_name, "w") as f:
-                            f.write(new_content)
+                        if not opts.render:
+                            with open(sbatch_name, "r") as f:
+                                content = f.read()
+                                new_content = re.sub(
+                                    "python .* -la \d+",
+                                    "python {} -la {}".format(py_script_name, i),
+                                    content,
+                                )
+                            with open(sbatch_name, "w") as f:
+                                f.write(new_content)
                         # Write the config file with the desired settings
                         exp_config = copy.deepcopy(default_config)
                         exp_config.update(

@@ -7,10 +7,32 @@ from stable_baselines.common.policies import ActorCriticPolicy, FeedForwardPolic
 from stable_baselines.common.distributions import CategoricalProbabilityDistributionType, ProbabilityDistributionType, CategoricalProbabilityDistribution, ProbabilityDistribution, DiagGaussianProbabilityDistributionType, MultiCategoricalProbabilityDistributionType
 from stable_baselines.a2c.utils import conv, linear, conv_to_fc
 
-def NCA(image, **kwargs):
-    activ = tf.nn.relu
-    l1 = activ(conv(image, 'c1', n_filters=32, filer_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    l2 = activ(conv(image, 'c2', n_filters=32, filer_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
+def NCA(image, n_tools, **kwargs):
+    relu = tf.nn.relu
+    sigmoid = tf.nn.sigmoid
+    x = relu(conv(image, 'c1', n_filters=32, filter_size=3, stride=1, pad='SAME', init_scale=np.sqrt(2)))
+    x = relu(conv(x, 'c2', n_filters=32, filter_size=1, stride=1, pad='SAME', init_scale=np.sqrt(2)))
+    x = sigmoid(conv(x, 'c3', n_filters=n_tools, filter_size=1, stride=1, pad='SAME', init_scale=np.sqrt(2)))
+#   mask = tf.random.uniform(x.shape[1:-1]) < 0.1
+#   mask = tf.stack((mask, mask), axis=2)
+#   x = tf.boolean_mask(x, mask, axis=1)
+    val = conv_to_fc(x)
+    fire_rate = 0.6
+    update_mask = tf.random.uniform(tf.shape(x[:, :, :, :1])) <= fire_rate
+    x = x * tf.cast(update_mask, tf.float32)
+    x += image
+    act = conv_to_fc(x)
+#   val = relu(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
+#                    init_scale=np.sqrt(2)))
+#   val = relu(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
+#                    init_scale=np.sqrt(3)))
+#   # val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
+#   #    init_scale=np.sqrt(2)))
+#   val = relu(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
+#                    init_scale=np.sqrt(2)))
+#   val = conv_to_fc(val)
+    val = sigmoid(linear(val, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+    return act, val
 
 def Cnn1(image, **kwargs):
     activ = tf.nn.relu
@@ -186,6 +208,82 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
     def sample_dtype(self):
         return tf.int64
 
+
+class NoDenseMultiCategoricalProbabilityDistributionType(ProbabilityDistributionType):
+    def __init__(self, n_vec):
+        """
+        The probability distribution type for multiple categorical input
+
+        :param n_vec: ([int]) the vectors
+        """
+        # Cast the variable because tf does not allow uint32
+        self.n_vec = n_vec.astype(np.int32)
+        # Check that the cast was valid
+        assert (self.n_vec > 0).all(), "Casting uint32 to int32 was invalid"
+
+    def probability_distribution_class(self):
+        return NoDenseMultiCategoricalProbabilityDistribution
+
+    def proba_distribution_from_flat(self, flat):
+        return NoDenseMultiCategoricalProbabilityDistribution(self.n_vec, flat)
+
+    def proba_distribution_from_latent(self, pi_latent_vector, vf_latent_vector, init_scale=1.0, init_bias=0.0):
+        # pdparam = linear(pi_latent_vector, 'pi', sum(self.n_vec), init_scale=init_scale, init_bias=init_bias)
+        pdparam = pi_latent_vector
+        q_values = linear(vf_latent_vector, 'q', sum(self.n_vec), init_scale=init_scale, init_bias=init_bias)
+        return self.proba_distribution_from_flat(pdparam), pdparam, q_values
+
+    def param_shape(self):
+        return [sum(self.n_vec)]
+
+    def sample_shape(self):
+        return [len(self.n_vec)]
+
+    def sample_dtype(self):
+        return tf.int64
+
+
+class NoDenseMultiCategoricalProbabilityDistribution(ProbabilityDistribution):
+    def __init__(self, nvec, flat):
+        """
+        Probability distributions from multicategorical input
+
+        :param nvec: ([int]) the sizes of the different categorical inputs
+        :param flat: ([float]) the categorical logits input
+        """
+        self.flat = flat
+        self.categoricals = list(map(CategoricalProbabilityDistribution, tf.split(flat, nvec, axis=-1)))
+        super(NoDenseMultiCategoricalProbabilityDistribution, self).__init__()
+
+    def flatparam(self):
+        return self.flat
+
+    def mode(self):
+        return tf.stack([p.mode() for p in self.categoricals], axis=-1)
+
+    def neglogp(self, x):
+        return tf.add_n([p.neglogp(px) for p, px in zip(self.categoricals, tf.unstack(x, axis=-1))])
+
+    def kl(self, other):
+        return tf.add_n([p.kl(q) for p, q in zip(self.categoricals, other.categoricals)])
+
+    def entropy(self):
+        return tf.add_n([p.entropy() for p in self.categoricals])
+
+    def sample(self):
+        return tf.stack([p.sample() for p in self.categoricals], axis=-1)
+
+    @classmethod
+    def fromflat(cls, flat):
+        """
+        Create an instance of this from new logits values
+
+        :param flat: ([float]) the multi categorical logits input
+        :return: (ProbabilityDistribution) the instance from the given multi categorical input
+        """
+        raise NotImplementedError
+
+
 class FullyConvPolicyBigMap(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
         super(FullyConvPolicyBigMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
@@ -219,16 +317,17 @@ class CAPolicy(ActorCriticPolicy):
         n_tools = ac_space.nvec[0]
         # n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
         # self._pdtype = DiagGaussianProbabilityDistributionType(ac_space.n)
-        self._pdtype = MultiCategoricalProbabilityDistributionType(ac_space.nvec)
+        self._pdtype = NoDenseMultiCategoricalProbabilityDistributionType(ac_space.nvec)
         with tf.variable_scope("model", reuse=kwargs['reuse']):
-            pi_latent, vf_latent = FullyConv2(self.processed_obs, n_tools, **kwargs)
+            pi_latent, vf_latent = NCA(self.processed_obs, n_tools, **kwargs)
             self._value_fn = linear(vf_latent, 'vf', 1)
             self._proba_distribution, self._policy, self.q_value = \
                 self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
         self._setup_init()
 
     def step(self, obs, state=None, mask=None, deterministic=False):
-        if deterministic:
+#       if deterministic:
+        if True:
             action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
                                                    {self.obs_ph: obs})
         else:
@@ -263,7 +362,6 @@ class FullyConvPolicySmallMap(ActorCriticPolicy):
         else:
             action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
                                                    {self.obs_ph: obs})
-        TT()
         return action, value, self.initial_state, neglogp
 
     def proba_step(self, obs, state=None, mask=None):

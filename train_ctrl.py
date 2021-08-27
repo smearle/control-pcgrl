@@ -163,10 +163,15 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 #       n_steps = 2048
 
     if not resume or model is None:
+        if representation == 'cellular':
+#           learning_rate = 0.00001
+            learning_rate = 0.00025
+        else:
+            learning_rate = 0.00025
         # model = PPO(policy, env, verbose=1, n_steps=n_steps,
         #             tensorboard_log="./runs", policy_kwargs=policy_kwargs)
         model = PPO2(policy, env, verbose=1,
-                     tensorboard_log="./rl_runs", policy_kwargs=policy_kwargs)
+                     tensorboard_log="./rl_runs", policy_kwargs=policy_kwargs, learning_rate=learning_rate)
 #   else:
     model.set_env(env)
 

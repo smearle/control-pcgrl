@@ -22,7 +22,7 @@ import pandas as pd
 import psutil
 import ray
 import scipy
-import torch
+import torch as th
 import torch.nn.functional as F
 from gym import envs
 from numba import njit
@@ -61,7 +61,7 @@ from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 conda create -n ribs-pt python=3.7
 pip install scipy==1.2.0  # must use this version with GVGAI_GYM
 conda install -c conda-forge notebook
-conda install pytorch torchvision torchaudio -c pytorch
+conda install pytorch torchvision torchaudio -c pyth
 conda install tensorboard
 pip install 'ribs[all]' gym~=0.17.0 Box2D~=2.3.10 tqdm
 git clone https://github.com/amidos2006/gym-pcgrl.git
@@ -323,6 +323,7 @@ preprocess_action_funcs = {
         "turtle": flat_to_turtle,
     },
 }
+preprocess_action_funcs["CPPN"] = preprocess_action_funcs["NCA"]
 
 
 def id_observation(obs, **kwargs):
@@ -354,7 +355,7 @@ preprocess_observation_funcs = {
         "turtle": local_observation,
     },
 }
-
+preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["NCA"]
 
 @njit
 def archive_init_states(init_states_archive, init_states, index):
@@ -498,11 +499,11 @@ class FlexArchive(InitStatesArchive):
 
 
 def unravel_index(
-    indices: torch.LongTensor, shape: Tuple[int, ...]
-) -> torch.LongTensor:
+    indices: th.LongTensor, shape: Tuple[int, ...]
+) -> th.LongTensor:
     r"""Converts flat indices into unraveled coordinates in a target shape.
 
-    This is a `torch` implementation of `numpy.unravel_index`.
+    This is a `th` implementation of `numpy.unravel_index`.
 
     Args:
         indices: A tensor of indices, (*, N).
@@ -512,10 +513,10 @@ def unravel_index(
         unravel coordinates, (*, N, D).
     """
 
-    shape = torch.tensor(shape)
+    shape = th.tensor(shape)
     indices = indices % shape.prod()  # prevent out-of-bounds indices
 
-    coord = torch.zeros(indices.size() + shape.size(), dtype=int)
+    coord = th.zeros(indices.size() + shape.size(), dtype=int)
 
     for i, dim in enumerate(reversed(shape)):
         coord[..., i] = indices % dim
@@ -554,13 +555,13 @@ class GeneratorNN(nn.Module):
         self.apply(init_weights)
 
     def forward(self, x):
-        with torch.no_grad():
+        with th.no_grad():
             x = self.l1(x)
-            x = torch.nn.functional.relu(x)
+            x = th.nn.functional.relu(x)
             x = self.l2(x)
-            x = torch.nn.functional.relu(x)
+            x = th.nn.functional.relu(x)
             x = self.l3(x)
-            x = torch.sigmoid(x)
+            x = th.sigmoid(x)
 
         # axis 0 is batch
         # axis 0,0 is the 0 or 1 tile
@@ -568,6 +569,32 @@ class GeneratorNN(nn.Module):
         # axis 0,2 is the y value
 
         return x
+
+from pytorch_neat.cppn import create_cppn
+import neat
+from neat.genome import DefaultGenome
+
+class CPPN(nn.Module):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        neat_config_path = 'config_cppn'
+        neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
+                                         neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
+                                         neat_config_path)
+        self.n_actions = n_actions
+        neat_config.num_outputs = n_actions
+        genome = DefaultGenome(0)
+        genome.configure_new(neat_config.genome_config)
+        self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)])
+
+    def forward(self, x):
+        X = np.arange(x.shape[-2])
+        Y = np.arange(x.shape[-1])
+        X, Y = np.meshgrid(X, Y)
+        tile_probs = [self.cppn[i](x_in=th.Tensor(X), y_in=th.Tensor(Y)) for i in range(self.n_actions)]
+        multi_hot = th.stack(tile_probs, axis=0)
+        multi_hot = multi_hot.unsqueeze(0)
+        return multi_hot
 
 
 # FIXME: this guy don't work
@@ -586,9 +613,9 @@ class GeneratorNNDenseSqueeze(nn.Module):
         #       pad_0 = sq_i - observation_shape[-1]
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 0, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 3, 2, 0, bias=True)
-        self.flatten = torch.nn.Flatten()
+        self.flatten = th.nn.Flatten()
         n_flat = self.flatten(
-            self.l2(self.l1(torch.zeros(size=observation_shape)))
+            self.l2(self.l1(th.zeros(size=observation_shape)))
         ).shape[-1]
         # n_flat = n_hid_1
         self.d1 = Linear(n_flat, n_flat_actions)
@@ -597,19 +624,19 @@ class GeneratorNNDenseSqueeze(nn.Module):
         self.apply(init_weights)
 
     def forward(self, x):
-        with torch.no_grad():
+        with th.no_grad():
             x = self.l1(x)
-            x = torch.nn.functional.relu(x)
+            x = th.nn.functional.relu(x)
             x = self.l2(x)
-            x = torch.nn.functional.relu(x)
+            x = th.nn.functional.relu(x)
             #           for i in range(int(np.log2(x.shape[2])) + 1):
             #               x = self.l2(x)
-            #               x = torch.nn.functional.relu(x)
+            #               x = th.nn.functional.relu(x)
             x = self.flatten(x)
             x = self.d1(x)
-            x = torch.sigmoid(x)
+            x = th.sigmoid(x)
             #           x = self.d2(x)
-            #           x = torch.sigmoid(x)
+            #           x = th.sigmoid(x)
 
         return x
 
@@ -624,9 +651,9 @@ class GeneratorNNDense(nn.Module):
         self.conv1 = Conv2d(n_in_chans, n_hid_1, kernel_size=3, stride=2)
         self.conv2 = Conv2d(n_hid_1, n_hid_2, kernel_size=3, stride=2)
         self.conv3 = Conv2d(n_hid_2, n_hid_2, kernel_size=3, stride=2)
-        self.flatten = torch.nn.Flatten()
+        self.flatten = th.nn.Flatten()
         n_flat = self.flatten(
-            self.conv3(self.conv2(self.conv1(torch.zeros(size=observation_shape))))
+            self.conv3(self.conv2(self.conv1(th.zeros(size=observation_shape))))
         ).shape[-1]
         #       self.fc1 = Linear(n_flat, n_flat_actions)
         self.fc1 = Linear(n_flat, n_hid_2)
@@ -635,7 +662,7 @@ class GeneratorNNDense(nn.Module):
         self.apply(init_weights)
 
     def forward(self, x):
-        with torch.no_grad():
+        with th.no_grad():
             x = F.relu(self.conv1(x))
             x = F.relu(self.conv2(x))
             x = F.relu(self.conv3(x))
@@ -656,25 +683,25 @@ class PlayerNN(nn.Module):
         self.l3 = Conv2d(16, n_actions, 3, 1, 1, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_play_weights)
-        self.flatten = torch.nn.Flatten()
+        self.flatten = th.nn.Flatten()
         self.net_reward = 0
         self.n_episodes = 0
 
     def forward(self, x):
-        x = torch.Tensor(get_one_hot_map(x, self.n_tile_types))
+        x = th.Tensor(get_one_hot_map(x, self.n_tile_types))
         x = x.unsqueeze(0)
-        with torch.no_grad():
-            x = torch.relu(self.l1(x))
+        with th.no_grad():
+            x = th.relu(self.l1(x))
 
             for i in range(int(np.log2(x.shape[2])) + 1):
                 #           for i in range(1):
-                x = torch.relu(self.l2(x))
-            x = torch.relu(self.l3(x))
+                x = th.relu(self.l2(x))
+            x = th.relu(self.l3(x))
 
             #           x = x.argmax(1)
             #           x = x[0]
             x = x.flatten()
-            x = torch.softmax(x, axis=0)
+            x = th.softmax(x, axis=0)
             # x = [x.argmax().item()]
             act_ids = np.arange(x.shape[0])
             probs = x.detach().numpy()
@@ -697,22 +724,22 @@ class PlayerNN(nn.Module):
 
 
 def init_weights(m):
-    if type(m) == torch.nn.Linear:
-        torch.nn.init.xavier_uniform_(m.weight)
+    if type(m) == th.nn.Linear:
+        th.nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
-    if type(m) == torch.nn.Conv2d:
-        torch.nn.init.orthogonal_(m.weight)
+    if type(m) == th.nn.Conv2d:
+        th.nn.init.orthogonal_(m.weight)
 
 
 def init_play_weights(m):
-    if type(m) == torch.nn.Linear:
-        torch.nn.init.xavier_uniform(m.weight, gain=0)
+    if type(m) == th.nn.Linear:
+        th.nn.init.xavier_uniform(m.weight, gain=0)
         m.bias.data.fill_(0.00)
 
-    if type(m) == torch.nn.Conv2d:
-        #       torch.nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
-        torch.nn.init.constant_(m.weight, 0)
+    if type(m) == th.nn.Conv2d:
+        #       th.nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
+        th.nn.init.constant_(m.weight, 0)
 
 
 def set_nograd(nn):
@@ -726,9 +753,14 @@ def get_init_weights(nn):
     """
     init_params = []
 
-    for lyr in nn.layers:
-        init_params.append(lyr.weight.view(-1).numpy())
-        init_params.append(lyr.bias.view(-1).numpy())
+    if isinstance(nn, CPPN):
+        for node in nn.cppn:
+            init_params.append(node.weights)
+            init_params.append(node.bias)
+    else:
+        for lyr in nn.layers:
+            init_params.append(lyr.weight.view(-1).numpy())
+            init_params.append(lyr.bias.view(-1).numpy())
     init_params = np.hstack(init_params)
     print("number of initial NN parameters: {}".format(init_params.shape))
 
@@ -736,20 +768,29 @@ def get_init_weights(nn):
 
 
 def set_weights(nn, weights):
-    with torch.no_grad():
+    with th.no_grad():
         n_el = 0
 
-        for layer in nn.layers:
-            l_weights = weights[n_el : n_el + layer.weight.numel()]
-            n_el += layer.weight.numel()
-            l_weights = l_weights.reshape(layer.weight.shape)
-            layer.weight = torch.nn.Parameter(torch.Tensor(l_weights))
-            layer.weight.requires_grad = False
-            b_weights = weights[n_el : n_el + layer.bias.numel()]
-            n_el += layer.bias.numel()
-            b_weights = b_weights.reshape(layer.bias.shape)
-            layer.bias = torch.nn.Parameter(torch.Tensor(b_weights))
-            layer.bias.requires_grad = False
+        if isinstance(nn, CPPN):
+            for node in nn.cppn:
+                l_weights = weights[n_el : n_el + len(node.weights)]
+                n_el += len(node.weights)
+                node.weights = l_weights
+                b_weight = weights[n_el: n_el + 1]
+                n_el += 1
+                node.bias = b_weight
+        else:
+            for layer in nn.layers:
+                l_weights = weights[n_el : n_el + layer.weight.numel()]
+                n_el += layer.weight.numel()
+                l_weights = l_weights.reshape(layer.weight.shape)
+                layer.weight = th.nn.Parameter(th.Tensor(l_weights))
+                layer.weight.requires_grad = False
+                b_weights = weights[n_el : n_el + layer.bias.numel()]
+                n_el += layer.bias.numel()
+                b_weights = b_weights.reshape(layer.bias.shape)
+                layer.bias = th.nn.Parameter(th.Tensor(b_weights))
+                layer.bias.requires_grad = False
 
     return nn
 
@@ -1028,7 +1069,7 @@ def play_level(env, level, player):
     for p_i in range(N_PLAYER_STEPS):
         action = player(p_obs["map"])
 
-        if isinstance(action, torch.Tensor):
+        if isinstance(action, th.Tensor):
             # TODO: this logic belongs with the model
             player_coords = env._prob.player.coords
             action = np.array(action)[player_coords[0], player_coords[1]]
@@ -1146,7 +1187,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
         last_int_map = None
 
         while not done:
-            int_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
+            int_tensor = th.unsqueeze(th.Tensor(obs), 0)
             action = gen_model(int_tensor)[0].numpy()
             obs = action
             int_map = action.argmax(axis=0)
@@ -1278,13 +1319,13 @@ def simulate(
         while not done:
             if render_levels:
                 level_frames.append(env.render(mode="rgb_array"))
-            #           in_tensor = torch.unsqueeze(
-            #               torch.unsqueeze(torch.tensor(np.float32(obs['map'])), 0), 0)
-            in_tensor = torch.unsqueeze(torch.Tensor(obs), 0)
+            #           in_tensor = th.unsqueeze(
+            #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
+            in_tensor = th.unsqueeze(th.Tensor(obs), 0)
             action = model(in_tensor)[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
             action, skip = preprocess_action(
-                action.astype(np.int),
+                action,
                 int_map=env._rep._map,
                 x=env._rep._x,
                 y=env._rep._y,
@@ -1572,6 +1613,11 @@ class EvoPCGRL:
             self.gen_model = GeneratorNN(
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
+
+        elif MODEL == "CPPN":
+            self.gen_model = CPPN(
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+            )
         elif MODEL == "CNN":
             # Adding n_tile_types as a dimension here. Why would this ever be the env's observation space though? Should be one-hot by default?
             observation_shape = (
@@ -1612,6 +1658,8 @@ class EvoPCGRL:
         if MODEL == "NCA":
             init_step_size = 1
         elif MODEL == "CNN":
+            init_step_size = 1
+        else:
             init_step_size = 1
 
         if CMAES:
@@ -2897,3 +2945,88 @@ if __name__ == "__main__":
                     e
                 )
             )
+
+import graphviz
+import warnings
+import copy
+def draw_net(config, genome, view=False, filename=None, node_names=None, show_disabled=True, prune_unused=False,
+             node_colors=None, fmt='svg'):
+    """ Receives a genome and draws a neural network with arbitrary topology. """
+    # Attributes for network nodes.
+    if graphviz is None:
+        warnings.warn("This display is not available due to a missing optional dependency (graphviz)")
+        return
+
+    if node_names is None:
+        node_names = {}
+
+    assert type(node_names) is dict
+
+    if node_colors is None:
+        node_colors = {}
+
+    assert type(node_colors) is dict
+
+    node_attrs = {
+        'shape': 'circle',
+        'fontsize': '9',
+        'height': '0.2',
+        'width': '0.2'}
+
+    dot = graphviz.Digraph(format=fmt, node_attr=node_attrs)
+
+    inputs = set()
+    for k in config.genome_config.input_keys:
+        inputs.add(k)
+        name = node_names.get(k, str(k))
+        input_attrs = {'style': 'filled', 'shape': 'box', 'fillcolor': node_colors.get(k, 'lightgray')}
+        dot.node(name, _attributes=input_attrs)
+
+    outputs = set()
+    for k in config.genome_config.output_keys:
+        outputs.add(k)
+        name = node_names.get(k, str(k))
+        node_attrs = {'style': 'filled', 'fillcolor': node_colors.get(k, 'lightblue')}
+
+        dot.node(name, _attributes=node_attrs)
+
+    if prune_unused:
+        connections = set()
+        for cg in genome.connections.values():
+            if cg.enabled or show_disabled:
+                connections.add(cg.key)
+
+        used_nodes = copy.copy(outputs)
+        pending = copy.copy(outputs)
+        while pending:
+            new_pending = set()
+            for a, b in connections:
+                if b in pending and a not in used_nodes:
+                    new_pending.add(a)
+                    used_nodes.add(a)
+            pending = new_pending
+    else:
+        used_nodes = set(genome.nodes.keys())
+
+    for n in used_nodes:
+        if n in inputs or n in outputs:
+            continue
+
+        attrs = {'style': 'filled', 'fillcolor': node_colors.get(n, 'white')}
+        dot.node(str(n), _attributes=attrs)
+
+    for cg in genome.connections.values():
+        if cg.enabled or show_disabled:
+            #if cg.input not in used_nodes or cg.output not in used_nodes:
+            #    continue
+            input, output = cg.key
+            a = node_names.get(input, str(input))
+            b = node_names.get(output, str(output))
+            style = 'solid' if cg.enabled else 'dotted'
+            color = 'green' if cg.weight > 0 else 'red'
+            width = str(0.1 + abs(cg.weight / 5.0))
+            dot.edge(a, b, _attributes={'style': style, 'color': color, 'penwidth': width})
+
+    dot.render(filename, view=view)
+
+    return dot

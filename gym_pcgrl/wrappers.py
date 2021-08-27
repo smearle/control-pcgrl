@@ -441,32 +441,6 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
 
-class CAWrapper(gym.Wrapper):
-    def __init__(self, game, **kwargs):
-        self.pcgrl_env = gym.make(game)
-
-        if "micropolis" in game.lower():
-            self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
-            self.env = self.pcgrl_env
-        elif "RCT" in game:
-            self.pcgrl_env = RCTWrapper(self.pcgrl_env)
-            self.env = self.pcgrl_env
-        else:
-            self.pcgrl_env.adjust_param(**kwargs)
-            # Indices for flatting
-            flat_indices = ["map"]
-            env = self.pcgrl_env
-            # Add the action map wrapper
-            env = CAMap(env)
-            # Transform to one hot encoding if not binary
-
-            if "binary" not in game and "RCT" not in game and "Micropolis" not in game:
-                env = OneHotEncoding(env, "map")
-            # Final Wrapper has to be ToImage or ToFlat
-            self.env = ToImageCA(env, flat_indices)
-        gym.Wrapper.__init__(self, self.env)
-
-
 # This precedes the ParamRew wrapper so we only worry about the map as observation
 class CAactionWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
@@ -504,10 +478,10 @@ class CAactionWrapper(gym.Wrapper):
         obs = self.env.get_one_hot_map()
         #       print(obs['map'][:,:,-1:].transpose(1, 2, 0))
         self.n_ca_tick += 1
-        if self.n_ca_tick <= 50 or (action == self.last_action).all():
-            done = False
-        else:
+        if self.n_ca_tick >= 50 or (action == self.last_action).all():
             done = True
+        else:
+            done = False
         self.env._rep_stats = pcgrl_env._prob.get_stats(get_string_map(action, pcgrl_env._prob.get_tile_types()))
         pcgrl_env.metrics = env.metrics = self.env._rep_stats
         self.last_action = action
