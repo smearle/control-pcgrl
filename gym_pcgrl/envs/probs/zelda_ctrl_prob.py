@@ -85,7 +85,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
         The used status are "reigons": number of connected empty tiles, "path-length": the longest path across the map
     """
 
-    def get_stats(self, map):
+    def get_stats(self, map, lenient_paths=False):
         self.path = []
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {

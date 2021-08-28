@@ -93,7 +93,7 @@ class Problem:
     Returns:
         dict(string,any): stats of the current map to be used in the reward, episode_over, debug_info calculations
     """
-    def get_stats(self, map):
+    def get_stats(self, map, **kwargs):
         raise NotImplementedError('get_graphics is not implemented')
 
     """

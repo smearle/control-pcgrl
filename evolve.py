@@ -675,7 +675,7 @@ class CPPN(nn.Module):
                                          neat_config_path)
         self.n_actions = n_actions
         neat_config.genome_config.num_outputs = n_actions
-        neat_config.genome_config.num_hidden = 10
+        neat_config.genome_config.num_hidden = 2
         genome = DefaultGenome(0)
         genome.configure_new(neat_config.genome_config)
         self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)]
@@ -1474,7 +1474,8 @@ def simulate(
                 # we'll need this to compute Hamming diversity
                 final_levels[n_episode] = int_map
                 stats = env._prob.get_stats(
-                    get_string_map(int_map, env._prob.get_tile_types())
+                    get_string_map(int_map, env._prob.get_tile_types()),
+                    # lenient_paths = True,
                 )
 
                 # get BCs
@@ -1531,7 +1532,8 @@ def simulate(
             if RENDER:
                 if INFER:
                     stats = env._prob.get_stats(
-                        get_string_map(int_map, env._prob.get_tile_types())
+                        get_string_map(int_map, env._prob.get_tile_types()),
+                        # lenient_paths=True,
                     )
                 env.render()
 

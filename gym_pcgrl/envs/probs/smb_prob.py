@@ -123,7 +123,7 @@ class SMBProblem(Problem):
 
         return solState.getHeuristic(), solState.getGameStatus()
 
-    def get_stats(self, map):
+    def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "dist-floor": get_floor_dist(map, ["enemy"], ["solid", "brick", "question", "tube_left", "tube_right"]),
