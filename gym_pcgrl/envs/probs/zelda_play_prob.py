@@ -57,15 +57,6 @@ class ZeldaPlayProblem(ZeldaCtrlProblem):
         map_stats = super().get_stats(map)
         map_locations = get_tile_locations(map, self.get_tile_types())
         players = _get_certain_tiles(map_locations, ['player'])
-#       map_stats = {
-#           "player": len(players),
-#           "key": calc_certain_tile(map_locations, ["key"]),
-#           "door": calc_certain_tile(map_locations, ["door"]),
-#           "enemies": calc_certain_tile(map_locations, ["bat", "spider", "scorpion"]),
-#           "regions": calc_num_regions(map, map_locations, ["empty", "player", "key", "bat", "spider", "scorpion"]),
-#           "nearest-enemy": 0,
-#           "path-length": 0
-#       }
 
         if self.player.coords is None:
             if map_stats["player"] == 1: # and map_stats["key"] > 0 and map_stats["regions"] == 1 and map_stats["key"] >= 1:

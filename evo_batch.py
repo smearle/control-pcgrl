@@ -49,9 +49,9 @@ local_bcs = {
         ["symmetry", "sol-length"],
     ],
     "smb_ctrl": [
-        ["enemies", "jumps"], 
-        ["emptiness", "jumps"], 
-       ["symmetry", "jumps"]
+        ["jumps", "sol-length"],
+        ["emptiness", "sol-length"],
+       ["symmetry", "sol-length"]
        ],
 }
 models = [

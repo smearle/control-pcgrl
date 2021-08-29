@@ -297,7 +297,7 @@ def auto_garbage_collect(pct=80.0):
 
 def tran_action(action, **kwargs):
     skip = False
-    return action, skip
+    # return action, skip
     return action.swapaxes(1, 2), skip
 
 # usually, if action does not turn out to change the map, then the episode is terminated

@@ -6,6 +6,7 @@ class SMBCtrlProblem(SMBProblem):
         super(SMBCtrlProblem, self).__init__(*args, **kwargs)
 
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
+        self._max_sol_length = np.ceil(self._width) * 3  # Suppose he zig-zags back and forth about 3 times
         # like _rewards but for use with ParamRew
         self.weights = self._rewards
 
@@ -18,6 +19,7 @@ class SMBCtrlProblem(SMBProblem):
                 'jumps': (self._min_jumps, self._width * self._height),
                 'jumps-dist': 0,
                 'dist-win': 0,
+                'sol-length': self._max_sol_length,
                 }
 
         # boundaries for conditional inputs/targets
@@ -30,4 +32,5 @@ class SMBCtrlProblem(SMBProblem):
                 'jumps': (0, self._width),
                 'jumps-dist': (0, self._width * self._height),
                 'dist-win': (0, self._width), #* self._height),
+                'sol-length': (0, self._max_sol_length),
                 }

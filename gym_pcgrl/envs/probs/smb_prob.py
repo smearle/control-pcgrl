@@ -1,3 +1,4 @@
+from pdb import set_trace as TT
 from PIL import Image
 import os
 import numpy as np
@@ -116,12 +117,12 @@ class SMBProblem(Problem):
 
         sol,solState,iters = aStarAgent.getSolution(state, 1, self._solver_power)
         if solState.checkWin():
-            return 0, solState.getGameStatus()
+            return len(sol), 0, solState.getGameStatus()
         sol,solState,iters = aStarAgent.getSolution(state, 0, self._solver_power)
         if solState.checkWin():
-            return 0, solState.getGameStatus()
+            return len(sol), 0, solState.getGameStatus()
 
-        return solState.getHeuristic(), solState.getGameStatus()
+        return 0, solState.getHeuristic(), solState.getGameStatus()
 
     def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
@@ -133,9 +134,10 @@ class SMBProblem(Problem):
             "noise": get_changes(map, False) + get_changes(map, True),
             "jumps": 0,
             "jumps-dist": 0,
-            "dist-win": 0
+            "dist-win": 0,
+            "sol-length": 0,
         }
-        map_stats["dist-win"], play_stats = self._run_game(map)
+        map_stats["sol-length"], map_stats["dist-win"], play_stats = self._run_game(map)
         map_stats["jumps"] = play_stats["jumps"]
         prev_jump = 0
         value = 0
@@ -180,7 +182,8 @@ class SMBProblem(Problem):
             "noise": new_stats["noise"],
             "jumps": new_stats["jumps"],
             "jumps-dist": new_stats["jumps-dist"],
-            "dist-win": new_stats["dist-win"]
+            "dist-win": new_stats["dist-win"],
+            "sol-length": new_stats["sol-length"],
         }
 
     def render(self, map):
