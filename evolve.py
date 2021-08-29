@@ -33,6 +33,7 @@ from ribs.emitters import (
     ImprovementEmitter,
     OptimizingEmitter,
 )
+from ribs.emitters.opt import CMAEvolutionStrategy
 from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
@@ -416,6 +417,8 @@ preprocess_action_funcs = {
         "turtle": flat_to_turtle,
     },
 }
+preprocess_action_funcs["CoordNCA"] = preprocess_action_funcs["NCA"]
+preprocess_action_funcs["SinCPPN"] = preprocess_action_funcs["FeedForwardCPPN"] = preprocess_action_funcs["CPPN"]
 
 
 def id_observation(obs, **kwargs):
@@ -447,7 +450,9 @@ preprocess_observation_funcs = {
         "turtle": local_observation,
     },
 }
-preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["NCA"]
+preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["FeedForwardCPPN"] = \
+    preprocess_observation_funcs["SinCPPN"] = preprocess_observation_funcs["CoordNCA"] = \
+    preprocess_observation_funcs["NCA"]
 
 @njit
 def archive_init_states(init_states_archive, init_states, index):
@@ -487,6 +492,29 @@ class InitStatesArchive(GridArchive):
 
         return status, dtype_improvement
 
+class OperatorImprovementEmitter(ImprovementEmitter):
+    def __init__(self, *args, seed=None, weight_rule="truncation", **kwargs):
+        self._weight_ruls = weight_rule
+        self._seed = seed
+        super().__init__(self, *args, **kwargs)
+
+    def _check_restart(self, num_parents):
+        ret = super()._check_restart(num_parents)
+        if ret:
+            opt_seed = None if self.seed is None else self._rng.integers(10_000)
+            self.opt = CMAEvolutionStrategy(self._sigma0, self._batch_size, self._solution_dim,
+                                            self._weight_rule, opt_seed,
+                                            self.archive.dtype)
+            self.opt.reset(self._x0)
+        return ret
+
+    def ask(self, *args, genome=None, **kwargs):
+        self.genome = genome
+        super().ask(*args, **kwargs)
+
+    def tell(self, *args, genome=None, **kwargs):
+        self.genome = genome
+        return super().tell(*args, **kwargs)
 
 class FlexArchive(InitStatesArchive):
     """ Subclassing a pyribs archive class to do some funky stuff."""
@@ -666,6 +694,98 @@ from pytorch_neat.cppn import create_cppn
 import neat
 from neat.genome import DefaultGenome
 
+def get_coord_grid(x, normalize=False):
+    width = x.shape[-2]
+    height = x.shape[-1]
+    X = th.arange(width)
+    Y = th.arange(height)
+    if normalize:
+        X = X / width
+        Y = Y / height
+    else:
+        X = X / 1
+        Y = Y / 1
+    X, Y = th.meshgrid(X, Y)
+    x = th.stack((X, Y)).unsqueeze(0)
+
+    return x
+
+
+class FeedForwardCPPN(nn.Module):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 330
+        self.l1 = Conv2d(2, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l3]
+#       self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        x = get_coord_grid(x, normalize=False)
+        with th.no_grad():
+            x = th.relu(self.l1(x))
+            x = th.relu(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x
+
+
+class SinCPPN(nn.Module):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 330
+        self.l1 = Conv2d(2, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l3]
+        #       self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        x = get_coord_grid(x, normalize=True) * 2
+        with th.no_grad():
+            x = th.sin(self.l1(x))
+            x = th.sin(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x
+
+class CoordNCA(nn.Module):
+    """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
+    With coordinates as additional input, like a CPPN."""
+
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid_1 = 28
+#       n_hid_2 = 16
+
+        self.l1 = Conv2d(n_in_chans + 2, n_hid_1, 3, 1, 1, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            coords = get_coord_grid(x, normalize=True)
+            x = th.hstack((coords, x))
+            x = self.l1(x)
+            x = th.nn.functional.relu(x)
+            x = self.l2(x)
+            x = th.nn.functional.relu(x)
+            x = self.l3(x)
+            x = th.sigmoid(x)
+
+        # axis 0 is batch
+        # axis 1 is the tile-type (one-hot)
+        # axis 0,1 is the x value
+        # axis 0,2 is the y value
+
+        return x
+
+
 class CPPN(nn.Module):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
@@ -681,13 +801,21 @@ class CPPN(nn.Module):
         self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)]
                                 )
 
+#       while len(get_init_weights(self)) < 200:
+#           if np.random.random() < 0:
+#               genome.mutate_add_connection(neat_config.genome_config)
+#           else:
+#               genome.mutate_add_node(neat_config.genome_config)
+#               self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'],
+#                                   ['tile_{}'.format(i) for i in range(n_actions)])
+
 #       draw_net(neat_config, genome,  view=True, filename='cppn')
 
     def forward(self, x):
-        X = np.arange(x.shape[-2])
-        Y = np.arange(x.shape[-1])
-        X, Y = np.meshgrid(X, Y)
-        tile_probs = [self.cppn[i](x_in=th.Tensor(X), y_in=th.Tensor(Y)) for i in range(self.n_actions)]
+        X = th.arange(x.shape[-2])
+        Y = th.arange(x.shape[-1])
+        X, Y = th.meshgrid(X, Y)
+        tile_probs = [self.cppn[i](x_in=X, y_in=Y) for i in range(self.n_actions)]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
         return multi_hot
@@ -1743,8 +1871,20 @@ class EvoPCGRL:
             self.gen_model = CPPN(
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
+        elif MODEL == "SinCPPN":
+            self.gen_model = SinCPPN(
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+            )
+        elif MODEL == "FeedForwardCPPN":
+            self.gen_model = FeedForwardCPPN(
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+            )
+        elif MODEL == "CoordNCA":
+            self.gen_model = CoordNCA(
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+            )
         elif MODEL == "CNN":
-            # Adding n_tile_types as a dimension here. Why would this ever be the env's observation space though? Should be one-hot by default?
+            # Adding n_tile_types as a dimension here. Why would this not be in the env's observation space though? Should be one-hot by default?
             observation_shape = (
                 1,
                 self.n_tile_types,
@@ -1978,6 +2118,9 @@ class EvoPCGRL:
                 self.gen_optimizer.tell(objs, bcs, jacobian=jacobian)
             else:
                 self.gen_optimizer.tell(objs, bcs)
+#               for emitter in self.gen_optimizer.emitters:
+#
+#               TT()
 
             # Re-evaluate elite generators. If doing CMAES, re-evaluate every iteration. Otherwise, try to let the archive grow.
 
@@ -2979,8 +3122,10 @@ if __name__ == "__main__":
     RENDER_LEVELS = arg_dict["render_levels"]
     THREADS = arg_dict["multi_thread"] or EVALUATE
     #   SAVE_INTERVAL = 100
-    SAVE_INTERVAL = 100
+    SAVE_INTERVAL = 10
     VIS_INTERVAL = 50
+    if "CPPN" in MODEL:
+        assert N_INIT_STATES == 0 and N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 

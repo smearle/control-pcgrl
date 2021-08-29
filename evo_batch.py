@@ -55,7 +55,9 @@ local_bcs = {
        ],
 }
 models = [
-    "NCA",
+#   "NCA",
+    "FeedForwardCPPN",
+#   "CoordNCA",
 #   "CPPN",
     # "CNN"  # Doesn't learn atm
 ]
@@ -72,15 +74,15 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
-    10,
+    0,
+#   10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-#   1
+    1
 #   10,
-    50,
+#   50,
 #   100,
 ]
 
@@ -128,7 +130,7 @@ def launch_batch(exp_name, collect_params=False):
                                     if n_steps != n_steps_lst[0]:
                                         continue
 
-                                if model == "NCA" and n_steps <= 5:
+                                if "NCA" in model and n_steps <= 5:
                                     continue
 
                                 for n_init_states in n_init_states_lst:
@@ -137,7 +139,7 @@ def launch_batch(exp_name, collect_params=False):
 
                                         continue
 
-                                    if model == 'CPPN' and not (n_init_states == 0 and n_steps == 1):
+                                    if 'CPPN' in model and not (n_init_states == 0 and n_steps == 1):
                                         continue
 
                                     # Edit the sbatch file to load the correct config file
