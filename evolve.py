@@ -189,7 +189,7 @@ def save_level_frames(level_frames, model_name):
     for j, im in enumerate(level_frames):
         im.save(
             os.path.join(
-                model_dir, "frame_{}.png".format(j)
+                model_dir, "frame_{:0>4d}.png".format(j)
             )
         )
 

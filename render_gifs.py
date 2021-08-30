@@ -34,7 +34,11 @@ def render_gifs(settings_list):
             model_dirs = os.listdir(model_path)
             model_dirs.sort(key=natural_keys)
             frames = [os.path.join(model_path, m) for m in model_dirs if m.endswith('png') and re.match(r"frame.*.png", m)]
-            frames_to_gif(os.path.join(render_path, '{}.gif'.format(m_dir)), frames)
+            gif_name = os.path.join(render_path, '{}'.format(m_dir))
+            frames_to_gif('{}.gif'.format(gif_name), frames)
+#           os.system("ffmpeg -r 30 -i \"{0}.gif\" -movflags faststart -pix_fmt yuv420p -vf \"scale=trunc(iw/2)*2:trunc(ih/2)*2\" \"{0}.mp4\"".format(gif_name))
+            os.system("ffmpeg -y -r 30 -f gif -i \"{0}.gif\" \"{0}.mp4\"".format(gif_name))
+#           os.system("ffmpeg -y -r 30 -i \"{0}.gif\" \"{0}/frame_.png\"".format(os.path.join(model_path, m)))
 
 def frames_to_gif(gif_path, filenames):
     # Repeat the last frame a bunch, so that we "pause" on the final generated level
