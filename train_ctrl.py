@@ -164,8 +164,9 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 
     if not resume or model is None:
         if representation == 'cellular':
+            learning_rate = 1e-7
 #           learning_rate = 0.00001
-            learning_rate = 0.00025
+#           learning_rate = 0.00025
         else:
             learning_rate = 0.00025
         # model = PPO(policy, env, verbose=1, n_steps=n_steps,

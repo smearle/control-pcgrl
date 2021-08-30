@@ -1,6 +1,7 @@
 from pdb import set_trace as TT
 import tensorflow as tf
 from tensorflow.keras import layers
+from tensorflow.keras.layers import Conv2d
 from gym import spaces
 import numpy as np
 from stable_baselines.common.policies import ActorCriticPolicy, FeedForwardPolicy
@@ -17,10 +18,10 @@ def NCA(image, n_tools, **kwargs):
 #   mask = tf.stack((mask, mask), axis=2)
 #   x = tf.boolean_mask(x, mask, axis=1)
     val = conv_to_fc(x)
-    fire_rate = 0.6
+    fire_rate = 1.0
     update_mask = tf.random.uniform(tf.shape(x[:, :, :, :1])) <= fire_rate
     x = x * tf.cast(update_mask, tf.float32)
-    x += image
+   #x += image
     act = conv_to_fc(x)
 #   val = relu(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
 #                    init_scale=np.sqrt(2)))
@@ -33,6 +34,55 @@ def NCA(image, n_tools, **kwargs):
 #   val = conv_to_fc(val)
     val = sigmoid(linear(val, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
     return act, val
+
+
+def get_living_mask(x):
+    alpha = x[:, :, :, 3:4]
+    return tf.nn.max_pool2d(alpha, 3, [1, 1, 1, 1], 'SAME') > 0.1
+
+class CAModel(tf.keras.Model):
+
+  def __init__(self, channel_n, n_tools, **kwargs):
+    super().__init__()
+    self.channel_n = channel_n
+    self.fire_rate = 0.1
+
+    self.dmodel = tf.keras.Sequential([
+          Conv2D(128, 1, activation=tf.nn.relu),
+          Conv2D(self.channel_n, 1, activation=None,
+              kernel_initializer=tf.zeros_initializer),
+    ])
+
+    self(tf.zeros([1, 3, 3, channel_n]))  # dummy call to build the model
+
+  @tf.function
+  def perceive(self, x, angle=0.0):
+    identify = np.float32([0, 1, 0])
+    identify = np.outer(identify, identify)
+    dx = np.outer([1, 2, 1], [-1, 0, 1]) / 8.0  # Sobel filter
+    dy = dx.T
+    c, s = tf.cos(angle), tf.sin(angle)
+    kernel = tf.stack([identify, c*dx-s*dy, s*dx+c*dy], -1)[:, :, None, :]
+    kernel = tf.repeat(kernel, self.channel_n, 2)
+    y = tf.nn.depthwise_conv2d(x, kernel, [1, 1, 1, 1], 'SAME')
+    return y
+
+  @tf.function
+  def call(self, x, fire_rate=None, angle=0.0, step_size=1.0):
+    pre_life_mask = get_living_mask(x)
+
+    y = self.perceive(x, angle)
+    dx = self.dmodel(y)*step_size
+    if fire_rate is None:
+      fire_rate = self.fire_rate
+    update_mask = tf.random.uniform(tf.shape(x[:, :, :, :1])) <= fire_rate
+    x += dx * tf.cast(update_mask, tf.float32)
+
+    post_life_mask = get_living_mask(x)
+    life_mask = pre_life_mask & post_life_mask
+    return x * tf.cast(life_mask, tf.float32)
+
+
 
 def Cnn1(image, **kwargs):
     activ = tf.nn.relu
@@ -319,7 +369,8 @@ class CAPolicy(ActorCriticPolicy):
         # self._pdtype = DiagGaussianProbabilityDistributionType(ac_space.n)
         self._pdtype = NoDenseMultiCategoricalProbabilityDistributionType(ac_space.nvec)
         with tf.variable_scope("model", reuse=kwargs['reuse']):
-            pi_latent, vf_latent = NCA(self.processed_obs, n_tools, **kwargs)
+#           pi_latent, vf_latent = NCA(self.processed_obs, n_tools, **kwargs)
+            pi_latent, vf_latent = CAModel(self.processed_obs, channel_n=channel_n, n_tools=n_tools, **kwargs)
             self._value_fn = linear(vf_latent, 'vf', 1)
             self._proba_distribution, self._policy, self.q_value = \
                 self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)

@@ -2452,7 +2452,7 @@ class EvoPCGRL:
 
     #       print(df)
 
-    def infer(self):
+    def infer(self, concat_gifs=True):
         assert INFER
         self.init_env()
         archive = self.gen_archive
@@ -2506,6 +2506,7 @@ class EvoPCGRL:
                 )
                 df_g = df.sort_values(by=["objective"], ascending=False)
                 grid_models = np.array(df_g.loc[:, "solution_0":])
+                level_frames = []
 
                 for (i, model) in enumerate(grid_models):
                     for j in range(n_figs):
@@ -2526,7 +2527,8 @@ class EvoPCGRL:
                         #                           variance_penalty,
                         #                           diversity_bonus,
                         #                       ) = simulate(
-                        level_frames = simulate(
+                        TT()
+                        level_frames_i = simulate(
                             self.env,
                             init_nn,
                             self.n_tile_types,
@@ -2536,11 +2538,16 @@ class EvoPCGRL:
                             seed=None,
                             render_levels=True,
                         )
-                        save_level_frames(level_frames, i)
+                        if not concat_gifs:
+                            save_level_frames(level_frames_i, i)
+                        else:
+                            level_frames += level_frames_i
                         # Get image
 #                       img = self.env.render(mode="rgb_array")
                         img = level_frames[-1]
                         axs[n_row, n_col].imshow(img, aspect=1)
+                if concat_gifs:
+                    save_level_frames(level_frames, 'concat')
 
             else:
                 fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
@@ -2549,6 +2556,7 @@ class EvoPCGRL:
                 df_g["row"] = np.floor(
                     np.linspace(0, d, len(df_g), endpoint=False)
                 ).astype(int)
+                level_frames = []
 
                 for row_num in range(d):
                     row = df_g[df_g["row"] == row_num]
@@ -2574,7 +2582,7 @@ class EvoPCGRL:
                         #                           variance_penalty,
                         #                           diversity_bonus,
                         #                       ) = simulate(
-                        level_frames = simulate(
+                        level_frames_i = simulate(
                             self.env,
                             init_nn,
                             self.n_tile_types,
@@ -2584,12 +2592,17 @@ class EvoPCGRL:
                             seed=None,
                             render_levels=True,
                         )
-                        save_level_frames(level_frames, '{}_{}'.format(row_num, col_num))
+                        if not concat_gifs:
+                            save_level_frames(level_frames_i, '{}_{}'.format(row_num, col_num))
+                        else:
+                            level_frames += level_frames_i
                         # Get image
                         #                       img = self.env.render(mode="rgb_array")
                         img = level_frames[-1]
 #                       axs[row_num, col_num].imshow(img, aspect="auto")
                         axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
+                if concat_gifs:
+                    save_level_frames(level_frames, 'concat')
             fig.subplots_adjust(hspace=0.01, wspace=0.01)
             plt.tight_layout()
             fig.savefig(
@@ -3121,8 +3134,8 @@ if __name__ == "__main__":
     #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict["render_levels"]
     THREADS = arg_dict["multi_thread"] or EVALUATE
-    #   SAVE_INTERVAL = 100
-    SAVE_INTERVAL = 10
+    SAVE_INTERVAL = 100
+    # SAVE_INTERVAL = 10
     VIS_INTERVAL = 50
     if "CPPN" in MODEL:
         assert N_INIT_STATES == 0 and N_STEPS == 1
