@@ -17,9 +17,9 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-#       "binary_ctrl",
-#       "zelda_ctrl",
-#       "sokoban_ctrl",
+        "binary_ctrl",
+        "zelda_ctrl",
+        "sokoban_ctrl",
         "smb_ctrl"
 ]
 representations = [
@@ -55,10 +55,11 @@ local_bcs = {
        ],
 }
 models = [
-#   "NCA",
+    "NCA",
     "FeedForwardCPPN",
-#   "CoordNCA",
-#   "CPPN",
+    "SinCPPN",
+    "CoordNCA",
+    "CPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -68,22 +69,22 @@ fix_elites = [
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-#       True,
+        True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
-#   10,
-#   20,
+#   0,
+    10,
+    20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1
+    1,
 #   10,
 #   50,
-#   100,
+    100,
 ]
 
 
@@ -139,7 +140,7 @@ def launch_batch(exp_name, collect_params=False):
 
                                         continue
 
-                                    if 'CPPN' in model and not (n_init_states == 0 and n_steps == 1):
+                                    if 'CPPN' in model and not (n_init_states == 0 and n_steps == 1 and fix_seed == True and fix_el == True):
                                         continue
 
                                     # Edit the sbatch file to load the correct config file
