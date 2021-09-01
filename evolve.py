@@ -891,7 +891,7 @@ class CPPN(ResettableNN):
         tile_probs = [self.cppn[i](x_in=X, y_in=Y) for i in range(self.n_actions)]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
-        return multi_hot
+        return multi_hot, True
 
     # No no you'd need to implement this logic outside of the model so that we could render the in-between!
     def forward_rec(self, x):
@@ -915,7 +915,7 @@ class CPPN(ResettableNN):
             tile_probs = tile_probs[:-2]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
-        return multi_hot
+        return multi_hot, True
 
 
 # FIXME: this guy don't work
