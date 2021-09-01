@@ -260,14 +260,12 @@ class ParamRew(gym.Wrapper):
         self.n_step += 1
 
         if self.auto_reset:
-            # either exceeded number of changes, steps, or have reached target
+            # either exceeded number of changes, steps, or reached target
             done = done or self.get_done()
         else:
-            assert self.infer
+#           assert self.infer
             done = False
 
-        # FIXME: for debugging only
-        rew = self.env.unwrapped._rep._map.sum()
         return ob, rew, done, info
 
     def get_cond_trgs(self):

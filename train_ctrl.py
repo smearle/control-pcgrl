@@ -7,7 +7,7 @@ from pdb import set_trace as TT
 import numpy as np
 
 import gym_pcgrl  # noqa : F401
-from arguments import parse_args
+from rl_args import parse_args
 from envs import make_vec_envs
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
@@ -223,7 +223,6 @@ else:
         "Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
 
 
-change_percentage = opts.change_percentage
 max_step = opts.max_step
 # TODO: play with change percentage for controllable agents?
 change_percentage = opts.change_percentage
@@ -246,7 +245,6 @@ kwargs = {
     'ca_action': ca_action,
     'cropped_size': opts.crop_size,
     'alp_gmm': alp_gmm,
-    'change_percentage': change_percentage,
     'experiment_id': opts.experiment_id,
 }
 

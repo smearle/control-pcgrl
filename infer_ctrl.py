@@ -6,7 +6,7 @@ from pdb import set_trace as TT
 import cv2
 import numpy as np
 
-from arguments import parse_args
+from rl_args import parse_args
 from envs import make_vec_envs
 from utils import get_crop_size, get_env_name, get_exp_name, load_model
 
@@ -174,7 +174,7 @@ if conditional:
 
     if ca_action:
         max_step = 50
-    change_percentage = 1.0
+#   change_percentage = 1.0
 
 else:
     cond_metrics = None

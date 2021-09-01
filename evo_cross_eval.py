@@ -8,18 +8,22 @@ import pandas as pd
 from evo_args import get_args, get_exp_name
 from tex_formatting import pandas_to_latex, newline
 
-OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
+# OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
+TEX = False
 
 # Attempt to make shit legible
-header_text = {
-    "fix_level_seeds": "Seeds",
-    "fix_elites": "Elites",
+col_keys = {
     "generations completed": "n_gen",
-    "n_init_states": newline("Num.", "seeds"),
-    "n_steps": "Num. steps",
     "% train archive full": "coverage (\%)",
     "(generalize) % fresh train archive full": "(infer) coverage (\%)",
     "(generalize) % elites maintained": "(infer) maintained (\%)",
+}
+
+row_idx_names = {
+    "fix_level_seeds": "Seeds",
+    "fix_elites": "Elites",
+    "n_init_states": newline("Num.", "seeds"),
+    "n_steps": "Num. steps",
 }
 
 # flatten the dictionary here
@@ -50,8 +54,8 @@ def flatten_stats(stats, generalization=False):
         elif "playability" in key:
             val /= 10
 
-        if key in header_text:
-            key = header_text[key]
+        if TEX and key in col_keys:
+            key = col_keys[key]
         flat_stats[key] = val
 
     for k, v in stats.items():
@@ -73,8 +77,7 @@ def compile_results(settings_list):
     if batch_exp_name == "0":
         EVO_DIR = "evo_runs_06-12"
     else:
-        #       EVO_DIR = "evo_runs_06-13"
-        EVO_DIR = "evo_runs_06-14"
+        EVO_DIR = 'evo_runs'
     #   ignored_keys = set(
     #       (
     #           "exp_name",
@@ -101,13 +104,14 @@ def compile_results(settings_list):
     keys = [
         "problem",
         "behavior_characteristics",
+        "model",
         "representation",
         "n_init_states",
         "fix_level_seeds",
         "fix_elites",
         "n_steps",
     ]
-    columns = None
+    col_indices = None
     data = []
     vals = []
 
@@ -123,7 +127,7 @@ def compile_results(settings_list):
         exp_name = get_exp_name(args, arg_dict)
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
-        exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
+        # exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
         stats_f = os.path.join(exp_name, "stats.json")
         fixLvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
 
@@ -137,11 +141,11 @@ def compile_results(settings_list):
         flat_stats = flatten_stats(fixLvl_stats)
         flat_stats.update(flatten_stats(stats, generalization=True))
 
-        if columns is None:
+        if col_indices is None:
             # grab columns (json keys) from any experiment's stats json, since they should all be the same
-            columns = list(flat_stats.keys())
+            col_indices = list(flat_stats.keys())
 
-        for j, c in enumerate(columns):
+        for j, c in enumerate(col_indices):
             if c not in flat_stats:
                 data[-1].append("N/A")
             else:
@@ -172,13 +176,13 @@ def compile_results(settings_list):
 
 
     for k in keys:
-        if k in header_text:
-            new_keys.append(header_text[k])
+        if TEX and k in col_keys:
+            new_keys.append(col_keys[k])
         else:
             new_keys.append(k)
-    index = pd.MultiIndex.from_tuples(tuples, names=new_keys)
+    row_indices = pd.MultiIndex.from_tuples(tuples, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
-    z_cols = [header_text["% train archive full"], header_text["(generalize) % fresh train archive full"], header_text["(generalize) % elites maintained"]]
+    z_cols = [col_keys["% train archive full"], col_keys["(generalize) % fresh train archive full"], col_keys["(generalize) % elites maintained"]]
     # Hierarchical columns!
     def hierarchicalize_col(col):
         if col.startswith('(infer)'):
@@ -192,19 +196,27 @@ def compile_results(settings_list):
     for i, col in enumerate(z_cols):
         z_cols[i] = hierarchicalize_col(col)
     col_tuples = []
-    for col in columns:
+    for col in col_indices:
         col_tuples.append(hierarchicalize_col(col))
     # columns = pd.MultiIndex.from_tuples(col_tuples, names=['', newline('evaluated', 'controls'), ''])
-    columns = pd.MultiIndex.from_tuples(col_tuples)
+    col_indices = pd.MultiIndex.from_tuples(col_tuples)
     # columns = pd.MultiIndex.from_tuples(col_tuples)
-    df = pd.DataFrame(data=data, index=index, columns=columns).sort_values(by=new_keys)
-    #   print(index)
+    df = pd.DataFrame(data=data, index=row_indices, columns=col_indices).sort_values(by=new_keys)
 
     csv_name = r"{}/cross_eval_{}.csv".format(EVO_DIR, batch_exp_name)
     html_name = r"{}/cross_eval_{}.html".format(EVO_DIR, batch_exp_name)
-    df.to_csv(csv_name)
     df.to_html(html_name)
     print(df)
+#   for i, k in enumerate(new_keys):
+#       if k in row_idx_names:
+#           new_keys[i] = row_idx_names[k]
+#   df.index.rename(new_keys, inplace=True)
+    df.rename(col_keys, axis=1)
+
+    df.to_csv(csv_name)
+
+    if not TEX:
+        return
 
 #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
     tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(EVO_DIR, batch_exp_name)

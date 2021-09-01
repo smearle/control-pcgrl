@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import pandas as pd
-from arguments import parse_args
+from rl_args import parse_args
 from utils import get_exp_name, PROB_CONTROLS
 from tex_formatting import newline, pandas_to_latex
 
@@ -304,9 +304,9 @@ def compile_results(settings_list, no_plot=False):
             header_text["diversity_score (mean)"],
         ]
         z_cols_ctrl = [
-#           header_text["net_score (mean)"],
+#           col_keys["net_score (mean)"],
             header_text["ctrl_score (mean)"],
-#           header_text["(controls) fixed_score (mean)"],
+#           col_keys["(controls) fixed_score (mean)"],
             header_text["diversity_score (mean)"],
         ]
         n_col_heads = len(z_cols_fixed)

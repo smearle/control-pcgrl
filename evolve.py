@@ -652,10 +652,10 @@ def unravel_index(
 #       m.to('cuda:0')
 
 
-class GeneratorNN(nn.Module):
+class NCA(nn.Module):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__()
         #       if 'zelda' in PROBLEM:
         n_hid_1 = 32
@@ -671,7 +671,8 @@ class GeneratorNN(nn.Module):
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
-        self.layers = [self.l1, self.l2, self.l3]
+        self.l_done = Conv2d(n_hid_1, 1, 1, 2, stride=999)
+        self.layers = [self.l1, self.l2, self.l3, l_done]
         self.apply(init_weights)
 
     def forward(self, x):
@@ -680,15 +681,17 @@ class GeneratorNN(nn.Module):
             x = th.nn.functional.relu(x)
             x = self.l2(x)
             x = th.nn.functional.relu(x)
+            done = self.l_done
             x = self.l3(x)
             x = th.sigmoid(x)
+
 
         # axis 0 is batch
         # axis 1 is the tile-type (one-hot)
         # axis 0,1 is the x value
         # axis 0,2 is the y value
 
-        return x
+        return x, done
 
 from pytorch_neat.cppn import create_cppn
 import neat
@@ -712,7 +715,7 @@ def get_coord_grid(x, normalize=False):
 
 
 class FeedForwardCPPN(nn.Module):
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__()
         n_hid = 330
         self.l1 = Conv2d(2, n_hid, kernel_size=1)
@@ -733,7 +736,7 @@ class FeedForwardCPPN(nn.Module):
 
 
 class SinCPPN(nn.Module):
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__()
         n_hid = 330
         self.l1 = Conv2d(2, n_hid, kernel_size=1)
@@ -756,7 +759,7 @@ class CoordNCA(nn.Module):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
     With coordinates as additional input, like a CPPN."""
 
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__()
         n_hid_1 = 28
 #       n_hid_2 = 16
@@ -787,7 +790,7 @@ class CoordNCA(nn.Module):
 
 
 class CPPN(nn.Module):
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__()
         neat_config_path = 'config_cppn'
         neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
@@ -1436,11 +1439,11 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
 
         while not done:
             int_tensor = th.unsqueeze(th.Tensor(obs), 0)
-            action = gen_model(int_tensor)[0].numpy()
+            action, done = gen_model(int_tensor)[0].numpy()
             obs = action
             int_map = action.argmax(axis=0)
             env._rep._map = int_map
-            done = (int_map == last_int_map).all() or n_step >= N_STEPS
+            done = done or (int_map == last_int_map).all() or n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
             #               time.sleep(1 / 30)
@@ -1572,7 +1575,8 @@ def simulate(
             #           in_tensor = th.unsqueeze(
             #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = th.unsqueeze(th.Tensor(obs), 0)
-            action = model(in_tensor)[0].numpy()
+            action, done = model(in_tensor)
+            action = action[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
             action, skip = preprocess_action(
                 action,
@@ -1589,7 +1593,8 @@ def simulate(
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
             #           env._rep._map = int_map
-            done = not (change or skip) or n_step >= N_STEPS
+            done = done or not (change or skip) or n_step >= N_STEPS
+            print('done at', n_step)
             # done = n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
@@ -1863,7 +1868,7 @@ class EvoPCGRL:
         n_in_chans = reps_to_in_chans[REPRESENTATION]
 
         if MODEL == "NCA":
-            self.gen_model = GeneratorNN(
+            self.gen_model = NCA(
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
 
