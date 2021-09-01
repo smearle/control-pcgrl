@@ -12,4 +12,4 @@ ribs
 ray
 PyGObject
 stable-baselines==2.9.0
-tensorflow==1.15
+tensorflow==2.5.1
