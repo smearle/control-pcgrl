@@ -30,6 +30,13 @@ def get_args(load_args=None):
         default=10000,
     )
     opts.add_argument(
+        "-si",
+        "--save_interval",
+        type=int,
+        help="Number of generations after which to save.",
+        default=10,
+    )
+    opts.add_argument(
         "-nis",
         "--n_init_states",
         help="The number of initial states on which to evaluate our models. 0 for a single fixed map with a square of wall in the centre.",

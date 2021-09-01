@@ -657,11 +657,12 @@ class ResettableNN(nn.Module):
     def reset(self):
         pass
 
+
 class AuxNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, n_aux=3):
         super().__init__()
-        n_hid_1 = 32
-        self.n_aux = 3
+        self.n_hid_1 = n_hid_1 = 32
+        self.n_aux = n_aux
         self.l1 = Conv2d(n_in_chans + self.n_aux, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions + self.n_aux, 1, 1, 0, bias=True)
@@ -685,7 +686,10 @@ class AuxNCA(ResettableNN):
             self.last_aux = x[:,-self.n_aux:,:,:]
             x = x[:, :-self.n_aux,:,:]
             if RENDER:
-                im = self.last_aux[0].cpu().numpy().transpose(1,2,0)
+#               im = self.last_aux[0].cpu().numpy().transpose(1,2,0)
+                aux = self.last_aux[0].cpu().numpy()
+                im = np.expand_dims(np.vstack(aux), axis=0)
+                im = im.transpose(1, 2, 0)
                 cv2.imshow("Auxiliary NCA", im)
                 cv2.waitKey(1)
 
@@ -694,11 +698,31 @@ class AuxNCA(ResettableNN):
         # axis 0,1 is the x value
         # axis 0,2 is the y value
 
-        return x
+        return x, False
 
     def reset(self, init_aux=None):
         self.last_aux = None
 
+
+class DoneAuxNCA(AuxNCA):
+    def __init__(self, n_in_chans, n_actions, n_aux=3):
+        # Add an extra auxiliary ("done") channel after the others
+        n_aux += 1
+        super().__init__(n_in_chans, n_actions, n_aux=n_aux)
+        done_kernel_size = 3
+        self.l_done = Conv2d(1, 1, 7, stride=999)
+
+    def forward(self, x):
+        with th.no_grad():
+            x, done = super().forward(x)
+            # retrieve local activation from done channel
+            done_x = th.sigmoid(self.l_done(x[:,-1:,:,:])).flatten() - 0.5
+            done = (done_x > 0).item()
+
+        return x, done
+
+    def reset(self, init_aux=None):
+        self.last_aux = None
 
 
 class GeneratorNN(ResettableNN):
@@ -737,7 +761,7 @@ class GeneratorNN(ResettableNN):
         # axis 0,1 is the x value
         # axis 0,2 is the y value
 
-        return x
+        return x, False
 
 from pytorch_neat.cppn import create_cppn
 import neat
@@ -772,13 +796,13 @@ class FeedForwardCPPN(ResettableNN):
         self.apply(init_weights)
 
     def forward(self, x):
-        x = get_coord_grid(x, normalize=False)
+        x = get_coord_grid(x, normalize=True)
         with th.no_grad():
             x = th.relu(self.l1(x))
             x = th.relu(self.l2(x))
             x = th.sigmoid(self.l3(x))
 
-        return x
+        return x, True
 
 
 class SinCPPN(ResettableNN):
@@ -799,7 +823,7 @@ class SinCPPN(ResettableNN):
             x = th.sin(self.l2(x))
             x = th.sigmoid(self.l3(x))
 
-        return x
+        return x, True
 
 class CoordNCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
@@ -832,7 +856,7 @@ class CoordNCA(ResettableNN):
         # axis 0,1 is the x value
         # axis 0,2 is the y value
 
-        return x
+        return x, False
 
 
 class CPPN(ResettableNN):
@@ -935,7 +959,7 @@ class GeneratorNNDenseSqueeze(ResettableNN):
             #           x = self.d2(x)
             #           x = th.sigmoid(x)
 
-        return x
+        return x, False
 
 
 class GeneratorNNDense(ResettableNN):
@@ -967,7 +991,7 @@ class GeneratorNNDense(ResettableNN):
             x = F.relu(self.fc1(x))
             x = F.softmax(self.fc2(x), dim=1)
 
-        return x
+        return x, False
 
 
 class PlayerNN(ResettableNN):
@@ -1485,11 +1509,11 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
 
         while not done:
             int_tensor = th.unsqueeze(th.Tensor(obs), 0)
-            action = gen_model(int_tensor)[0].numpy()
+            action, done = gen_model(int_tensor)[0].numpy()
             obs = action
-            int_map = action.argmax(axis=0)
+            int_map = done or action.argmax(axis=0)
             env._rep._map = int_map
-            done = (int_map == last_int_map).all() or n_step >= N_STEPS
+            done = done or (int_map == last_int_map).all() or n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
             #               time.sleep(1 / 30)
@@ -1622,7 +1646,8 @@ def simulate(
             #           in_tensor = th.unsqueeze(
             #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = th.unsqueeze(th.Tensor(obs), 0)
-            action = model(in_tensor)[0].numpy()
+            action, done = model(in_tensor)
+            action = action[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
             action, skip = preprocess_action(
                 action,
@@ -1639,7 +1664,7 @@ def simulate(
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
             #           env._rep._map = int_map
-            done = not (change or skip) or n_step >= N_STEPS
+            done = done or not (change or skip) or n_step >= N_STEPS
             # done = n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
@@ -1967,6 +1992,10 @@ class EvoPCGRL:
                 n_actions=n_out_chans,
                 observation_shape=observation_shape,
                 n_flat_actions=n_flat_actions,
+            )
+        else:
+            self.gen_model = globals()[MODEL](
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
         set_nograd(self.gen_model)
         initial_w = get_init_weights(self.gen_model)
@@ -2521,20 +2550,23 @@ class EvoPCGRL:
         archive = self.gen_archive
         df = archive.as_pandas()
         #       high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
+        
 
-        if "binary" in PROBLEM:
-            #           high_performing = df.sort_values("behavior_1", ascending=False)
-            high_performing = df.sort_values("objective", ascending=False)
+#       if "binary" in PROBLEM:
+#           #           high_performing = df.sort_values("behavior_1", ascending=False)
+#           high_performing = df.sort_values("objective", ascending=False)
 
-        if "zelda" in PROBLEM:
-            # path lenth
-            #           high_performing = df.sort_values("behavior_1", ascending=False)
-            # nearest enemies
-            #           high_performing = df.sort_values("behavior_0", ascending=False)
-            high_performing = df.sort_values("objective", ascending=False)
-        else:
-            high_performing = df.sort_values("objective", ascending=False)
-        rows = high_performing
+#       if "zelda" in PROBLEM:
+#           # path lenth
+#           #           high_performing = df.sort_values("behavior_1", ascending=False)
+#           # nearest enemies
+#           #           high_performing = df.sort_values("behavior_0", ascending=False)
+#           high_performing = df.sort_values("objective", ascending=False)
+#       else:
+#           high_performing = df.sort_values("objective", ascending=False)
+
+        # Assume 2nd BC is a measure of complexity
+        rows = df.sort_values("behavior_1", ascending=False)
         models = np.array(rows.loc[:, "solution_0":])
         bcs_0 = np.array(rows.loc[:, "behavior_0"])
         bcs_1 = np.array(rows.loc[:, "behavior_1"])
@@ -3199,8 +3231,7 @@ if __name__ == "__main__":
     #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict["render_levels"]
     THREADS = arg_dict["multi_thread"] or EVALUATE
-    SAVE_INTERVAL = 100
-    # SAVE_INTERVAL = 10
+    SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
     if "CPPN" in MODEL:
         assert N_INIT_STATES == 0 and N_STEPS == 1
@@ -3228,8 +3259,14 @@ if __name__ == "__main__":
         exp_name += "_MEGA"
     exp_name += "_" + arg_dict["exp_name"]
     SAVE_PATH = os.path.join("evo_runs", exp_name)
-    preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
-    preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
+    if MODEL not in preprocess_action_funcs:
+        preprocess_action = preprocess_action_funcs['NCA'][REPRESENTATION]
+    else:
+        preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
+    if MODEL not in preprocess_observation_funcs:
+        preprocess_observation = preprocess_observation_funcs['NCA'][REPRESENTATION]
+    else:
+        preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
     if THREADS:
         ray.init()
