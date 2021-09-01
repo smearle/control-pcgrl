@@ -137,6 +137,11 @@ def get_args(load_args=None):
         help="Save screenshots (and gif?) of level during agent generation process.",
         action="store_true",
     )
+    opts.add_argument(
+        "--n_cpu",
+        type=int,
+        default=None,
+    )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
     args = opts.parse_args()
@@ -178,6 +183,7 @@ def get_exp_name(args, arg_dict):
     global MODEL
     global REEVALUATE_ELITES
     global preprocess_action
+    N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]
     REPRESENTATION = arg_dict["representation"]
     CASCADE_REWARD = arg_dict["cascade_reward"]

@@ -1,9 +1,15 @@
+pyglet
+neat-python
+ribs
+numba
+psutil
+pandas
 neat-python
 imageio
 graphviz
-stable-baselines==2.9.0
-tensorflow==1.15
 tqdm
 ribs
 ray
 PyGObject
+stable-baselines==2.9.0
+tensorflow==1.15

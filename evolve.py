@@ -11,7 +11,7 @@ from pathlib import Path
 from pdb import set_trace as TT
 from random import randint
 
-# import cv2
+import cv2
 from typing import Tuple
 
 import gym
@@ -417,7 +417,7 @@ preprocess_action_funcs = {
         "turtle": flat_to_turtle,
     },
 }
-preprocess_action_funcs["CoordNCA"] = preprocess_action_funcs["NCA"]
+preprocess_action_funcs["CoordNCA"] = preprocess_action_funcs["AuxNCA"] = preprocess_action_funcs["NCA"]
 preprocess_action_funcs["SinCPPN"] = preprocess_action_funcs["FeedForwardCPPN"] = preprocess_action_funcs["CPPN"]
 
 
@@ -452,6 +452,7 @@ preprocess_observation_funcs = {
 }
 preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["FeedForwardCPPN"] = \
     preprocess_observation_funcs["SinCPPN"] = preprocess_observation_funcs["CoordNCA"] = \
+    preprocess_observation_funcs["AuxNCA"] = \
     preprocess_observation_funcs["NCA"]
 
 @njit
@@ -650,6 +651,48 @@ def unravel_index(
 #   if CUDA:
 #       m.cuda()
 #       m.to('cuda:0')
+
+class AuxNCA(nn.Module):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid_1 = 32
+        self.n_aux = 3
+        self.l1 = Conv2d(n_in_chans + self.n_aux, n_hid_1, 3, 1, 1, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_actions + self.n_aux, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+        self.last_aux = None
+        if RENDER:
+            cv2.namedWindow("Auxiliary NCA")
+
+    def forward(self, x):
+        with th.no_grad():
+            if self.last_aux is None:
+                self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-2:]))
+            x_in = th.cat([x, self.last_aux], axis=1)
+            x = self.l1(x_in)
+            x = th.nn.functional.relu(x)
+            x = self.l2(x)
+            x = th.nn.functional.relu(x)
+            x = self.l3(x)
+            x = th.sigmoid(x)
+            self.last_aux = x[:,-self.n_aux:,:,:]
+            x = x[:, :-self.n_aux,:,:]
+            if RENDER:
+                im = self.last_aux[0].cpu().numpy().transpose(1,2,0)
+                cv2.imshow("Auxiliary NCA", im)
+
+        # axis 0 is batch
+        # axis 1 is the tile-type (one-hot)
+        # axis 0,1 is the x value
+        # axis 0,2 is the y value
+
+        return x
+
+    def reset(self, init_aux=None):
+        self.last_aux = None
+
 
 
 class GeneratorNN(nn.Module):
@@ -1446,6 +1489,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
             #               time.sleep(1 / 30)
 
             if done:
+                gen_model.reset()
                 env._rep._old_map = int_map
                 env._rep._random_start = False
                 _ = env.reset()
@@ -1596,6 +1640,7 @@ def simulate(
             #               time.sleep(1 / 30)
 
             if done:
+                model.reset()
                 if render_levels:
                     # get final level state
                     level_frames.append(env.render(mode="rgb_array"))
@@ -1866,6 +1911,10 @@ class EvoPCGRL:
             self.gen_model = GeneratorNN(
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
+        if MODEL == "AuxNCA":
+            self.gen_model = AuxNCA(
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+            )
 
         elif MODEL == "CPPN":
             self.gen_model = CPPN(
@@ -2040,22 +2089,30 @@ class EvoPCGRL:
                 init_states = self.init_states
 
             if THREADS:
-                futures = [
-                    multi_evo.remote(
-                        self.env,
-                        self.gen_model,
-                        model_w,
-                        self.n_tile_types,
-                        init_states,
-                        self.bc_names,
-                        self.static_targets,
-                        seed,
-                        player_1=self.player_1,
-                        player_2=self.player_2,
-                    )
-                    for model_w in gen_sols
-                ]
-                results = ray.get(futures)
+                n_sols = len(gen_sols)
+                if N_PROC is not None:
+                    n_proc = N_PROC
+                else:
+                    n_proc = n_sols
+                n_launches = np.ceil(n_sols / n_proc)
+                results = []
+                for n_launch in range(int(n_launches)):
+                    futures = [
+                        multi_evo.remote(
+                            self.env,
+                            self.gen_model,
+                            model_w,
+                            self.n_tile_types,
+                            init_states,
+                            self.bc_names,
+                            self.static_targets,
+                            seed,
+                            player_1=self.player_1,
+                            player_2=self.player_2,
+                        )
+                        for model_w in gen_sols
+                    ]
+                    results += ray.get(futures)
 
                 for result in results:
                     level_json, m_obj, m_bcs = result
@@ -3104,6 +3161,8 @@ if __name__ == "__main__":
     global MODEL
     global REEVALUATE_ELITES
     global preprocess_action
+    global N_PROC
+    N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]
     REPRESENTATION = arg_dict["representation"]
     CASCADE_REWARD = arg_dict["cascade_reward"]
