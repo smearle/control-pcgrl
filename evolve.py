@@ -652,7 +652,12 @@ def unravel_index(
 #       m.cuda()
 #       m.to('cuda:0')
 
-class AuxNCA(nn.Module):
+class ResettableNN(nn.Module):
+
+    def reset(self):
+        pass
+
+class AuxNCA(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid_1 = 32
@@ -682,6 +687,7 @@ class AuxNCA(nn.Module):
             if RENDER:
                 im = self.last_aux[0].cpu().numpy().transpose(1,2,0)
                 cv2.imshow("Auxiliary NCA", im)
+                cv2.waitKey(1)
 
         # axis 0 is batch
         # axis 1 is the tile-type (one-hot)
@@ -695,7 +701,7 @@ class AuxNCA(nn.Module):
 
 
 
-class GeneratorNN(nn.Module):
+class GeneratorNN(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions):
@@ -754,7 +760,7 @@ def get_coord_grid(x, normalize=False):
     return x
 
 
-class FeedForwardCPPN(nn.Module):
+class FeedForwardCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid = 330
@@ -775,7 +781,7 @@ class FeedForwardCPPN(nn.Module):
         return x
 
 
-class SinCPPN(nn.Module):
+class SinCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid = 330
@@ -795,7 +801,7 @@ class SinCPPN(nn.Module):
 
         return x
 
-class CoordNCA(nn.Module):
+class CoordNCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
     With coordinates as additional input, like a CPPN."""
 
@@ -829,7 +835,7 @@ class CoordNCA(nn.Module):
         return x
 
 
-class CPPN(nn.Module):
+class CPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         neat_config_path = 'config_cppn'
@@ -889,7 +895,7 @@ class CPPN(nn.Module):
 
 
 # FIXME: this guy don't work
-class GeneratorNNDenseSqueeze(nn.Module):
+class GeneratorNNDenseSqueeze(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions):
@@ -932,7 +938,7 @@ class GeneratorNNDenseSqueeze(nn.Module):
         return x
 
 
-class GeneratorNNDense(nn.Module):
+class GeneratorNNDense(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions):
@@ -964,7 +970,7 @@ class GeneratorNNDense(nn.Module):
         return x
 
 
-class PlayerNN(nn.Module):
+class PlayerNN(ResettableNN):
     def __init__(self, n_tile_types, n_actions=4):
         super().__init__()
         self.n_tile_types = n_tile_types
