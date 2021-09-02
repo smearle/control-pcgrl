@@ -21,8 +21,18 @@ source activate vanilla_pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate vanilla_pcgrl
 
+start=$SECONDS
 while ! python train_ctrl.py -la 0
 do
-    sleep 10
+    duration=$((( SECONDS - start ) / 60))
+    echo "Script returned error after $duration minutes"
+    if [ $minutes -lt 60 ]
+    then
+      echo "Too soon. Something is wrong. Terminating node."
+      exit
+    else
+      echo "Re-launching script."
+      start=$SECONDS
+    fi
 done
 

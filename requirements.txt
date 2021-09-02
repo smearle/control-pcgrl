@@ -1,3 +1,4 @@
+deap
 pyglet
 neat-python
 ribs

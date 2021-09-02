@@ -7,6 +7,7 @@ import pprint
 import sys
 import time
 from datetime import datetime
+from timeit import default_timer as timer
 from pathlib import Path
 from pdb import set_trace as TT
 from random import randint
@@ -26,6 +27,7 @@ import torch as th
 import torch.nn.functional as F
 from gym import envs
 from numba import njit
+from qdpy.phenotype import Fitness
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
 from ribs.emitters import (
@@ -39,8 +41,12 @@ from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
 from torch.nn import Conv2d, CrossEntropyLoss, Linear
 from torch.utils.tensorboard import SummaryWriter
+import deap
+import deap.tools
+import deap.algorithms
 import qdpy
-from qdpy import algorithms, containers, benchmarks, plots
+from qdpy import algorithms, containers, benchmarks, plots, tools
+from deap.base import Toolbox
 
 
 # Use for .py file
@@ -421,7 +427,6 @@ preprocess_action_funcs = {
     },
 }
 preprocess_action_funcs["CoordNCA"] = preprocess_action_funcs["AuxNCA"] = preprocess_action_funcs["NCA"]
-preprocess_action_funcs["SinCPPN"] = preprocess_action_funcs["FeedForwardCPPN"] = preprocess_action_funcs["GenCPPN"] = preprocess_action_funcs["CPPN"]
 
 
 def id_observation(obs, **kwargs):
@@ -468,34 +473,75 @@ def get_init_states(init_states_archive, index):
     return init_states_archive[index]
 
 
-class MEGrid(containers.Grid):
-    def __init__(self, bin_sizes, bin_bounds):
-        super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=1,
-                                     features_domain=bin_bounds,
-                                     fitness_domain=((-np.inf, np.inf),),
-                                     )
+
+def mate_individuals(ind_0, ind_1):
+    return ind_0.mate(ind_1)
+
+def mutate_individual(ind):
+    ind.mutate()
+    return (ind,)
 
 class MEOptimizer():
-    def __init__(self, grid, ind_cls, batch_size, ind_cls_args):
+    def __init__(self, grid, ind_cls, batch_size, ind_cls_args, start_time=None, stats=None):
+        self.batch_size = batch_size
         self.grid = grid
         self.inds = []
+        self.stats=stats
         for _ in range(batch_size):
             self.inds.append(ind_cls(**ind_cls_args))
+        toolbox = Toolbox()
+        toolbox.register("clone", copy.deepcopy)
+        toolbox.register("mutate", mutate_individual)
+        toolbox.register("mate", mate_individuals)
+        toolbox.register("select", tools.sel_random)
 
-    def ask(self):
-        [ind.mutate() for ind in self.inds]
-        return self.inds
+        self.cxpb = 0
+        self.mutpb = 1.0
+        self.toolbox = toolbox
+        if start_time == None:
+            self.start_time = timer()
+        self.logbook = deap.tools.Logbook()
+        self.logbook.header = ["iteration", "containerSize", "evals", "nbUpdated"] + (stats.fields if stats else []) + ["elapsed"]
+        self.i = 0
+
 
     def tell(self, objective_values, behavior_values):
+        # Update individuals' stats with results of last batch of simulations
 #       [(ind.fitness.setValues(obj), ind.fitness.features.setValues(bc)) for
 #        (ind, obj, bc) in zip(self.inds, objective_values, behavior_values)]
-        print(self.grid.fitness_domain)
         for (ind, obj, bc) in zip(self.inds, objective_values, behavior_values):
-            print(obj)
             ind.fitness.setValues([obj])
             ind.features.setValues(bc)
+        # Replace the current population by the offspring
+        nb_updated = self.grid.update(self.inds, issue_warning=True, ignore_exceptions=False)
+        # Compile stats and update logs
+        record = self.stats.compile(self.grid) if self.stats else {}
+        self.logbook.record(iteration=self.i, containerSize=self.grid.size_str(), evals=len(self.inds), nbUpdated=nb_updated, elapsed=timer()-self.start_time, **record)
+        self.i += 1
+        print(self.logbook.stream)
 
-        TT()
+    def ask(self):
+
+        if len(self.grid) == 0:
+            # Return the initial batch
+            return self.inds
+
+        elif len(self.grid) < self.batch_size:
+            # If few elites, supplement the population with individuals from the last generation
+            np.random.shuffle(self.inds)
+            breedable = self.grid.items + self.inds[:-len(self.grid)]
+
+        else:
+            breedable = self.grid
+
+        # Select the next batch individuals
+        batch = [self.toolbox.select(breedable) for i in range(self.batch_size)]
+
+        ## Vary the pool of individuals
+        self.inds = deap.algorithms.varAnd(batch, self.toolbox, self.cxpb, self.mutpb)
+
+        return self.inds
+
 
 
 class InitStatesArchive(GridArchive):
@@ -516,16 +562,22 @@ class InitStatesArchive(GridArchive):
             solution, objective_value, behavior_values
         )
 
-        if index is None:
-            index = self.get_index(behavior_values)
-
         # NOTE: for now we won't delete these when popping an elite for re-evaluation
 
         if status != AddStatus.NOT_ADDED:
+            if index is None:
+                index = self.get_index(behavior_values)
             archive_init_states(self.init_states_archive, self.init_states, index)
 
         return status, dtype_improvement
 
+
+class MEGrid(containers.Grid):
+    def __init__(self, bin_sizes, bin_bounds):
+        super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=1,
+                                     features_domain=bin_bounds,
+                                     fitness_domain=((-np.inf, np.inf),),
+                                     )
 
 class MEInitStatesArchive(MEGrid):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
@@ -540,20 +592,14 @@ class MEInitStatesArchive(MEGrid):
     def set_init_states(self, init_states):
         self.init_states = init_states
 
-    def add(self, solution, objective_value, behavior_values, meta, index=None):
-        status, dtype_improvement = super().add(
-            solution, objective_value, behavior_values
-        )
+    def add(self, item):
+        index = super(MEInitStatesArchive, self).add(item)
 
-        if index is None:
-            index = self.get_index(behavior_values)
+        if index is not None:
+            idx = self.index_grid(item.features)
+            archive_init_states(self.init_states_archive, self.init_states, idx)
 
-        # NOTE: for now we won't delete these when popping an elite for re-evaluation
-
-        if status != AddStatus.NOT_ADDED:
-            archive_init_states(self.init_states_archive, self.init_states, index)
-
-        return status, dtype_improvement
+        return index
 
 
 
@@ -831,7 +877,42 @@ class MixNCA(ResettableNN):
             x = self.l3(x)
             x = th.sigmoid(x)
 
-from pytorch_neat.cppn import create_cppn
+
+class CoordNCA(ResettableNN):
+    """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
+    With coordinates as additional input, like a CPPN."""
+
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid_1 = 28
+        #       n_hid_2 = 16
+
+        self.l1 = Conv2d(n_in_chans + 2, n_hid_1, 3, 1, 1, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            coords = get_coord_grid(x, normalize=True)
+            x = th.hstack((coords, x))
+            x = self.l1(x)
+            x = th.nn.functional.relu(x)
+            x = self.l2(x)
+            x = th.nn.functional.relu(x)
+            x = self.l3(x)
+            x = th.sigmoid(x)
+
+        # axis 0 is batch
+        # axis 1 is the tile-type (one-hot)
+        # axis 0,1 is the x value
+        # axis 0,2 is the y value
+
+        return x, False
+
+
+from pytorch_neat.cppn import create_cppn, Leaf
 import neat
 from neat.genome import DefaultGenome
 
@@ -914,7 +995,7 @@ class MixCPPN(ResettableNN):
         return x, True
 
 
-class GenCPPN(ResettableNN):
+class FixedGenCPPN(ResettableNN):
     """A fixed-topology CPPN that takes additional channels of noisey input to prompts its output.
     Like a CoordNCA but without the repeated passes and with 1x1 rather than 3x3 kernels."""
     # TODO: Maybe try this with 3x3 conv, just to cover our bases?
@@ -937,49 +1018,6 @@ class GenCPPN(ResettableNN):
 
         return x, True
 
-class CoordNCA(ResettableNN):
-    """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
-    With coordinates as additional input, like a CPPN."""
-
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        n_hid_1 = 28
-#       n_hid_2 = 16
-
-        self.l1 = Conv2d(n_in_chans + 2, n_hid_1, 3, 1, 1, bias=True)
-        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
-        self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
-
-    def forward(self, x):
-        with th.no_grad():
-            coords = get_coord_grid(x, normalize=True)
-            x = th.hstack((coords, x))
-            x = self.l1(x)
-            x = th.nn.functional.relu(x)
-            x = self.l2(x)
-            x = th.nn.functional.relu(x)
-            x = self.l3(x)
-            x = th.sigmoid(x)
-
-        # axis 0 is batch
-        # axis 1 is the tile-type (one-hot)
-        # axis 0,1 is the x value
-        # axis 0,2 is the y value
-
-        return x, False
-
-
-class CPPNIndividual(qdpy.phenotype.Individual):
-    "An individual for mutating with operators. Assuming we're using vanilla MAP-Elites here."
-    def __init__(self, n_in_chans, n_actions):
-        super(CPPNIndividual, self).__init__()
-        self.cppn = CPPN(n_in_chans, n_actions)
-
-    def mutate(self):
-        self.cppn.mutate()
-#       self.cppn.draw_net()
 
 
 class CPPN(ResettableNN):
@@ -987,25 +1025,26 @@ class CPPN(ResettableNN):
         super().__init__()
         neat_config_path = 'config_cppn'
         self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
-                                         neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
-                                         neat_config_path)
+                                              neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
+                                              neat_config_path)
         self.n_actions = n_actions
         self.neat_config.genome_config.num_outputs = n_actions
         self.neat_config.genome_config.num_hidden = 2
         self.genome = DefaultGenome(0)
         self.genome.configure_new(self.neat_config.genome_config)
-        self.cppn = create_cppn(self.genome, self.neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)]
-                                )
+        self.input_names = ['x_in', 'y_in']
+        self.output_names = ['tile_{}'.format(i) for i in range(n_actions)]
+        self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
 
-#       while len(get_init_weights(self)) < 200:
-#           if np.random.random() < 0:
-#               genome.mutate_add_connection(neat_config.genome_config)
-#           else:
-#               genome.mutate_add_node(neat_config.genome_config)
-#               self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'],
-#                                   ['tile_{}'.format(i) for i in range(n_actions)])
+    def mate(self, ind_1, fit_0, fit_1):
+        self.genome.fitness = fit_0
+        ind_1.genome.fitness = fit_1
+        return self.genome.configure_crossover(self.genome, ind_1.genome, self.neat_config.genome_config)
+
     def mutate(self):
+#       print(self.input_names, self.neat_config.genome_config.input_keys, self.genome.nodes)
         self.genome.mutate(self.neat_config.genome_config)
+        self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
 
     def draw_net(self):
         draw_net(self.neat_config, self.genome,  view=True, filename='cppn')
@@ -1013,35 +1052,100 @@ class CPPN(ResettableNN):
     def forward(self, x):
         X = th.arange(x.shape[-2])
         Y = th.arange(x.shape[-1])
-        X, Y = th.meshgrid(X, Y)
+        X, Y = th.meshgrid(X/X.max(), Y/Y.max())
         tile_probs = [self.cppn[i](x_in=X, y_in=Y) for i in range(self.n_actions)]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
         return multi_hot, True
 
-    # No no you'd need to implement this logic outside of the model so that we could render the in-between!
-    def forward_rec(self, x):
-        X = np.arange(x.shape[-2])
-        Y = np.arange(x.shape[-1])
-        X, Y = np.meshgrid(X, Y)
-        n_rec = 1
-        n_out = self.n_actions
-        if n_rec > 1:
-            n_out += 2
-        for i in range(n_rec):
-            if isinstance(X, np.ndarray):
-                X = X.astype(float)
-                Y = Y.astype(float)
-                X = th.Tensor(X)
-                Y = th.Tensor(Y)
-            tile_probs = [self.cppn[i](x_in=X, y_in=Y) for i in range(n_out)]
-            X = tile_probs[-2] + X
-            Y = tile_probs[-1] + Y
-        if n_rec > 1:
-            tile_probs = tile_probs[:-2]
+
+class CPPNCA(ResettableNN):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid_1 = 32
+        with th.no_grad():
+            self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
+            self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+            self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+        n_nca_params = sum(p.numel() for p in self.parameters())
+        self.cppn_body = GenCPPN(n_in_chans, n_actions)
+        self.normal = th.distributions.multivariate_normal.MultivariateNormal(th.zeros(1), th.eye(1))
+
+    def mate(self):
+        raise NotImplementedError
+
+    def mutate(self):
+        self.cppn_body.mutate()
+
+        with th.no_grad():
+            for layer in self.layers:
+                dw = self.normal.sample(layer.weight.shape)
+                layer.weight = th.nn.Parameter(layer.weight + dw.squeeze(-1))
+                db = self.normal.sample(layer.bias.shape)
+                layer.bias = th.nn.Parameter(layer.bias + db.squeeze(-1))
+
+    def forward(self, x):
+        with th.no_grad():
+            x = self.l1(x)
+            x = th.nn.functional.relu(x)
+            x = self.l2(x)
+            x = th.nn.functional.relu(x)
+            x = th.sigmoid(x)
+        x, _ = self.cppn_body(x)
+        return x, False
+
+
+class GenCPPN(CPPN):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__(n_in_chans, n_actions)
+        neat_config_path = 'config_cppn'
+        self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
+                                              neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
+                                              neat_config_path)
+        self.n_actions = n_actions
+        self.neat_config.genome_config.num_outputs = n_actions
+        self.genome = DefaultGenome(0)
+        self.input_names = ['x_in', 'y_in'] + ['tile_{}_in'.format(i) for i in range(n_actions)]
+        n_inputs = len(self.input_names)
+        self.output_names = ['tile_{}_out'.format(i) for i in range(n_actions)]
+        self.neat_config.genome_config.input_keys = (-1*np.arange(n_inputs) - 1).tolist()
+        self.neat_config.genome_config.num_inputs = n_inputs
+        self.neat_config.genome_config.num_hidden = 2
+        self.genome.configure_new(self.neat_config.genome_config)
+        self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
+
+    def forward(self, x):
+        X = th.arange(x.shape[-2])
+        Y = th.arange(x.shape[-1])
+        X, Y = th.meshgrid(X/X.max(), Y/Y.max())
+        inputs = {'x_in': X, 'y_in': Y}
+        inputs.update({'tile_{}_in'.format(i): th.Tensor(x[0,i,:,:]) for i in range(self.n_actions)})
+        tile_probs = [self.cppn[i](**inputs) for i in range(self.n_actions)]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
         return multi_hot, True
+
+
+class Individual(qdpy.phenotype.Individual):
+    "An individual for mutating with operators. Assuming we're using vanilla MAP-Elites here."
+    def __init__(self, model_cls, n_in_chans, n_actions):
+        super(Individual, self).__init__()
+        self.model = model_cls(n_in_chans, n_actions)
+        self.fitness = Fitness([0])
+        self.fitness.delValues()
+
+    def mutate(self):
+        self.model.mutate()
+
+    def mate(self, ind_1):
+        assert len(self.fitness.values) == 1 == len(ind_1.fitness.values)
+        self.model.mate(ind_1.model, fit_0=self.fitness.values[0], fit_1=ind_1.fitness.values[0])
+
+    def __eq__(self, ind_1):
+        if not hasattr(ind_1, "model"): return False
+        return self.model == ind_1.model
 
 
 # FIXME: this guy don't work
@@ -1202,6 +1306,8 @@ def get_init_weights(nn):
 
     if isinstance(nn, CPPN):
         for node in nn.cppn:
+            if isinstance(node, Leaf):
+                continue
             init_params.append(node.weights)
             init_params.append(node.bias)
     else:
@@ -1218,7 +1324,7 @@ def set_weights(nn, weights):
     if ALGO == "ME":
         # then out nn is contained in the individual
         individual = weights  # I'm sorry mama
-        return individual.cppn
+        return individual.model
     with th.no_grad():
         n_el = 0
 
@@ -1461,6 +1567,9 @@ class PlayerRight(nn.Module):
 
 
 def log_archive(archive, name, itr, start_time, level_json=None):
+    if ALGO == "ME":
+        # Do this inside optimizer ..?
+        return
     # TensorBoard Logging.
     df = archive.as_pandas(include_solutions=False)
     elapsed_time = time.time() - start_time
@@ -2005,7 +2114,10 @@ class EvoPCGRL:
             init_level_archive_args = ()
 
         if ALGO == "ME":
-            gen_archive_cls = MEGrid    
+            if RANDOM_INIT_LEVELS and args.n_init_states != 0:
+                gen_archive_cls = MEInitStatesArchive
+            else:
+                gen_archive_cls = MEGrid
 
         elif REEVALUATE_ELITES:
             # If we are constantly providing new random seeds to generators, we may want to regularly re-evaluate
@@ -2179,14 +2291,14 @@ class EvoPCGRL:
             ]
             self.play_optimizer = Optimizer(self.play_archive, play_emitters)
         if ALGO == "ME":
-            if MODEL == "CPPN":
-                 ind_cls_args = {
-                        'n_in_chans': self.n_tile_types,
-                        'n_actions': self.n_tile_types,
-                     }
+            ind_cls_args = {
+                    'model_cls': globals()[MODEL],
+                   'n_in_chans': self.n_tile_types,
+                   'n_actions': self.n_tile_types,
+            }
 
             self.gen_optimizer = MEOptimizer(self.gen_archive,
-                                             ind_cls=CPPNIndividual,
+                                             ind_cls=Individual,
                                              batch_size=n_emitters*batch_size,
                                              ind_cls_args=ind_cls_args,
                                              )
@@ -2340,7 +2452,6 @@ class EvoPCGRL:
                 self.gen_optimizer.tell(objs, bcs)
 #               for emitter in self.gen_optimizer.emitters:
 #
-#               TT()
 
             # Re-evaluate elite generators. If doing CMAES, re-evaluate every iteration. Otherwise, try to let the archive grow.
 
@@ -3195,7 +3306,6 @@ class EvoPCGRL:
                         if not RANDOM_INIT_LEVELS:
                             # then this will be the same as the
                             #                           if not len(eval_archive._occupied_indices) / eval_archive.bins == stats["% train archive full"]:
-                            #                               TT()
                             #                           continue
                             pass
                         else:
@@ -3333,7 +3443,8 @@ if __name__ == "__main__":
     MODEL = arg_dict["model"]
     ALGO = arg_dict["algo"]
     if ALGO == "ME":
-        assert MODEL == "CPPN"
+        # TODO: implement wrapper around other models generically
+        assert MODEL in ["CPPN", "GenCPPN", "CPPNCA"]
     else:
         assert ALGO == "CMAME"
     REPRESENTATION = arg_dict["representation"]
@@ -3368,9 +3479,8 @@ if __name__ == "__main__":
     SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
     if "CPPN" in MODEL:
-        if MODEL != "GenCPPN":
-            assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS
-        assert N_STEPS == 1
+        if MODEL not in ["GenCPPN", "CPPNCA"]:
+            assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES and N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 

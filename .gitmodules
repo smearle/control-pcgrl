@@ -7,3 +7,6 @@
 [submodule "dqd"]
 	path = dqd
 	url = git@github.com:icaros-usc/dqd
+[submodule "qdpy"]
+	path = qdpy
+	url = git@gitlab.com:smearle/qdpy

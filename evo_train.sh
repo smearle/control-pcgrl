@@ -21,9 +21,17 @@ source activate
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate evo-pcgrl
 
-i=1
-while ! python evolve.py -la 995
+start=$SECONDS
+while ! python train_ctrl.py -la 0
 do
-    echo Attempt $i failed.
-    ((i=i+1))
+    duration=$((( SECONDS - start ) / 60))
+    echo "Script returned error after $duration minutes"
+    if [ $duration -lt 60 ]
+    then
+      echo "Too soon. Something is wrong. Terminating node."
+      exit
+    else
+      echo "Re-launching script."
+      start=$SECONDS
+    fi
 done

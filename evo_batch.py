@@ -144,12 +144,9 @@ def launch_batch(exp_name, collect_params=False):
 
                                         continue
 
-                                    if 'CPPN' in model:
-                                        if model != "GenCPPN":
+                                    if 'CPPN' in model and model != "GenCPPN":
                                             # We could have more initial states, randomized initial states, and re-evaluated elites with generator-CPPNs
-                                            if n_init_states != 0 or not fix_seed or not fix_el:
-                                                continue
-                                        if n_steps != 1:
+                                        if n_init_states != 0 or not fix_seed or not fix_el or n_steps != 1:
                                             continue
 
                                     # Edit the sbatch file to load the correct config file
