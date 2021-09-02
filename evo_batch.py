@@ -56,14 +56,19 @@ local_bcs = {
 }
 models = [
     "NCA",
+    "CPPN",
     "GenCPPN",
+    "FixedGenCPPN",
+    "FeedForwardCPPN",
+    "SinCPPN",
+    "MixCPPN",
+    "GenFeedForwardCPPN",
+    "GenSinCPPN",
+    "GenMixCPPN",
     "MixNCA",
     "AuxNCA",
     "DoneAuxNCA",
     "CoordNCA",
-    "CPPN",
-    "FeedForwardCPPN",
-    "SinCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -144,9 +149,12 @@ def launch_batch(exp_name, collect_params=False):
 
                                         continue
 
-                                    if 'CPPN' in model and model != "GenCPPN":
+                                    if 'CPPN' in model and model != "GenCPPN" and model != "CPPNCA":
                                             # We could have more initial states, randomized initial states, and re-evaluated elites with generator-CPPNs
-                                        if n_init_states != 0 or not fix_seed or not fix_el or n_steps != 1:
+                                        if n_init_states != 0 or not fix_seed or not fix_el:
+                                            continue
+
+                                        if model != "CPPNCA" and n_steps != 1:
                                             continue
 
                                     # Edit the sbatch file to load the correct config file

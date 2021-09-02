@@ -953,6 +953,27 @@ class FeedForwardCPPN(ResettableNN):
         return x, True
 
 
+class GenFeedForwardCPPN(ResettableNN):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 64
+        self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        coord_x = get_coord_grid(x, normalize=True)
+        x = th.cat((x, coord_x), axis=1)
+        with th.no_grad():
+            x = th.relu(self.l1(x))
+            x = th.relu(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x, True
+
+
 class SinCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
@@ -965,6 +986,27 @@ class SinCPPN(ResettableNN):
 
     def forward(self, x):
         x = get_coord_grid(x, normalize=True) * 2
+        with th.no_grad():
+            x = th.sin(self.l1(x))
+            x = th.sin(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x, True
+
+
+class GenSinCPPN(ResettableNN):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 64
+        self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        coord_x = get_coord_grid(x, normalize=True) * 2
+        x = th.cat((x, coord_x), axis=1)
         with th.no_grad():
             x = th.sin(self.l1(x))
             x = th.sin(self.l2(x))
@@ -987,6 +1029,29 @@ class MixCPPN(ResettableNN):
 
     def forward(self, x):
         x = get_coord_grid(x, normalize=True) * 2
+        with th.no_grad():
+            x = self.mix_activ(self.l1(x))
+            x = self.mix_activ(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x, True
+
+
+class GenMixCPPN(ResettableNN):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 64
+        self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+        self.mix_activ = MixActiv()
+
+
+    def forward(self, x):
+        coord_x = get_coord_grid(x, normalize=True) * 2
+        x = th.cat((x, coord_x), axis=1)
         with th.no_grad():
             x = self.mix_activ(self.l1(x))
             x = self.mix_activ(self.l2(x))
@@ -3479,8 +3544,10 @@ if __name__ == "__main__":
     SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
     if "CPPN" in MODEL:
-        if MODEL not in ["GenCPPN", "CPPNCA"]:
-            assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES and N_STEPS == 1
+        if MODEL != "CPPNCA" and "Gen" not in MODEL:
+            assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES
+        if MODEL != "CPPNCA":
+            assert N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
