@@ -70,11 +70,12 @@ def flatten_stats(stats, generalization=False):
 
 def compile_results(settings_list):
     batch_exp_name = settings_list[0]["exp_name"]
-    if batch_exp_name == "0":
-        EVO_DIR = "evo_runs_06-12"
-    else:
-        #       EVO_DIR = "evo_runs_06-13"
-        EVO_DIR = "evo_runs_06-14"
+    EVO_DIR = "evo_runs"
+#   if batch_exp_name == "0":
+#       EVO_DIR = "evo_runs_06-12"
+#   else:
+#       #       EVO_DIR = "evo_runs_06-13"
+#       EVO_DIR = "evo_runs_06-14"
     #   ignored_keys = set(
     #       (
     #           "exp_name",
@@ -102,6 +103,7 @@ def compile_results(settings_list):
         "problem",
         "behavior_characteristics",
         "representation",
+        "model",
         "n_init_states",
         "fix_level_seeds",
         "fix_elites",
@@ -123,7 +125,7 @@ def compile_results(settings_list):
         exp_name = get_exp_name(args, arg_dict)
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
-        exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
+#       exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
         stats_f = os.path.join(exp_name, "stats.json")
         fixLvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
 

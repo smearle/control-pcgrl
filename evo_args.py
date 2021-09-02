@@ -149,6 +149,11 @@ def get_args(load_args=None):
         type=int,
         default=None,
     )
+    opts.add_argument(
+        "--algo",
+        help="Which evolutionary algorithm to run. (CMAME, ME)",
+        default="CMAME",
+    )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
     args = opts.parse_args()
@@ -190,7 +195,6 @@ def get_exp_name(args, arg_dict):
     global MODEL
     global REEVALUATE_ELITES
     global preprocess_action
-    N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]
     REPRESENTATION = arg_dict["representation"]
     CASCADE_REWARD = arg_dict["cascade_reward"]
@@ -231,7 +235,10 @@ def get_exp_name(args, arg_dict):
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch_{}-pass".format(
+    exp_name = "EvoPCGRL_"
+    if arg_dict['algo'] == "ME":
+        exp_name += "ME_"
+    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
         PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
     )
 

@@ -39,6 +39,9 @@ from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
 from torch.nn import Conv2d, CrossEntropyLoss, Linear
 from torch.utils.tensorboard import SummaryWriter
+import qdpy
+from qdpy import algorithms, containers, benchmarks, plots
+
 
 # Use for .py file
 from tqdm import tqdm
@@ -418,7 +421,7 @@ preprocess_action_funcs = {
     },
 }
 preprocess_action_funcs["CoordNCA"] = preprocess_action_funcs["AuxNCA"] = preprocess_action_funcs["NCA"]
-preprocess_action_funcs["SinCPPN"] = preprocess_action_funcs["FeedForwardCPPN"] = preprocess_action_funcs["CPPN"]
+preprocess_action_funcs["SinCPPN"] = preprocess_action_funcs["FeedForwardCPPN"] = preprocess_action_funcs["GenCPPN"] = preprocess_action_funcs["CPPN"]
 
 
 def id_observation(obs, **kwargs):
@@ -465,6 +468,36 @@ def get_init_states(init_states_archive, index):
     return init_states_archive[index]
 
 
+class MEGrid(containers.Grid):
+    def __init__(self, bin_sizes, bin_bounds):
+        super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=1,
+                                     features_domain=bin_bounds,
+                                     fitness_domain=((-np.inf, np.inf),),
+                                     )
+
+class MEOptimizer():
+    def __init__(self, grid, ind_cls, batch_size, ind_cls_args):
+        self.grid = grid
+        self.inds = []
+        for _ in range(batch_size):
+            self.inds.append(ind_cls(**ind_cls_args))
+
+    def ask(self):
+        [ind.mutate() for ind in self.inds]
+        return self.inds
+
+    def tell(self, objective_values, behavior_values):
+#       [(ind.fitness.setValues(obj), ind.fitness.features.setValues(bc)) for
+#        (ind, obj, bc) in zip(self.inds, objective_values, behavior_values)]
+        print(self.grid.fitness_domain)
+        for (ind, obj, bc) in zip(self.inds, objective_values, behavior_values):
+            print(obj)
+            ind.fitness.setValues([obj])
+            ind.features.setValues(bc)
+
+        TT()
+
+
 class InitStatesArchive(GridArchive):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
     reproduce their behavior at evaluation time (and compare it to generalization to other seeds)."""
@@ -493,29 +526,36 @@ class InitStatesArchive(GridArchive):
 
         return status, dtype_improvement
 
-class OperatorImprovementEmitter(ImprovementEmitter):
-    def __init__(self, *args, seed=None, weight_rule="truncation", **kwargs):
-        self._weight_ruls = weight_rule
-        self._seed = seed
-        super().__init__(self, *args, **kwargs)
 
-    def _check_restart(self, num_parents):
-        ret = super()._check_restart(num_parents)
-        if ret:
-            opt_seed = None if self.seed is None else self._rng.integers(10_000)
-            self.opt = CMAEvolutionStrategy(self._sigma0, self._batch_size, self._solution_dim,
-                                            self._weight_rule, opt_seed,
-                                            self.archive.dtype)
-            self.opt.reset(self._x0)
-        return ret
+class MEInitStatesArchive(MEGrid):
+    """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
+    reproduce their behavior at evaluation time (and compare it to generalization to other seeds)."""
 
-    def ask(self, *args, genome=None, **kwargs):
-        self.genome = genome
-        super().ask(*args, **kwargs)
+    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
+        super(MEInitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
+        self.init_states_archive = np.empty(
+            shape=(*bin_sizes, n_init_states, map_w, map_h)
+        )
 
-    def tell(self, *args, genome=None, **kwargs):
-        self.genome = genome
-        return super().tell(*args, **kwargs)
+    def set_init_states(self, init_states):
+        self.init_states = init_states
+
+    def add(self, solution, objective_value, behavior_values, meta, index=None):
+        status, dtype_improvement = super().add(
+            solution, objective_value, behavior_values
+        )
+
+        if index is None:
+            index = self.get_index(behavior_values)
+
+        # NOTE: for now we won't delete these when popping an elite for re-evaluation
+
+        if status != AddStatus.NOT_ADDED:
+            archive_init_states(self.init_states_archive, self.init_states, index)
+
+        return status, dtype_improvement
+
+
 
 class FlexArchive(InitStatesArchive):
     """ Subclassing a pyribs archive class to do some funky stuff."""
@@ -658,6 +698,29 @@ class ResettableNN(nn.Module):
         pass
 
 
+def gauss(x, mean=0, std=1):
+    return th.exp((-(x - mean) ** 2)/(2 * std ** 2))
+
+
+class MixActiv(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.activations = (th.sin, th.tanh, gauss, th.relu)
+        self.n_activs = len(self.activations)
+
+
+    def forward(self, x):
+        n_chan = x.shape[1]
+        chans_per_activ = n_chan / self.n_activs
+        chan_i = 0
+        xs = []
+        for i, activ in enumerate(self.activations):
+            xs.append(activ(x[:, int(chan_i):int(chan_i + chans_per_activ), :, :]))
+            chan_i += chans_per_activ
+        x = th.cat(xs, axis=1)
+        return x
+
+
 class AuxNCA(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_aux=3):
         super().__init__()
@@ -688,6 +751,7 @@ class AuxNCA(ResettableNN):
             if RENDER:
 #               im = self.last_aux[0].cpu().numpy().transpose(1,2,0)
                 aux = self.last_aux[0].cpu().numpy()
+                aux = aux / aux.max()
                 im = np.expand_dims(np.vstack(aux), axis=0)
                 im = im.transpose(1, 2, 0)
                 cv2.imshow("Auxiliary NCA", im)
@@ -725,22 +789,12 @@ class DoneAuxNCA(AuxNCA):
         self.last_aux = None
 
 
-class GeneratorNN(ResettableNN):
+class NCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
-        #       if 'zelda' in PROBLEM:
         n_hid_1 = 32
-        n_hid_2 = 16
-        #       if 'binary' in PROBLEM:
-        #           n_hid_1 = 32
-        #           n_hid_2 = 16
-        #       if PROBLEM == 'mini':
-        #           #TODO: make this smaller maybe?
-        #           n_hid_1 = 32
-        #           n_hid_2 = 16
-
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
@@ -762,6 +816,20 @@ class GeneratorNN(ResettableNN):
         # axis 0,2 is the y value
 
         return x, False
+
+class MixNCA(ResettableNN):
+    def __init__(self, *args, **kwargs):
+        super(MixNCA, self).__init__(*args, **kwargs)
+        self.mix_activ = MixActiv()
+
+    def forward(self, x):
+        with th.no_grad():
+            x = self.l1(x)
+            x = self.mix_activ(x)
+            x = self.l2(x)
+            x = self.mix_activ(x)
+            x = self.l3(x)
+            x = th.sigmoid(x)
 
 from pytorch_neat.cppn import create_cppn
 import neat
@@ -787,12 +855,11 @@ def get_coord_grid(x, normalize=False):
 class FeedForwardCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
-        n_hid = 330
+        n_hid = 64
         self.l1 = Conv2d(2, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
-        self.layers = [self.l1, self.l3]
-#       self.layers = [self.l1, self.l2, self.l3]
+        self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 
     def forward(self, x):
@@ -808,16 +875,61 @@ class FeedForwardCPPN(ResettableNN):
 class SinCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
-        n_hid = 330
+        n_hid = 64
         self.l1 = Conv2d(2, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
-        self.layers = [self.l1, self.l3]
-        #       self.layers = [self.l1, self.l2, self.l3]
+        self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 
     def forward(self, x):
         x = get_coord_grid(x, normalize=True) * 2
+        with th.no_grad():
+            x = th.sin(self.l1(x))
+            x = th.sin(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x, True
+
+
+class MixCPPN(ResettableNN):
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 64
+        self.l1 = Conv2d(2, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+        self.mix_activ = MixActiv()
+
+
+    def forward(self, x):
+        x = get_coord_grid(x, normalize=True) * 2
+        with th.no_grad():
+            x = self.mix_activ(self.l1(x))
+            x = self.mix_activ(self.l2(x))
+            x = th.sigmoid(self.l3(x))
+
+        return x, True
+
+
+class GenCPPN(ResettableNN):
+    """A fixed-topology CPPN that takes additional channels of noisey input to prompts its output.
+    Like a CoordNCA but without the repeated passes and with 1x1 rather than 3x3 kernels."""
+    # TODO: Maybe try this with 3x3 conv, just to cover our bases?
+    def __init__(self, n_in_chans, n_actions):
+        super().__init__()
+        n_hid = 64
+        self.l1 = Conv2d(2 + n_in_chans, n_hid, kernel_size=1)
+        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
+        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        coord_x = get_coord_grid(x, normalize=True) * 2
+        x = th.cat((x, coord_x), axis=1)
         with th.no_grad():
             x = th.sin(self.l1(x))
             x = th.sin(self.l2(x))
@@ -859,19 +971,30 @@ class CoordNCA(ResettableNN):
         return x, False
 
 
+class CPPNIndividual(qdpy.phenotype.Individual):
+    "An individual for mutating with operators. Assuming we're using vanilla MAP-Elites here."
+    def __init__(self, n_in_chans, n_actions):
+        super(CPPNIndividual, self).__init__()
+        self.cppn = CPPN(n_in_chans, n_actions)
+
+    def mutate(self):
+        self.cppn.mutate()
+#       self.cppn.draw_net()
+
+
 class CPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         neat_config_path = 'config_cppn'
-        neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
+        self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
                                          neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
                                          neat_config_path)
         self.n_actions = n_actions
-        neat_config.genome_config.num_outputs = n_actions
-        neat_config.genome_config.num_hidden = 2
-        genome = DefaultGenome(0)
-        genome.configure_new(neat_config.genome_config)
-        self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)]
+        self.neat_config.genome_config.num_outputs = n_actions
+        self.neat_config.genome_config.num_hidden = 2
+        self.genome = DefaultGenome(0)
+        self.genome.configure_new(self.neat_config.genome_config)
+        self.cppn = create_cppn(self.genome, self.neat_config, ['x_in', 'y_in'], ['tile_{}'.format(i) for i in range(n_actions)]
                                 )
 
 #       while len(get_init_weights(self)) < 200:
@@ -881,8 +1004,11 @@ class CPPN(ResettableNN):
 #               genome.mutate_add_node(neat_config.genome_config)
 #               self.cppn = create_cppn(genome, neat_config, ['x_in', 'y_in'],
 #                                   ['tile_{}'.format(i) for i in range(n_actions)])
+    def mutate(self):
+        self.genome.mutate(self.neat_config.genome_config)
 
-#       draw_net(neat_config, genome,  view=True, filename='cppn')
+    def draw_net(self):
+        draw_net(self.neat_config, self.genome,  view=True, filename='cppn')
 
     def forward(self, x):
         X = th.arange(x.shape[-2])
@@ -1089,6 +1215,10 @@ def get_init_weights(nn):
 
 
 def set_weights(nn, weights):
+    if ALGO == "ME":
+        # then out nn is contained in the individual
+        individual = weights  # I'm sorry mama
+        return individual.cppn
     with th.no_grad():
         n_el = 0
 
@@ -1447,7 +1577,7 @@ def multi_evo(
 
     if proc_id is not None:
         print("simulating id: {}".format(proc_id))
-    set_weights(model, model_w)
+    model = set_weights(model, model_w)
     result = simulate(
         env=env,
         model=model,
@@ -1481,7 +1611,7 @@ def multi_play_evo(
 
     if proc_id is not None:
         print("simulating id: {}".format(proc_id))
-    set_weights(player_1, player_1_w)
+    player_1 = set_weights(player_1, player_1_w)
     obj, bcs = player_simulate(
         env=env,
         n_tile_types=n_tile_types,
@@ -1871,9 +2001,13 @@ class EvoPCGRL:
 
         if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0):
             init_level_archive_args = (N_INIT_STATES, self.height, self.width)
-        #           init_level_archive_args = ()
+        else:
+            init_level_archive_args = ()
 
-        if REEVALUATE_ELITES:
+        if ALGO == "ME":
+            gen_archive_cls = MEGrid    
+
+        elif REEVALUATE_ELITES:
             # If we are constantly providing new random seeds to generators, we may want to regularly re-evaluate
             # elites
             gen_archive_cls = FlexArchive
@@ -1938,32 +2072,7 @@ class EvoPCGRL:
         n_out_chans = reps_to_out_chans[REPRESENTATION]
         n_in_chans = reps_to_in_chans[REPRESENTATION]
 
-        if MODEL == "NCA":
-            self.gen_model = GeneratorNN(
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        if MODEL == "AuxNCA":
-            self.gen_model = AuxNCA(
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-
-        elif MODEL == "CPPN":
-            self.gen_model = CPPN(
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        elif MODEL == "SinCPPN":
-            self.gen_model = SinCPPN(
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        elif MODEL == "FeedForwardCPPN":
-            self.gen_model = FeedForwardCPPN(
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        elif MODEL == "CoordNCA":
-            self.gen_model = CoordNCA(
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        elif MODEL == "CNN":
+        if MODEL == "CNN":
             # Adding n_tile_types as a dimension here. Why would this not be in the env's observation space though? Should be one-hot by default?
             observation_shape = (
                 1,
@@ -2017,7 +2126,12 @@ class EvoPCGRL:
         else:
             emitter_type = ImprovementEmitter
 
-        if args.mega:
+        batch_size = 30
+        n_emitters = 5
+        if ALGO == "ME":
+            pass
+
+        elif args.mega:
             gen_emitters = [
                 GradientImprovementEmitter(
                     self.gen_archive,
@@ -2027,9 +2141,9 @@ class EvoPCGRL:
                     stepsize=0.002,  # Initial step size.
                     gradient_optimizer="adam",
                     selection_rule="mu",
-                    batch_size=30,
+                    batch_size=batch_size,
                 )
-                for _ in range(5)  # Create 5 separate emitters.
+                for _ in range(n_emitters)  # Create 5 separate emitters.
             ]
         else:
             gen_emitters = [
@@ -2039,9 +2153,9 @@ class EvoPCGRL:
                     initial_w.flatten(),
                     # TODO: play with initial step size?
                     init_step_size,  # Initial step size.
-                    batch_size=30,
+                    batch_size=batch_size,
                 )
-                for _ in range(5)  # Create 5 separate emitters.
+                for _ in range(n_emitters)  # Create 5 separate emitters.
             ]
 
         if PLAY_LEVEL:
@@ -2059,12 +2173,25 @@ class EvoPCGRL:
                     initial_play_w.flatten(),
                     # NOTE: Big step size, shit otherwise
                     1,  # Initial step size.
-                    batch_size=30,
+                    batch_size=batch_size,
                 )
-                for _ in range(5)  # Create 5 separate emitters.
+                for _ in range(n_emitters)  # Create 5 separate emitters.
             ]
             self.play_optimizer = Optimizer(self.play_archive, play_emitters)
-        self.gen_optimizer = Optimizer(self.gen_archive, gen_emitters)
+        if ALGO == "ME":
+            if MODEL == "CPPN":
+                 ind_cls_args = {
+                        'n_in_chans': self.n_tile_types,
+                        'n_actions': self.n_tile_types,
+                     }
+
+            self.gen_optimizer = MEOptimizer(self.gen_archive,
+                                             ind_cls=CPPNIndividual,
+                                             batch_size=n_emitters*batch_size,
+                                             ind_cls_args=ind_cls_args,
+                                             )
+        else:
+            self.gen_optimizer = Optimizer(self.gen_archive, gen_emitters)
 
         # These are the initial maps which will act as seeds to our NCA models
 
@@ -2106,6 +2233,7 @@ class EvoPCGRL:
             if args.mega:
                 gen_sols = self.gen_optimizer.ask(grad_estimate=True)
             else:
+                # if algo is ME, these are "individual" objects
                 gen_sols = self.gen_optimizer.ask()
 
             # Evaluate the models and record the objectives and BCs.
@@ -2170,10 +2298,10 @@ class EvoPCGRL:
                 auto_garbage_collect()
             else:
                 for model_w in gen_sols:
-                    set_weights(self.gen_model, model_w)
+                    gen_model = set_weights(self.gen_model, model_w)
                     level_json, m_obj, m_bcs = simulate(
                         env=self.env,
-                        model=self.gen_model,
+                        model=gen_model,
                         n_tile_types=self.n_tile_types,
                         init_states=init_states,
                         bc_names=self.bc_names,
@@ -2277,11 +2405,11 @@ class EvoPCGRL:
                         # pprint.pprint(self.gen_archive.bc_hist, width=1)
                         old_el_bcs = elite_bcs[elite_i]
                         gen_model_weights = elite_models[elite_i]
-                        set_weights(self.gen_model, gen_model_weights)
+                        gen_model = set_weights(self.gen_model, gen_model_weights)
 
                         level_json, el_obj, el_bcs = simulate(
                             env=self.env,
-                            model=self.gen_model,
+                            model=gen_model,
                             n_tile_types=self.n_tile_types,
                             init_states=init_states,
                             bc_names=self.bc_names,
@@ -2313,7 +2441,7 @@ class EvoPCGRL:
 
                 for m_i in range(len(models)):
                     elite_model_w = models[m_i]
-                    set_weights(self.gen_model, elite_model_w)
+                    gen_model = set_weights(self.gen_model, elite_model_w)
                     playable_levels += gen_playable_levels(
                         self.env, self.gen_model, self.init_states, self.n_tile_types
                     )
@@ -2334,7 +2462,7 @@ class EvoPCGRL:
                             futures = [
                                 multi_play_evo.remote(
                                     self.env,
-                                    self.gen_model,
+                                    gen_model,
                                     player_w,
                                     self.n_tile_types,
                                     init_states,
@@ -2360,7 +2488,7 @@ class EvoPCGRL:
 
                             for play_w in play_sols:
                                 play_i += 1
-                                set_weights(self.play_model, play_w)
+                                play_model = set_weights(self.play_model, play_w)
                                 m_obj, m_bcs = player_simulate(
                                     env=self.env,
                                     n_tile_types=self.n_tile_types,
@@ -2411,7 +2539,7 @@ class EvoPCGRL:
                             break
 
                     # TODO: assuming an archive of one here! Make it more general, like above for generators
-                    set_weights(
+                    play_model = set_weights(
                         self.play_model, self.play_archive.get_random_elite()[0]
                     )
 
@@ -2668,7 +2796,7 @@ class EvoPCGRL:
                         axs[-col_num-1, -row_num-1].set_axis_off()
 
                         # initialize weights
-                        init_nn = set_weights(self.gen_model, model)
+                        gen_model = set_weights(self.gen_model, model)
 
                         # run simulation, but only on the first level-seed
                         #                       _, _, _, (
@@ -2679,7 +2807,7 @@ class EvoPCGRL:
                         #                       ) = simulate(
                         level_frames_i = simulate(
                             self.env,
-                            init_nn,
+                            gen_model,
                             self.n_tile_types,
                             self.init_states[0:1],
                             self.bc_names,
@@ -2966,7 +3094,7 @@ class EvoPCGRL:
                         )
 
                     # TODO: Parallelize me
-                    init_nn = set_weights(self.gen_model, model)
+                    gen_model = set_weights(self.gen_model, model)
                     level_json, batch_reward, final_bcs, (
                         time_penalty,
                         targets_penalty,
@@ -2974,7 +3102,7 @@ class EvoPCGRL:
                         diversity_bonus,
                     ) = simulate(
                         self.env,
-                        init_nn,
+                        gen_model,
                         self.n_tile_types,
                         init_states,
                         self.bc_names,
@@ -3106,7 +3234,7 @@ class EvoPCGRL:
             #           model = models[np.random.randint(len(models))]
 
             model = models[i]
-            init_nn = set_weights(self.gen_model, model)
+            gen_model = set_weights(self.gen_model, model)
 
             #           RANDOM_INIT_LEVELS = not opts.fix_level_seeds
 
@@ -3124,7 +3252,7 @@ class EvoPCGRL:
                 diversity_bonus,
             ) = simulate(
                 self.env,
-                init_nn,
+                gen_model,
                 self.n_tile_types,
                 init_states,
                 self.bc_names,
@@ -3200,8 +3328,14 @@ if __name__ == "__main__":
     global REEVALUATE_ELITES
     global preprocess_action
     global N_PROC
+    global ALGO
     N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]
+    ALGO = arg_dict["algo"]
+    if ALGO == "ME":
+        assert MODEL == "CPPN"
+    else:
+        assert ALGO == "CMAME"
     REPRESENTATION = arg_dict["representation"]
     CASCADE_REWARD = arg_dict["cascade_reward"]
     REEVALUATE_ELITES = not arg_dict["fix_elites"] and arg_dict["n_init_states"] != 0
@@ -3234,7 +3368,9 @@ if __name__ == "__main__":
     SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
     if "CPPN" in MODEL:
-        assert N_INIT_STATES == 0 and N_STEPS == 1
+        if MODEL != "GenCPPN":
+            assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS
+        assert N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
@@ -3260,7 +3396,10 @@ if __name__ == "__main__":
     exp_name += "_" + arg_dict["exp_name"]
     SAVE_PATH = os.path.join("evo_runs", exp_name)
     if MODEL not in preprocess_action_funcs:
-        preprocess_action = preprocess_action_funcs['NCA'][REPRESENTATION]
+        if "CPPN" in MODEL:
+            preprocess_action = preprocess_action_funcs['CPPN'][REPRESENTATION]
+        else:
+            preprocess_action = preprocess_action_funcs['NCA'][REPRESENTATION]
     else:
         preprocess_action = preprocess_action_funcs[MODEL][REPRESENTATION]
     if MODEL not in preprocess_observation_funcs:

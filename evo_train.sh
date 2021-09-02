@@ -22,7 +22,7 @@ source activate
 conda activate evo-pcgrl
 
 i=1
-while ! python evolve.py -la 29
+while ! python evolve.py -la 995
 do
     echo Attempt $i failed.
     ((i=i+1))

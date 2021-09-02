@@ -17,10 +17,10 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-#       "binary_ctrl",
+        "binary_ctrl",
         "zelda_ctrl",
-#       "sokoban_ctrl",
-#       "smb_ctrl"
+        "sokoban_ctrl",
+        "smb_ctrl"
 ]
 representations = [
         "cellular", 
@@ -40,8 +40,8 @@ local_bcs = {
     ],
     "zelda_ctrl": [
         ["nearest-enemy", "path-length"],
-#       ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
+        ["emptiness", "path-length"],
+        ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
         ["crate", "sol-length"],
@@ -55,12 +55,15 @@ local_bcs = {
        ],
 }
 models = [
-#   "NCA",
+    "NCA",
+    "GenCPPN",
+    "MixNCA",
     "AuxNCA",
-#   "FeedForwardCPPN",
-#   "SinCPPN",
-#   "CoordNCA",
-#   "CPPN",
+    "DoneAuxNCA",
+    "CoordNCA",
+    "CPPN",
+    "FeedForwardCPPN",
+    "SinCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -71,21 +74,21 @@ fix_elites = [
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
         True,
-#       False
+        False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
     0,
     10,
-#   20,
+    20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-#   1,
-#   10,
+    1,
+    10,
     50,
-#   100,
+    100,
 ]
 
 
@@ -141,8 +144,13 @@ def launch_batch(exp_name, collect_params=False):
 
                                         continue
 
-                                    if 'CPPN' in model and not (n_init_states == 0 and n_steps == 1 and fix_seed == True and fix_el == True):
-                                        continue
+                                    if 'CPPN' in model:
+                                        if model != "GenCPPN":
+                                            # We could have more initial states, randomized initial states, and re-evaluated elites with generator-CPPNs
+                                            if n_init_states != 0 or not fix_seed or not fix_el:
+                                                continue
+                                        if n_steps != 1:
+                                            continue
 
                                     # Edit the sbatch file to load the correct config file
 
