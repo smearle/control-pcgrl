@@ -319,7 +319,7 @@ def save_grid(csv_name="levels", d=4):
 
     fig.subplots_adjust(hspace=0.01, wspace=0.01)
     levels_png_path = os.path.join(SAVE_PATH, "{}_grid.png".format(csv_name))
-    fontsize=24
+    fontsize = 32
     fig.text(0.5, 0.01, bc_names[0], ha='center', va='center',fontsize=fontsize)
     fig.text(0.01, 0.5, bc_names[1], ha='center', va='center', rotation='vertical', fontsize=fontsize)
     plt.tight_layout(rect=[0.025, 0.025, 1, 1])
@@ -856,7 +856,8 @@ class DoneAuxNCA(AuxNCA):
         self.last_aux = None
 
 
-class NCA(ResettableNN):
+class GeneratorNN(ResettableNN):
+#class NCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions):
@@ -2299,6 +2300,11 @@ class EvoPCGRL:
                 observation_shape=observation_shape,
                 n_flat_actions=n_flat_actions,
             )
+        # TODO: remove this, just call model "NCA"
+        elif MODEL == "NCA":
+            self.gen_model = globals()["GeneratorNN"](
+                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+            )
         else:
             self.gen_model = globals()[MODEL](
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
@@ -2862,6 +2868,7 @@ class EvoPCGRL:
                 save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
             else:
                 save_path = SAVE_PATH
+            plt.tight_layout()
             plt.savefig(os.path.join(save_path, "fitness.png"))
             #       plt.gca().invert_yaxis()  # Makes more sense if larger BC_1's are on top.
 
@@ -3373,6 +3380,7 @@ class EvoPCGRL:
                     f_name = f_name + "_fixLvls"
                 f_name += ".png"
                 plt.savefig(os.path.join(SAVE_PATH, f_name))
+                plt.tight_layout()
                 plt.close()
 
             assert len(models) == len(archive._occupied_indices)

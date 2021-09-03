@@ -6,7 +6,7 @@
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
-#SBATCH --time=1:00:00
+#SBATCH --time=2:00:00
 #SBATCH --mem=50GB
 #SBATCH --job-name=evalevopcgrl
 #SBATCH --mail-type=BEGIN,END
