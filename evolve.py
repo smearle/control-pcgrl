@@ -2866,32 +2866,41 @@ class EvoPCGRL:
         assert INFER
         self.init_env()
         archive = self.gen_archive
-        df = archive.as_pandas()
-        #       high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
-        
+        if args.algo == "ME":
+            nonempty_idxs = np.stack(np.where(
+                np.isnan(archive.quality_array) == False), axis=1)
+            # Sort according to 2nd BC
+            idxs = nonempty_idxs.tolist()
+            idxs.sort(key=lambda x: x[1])
+            idxs_T = tuple(np.array(idxs).T)
+            objs = archive.quality_array[idxs_T]
+            TT()
+        else:
+            df = archive.as_pandas()
+            #       high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
+            
 
-#       if "binary" in PROBLEM:
-#           #           high_performing = df.sort_values("behavior_1", ascending=False)
-#           high_performing = df.sort_values("objective", ascending=False)
+    #       if "binary" in PROBLEM:
+    #           #           high_performing = df.sort_values("behavior_1", ascending=False)
+    #           high_performing = df.sort_values("objective", ascending=False)
 
-#       if "zelda" in PROBLEM:
-#           # path lenth
-#           #           high_performing = df.sort_values("behavior_1", ascending=False)
-#           # nearest enemies
-#           #           high_performing = df.sort_values("behavior_0", ascending=False)
-#           high_performing = df.sort_values("objective", ascending=False)
-#       else:
-#           high_performing = df.sort_values("objective", ascending=False)
+    #       if "zelda" in PROBLEM:
+    #           # path lenth
+    #           #           high_performing = df.sort_values("behavior_1", ascending=False)
+    #           # nearest enemies
+    #           #           high_performing = df.sort_values("behavior_0", ascending=False)
+    #           high_performing = df.sort_values("objective", ascending=False)
+    #       else:
+    #           high_performing = df.sort_values("objective", ascending=False)
 
-        # Assume 2nd BC is a measure of complexity
-        rows = df.sort_values("behavior_1", ascending=False)
-        models = np.array(rows.loc[:, "solution_0":])
-        bcs_0 = np.array(rows.loc[:, "behavior_0"])
-        bcs_1 = np.array(rows.loc[:, "behavior_1"])
-        objs = np.array(rows.loc[:, "objective"])
-        # FIXME: don't need these
-        idxs = np.array(rows.loc[:, "index_0":"index_1"])
-
+            # Assume 2nd BC is a measure of complexity
+            rows = df.sort_values("behavior_1", ascending=False)
+            models = np.array(rows.loc[:, "solution_0":])
+            bcs_0 = np.array(rows.loc[:, "behavior_0"])
+            bcs_1 = np.array(rows.loc[:, "behavior_1"])
+            objs = np.array(rows.loc[:, "objective"])
+            # FIXME: don't need these
+            idxs = np.array(rows.loc[:, "index_0":"index_1"])
         global N_INIT_STATES
         global N_EVAL_STATES
         global RENDER
