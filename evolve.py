@@ -230,7 +230,7 @@ def get_stats(stats):
     }
 
 
-def save_grid(csv_name="levels", d=6):
+def save_grid(csv_name="levels", d=4):
     if CMAES:
         # TODO: implement me
 
@@ -244,32 +244,43 @@ def save_grid(csv_name="levels", d=6):
     env = gym.make(env_name)
     map_width = env._prob._width
 
-    df = pd.read_csv(levels_path, header=None).rename(
-        index=str,
-        columns={
-            0: "level",
-            1: "batch_reward",
-            2: "variance",
-            3: "diversity",
-            4: "targets",
-        },
-    )
-    # rename columns containing BC values
+    df = pd.read_csv(levels_path, header=0, skipinitialspace=True)
+    #   .rename(
+#       index=str,
+#       header=0,
+#       columns={
+#           0: "level",
+#           1: "batch_reward",
+#           2: "variance",
+#           3: "diversity",
+#           4: "targets",
+#       },
+#   )
 
-    for i in range(5, len(df.columns)):
-        df = df.rename(index=str, columns={i: "bc{}".format(i - 5)})
-    df = df[df["targets"] == 0]  # select only the valid levels
+    bc_names = []
+    for i in range(5, 7):  # assume 2 BCs
+        bc_names.append(df.columns[i])
+    # look for the most valid levels
+    targets_thresh = 0.0
+    og_df = df
+    df = og_df[og_df['targets'] == targets_thresh]
+    last_len = len(df)
+    while len(df) < d**2 and targets_thresh <= df['targets'].max():
+        last_len = len(df)
+        targets_thresh += 1.0
+        df = og_df[og_df['targets'] <= targets_thresh]
     # d = 6  # dimension of rows and columns
     figw, figh = 16.0, 16.0
+    fig = plt.figure()
     fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
 
-    df_g = df.sort_values(by=["bc0", "bc1"], ascending=False)
+    df_g = df.sort_values(by=bc_names, ascending=False)
 
     df_g["row"] = np.floor(np.linspace(0, d, len(df_g), endpoint=False)).astype(int)
 
     for row_num in range(d):
         row = df_g[df_g["row"] == row_num]
-        row = row.sort_values(by=["bc1"], ascending=True)
+        row = row.sort_values(by=[bc_names[1]], ascending=True)
         row["col"] = np.arange(0, len(row), dtype=int)
         idx = np.floor(np.linspace(0, len(row) - 1, d)).astype(int)
         row = row[row["col"].isin(idx)]
@@ -278,8 +289,7 @@ def save_grid(csv_name="levels", d=6):
         grid_models = row["level"].tolist()
 
         for col_num in range(len(row)):
-#           axs[row_num, col_num].set_axis_off()
-            axs[-col_num-1, -row_num-1].set_axis_off()
+            axs[row_num, col_num].set_axis_off()
             level = np.zeros((map_width, map_width), dtype=int)
 
             for i, l_rows in enumerate(grid_models[col_num].split("], [")):
@@ -297,6 +307,10 @@ def save_grid(csv_name="levels", d=6):
 
     fig.subplots_adjust(hspace=0.01, wspace=0.01)
     levels_png_path = os.path.join(SAVE_PATH, "{}_grid.png".format(csv_name))
+    fontsize=24
+    fig.text(0.5, 0.01, bc_names[0], ha='center', va='center',fontsize=fontsize)
+    fig.text(0.01, 0.5, bc_names[1], ha='center', va='center', rotation='vertical', fontsize=fontsize)
+    plt.tight_layout(rect=[0.025, 0.025, 1, 1])
     fig.savefig(levels_png_path, dpi=300)
     plt.close()
 
@@ -426,7 +440,6 @@ preprocess_action_funcs = {
         "turtle": flat_to_turtle,
     },
 }
-preprocess_action_funcs["CoordNCA"] = preprocess_action_funcs["AuxNCA"] = preprocess_action_funcs["NCA"]
 
 
 def id_observation(obs, **kwargs):
@@ -458,10 +471,6 @@ preprocess_observation_funcs = {
         "turtle": local_observation,
     },
 }
-preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["ReluCPPN"] = \
-    preprocess_observation_funcs["SinCPPN"] = preprocess_observation_funcs["CoordNCA"] = \
-    preprocess_observation_funcs["AuxNCA"] = \
-    preprocess_observation_funcs["NCA"]
 
 @njit
 def archive_init_states(init_states_archive, init_states, index):
@@ -2811,7 +2820,6 @@ class EvoPCGRL:
     def visualize(self, itr=None):
         archive = self.gen_archive
         # # Visualize Result
-        plt.figure(figsize=(8, 6))
         #       grid_archive_heatmap(archive, vmin=self.reward_bounds[self.reward_names[0]][0], vmax=self.reward_bounds[self.reward_names[0]][1])
         #       if PROBLEM == 'binary':
         #           vmin = -20
@@ -2820,29 +2828,36 @@ class EvoPCGRL:
         #           vmin = -20
         #           vmax = 20
         #       grid_archive_heatmap(archive, vmin=vmin, vmax=vmax)
-        df_obj = archive.as_pandas()["objective"]
-        vmin = np.floor(df_obj.min())
-        vmax = np.ceil(df_obj.max())
-        grid_archive_heatmap(archive, vmin=vmin, vmax=vmax)
-
-        #       plt.gca().invert_yaxis()  # Makes more sense if larger BC_1's are on top.
-
-        if not CMAES:
-            plt.xlabel(self.bc_names[0])
-            plt.ylabel(self.bc_names[1])
-
-        if itr is not None:
-            save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+        if ALGO == "ME":
+            obj_min, obj_max = archive.fitness_extrema[0]
+            qdpy.plots.plotGridSubplots(archive.quality_array[..., 0], os.path.join(SAVE_PATH, 'fitness.pdf'),
+                                        plt.get_cmap("inferno_r"), archive.features_domain,
+                                        archive.fitness_domain[0], nbTicks=None)
         else:
-            save_path = SAVE_PATH
-        plt.savefig(os.path.join(save_path, "fitness.png"))
+            plt.figure(figsize=(8, 6))
+            df_obj = archive.as_pandas()["objective"]
+            obj_min = df_obj.min()
+            obj_max = df_obj.max()
+            vmin = np.floor(obj_min)
+            vmax = np.ceil(obj_max)
+            grid_archive_heatmap(archive, vmin=vmin, vmax=vmax)
+            if not CMAES:
+                plt.xlabel(self.bc_names[0])
+                plt.ylabel(self.bc_names[1])
+            if itr is not None:
+                save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
+            else:
+                save_path = SAVE_PATH
+            plt.savefig(os.path.join(save_path, "fitness.png"))
+            #       plt.gca().invert_yaxis()  # Makes more sense if larger BC_1's are on top.
 
-        if SHOW_VIS:
-            plt.show()
-        plt.close()
+
+            if SHOW_VIS:
+                plt.show()
+            plt.close()
 
         # Print table of results
-        df = archive.as_pandas()
+#       df = archive.as_pandas()
         # high_performing = df[df["objective"] > 200].sort_values("objective", ascending=False)
 
     #       print(df)
@@ -2925,7 +2940,8 @@ class EvoPCGRL:
                         #                           variance_penalty,
                         #                           diversity_bonus,
                         #                       ) = simulate(
-                        TT()
+
+                        TT()  # don't have a way of rendering CMAES yet??
                         level_frames_i = simulate(
                             self.env,
                             init_nn,
@@ -3118,8 +3134,9 @@ class EvoPCGRL:
                 if variance_penalty is not None:
                     reliability_scores[id_0, id_1] = variance_penalty
 
-            def save_levels(level_json, overwrite=False):
-                df = pd.DataFrame(level_json)
+            def save_levels(level_json, overwrite=False, headers=False):
+                df = pd.DataFrame.from_dict(level_json
+                                  )
                 #               df = df[df['targets'] == 0]
 
                 if overwrite:
@@ -3133,10 +3150,14 @@ class EvoPCGRL:
                     if not RANDOM_INIT_LEVELS:
                         csv_name += "_fixLvls"
                     csv_name += ".csv"
+                    if headers:
+                        header = df.columns
+                    else:
+                        header = None
                     df.to_csv(
                         os.path.join(SAVE_PATH, csv_name),
                         mode=write_mode,
-                        header=False,
+                        header=header,
                         index=False,
                     )
 
@@ -3203,7 +3224,7 @@ class EvoPCGRL:
                     id_0, id_1 = archive.get_index(np.array(final_bcs[:n_train_bcs]))
 
                     if SAVE_LEVELS:
-                        save_levels(level_json, overwrite=i == 0)
+                        save_levels(level_json, overwrite=i == 0, headers=i==0)
                     # Record directly from evolved archive since we are guaranteed to have only one elite per cell
                     record_scores(
                         id_0,
@@ -3332,10 +3353,15 @@ class EvoPCGRL:
                 plt.close()
 
             assert len(models) == len(archive._occupied_indices)
+            if ALGO == 'ME':
+                qd_score = archive.qd_score()
+            else:
+                TT()
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / archive.bins,
                 "% eval archives full": {},
+                "QD score": qd_score,
             }
 
             if not CMAES:
@@ -3554,7 +3580,10 @@ if __name__ == "__main__":
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch_{}-pass".format(
+    exp_name = "EvoPCGRL_"
+    if ALGO == "ME":
+        exp_name += "ME_"
+    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
         PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
     )
 
@@ -3583,9 +3612,6 @@ if __name__ == "__main__":
     else:
         preprocess_observation = preprocess_observation_funcs[MODEL][REPRESENTATION]
 
-    if THREADS:
-        ray.init()
-
     def init_tensorboard():
         assert not INFER
         # Create TensorBoard Log Directory if does not exist
@@ -3593,6 +3619,10 @@ if __name__ == "__main__":
         writer = SummaryWriter(LOG_NAME)
 
         return writer
+
+
+    if THREADS:
+        ray.init()
 
     try:
         try:

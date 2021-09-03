@@ -17,10 +17,10 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-        "binary_ctrl",
+#       "binary_ctrl",
         "zelda_ctrl",
-        "sokoban_ctrl",
-        "smb_ctrl"
+#       "sokoban_ctrl",
+#       "smb_ctrl"
 ]
 representations = [
         "cellular", 
@@ -39,8 +39,8 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
-        ["emptiness", "path-length"],
+#       ["nearest-enemy", "path-length"],
+#       ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
@@ -55,23 +55,24 @@ local_bcs = {
        ],
 }
 models = [
-    "NCA",
-    "CPPN",
+#   "NCA",
+#   "GenSinCPPN",
+
+#   "GenReluCPPN",
+#   "GenMixCPPN",
+
+#   "MixNCA",
+#   "AuxNCA",
+#   "DoneAuxNCA",
+#   "CoordNCA",
+
     "GenCPPN",
+#   "CPPN",
+#   "CPPNCA"
 
-    "GenReluCPPN",
-    "GenSinCPPN",
-    "GenMixCPPN",
-
-    "MixNCA",
-    "AuxNCA",
-    "DoneAuxNCA",
-    "CoordNCA",
-    "CPPNCA"
-
-    "ReluCPPN",
-    "SinCPPN",
-    "MixCPPN",
+#   "ReluCPPN",
+#   "SinCPPN",
+#   "MixCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -82,12 +83,12 @@ fix_elites = [
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
         True,
-        False
+#       False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
+#   0,
     10,
 #   20,
 ]
@@ -96,7 +97,7 @@ n_steps_lst = [
     1,
 #   10,
 #   50,
-    100,
+#   100,
 ]
 
 
@@ -152,7 +153,12 @@ def launch_batch(exp_name, collect_params=False):
 
                                         continue
 
-                                    if 'CPPN' in model and model != "GenCPPN" and model != "CPPNCA":
+                                    if model in ["CPPN", "GenCPPN", "CPPNCA"]:
+                                        algo = "ME"
+                                    else:
+                                        algo = "CMAME"
+
+                                    if 'CPPN' in model and 'Gen' not in model:
                                             # We could have more initial states, randomized initial states, and re-evaluated elites with generator-CPPNs
                                         if n_init_states != 0 or not fix_seed or not fix_el:
                                             continue
@@ -182,6 +188,7 @@ def launch_batch(exp_name, collect_params=False):
                                             "problem": prob,
                                             "representation": rep,
                                             "behavior_characteristics": bc_pair,
+                                            "algo": algo,
                                             "model": model,
                                             "fix_elites": fix_el,
                                             "fix_level_seeds": fix_seed,
