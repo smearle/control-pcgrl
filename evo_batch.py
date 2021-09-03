@@ -58,17 +58,20 @@ models = [
     "NCA",
     "CPPN",
     "GenCPPN",
-    "FixedGenCPPN",
-    "FeedForwardCPPN",
-    "SinCPPN",
-    "MixCPPN",
-    "GenFeedForwardCPPN",
+
+    "GenReluCPPN",
     "GenSinCPPN",
     "GenMixCPPN",
+
     "MixNCA",
     "AuxNCA",
     "DoneAuxNCA",
     "CoordNCA",
+    "CPPNCA"
+
+    "ReluCPPN",
+    "SinCPPN",
+    "MixCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -86,13 +89,13 @@ fix_seeds = [
 n_init_states_lst = [
     0,
     10,
-    20,
+#   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
     1,
-    10,
-    50,
+#   10,
+#   50,
     100,
 ]
 

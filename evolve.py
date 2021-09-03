@@ -458,7 +458,7 @@ preprocess_observation_funcs = {
         "turtle": local_observation,
     },
 }
-preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["FeedForwardCPPN"] = \
+preprocess_observation_funcs["CPPN"] = preprocess_observation_funcs["ReluCPPN"] = \
     preprocess_observation_funcs["SinCPPN"] = preprocess_observation_funcs["CoordNCA"] = \
     preprocess_observation_funcs["AuxNCA"] = \
     preprocess_observation_funcs["NCA"]
@@ -933,7 +933,7 @@ def get_coord_grid(x, normalize=False):
     return x
 
 
-class FeedForwardCPPN(ResettableNN):
+class ReluCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid = 64
@@ -953,7 +953,7 @@ class FeedForwardCPPN(ResettableNN):
         return x, True
 
 
-class GenFeedForwardCPPN(ResettableNN):
+class GenReluCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid = 64
@@ -1082,7 +1082,6 @@ class FixedGenCPPN(ResettableNN):
             x = th.sigmoid(self.l3(x))
 
         return x, True
-
 
 
 class CPPN(ResettableNN):
