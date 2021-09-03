@@ -38,7 +38,12 @@ runs/
 *.zip
 
 # ribs archives
-evo_runs/
+evo_runs/*
+rl_runs/*
+configs/evo/settings_*.json
+configs/rl/settings_*.json
+evopcgrl*.out
+evalevopcgrl*.out
 
 # VSCode
 .vscode/

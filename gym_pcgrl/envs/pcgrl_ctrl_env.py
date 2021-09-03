@@ -36,12 +36,14 @@ class PcgrlCtrlEnv(PcgrlEnv):
         if kwargs.get('change_percentage') == -1:
             self._max_changes = np.inf
 
-    def get_min_static_reward(self):
+    def get_max_loss(self, ctrl_metrics=[]):
         '''Upper bound on distance of level from static targets.'''
         net_max_loss = 0
         for k, v in self.static_trgs.items():
+            if k in ctrl_metrics:
+                continue
             if isinstance(v, tuple):
-                max_loss = max(abs(v[0] - self.cond_bounds[k][0]), abs(v[1] - self.cond_bounds[k][1]))
-            else: max_loss = max(abs(v - self.cond_bounds[k][0]), abs(v - self.cond_bounds[k][1]))
+                max_loss = max(abs(v[0] - self.cond_bounds[k][0]), abs(v[1] - self.cond_bounds[k][1])) * self.weights[k]
+            else: max_loss = max(abs(v - self.cond_bounds[k][0]), abs(v - self.cond_bounds[k][1])) * self.weights[k]
             net_max_loss += max_loss
         return net_max_loss

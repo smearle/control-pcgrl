@@ -55,49 +55,49 @@ local_bcs = {
        ],
 }
 models = [
-#   "NCA",
-#   "GenSinCPPN",
+    "NCA",
+    "GenSinCPPN",
 
-#   "GenReluCPPN",
-#   "GenMixCPPN",
+    "GenReluCPPN",
+    "GenMixCPPN",
 
-#   "MixNCA",
-#   "AuxNCA",
-#   "DoneAuxNCA",
-#   "CoordNCA",
+    "MixNCA",
+    "AuxNCA",
+    "DoneAuxNCA",
+    "CoordNCA",
 
     "GenCPPN",
-#   "CPPN",
-#   "CPPNCA"
+    "CPPN",
+    "CPPNCA"
 
-#   "ReluCPPN",
-#   "SinCPPN",
-#   "MixCPPN",
+    "ReluCPPN",
+    "SinCPPN",
+    "MixCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
         True, 
-#       False
+        False
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
         True,
-#       False
+        False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
+    0,
     10,
-#   20,
+    20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
     1,
-#   10,
-#   50,
-#   100,
+    10,
+    50,
+    100,
 ]
 
 

@@ -47,6 +47,9 @@ import deap.algorithms
 import qdpy
 from qdpy import algorithms, containers, benchmarks, plots, tools
 from deap.base import Toolbox
+import graphviz
+import warnings
+import copy
 
 
 # Use for .py file
@@ -98,12 +101,8 @@ https://arxiv.org/pdf/2009.01398.pdf
 RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
+TARGETS_PENALTY_WEIGHT = 10
 
-
-
-import graphviz
-import warnings
-import copy
 def draw_net(config: object, genome: object, view: object = False, filename: object = None, node_names: object = None, show_disabled: object = True,
              prune_unused: object = False,
              node_colors: object = None, fmt: object = 'svg') -> object:
@@ -203,10 +202,23 @@ def save_level_frames(level_frames, model_name):
         )
 
 
+def get_qd_score(archive, env, bc_names):
+    if ALGO == 'ME':
+        TT()  # gotta add the max loss here
+        qd_score = archive.qd_score()
+    else:
+        df = archive.as_pandas(include_solutions=False)
+        max_loss = env.get_max_loss(ctrl_metrics=bc_names)
+        max_loss = max_loss * TARGETS_PENALTY_WEIGHT
+        qd_score = (df['objective'] + max_loss).sum()
+        return qd_score
 
 
-def save_train_stats(objs, itr=None):
-    train_time_stats = {"objective": get_stats(objs)}
+def save_train_stats(objs, archive, env, bc_names, itr=None):
+    train_time_stats = {
+            "qd_score": get_qd_score(archive, env, bc_names),
+            "objective": get_stats(objs),
+            }
 
     if itr is not None:
         save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
@@ -2065,7 +2077,7 @@ def simulate(
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
-    batch_targets_penalty = 10 * batch_targets_penalty / max(N_INIT_STATES, 1)
+    batch_targets_penalty = TARGETS_PENALTY_WEIGHT * batch_targets_penalty / max(N_INIT_STATES, 1)
     # batch_targets_penalty = batch_targets_penalty / N_INIT_STATES
     batch_reward += batch_targets_penalty
 
@@ -2461,6 +2473,8 @@ class EvoPCGRL:
                         for model_w in gen_sols
                     ]
                     results += ray.get(futures)
+                    del futures
+                    auto_garbage_collect()
 
                 for result in results:
                     level_json, m_obj, m_bcs = result
@@ -2874,7 +2888,7 @@ class EvoPCGRL:
             idxs.sort(key=lambda x: x[1])
             idxs_T = tuple(np.array(idxs).T)
             objs = archive.quality_array[idxs_T]
-            TT()
+            TT()  # TODO: get and sort BCs by objectives
         else:
             df = archive.as_pandas()
             #       high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
@@ -3051,7 +3065,7 @@ class EvoPCGRL:
                 # visualize if we haven't already
                 self.visualize()
             # aggregate scores of individuals currently in the grid
-            save_train_stats(objs)
+            save_train_stats(objs, archive, self.env, self.bc_names)
 
             # The level spaces which we will attempt to map to
             problem_eval_bc_names = {
@@ -3320,13 +3334,13 @@ class EvoPCGRL:
                     if SAVE_LEVELS:
                         save_levels(level_json)
                     record_scores(
-                        archive,
                         id_0,
                         id_1,
                         batch_reward,
                         targets_penalty,
                         diversity_bonus,
                         variance_penalty,
+                        fitness_scores,
                         playability_scores,
                         diversity_scores,
                         reliability_scores,
@@ -3362,10 +3376,7 @@ class EvoPCGRL:
                 plt.close()
 
             assert len(models) == len(archive._occupied_indices)
-            if ALGO == 'ME':
-                qd_score = archive.qd_score()
-            else:
-                TT()
+            qd_score = get_qd_score(archive, self.env, self.bc_names)
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / archive.bins,
@@ -3574,7 +3585,7 @@ if __name__ == "__main__":
     N_INFER_STEPS = N_STEPS
     #   N_INFER_STEPS = 100
     RENDER_LEVELS = arg_dict["render_levels"]
-    THREADS = arg_dict["multi_thread"] or EVALUATE
+    THREADS = arg_dict["multi_thread"]  # or EVALUATE
     SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
     if "CPPN" in MODEL:
