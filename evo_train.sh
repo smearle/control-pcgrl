@@ -6,8 +6,8 @@
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
-#SBATCH --time=72:00:00
-#SBATCH --mem=170GB
+#SBATCH --time=24:00:00
+#SBATCH --mem=64GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=sam.earle@nyu.edu
@@ -22,14 +22,14 @@ source activate
 conda activate evo-pcgrl
 
 start=$SECONDS
-while ! python evolve.py -la 302
+while ! python evolve.py -la 23
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
     if [ $duration -lt 60 ]
     then
       echo "Too soon. Something is wrong. Terminating node."
-      exit
+      exit 420
     else
       echo "Re-launching script."
       start=$SECONDS
