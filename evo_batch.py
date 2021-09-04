@@ -17,8 +17,8 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-#       "binary_ctrl",
-        "zelda_ctrl",
+        "binary_ctrl",
+#       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
 ]
@@ -70,7 +70,7 @@ models = [
     "CPPN",
     "CPPNCA"
 
-    "ReluCPPN",
+    "FeedForwardCPPN",
     "SinCPPN",
     "MixCPPN",
     # "CNN"  # Doesn't learn atm
@@ -95,7 +95,7 @@ n_init_states_lst = [
 # How many steps in an episode of level editing?
 n_steps_lst = [
     1,
-    10,
+#   10,
     50,
     100,
 ]
@@ -158,10 +158,11 @@ def launch_batch(exp_name, collect_params=False):
                                     else:
                                         algo = "CMAME"
 
-                                    if 'CPPN' in model and 'Gen' not in model:
+                                    if 'CPPN' in model:
+                                        if 'Gen' not in model:
                                             # We could have more initial states, randomized initial states, and re-evaluated elites with generator-CPPNs
-                                        if n_init_states != 0 or not fix_seed or not fix_el:
-                                            continue
+                                            if n_init_states != 0 or not fix_seed or not fix_el:
+                                                continue
 
                                         if model != "CPPNCA" and n_steps != 1:
                                             continue
@@ -196,7 +197,7 @@ def launch_batch(exp_name, collect_params=False):
                                             "save_levels": False,
                                             "n_steps": n_steps,
                                             "n_init_states": n_init_states,
-                                            "n_generations": 100000,
+                                            "n_generations": 50000,
                                         }
                                     )
                                     if args.render:

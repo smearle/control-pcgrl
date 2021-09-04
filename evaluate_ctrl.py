@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from numpy import asarray
 from PIL import Image
 
-from arguments import get_args, parse_pcgrl_args, prob_cond_metrics
+from rl_args import get_args, parse_pcgrl_args, prob_cond_metrics
 from envs import make_vec_envs
 from utils import (
     get_action,
