@@ -866,7 +866,7 @@ class GeneratorNN(ResettableNN):
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
-        self.layers = [self.l1, self.l2, self.l3, l_done]
+        self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 
     def forward(self, x):
