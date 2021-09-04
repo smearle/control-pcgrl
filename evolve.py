@@ -3390,7 +3390,9 @@ class EvoPCGRL:
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / archive.bins,
+                "archive size": len(models),
                 "% eval archives full": {},
+                "eval archive sizes": {},
                 "QD score": qd_score,
             }
 
@@ -3441,6 +3443,9 @@ class EvoPCGRL:
                             / eval_archive.bins
                         }
                     )
+                    stats["eval archive sizes"].update({
+                        "-".join(bc_names): len(eval_archive._occupied_indices)
+                    })
 
             stats.update(
                 {
