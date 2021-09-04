@@ -108,12 +108,12 @@ def compile_results(settings_list):
         "behavior_characteristics",
         "model",
         "representation",
-        "model",
         "n_init_states",
         "fix_level_seeds",
         "fix_elites",
         "n_steps",
     ]
+    assert len(keys) == len(set(keys))
     col_indices = None
     data = []
     vals = []
@@ -173,6 +173,7 @@ def compile_results(settings_list):
             tpl = tuple(tpl)
         tuples[i] = tpl
 
+
     # Rename headers
     new_keys = []
 
@@ -184,7 +185,9 @@ def compile_results(settings_list):
         elif k not in new_keys:
             new_keys.append(k)
         else:
-            new_keys.append('{}_{}'.format(k, 2))
+            pass
+#           new_keys.append('{}_{}'.format(k, 2))
+    print(tuples, new_keys)
     row_indices = pd.MultiIndex.from_tuples(tuples, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
     z_cols = [col_keys["% train archive full"], col_keys["(generalize) % fresh train archive full"], col_keys["(generalize) % elites maintained"]]
