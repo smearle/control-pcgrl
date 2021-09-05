@@ -84,8 +84,8 @@ def bold_extreme_values(data, data_max=-1):
 #       return "{:.1f}".format(data)
         return "{}".format(data)
 
-    return data
-    return "{}".format(data)
+#   return data
+#   return "{}".format(data)
 
 
 def flatten_stats(stats, controllable=False):

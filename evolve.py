@@ -1913,7 +1913,10 @@ def plot_score_heatmap(scores, score_name, bc_names, cmap_str="magma", bcs_in_fi
 
     if SHOW_VIS:
         plt.show()
-    f_name = score_name + "_" + "-".join(bc_names)
+    if bcs_in_filename:
+        f_name = score_name + "_" + "-".join(bc_names)
+    else:
+        f_name = score_name
 
     if not RANDOM_INIT_LEVELS:
         f_name = f_name + "_fixLvls"
@@ -3122,21 +3125,27 @@ class EvoPCGRL:
 
             # The level spaces which we will attempt to map to
             problem_eval_bc_names = {
-                "binary": [("regions", "path-length")],
+                "binary": [
+#                   ("regions", "path-length")
+                      ],
                 "zelda": [
-                    ("nearest-enemy", "path-length"),
-                    ("symmetry", "path-length"),
-                    ("emptiness", "path-length"),
+#                   ("nearest-enemy", "path-length"),
+#                   ("symmetry", "path-length"),
+#                   ("emptiness", "path-length"),
                 ],
-                "sokoban": [("crate", "sol-length")],
-                "smb": [("emptiness", "jumps")],
+                "sokoban": [
+#                   ("crate", "sol-length")
+                ],
+                "smb": [
+#                   ("emptiness", "jumps")
+                ],
             }
 
-            for k in problem_eval_bc_names.keys():
-                problem_eval_bc_names[k] += [
-                    # ("NONE"),
-                    ("emptiness", "symmetry")
-                ]
+#           for k in problem_eval_bc_names.keys():
+#               problem_eval_bc_names[k] += [
+#                   # ("NONE"),
+#                   ("emptiness", "symmetry")
+#               ]
 
             for (k, v) in problem_eval_bc_names.items():
                 if k in PROBLEM:
@@ -3144,6 +3153,7 @@ class EvoPCGRL:
 
                     break
             # toss our elites into an archive with different BCs. For fun!
+            eval_bc_names = list(set([tuple(self.bc_names)] + eval_bc_names))
 
             if not CMAES:
                 eval_archives = [
@@ -3245,7 +3255,7 @@ class EvoPCGRL:
                 if CMAES:
                     N_EVAL_STATES = N_INIT_STATES = 100
                 else:
-                    N_EVAL_STATES = N_INIT_STATES = 100  # e.g. 10
+                    N_EVAL_STATES = N_INIT_STATES = 20  #= 100  # e.g. 10
 
                 init_states = gen_random_levels(N_INIT_STATES, self.env)
             #               init_states = np.random.randint(
@@ -3272,8 +3282,7 @@ class EvoPCGRL:
                         model_w,
                         self.n_tile_types,
                         init_states,
-                        self.bc_names
-                        + [bc for bc_names in eval_bc_names for bc in bc_names],
+                        [bc for bc_names in eval_bc_names for bc in bc_names],
                         self.static_targets,
                         seed,
                         player_1=self.player_1,
@@ -3320,7 +3329,8 @@ class EvoPCGRL:
                             # Record componentes of the fitness for each cell in each evaluation archive
                             # NOTE: assume 2 BCs per eval archive
                             eval_bcs = np.array(
-                                final_bcs[n_train_bcs + 2 * j : n_train_bcs + 2 * j + 2]
+#                               final_bcs[n_train_bcs + 2 * j : n_train_bcs + 2 * j + 2]
+                                final_bcs[2 * j: 2 * (j + 1)]
                             )
                             id_0, id_1 = eval_archive.get_index(eval_bcs)
                             # Add dummy solution weights for now
@@ -3427,7 +3437,7 @@ class EvoPCGRL:
                 for j, eval_archive in enumerate(eval_archives):
                     bc_names = eval_bc_names[j]
 
-                    if bc_names != ("NONE"):
+                    if bc_names != ("NONE") and bc_names != tuple(self.bc_names):
                         plot_score_heatmap(
                             eval_playability_scores[j], "playability", bc_names, **plot_args,
                         )
@@ -3455,11 +3465,12 @@ class EvoPCGRL:
                             #                           continue
                             pass
                         else:
-                            stats["% elites maintained"] = (
-                                pct_archive_full / stats["% train archive full"]
-                            )
-                            stats["% QD score maintained"] = get_qd_score(eval_archive, self.env, bc_names) / \
-                                                             stats["QD score"]
+                            pass
+                        stats["% elites maintained"] = (
+                            pct_archive_full / stats["% train archive full"]
+                        )
+                        stats["% QD score maintained"] = get_qd_score(eval_archive, self.env, bc_names) / \
+                                                         stats["QD score"]
 
                         stats["% fresh train archive full"] = pct_archive_full
                     n_occupied = len(eval_archive.as_pandas(include_solutions=False))

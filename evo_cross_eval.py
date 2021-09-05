@@ -12,9 +12,9 @@ from tex_formatting import pandas_to_latex, newline
 # Attempt to make shit legible
 col_keys = {
     "generations completed": "n_gen",
-    "% train archive full": "coverage (\%)",
-    "(generalize) % train archive full": "(infer) coverage (\%)",
-    "(generalize) % elites maintained": "(infer) archive maintained (\%)",
+    "% train archive full": "coverage",
+    "(generalize) % train archive full": "(infer) coverage",
+    "(generalize) % elites maintained": "(infer) archive maintained",
     "(generalize) % QD score maintained": "(infer) QD score maintained",
     "(generalize) QD score": "(infer) QD score",
 }
@@ -120,6 +120,21 @@ def compile_results(settings_list, tex=False):
         "fix_elites",
         "n_steps",
     ]
+
+    hyperparam_rename = {
+        "model" : {
+            "CPPN": "VanillaCPPN",
+            "GenCPPN": "CPPN",
+        },
+        "fix_level_seeds": {
+            True: "Fix",
+            False: "Re-sample",
+        },
+        "fix_elites": {
+            True: "Fix",
+            False: "Re-evaluate",
+        },
+    }
     assert len(hyperparams) == len(set(hyperparams))
     col_indices = None
     data = []
@@ -164,19 +179,12 @@ def compile_results(settings_list, tex=False):
     tuples = vals
     for i, tpl in enumerate(tuples):
         # Preprocess row headers
-        for j, row_header in enumerate(tpl):
-            if hyperparams[j] == 'fix_level_seeds':
-                tpl = list(tpl)
-                if row_header == True:
-                    tpl[j] = 'Fix'
-                elif row_header == False:
-                    tpl[j] = 'Re-sample'
-            if hyperparams[j] == 'fix_elites':
-                tpl = list(tpl)
-                if row_header == True:
-                    tpl[j] = 'Fix'
-                elif row_header == False:
-                    tpl[j] = 'Re-evaluate'
+        for j, hyper_val in enumerate(tpl):
+            hyper_name = hyperparams[j]
+            if hyper_name in hyperparam_rename:
+                if hyper_val in hyperparam_rename[hyper_name]:
+                    tpl = list(tpl)
+                    tpl[j] = hyperparam_rename[hyper_name][hyper_val]
             tpl = tuple(tpl)
         tuples[i] = tpl
 
@@ -202,10 +210,10 @@ def compile_results(settings_list, tex=False):
         "archive size",
         "QD score",
 #       "(generalize) % train archive full",
-        "(generalize) archive size",
-        "(generalize) QD score",
-        "(generalize) % elites maintained",
-        "(generalize) % QD score maintained",
+        "(infer) archive size",
+        "(infer) QD score",
+        "(infer) archive maintained",
+        "(infer) QD score maintained",
     ]
     z_cols = [col_keys[z] if z in col_keys else z for z in z_cols]
     # Hierarchical columns!
@@ -215,7 +223,7 @@ def compile_results(settings_list, tex=False):
             # return ('Evaluation', col)
         elif col.startswith('(generalize)'):
             # return ('Generalization', col.strip('(generalize)'))
-            return ('Generalization', ' '.join(col.split(' ')[1:]))
+            return ('Evaluation', ' '.join(col.split(' ')[1:]))
         else:
             return ('Training', col)
     for i, col in enumerate(z_cols):
@@ -246,8 +254,8 @@ def compile_results(settings_list, tex=False):
 #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
     tex_name = r"{}/cross_eval_{}.tex".format(EVO_DIR, batch_exp_name)
     df = df.round(1)
-#   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
-    df_tex = df.loc["zelda_ctrl", "nearest-enemy-path-length", :, "cellular"].round(1)
+    df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
+#   df_tex = df.loc["zelda_ctrl", "nearest-enemy-path-length", :, "cellular"].round(1)
 
     for k in z_cols:
         if k in df_tex:
