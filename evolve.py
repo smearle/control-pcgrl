@@ -3410,12 +3410,14 @@ class EvoPCGRL:
                     )
 
             assert len(models) == len(archive._occupied_indices)
-            qd_score = get_qd_score(eval_archive, self.env, self.bc_names)
+            qd_score = get_qd_score(archive, self.env, self.bc_names)
+            eval_qd_score = get_qd_score(eval_archive, self.env, self.bc_names)
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / archive.bins,
                 "archive size": len(eval_archive._occupied_indices),
                 "QD score": qd_score,
+                "eval QD score": eval_qd_score,
                 "% eval archives full": {},
                 "eval archive sizes": {},
                 "eval QD scores": {},
@@ -3469,10 +3471,9 @@ class EvoPCGRL:
                         stats["% elites maintained"] = (
                             pct_archive_full / stats["% train archive full"]
                         )
-                        stats["% QD score maintained"] = get_qd_score(eval_archive, self.env, bc_names) / \
-                                                         stats["QD score"]
+                        stats["% QD score maintained"] = stats["eval QD score"] / stats["QD score"]
 
-                        # this is the redundant guy.
+                        stats["% fresh train archive full"] = pct_archive_full
                         stats["% fresh train archive full"] = pct_archive_full
                     n_occupied = len(eval_archive.as_pandas(include_solutions=False))
                     assert n_occupied == len(eval_archive._occupied_indices)

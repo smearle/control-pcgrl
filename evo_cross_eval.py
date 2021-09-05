@@ -232,7 +232,7 @@ def compile_results(settings_list, tex=False):
         "(generalize) archive size",
         "(generalize) QD score",
         "(generalize) archive maintained",
-        "(generalize) QD score maintained",
+        "(infer) QD score maintained",
     ]
     z_cols = [col_keys[z] if z in col_keys else z for z in z_cols]
     # Hierarchical columns!
