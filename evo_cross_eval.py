@@ -15,8 +15,14 @@ col_keys = {
     "% train archive full": "coverage",
     "(generalize) % train archive full": "(infer) coverage",
     "(generalize) % elites maintained": "(infer) archive maintained",
+#   "(generalize) % elites maintained": newline("(infer) archive", "maintained"),
     "(generalize) % QD score maintained": "(infer) QD score maintained",
     "(generalize) QD score": "(infer) QD score",
+}
+
+col_key_linebreaks = {
+    'archive maintained': newline("archive", "maintained"),
+    'QD score maintained': newline("QD score", "maintained"),
 }
 
 row_idx_names = {
@@ -31,21 +37,32 @@ row_idx_names = {
 
 def bold_extreme_values(data, data_max=-1, col_name=None):
 
-    if data % 1 == 0:
-        data = "{:.0f}".format(data)
+    if data == data_max:
+        bold = True
+    else: bold = False
+
+    if "QD score" in col_name:
+        data = int(data)
+    if any(c in col_name for c in ["archive size",  "QD score"]):
+        data = "{:,}".format(data)
     else:
         data = "{:.1f}".format(data)
 
-    if data == data_max:
-        return "\\bfseries {}".format(data)
+    if bold:
+#       data = "\\cellcolor{blue!25} "
+        data = "\\bfseries {}".format(data)
+
+    print(col_name)
+    if "maintained" in col_name[1]:
+        data = "{} \%".format(data)
 
     return data
 
 
-def flatten_stats(stats, tex, generalization=False):
+def flatten_stats(stats, tex, evaluation=False):
     '''Process jsons saved for each experiment, replacing hierarchical dicts with a 1-level list of keys.
     args:
-    - generalization: True iff we're looking at stats when latents were randomized, False when agent is evaluated on
+    - evaluation: True iff we're looking at stats when latents were randomized, False when agent is evaluated on
                       latents with which it joined the archive.
     - tex: True iff we're formatting for .tex output
     '''
@@ -53,7 +70,7 @@ def flatten_stats(stats, tex, generalization=False):
     flat_stats = {}
 
     def add_key_val(key, val):
-        if generalization:
+        if evaluation:
             key = "(generalize) " + key
 
         if "%" in key:
@@ -117,14 +134,14 @@ def compile_results(settings_list, tex=False):
         "representation",
         "n_init_states",
         "fix_level_seeds",
-        "fix_elites",
+#       "fix_elites",
         "n_steps",
     ]
 
     hyperparam_rename = {
         "model" : {
             "CPPN": "VanillaCPPN",
-            "GenCPPN": "CPPN",
+            "GenSinCPPN": "CPPN",
         },
         "fix_level_seeds": {
             True: "Fix",
@@ -142,6 +159,8 @@ def compile_results(settings_list, tex=False):
 
     for i, settings in enumerate(settings_list):
         val_lst = []
+
+        bc_names = settings['behavior_characteristics']
 
         for k in hyperparams:
             if isinstance(settings[k], list):
@@ -164,7 +183,7 @@ def compile_results(settings_list, tex=False):
         stats = json.load(open(stats_f, "r"))
         fixLvl_stats = json.load(open(fixLvl_stats_f, "r"))
         flat_stats = flatten_stats(fixLvl_stats, tex=tex)
-        flat_stats.update(flatten_stats(stats, tex=tex, generalization=True))
+        flat_stats.update(flatten_stats(stats, tex=tex, evaluation=True))
 
         if col_indices is None:
             # grab columns (json keys) from any experiment's stats json, since they should all be the same
@@ -210,10 +229,10 @@ def compile_results(settings_list, tex=False):
         "archive size",
         "QD score",
 #       "(generalize) % train archive full",
-        "(infer) archive size",
-        "(infer) QD score",
-        "(infer) archive maintained",
-        "(infer) QD score maintained",
+        "(generalize) archive size",
+        "(generalize) QD score",
+        "(generalize) archive maintained",
+        "(generalize) QD score maintained",
     ]
     z_cols = [col_keys[z] if z in col_keys else z for z in z_cols]
     # Hierarchical columns!
@@ -227,11 +246,15 @@ def compile_results(settings_list, tex=False):
         else:
             return ('Training', col)
     for i, col in enumerate(z_cols):
-        z_cols[i] = hierarchicalize_col(col)
+        hier_col = hierarchicalize_col(col)
+        z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
+                           i in range(len(hier_col))])
     col_tuples = []
     for col in col_indices:
-        col_tuples.append(hierarchicalize_col(col))
-    # columns = pd.MultiIndex.from_tuples(col_tuples, names=['', newline('evaluated', 'controls'), ''])
+        hier_col = hierarchicalize_col(col)
+        col_tuples.append(tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
+                                 i in range(len(hier_col))]))
+        # columns = pd.MultiIndex.from_tuples(col_tuples, names=['', newline('evaluated', 'controls'), ''])
     col_indices = pd.MultiIndex.from_tuples(col_tuples)
     # columns = pd.MultiIndex.from_tuples(col_tuples)
     df = pd.DataFrame(data=data, index=row_indices, columns=col_indices).sort_values(by=new_keys)
@@ -244,7 +267,7 @@ def compile_results(settings_list, tex=False):
         if k in row_idx_names:
             new_keys[i] = row_idx_names[k]
     df.index.rename(new_keys, inplace=True)
-    df.rename(col_keys, axis=1)
+#   df.rename(col_keys, axis=1)
 
     df.to_csv(csv_name)
 
@@ -282,9 +305,9 @@ def compile_results(settings_list, tex=False):
         multicolumn=True,
         multicolumn_format='c|',
         escape=False,
-        caption=(
-            "Zelda, with emptiness and path-length as measures. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
-        ),
+##      caption=(
+##          "Zelda, with emptiness and path-length as measures. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
+##      ),
         label={'tbl:zelda_empty-path_cell_{}'.format(batch_exp_name)},
         bold_rows=True,
     )

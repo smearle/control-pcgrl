@@ -21,5 +21,5 @@ source activate
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
 conda activate evo-pcgrl
 
-python evolve.py -la 286
+python evolve.py -la 0
 

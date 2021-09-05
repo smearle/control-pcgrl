@@ -1695,7 +1695,7 @@ class EvoPCGRL():
                 auto_garbage_collect()
             else:
                 while i < len(models):
-                    # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
+                    # iterate through all models and record stats, on either training seeds or new ones (to test evaluation)
                     model = models[i]
                     id_0 = idxs_0[i]
                     id_1 = idxs_1[i]

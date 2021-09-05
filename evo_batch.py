@@ -18,8 +18,8 @@ RENDER_LEVELS = True
 
 problems = [
         "binary_ctrl",
-        "zelda_ctrl",
-        "sokoban_ctrl",
+#       "zelda_ctrl",
+#       "sokoban_ctrl",
 #       "smb_ctrl"
 ]
 representations = [
@@ -56,21 +56,22 @@ local_bcs = {
 }
 models = [
     "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
-    "CPPNCA"
-    "AuxNCA",
-    "DoneAuxNCA",
-    "CoordNCA",
+#   "GenSinCPPN",
+#   "GenCPPN",
+#   "CPPNCA",
+#   "AuxNCA",
+#   "DoneAuxNCA",
+#   "CoordNCA",
+#   "MixCPPN",
+#   "MixNCA",
 
-    "CPPN",
+#   "CPPN",
 
-    "GenReluCPPN",
-    "GenMixCPPN",
+#   "GenReluCPPN",
+#   "GenMixCPPN",
 
-    "FeedForwardCPPN",
-    "SinCPPN",
-    "MixCPPN",
+#   "FeedForwardCPPN",
+#   "SinCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -80,21 +81,21 @@ fix_elites = [
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
         True,
-        False
+#       False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
+#   0,
     10,
-    20,
+#   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
 #   10,
     50,
-    100,
+#   100,
 ]
 
 
@@ -297,6 +298,10 @@ if __name__ == "__main__":
         settings_list = launch_batch(EXP_NAME, collect_params=True)
     if args.cross_eval:
         compile_results(settings_list, tex=args.tex)
+        if not args.tex:
+            print("Produced html at evo_runs/cross_eval_{}.html".format(args.experiment_name))
+        else:
+            os.system('pdflatex evo_runs/tables.tex')
     elif args.gif:
         render_gifs(settings_list)
     else:

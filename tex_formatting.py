@@ -23,9 +23,9 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
     n = len(df_table.columns) + len(df_table.index[0])
 
     if right_align_first_column:
-        cols = 'r' + 'c' * (n - 1)
+        cols = 'r' + 'r' * (n - 1)
     else:
-        cols = 'c' * n
+        cols = 'r' * n
 
     if vertical_bars:
         # Add the vertical lines
@@ -42,7 +42,8 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
 
     # Multicolumn improvements - center level 1 headers and add midrules
     if multicolumn:
-        latex = latex.replace(r'{l}', r'{c}')
+        latex = latex.replace(r'{l}', r'{r}')
+        latex = latex.replace(r'{c}', r'{r}')
 
         offset = len(df_table.index[0])
         #       offset = 1

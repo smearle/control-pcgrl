@@ -573,7 +573,7 @@ class MEOptimizer():
 
 class InitStatesArchive(GridArchive):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
-    reproduce their behavior at evaluation time (and compare it to generalization to other seeds)."""
+    reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
 
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
         super(InitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
@@ -608,7 +608,7 @@ class MEGrid(containers.Grid):
 
 class MEInitStatesArchive(MEGrid):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
-    reproduce their behavior at evaluation time (and compare it to generalization to other seeds)."""
+    reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
 
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
         super(MEInitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
@@ -3361,7 +3361,7 @@ class EvoPCGRL:
                 # NOTE: Note maintaining this single-threaded code at the moment, can refactor and bring it up to date later
 
                 while i < len(models):
-                    # iterate through all models and record stats, on either training seeds or new ones (to test generalization)
+                    # iterate through all models and record stats, on either training seeds or new ones (to test evaluation)
                     model = models[i]
                     id_0, id_1 = idxs[i]
 
@@ -3410,11 +3410,11 @@ class EvoPCGRL:
                     )
 
             assert len(models) == len(archive._occupied_indices)
-            qd_score = get_qd_score(archive, self.env, self.bc_names)
+            qd_score = get_qd_score(eval_archive, self.env, self.bc_names)
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / archive.bins,
-                "archive size": len(models),
+                "archive size": len(eval_archive._occupied_indices),
                 "QD score": qd_score,
                 "% eval archives full": {},
                 "eval archive sizes": {},
@@ -3454,7 +3454,7 @@ class EvoPCGRL:
                     if bc_names == tuple(self.bc_names):
                         # in case a bug appears here, where performance differs from training to inference,
                         # include this redundant data to try and pinpoint it. Note that this is only redundant in
-                        # stats_fixLvls, though, because otherwise, we are doing generalization in the same BC space.
+                        # stats_fixLvls, though, because otherwise, we are doing evaluation in the same BC space.
                         pct_archive_full = (
                             len(eval_archive._occupied_indices) / eval_archive.bins
                         )
@@ -3472,6 +3472,7 @@ class EvoPCGRL:
                         stats["% QD score maintained"] = get_qd_score(eval_archive, self.env, bc_names) / \
                                                          stats["QD score"]
 
+                        # this is the redundant guy.
                         stats["% fresh train archive full"] = pct_archive_full
                     n_occupied = len(eval_archive.as_pandas(include_solutions=False))
                     assert n_occupied == len(eval_archive._occupied_indices)
