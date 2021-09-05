@@ -894,7 +894,7 @@ class GeneratorNN(ResettableNN):
 
 class MixNCA(ResettableNN):
     def __init__(self, *args, **kwargs):
-        super(MixNCA, self).__init__(*args, **kwargs)
+        super(MixNCA, self).__init__()
         self.mix_activ = MixActiv()
 
     def forward(self, x):
@@ -3085,8 +3085,7 @@ class EvoPCGRL:
                         )
                         if not concat_gifs:
                             save_level_frames(level_frames_i, '{}_{}'.format(row_num, col_num))
-                        else:
-                            level_frames += level_frames_i
+                        level_frames += level_frames_i
                         # Get image
                         #                       img = self.env.render(mode="rgb_array")
                         img = level_frames[-1]
