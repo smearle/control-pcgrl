@@ -39,14 +39,14 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
+#       ["nearest-enemy", "path-length"],
         ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        ["crate", "sol-length"],
+#       ["crate", "sol-length"],
         ["emptiness", "sol-length"],
-        ["symmetry", "sol-length"],
+#       ["symmetry", "sol-length"],
     ],
     "smb_ctrl": [
         ["jumps", "sol-length"],
@@ -58,17 +58,15 @@ models = [
     "NCA",
     "GenSinCPPN",
     "GenCPPN",
-
-    "GenReluCPPN",
-    "GenMixCPPN",
-
-    "MixNCA",
+    "CPPNCA"
     "AuxNCA",
     "DoneAuxNCA",
     "CoordNCA",
 
     "CPPN",
-    "CPPNCA"
+
+    "GenReluCPPN",
+    "GenMixCPPN",
 
     "FeedForwardCPPN",
     "SinCPPN",
@@ -94,7 +92,7 @@ n_init_states_lst = [
 # How many steps in an episode of level editing?
 n_steps_lst = [
     1,
-    10,
+#   10,
     50,
     100,
 ]
@@ -158,7 +156,7 @@ def launch_batch(exp_name, collect_params=False):
                                         algo = "CMAME"
 
                                     if 'CPPN' in model:
-                                        if 'Gen' not in model:
+                                        if 'Gen' not in model and model != "CPPNCA":
                                             # We could have more initial states, randomized initial states, and re-evaluated elites with generator-CPPNs
                                             if n_init_states != 0 or not fix_seed or not fix_el:
                                                 continue

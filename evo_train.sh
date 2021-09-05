@@ -22,7 +22,7 @@ source activate
 conda activate evo-pcgrl
 
 start=$SECONDS
-while ! python evolve.py -la 685
+while ! python evolve.py -la 6
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
@@ -31,7 +31,12 @@ do
       echo "Too soon. Something is wrong. Terminating node."
       exit 420
     else
-      echo "Re-launching script."
+      echo "Killing ray processes and re-launching script."
+      ray stop
+      pkill ray
+      pkill -9 ray
+      pkill python
+      pkill -9 python
       start=$SECONDS
     fi
 done
