@@ -1,52 +1,59 @@
+from pdb import set_trace as TT
 import json
 import os
-from pdb import set_trace as TT
 
-import numpy as np
 import pandas as pd
 
 from evo_args import get_args, get_exp_name
 from tex_formatting import pandas_to_latex, newline
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
-TEX = False
 
 # Attempt to make shit legible
 col_keys = {
     "generations completed": "n_gen",
     "% train archive full": "coverage (\%)",
-    "(generalize) % fresh train archive full": "(infer) coverage (\%)",
-    "(generalize) % elites maintained": "(infer) maintained (\%)",
+    "(generalize) % train archive full": "(infer) coverage (\%)",
+    "(generalize) % elites maintained": "(infer) archive maintained (\%)",
+    "(generalize) % QD score maintained": "(infer) QD score maintained",
+    "(generalize) QD score": "(infer) QD score",
 }
 
 row_idx_names = {
-    "fix_level_seeds": "Seeds",
-    "fix_elites": "Elites",
-    "n_init_states": newline("Num.", "seeds"),
-    "n_steps": "Num. steps",
+    "fix_level_seeds": "latents",
+    "fix_elites": "elites",
+    "n_init_states": newline("n.", "latents"),
+    "n_steps": newline("n.", "steps"),
 }
 
 # flatten the dictionary here
 
 
-def bold_extreme_values(data, data_max=-1):
+def bold_extreme_values(data, data_max=-1, col_name=None):
+
+    if data % 1 == 0:
+        data = "{:.0f}".format(data)
+    else:
+        data = "{:.1f}".format(data)
 
     if data == data_max:
-        return "\\bfseries {:.1f}".format(data)
-
-    else:
-        return "{:.1f}".format(data)
+        return "\\bfseries {}".format(data)
 
     return data
 
 
-def flatten_stats(stats, generalization=False):
-    '''Process jsons saved for each experiment, replacing hierarchical dicts with a 1-level list of keys'''
+def flatten_stats(stats, tex, generalization=False):
+    '''Process jsons saved for each experiment, replacing hierarchical dicts with a 1-level list of keys.
+    args:
+    - generalization: True iff we're looking at stats when latents were randomized, False when agent is evaluated on
+                      latents with which it joined the archive.
+    - tex: True iff we're formatting for .tex output
+    '''
     # TODO: maybe we can derive multicolumn hierarchy from this directly?
     flat_stats = {}
 
     def add_key_val(key, val):
-        if generalization and key != "% train archive full":
+        if generalization:
             key = "(generalize) " + key
 
         if "%" in key:
@@ -54,7 +61,7 @@ def flatten_stats(stats, generalization=False):
         elif "playability" in key:
             val /= 10
 
-        if TEX and key in col_keys:
+        if tex and key in col_keys:
             key = col_keys[key]
         flat_stats[key] = val
 
@@ -72,7 +79,7 @@ def flatten_stats(stats, generalization=False):
     return flat_stats
 
 
-def compile_results(settings_list):
+def compile_results(settings_list, tex=False):
     batch_exp_name = settings_list[0]["exp_name"]
     EVO_DIR = "evo_runs"
 #   if batch_exp_name == "0":
@@ -103,7 +110,7 @@ def compile_results(settings_list):
     #   for k in settings_list[0].keys():
     #       if k not in ignored_keys:
     #           keys.append(k)
-    keys = [
+    hyperparams = [
         "problem",
         "behavior_characteristics",
         "model",
@@ -113,7 +120,7 @@ def compile_results(settings_list):
         "fix_elites",
         "n_steps",
     ]
-    assert len(keys) == len(set(keys))
+    assert len(hyperparams) == len(set(hyperparams))
     col_indices = None
     data = []
     vals = []
@@ -121,7 +128,7 @@ def compile_results(settings_list):
     for i, settings in enumerate(settings_list):
         val_lst = []
 
-        for k in keys:
+        for k in hyperparams:
             if isinstance(settings[k], list):
                 val_lst.append("-".join(settings[k]))
             else:
@@ -141,8 +148,8 @@ def compile_results(settings_list):
         data.append([])
         stats = json.load(open(stats_f, "r"))
         fixLvl_stats = json.load(open(fixLvl_stats_f, "r"))
-        flat_stats = flatten_stats(fixLvl_stats)
-        flat_stats.update(flatten_stats(stats, generalization=True))
+        flat_stats = flatten_stats(fixLvl_stats, tex=tex)
+        flat_stats.update(flatten_stats(stats, tex=tex, generalization=True))
 
         if col_indices is None:
             # grab columns (json keys) from any experiment's stats json, since they should all be the same
@@ -158,13 +165,13 @@ def compile_results(settings_list):
     for i, tpl in enumerate(tuples):
         # Preprocess row headers
         for j, row_header in enumerate(tpl):
-            if keys[j] == 'fix_level_seeds':
+            if hyperparams[j] == 'fix_level_seeds':
                 tpl = list(tpl)
                 if row_header == True:
                     tpl[j] = 'Fix'
                 elif row_header == False:
                     tpl[j] = 'Re-sample'
-            if keys[j] == 'fix_elites':
+            if hyperparams[j] == 'fix_elites':
                 tpl = list(tpl)
                 if row_header == True:
                     tpl[j] = 'Fix'
@@ -179,8 +186,8 @@ def compile_results(settings_list):
 
 
 
-    for k in keys:
-        if TEX and k in col_keys:
+    for k in hyperparams:
+        if tex and k in col_keys:
             new_keys.append(col_keys[k])
         elif k not in new_keys:
             new_keys.append(k)
@@ -190,7 +197,17 @@ def compile_results(settings_list):
     print(tuples, new_keys)
     row_indices = pd.MultiIndex.from_tuples(tuples, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
-    z_cols = [col_keys["% train archive full"], col_keys["(generalize) % fresh train archive full"], col_keys["(generalize) % elites maintained"]]
+    z_cols = [
+#       "% train archive full",
+        "archive size",
+        "QD score",
+#       "(generalize) % train archive full",
+        "(generalize) archive size",
+        "(generalize) QD score",
+        "(generalize) % elites maintained",
+        "(generalize) % QD score maintained",
+    ]
+    z_cols = [col_keys[z] if z in col_keys else z for z in z_cols]
     # Hierarchical columns!
     def hierarchicalize_col(col):
         if col.startswith('(infer)'):
@@ -198,7 +215,7 @@ def compile_results(settings_list):
             # return ('Evaluation', col)
         elif col.startswith('(generalize)'):
             # return ('Generalization', col.strip('(generalize)'))
-            return ('Generalization', col)
+            return ('Generalization', ' '.join(col.split(' ')[1:]))
         else:
             return ('Training', col)
     for i, col in enumerate(z_cols):
@@ -215,33 +232,38 @@ def compile_results(settings_list):
     html_name = r"{}/cross_eval_{}.html".format(EVO_DIR, batch_exp_name)
     df.to_html(html_name)
     print(df)
-#   for i, k in enumerate(new_keys):
-#       if k in row_idx_names:
-#           new_keys[i] = row_idx_names[k]
-#   df.index.rename(new_keys, inplace=True)
+    for i, k in enumerate(new_keys):
+        if k in row_idx_names:
+            new_keys[i] = row_idx_names[k]
+    df.index.rename(new_keys, inplace=True)
     df.rename(col_keys, axis=1)
 
     df.to_csv(csv_name)
 
-    if not TEX:
+    if not tex:
         return
 
 #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
-    tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(EVO_DIR, batch_exp_name)
+    tex_name = r"{}/cross_eval_{}.tex".format(EVO_DIR, batch_exp_name)
     df = df.round(1)
-    df_zelda = df.loc["zelda_ctrl", "emptiness-path-length", "cellular"].round(1)
+#   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
+    df_tex = df.loc["zelda_ctrl", "nearest-enemy-path-length", :, "cellular"].round(1)
 
     for k in z_cols:
-        if k in df_zelda:
-            df_zelda[k] = df_zelda[k].apply(
-                lambda data: bold_extreme_values(data, data_max=df_zelda[k].max())
+        if k in df_tex:
+            df_tex[k] = df_tex[k].apply(
+                lambda data: bold_extreme_values(data, data_max=df_tex[k].max(), col_name=k)
             )
-    df_zelda = df_zelda.round(1)
+    df_tex = df_tex.round(1)
     df.reset_index(level=0, inplace=True)
-    print(df_zelda)
+    print(df_tex)
     col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}p{0.8cm}"
+    print('Col names:')
+    [print(z) for z in df_tex.columns]
+    print('z_col names:')
+    [print(z) for z in z_cols]
     pandas_to_latex(
-        df_zelda,
+        df_tex,
         tex_name,
         index=True,
         header=True,

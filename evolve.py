@@ -243,6 +243,12 @@ def get_stats(stats):
 
 
 def save_grid(csv_name="levels", d=4):
+    fontsize = 32
+    if "zelda" in PROBLEM:
+        d = 3
+        fontsize = int(fontsize * d / 4)
+    elif "smb" in PROBLEM:
+        d = 4
     if CMAES:
         # TODO: implement me
 
@@ -277,10 +283,11 @@ def save_grid(csv_name="levels", d=4):
     og_df = df
     df = og_df[og_df['targets'] == targets_thresh]
     last_len = len(df)
-    while len(df) < d**2 and targets_thresh <= df['targets'].max():
+    while len(df) < d**2 and targets_thresh > og_df['targets'].min():
         last_len = len(df)
-        targets_thresh += 1.0
-        df = og_df[og_df['targets'] <= targets_thresh]
+        # Raise the threshold so it includes at least one more individual
+        targets_thresh = og_df[og_df['targets'] < targets_thresh]['targets'].max()
+        df = og_df[og_df['targets'] >= targets_thresh]
     # d = 6  # dimension of rows and columns
     figw, figh = 16.0, 16.0
     fig = plt.figure()
@@ -319,7 +326,6 @@ def save_grid(csv_name="levels", d=4):
 
     fig.subplots_adjust(hspace=0.01, wspace=0.01)
     levels_png_path = os.path.join(SAVE_PATH, "{}_grid.png".format(csv_name))
-    fontsize = 32
     fig.text(0.5, 0.01, bc_names[0], ha='center', va='center',fontsize=fontsize)
     fig.text(0.01, 0.5, bc_names[1], ha='center', va='center', rotation='vertical', fontsize=fontsize)
     plt.tight_layout(rect=[0.025, 0.025, 1, 1])
@@ -1881,18 +1887,53 @@ def player_simulate(
 
     return reward, bcs
 
+def plot_score_heatmap(scores, score_name, bc_names, cmap_str="magma", bcs_in_filename=True,
+                       lower_bounds=None, upper_bounds=None,
+                       x_bounds=None, y_bounds=None):
+    scores = scores.T
+    ax = plt.gca()
+    ax.set_xlim(lower_bounds[0], upper_bounds[0])
+    ax.set_ylim(lower_bounds[1], upper_bounds[1])
+    label_fontdict = {
+        'fontsize': 16,
+    }
+    ax.set_xlabel(bc_names[0], fontdict=label_fontdict)
+    ax.set_ylabel(bc_names[1], fontdict=label_fontdict)
+    vmin = np.nanmin(scores)
+    vmax = np.nanmax(scores)
+    t = ax.pcolormesh(
+        x_bounds,
+        y_bounds,
+        scores,
+        cmap=matplotlib.cm.get_cmap(cmap_str),
+        vmin=vmin,
+        vmax=vmax,
+    )
+    ax.figure.colorbar(t, ax=ax, pad=0.1)
+
+    if SHOW_VIS:
+        plt.show()
+    f_name = score_name + "_" + "-".join(bc_names)
+
+    if not RANDOM_INIT_LEVELS:
+        f_name = f_name + "_fixLvls"
+    f_name += ".png"
+    plt.title(score_name, fontdict={'fontsize': 24})
+    plt.tight_layout()
+    plt.savefig(os.path.join(SAVE_PATH, f_name))
+    plt.close()
 
 def simulate(
-    env,
-    model,
-    n_tile_types,
-    init_states,
-    bc_names,
-    static_targets,
-    seed=None,
-    player_1=None,
-    player_2=None,
-    render_levels=False
+        env,
+        model,
+        n_tile_types,
+        init_states,
+        bc_names,
+        static_targets,
+        seed=None,
+        player_1=None,
+        player_2=None,
+        render_levels=False
 ):
     """
     Function to run a single trajectory and return results.
@@ -2863,13 +2904,17 @@ class EvoPCGRL:
             vmin = np.floor(obj_min)
             vmax = np.ceil(obj_max)
             grid_archive_heatmap(archive, vmin=vmin, vmax=vmax)
+            label_fontdict = {
+                'fontsize': 16,
+            }
             if not CMAES:
-                plt.xlabel(self.bc_names[0])
-                plt.ylabel(self.bc_names[1])
+                plt.xlabel(self.bc_names[0], fontdict=label_fontdict)
+                plt.ylabel(self.bc_names[1], fontdict=label_fontdict)
             if itr is not None:
                 save_path = os.path.join(SAVE_PATH, "checkpoint_{}".format(itr))
             else:
                 save_path = SAVE_PATH
+            plt.title('fitness', fontdict={'fontsize': 24})
             plt.tight_layout()
             plt.savefig(os.path.join(save_path, "fitness.png"))
             #       plt.gca().invert_yaxis()  # Makes more sense if larger BC_1's are on top.
@@ -3355,72 +3400,52 @@ class EvoPCGRL:
                         reliability_scores,
                     )
 
-            def plot_score_heatmap(scores, score_name, bc_names, cmap_str="magma"):
-                scores = scores.T
-                ax = plt.gca()
-                ax.set_xlim(lower_bounds[0], upper_bounds[0])
-                ax.set_ylim(lower_bounds[1], upper_bounds[1])
-                ax.set_xlabel(bc_names[0])
-                ax.set_ylabel(bc_names[1])
-                vmin = np.nanmin(scores)
-                vmax = np.nanmax(scores)
-                t = ax.pcolormesh(
-                    x_bounds,
-                    y_bounds,
-                    scores,
-                    cmap=matplotlib.cm.get_cmap(cmap_str),
-                    vmin=vmin,
-                    vmax=vmax,
-                )
-                ax.figure.colorbar(t, ax=ax, pad=0.1)
-
-                if SHOW_VIS:
-                    plt.show()
-                f_name = score_name + "_" + "-".join(bc_names)
-
-                if not RANDOM_INIT_LEVELS:
-                    f_name = f_name + "_fixLvls"
-                f_name += ".png"
-                plt.savefig(os.path.join(SAVE_PATH, f_name))
-                plt.tight_layout()
-                plt.close()
-
             assert len(models) == len(archive._occupied_indices)
             qd_score = get_qd_score(archive, self.env, self.bc_names)
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / archive.bins,
                 "archive size": len(models),
+                "QD score": qd_score,
                 "% eval archives full": {},
                 "eval archive sizes": {},
-                "QD score": qd_score,
+                "eval QD scores": {},
             }
 
             if not CMAES:
-                plot_score_heatmap(playability_scores, "playability", self.bc_names)
-                plot_score_heatmap(diversity_scores, "diversity", self.bc_names)
-                plot_score_heatmap(reliability_scores, "reliability", self.bc_names)
-                plot_score_heatmap(fitness_scores, "fitness_eval", self.bc_names)
+                plot_args = {
+                    'lower_bounds': lower_bounds,
+                    'upper_bounds': upper_bounds,
+                    'x_bounds': x_bounds,
+                    'y_bounds': y_bounds,
+                }
+                plot_score_heatmap(playability_scores, "playability", self.bc_names, **plot_args,
+                                   bcs_in_filename=False)
+                plot_score_heatmap(diversity_scores, "diversity", self.bc_names, **plot_args, bcs_in_filename=False)
+                plot_score_heatmap(reliability_scores, "reliability", self.bc_names, **plot_args, bcs_in_filename=False)
+                plot_score_heatmap(fitness_scores, "fitness_eval", self.bc_names, **plot_args, bcs_in_filename=False)
 
                 for j, eval_archive in enumerate(eval_archives):
                     bc_names = eval_bc_names[j]
 
                     if bc_names != ("NONE"):
                         plot_score_heatmap(
-                            eval_playability_scores[j], "playability", bc_names
+                            eval_playability_scores[j], "playability", bc_names, **plot_args,
                         )
                         plot_score_heatmap(
-                            eval_diversity_scores[j], "diversity", bc_names
+                            eval_diversity_scores[j], "diversity", bc_names, **plot_args,
                         )
                         plot_score_heatmap(
-                            eval_reliability_scores[j], "reliability", bc_names
+                            eval_reliability_scores[j], "reliability", bc_names, **plot_args,
                         )
                         plot_score_heatmap(
-                            eval_fitness_scores[j], "fitness_eval", bc_names
+                            eval_fitness_scores[j], "fitness_eval", bc_names, **plot_args,
                         )
 
                     if bc_names == tuple(self.bc_names):
-                        # FIXME: there's a bug somewhere here, include this redundant data to try and pinpoint it
+                        # in case a bug appears here, where performance differs from training to inference,
+                        # include this redundant data to try and pinpoint it. Note that this is only redundant in
+                        # stats_fixLvls, though, because otherwise, we are doing generalization in the same BC space.
                         pct_archive_full = (
                             len(eval_archive._occupied_indices) / eval_archive.bins
                         )
@@ -3434,17 +3459,22 @@ class EvoPCGRL:
                             stats["% elites maintained"] = (
                                 pct_archive_full / stats["% train archive full"]
                             )
+                            stats["% QD score maintained"] = get_qd_score(eval_archive, self.env, bc_names) / \
+                                                             stats["QD score"]
+
                         stats["% fresh train archive full"] = pct_archive_full
                     n_occupied = len(eval_archive.as_pandas(include_solutions=False))
                     assert n_occupied == len(eval_archive._occupied_indices)
+                    bcs_key = "-".join(bc_names)
                     stats["% eval archives full"].update(
                         {
-                            "-".join(bc_names): len(eval_archive._occupied_indices)
-                            / eval_archive.bins
-                        }
-                    )
+                            bcs_key: len(eval_archive._occupied_indices) / eval_archive.bins
+                    })
                     stats["eval archive sizes"].update({
-                        "-".join(bc_names): len(eval_archive._occupied_indices)
+                        bcs_key: len(eval_archive._occupied_indices)
+                    })
+                    stats["eval QD scores"].update({
+                        bcs_key: get_qd_score(eval_archive, self.env, bc_names)
                     })
 
             stats.update(
@@ -3564,6 +3594,7 @@ if __name__ == "__main__":
     global preprocess_action
     global N_PROC
     global ALGO
+    CONCAT_GIFS = False
     N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]
     ALGO = arg_dict["algo"]
@@ -3679,11 +3710,11 @@ if __name__ == "__main__":
             #           if not RANDOM_INIT_LEVELS:
             # evaluate on initial level seeds that each generator has seen before
             RANDOM_INIT_LEVELS = False
-            evolver.infer()
+            evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels_fixLvls")
             # evaluate on random initial level seeds
             RANDOM_INIT_LEVELS = True
-            evolver.infer()
+            evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels")
         #           save_grid(csv_name="levels")
 

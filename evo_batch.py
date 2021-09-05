@@ -18,8 +18,8 @@ RENDER_LEVELS = True
 
 problems = [
         "binary_ctrl",
-#       "zelda_ctrl",
-#       "sokoban_ctrl",
+        "zelda_ctrl",
+        "sokoban_ctrl",
 #       "smb_ctrl"
 ]
 representations = [
@@ -34,13 +34,13 @@ global_bcs: List[List] = [
 ]
 local_bcs = {
     "binary_ctrl": [
-        ["regions", "path-length"],
-        ["emptiness", "path-length"],
+#       ["regions", "path-length"],
+#       ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
-#       ["emptiness", "path-length"],
+        ["nearest-enemy", "path-length"],
+        ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
@@ -56,23 +56,23 @@ local_bcs = {
 }
 models = [
     "NCA",
-#   "GenSinCPPN",
+    "GenSinCPPN",
+    "GenCPPN",
 
-#   "GenReluCPPN",
-#   "GenMixCPPN",
+    "GenReluCPPN",
+    "GenMixCPPN",
 
-#   "MixNCA",
-#   "AuxNCA",
-#   "DoneAuxNCA",
-#   "CoordNCA",
+    "MixNCA",
+    "AuxNCA",
+    "DoneAuxNCA",
+    "CoordNCA",
 
-#   "GenCPPN",
-#   "CPPN",
-#   "CPPNCA"
+    "CPPN",
+    "CPPNCA"
 
-#   "FeedForwardCPPN",
-#   "SinCPPN",
-#   "MixCPPN",
+    "FeedForwardCPPN",
+    "SinCPPN",
+    "MixCPPN",
     # "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
@@ -87,14 +87,14 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
+    0,
     10,
     20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-#   1,
-#   10,
+    1,
+    10,
     50,
     100,
 ]
@@ -280,6 +280,12 @@ if __name__ == "__main__":
         action="store_true",
     )
     opts.add_argument(
+        "-tex",
+        "--tex",
+        help="If compiling cross-eval results, produce latex table (otherwise html).",
+        action="store_true",
+    )
+    opts.add_argument(
         "--gif",
         help="Make gifs from previously-rendered level-generation episodes.",
         action="store_true",
@@ -292,7 +298,7 @@ if __name__ == "__main__":
     if args.cross_eval or args.gif:
         settings_list = launch_batch(EXP_NAME, collect_params=True)
     if args.cross_eval:
-        compile_results(settings_list)
+        compile_results(settings_list, tex=args.tex)
     elif args.gif:
         render_gifs(settings_list)
     else:
