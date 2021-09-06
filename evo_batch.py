@@ -17,8 +17,8 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-        "binary_ctrl",
-#       "zelda_ctrl",
+#       "binary_ctrl",
+        "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
 ]
@@ -40,13 +40,13 @@ local_bcs = {
     ],
     "zelda_ctrl": [
 #       ["nearest-enemy", "path-length"],
-        ["emptiness", "path-length"],
+#       ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-#       ["crate", "sol-length"],
+        ["crate", "sol-length"],
         ["emptiness", "sol-length"],
-#       ["symmetry", "sol-length"],
+        ["symmetry", "sol-length"],
     ],
     "smb_ctrl": [
         ["jumps", "sol-length"],
@@ -57,8 +57,8 @@ local_bcs = {
 models = [
     "NCA",
     "GenSinCPPN",
-#   "GenCPPN",
-#   "CPPNCA",
+    "GenCPPN",
+    "CPPNCA",
 #   "AuxNCA",
 #   "DoneAuxNCA",
 #   "CoordNCA",
@@ -86,7 +86,7 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
+    0,
     10,
     20,
 ]
@@ -208,11 +208,15 @@ def launch_batch(exp_name, collect_params=False):
                                         )
 
                                     elif EVALUATE:
+                                        # No real point a mapping that takes only one-step (unless we're debugging latent seeds, in which case just use more steps)
+                                        render_levels = RENDER_LEVELS and n_steps > 1
+                                        # ... Also, because this isn't compatible with qdpy at the moment
+                                        render_levels = RENDER_LEVELS and algo != "ME"
                                         exp_config.update(
                                             {
                                                 "infer": True,
                                                 "evaluate": True,
-                                                "render_levels": RENDER_LEVELS,
+                                                "render_levels": render_levels,
                                                 "save_levels": True,
                                                 "visualize": True,
                                             }
