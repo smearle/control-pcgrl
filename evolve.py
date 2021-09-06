@@ -27,7 +27,7 @@ import torch as th
 import torch.nn.functional as F
 from gym import envs
 from numba import njit
-from qdpy.phenotype import Fitness
+from qdpy.phenotype import Fitness, Features
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
 from ribs.emitters import (
@@ -203,15 +203,17 @@ def save_level_frames(level_frames, model_name):
 
 
 def get_qd_score(archive, env, bc_names):
+    max_loss = env.get_max_loss(ctrl_metrics=bc_names)
+    max_loss = max_loss * TARGETS_PENALTY_WEIGHT
     if ALGO == 'ME':
-        TT()  # gotta add the max loss here
-        qd_score = archive.qd_score()
+        # qd_score = archive.qd_score()  # we need to specify lower *and upper* bounds for this
+        # TODO: work out max diversity bonus to make this possible ?? Would this bias scores between n. latent seeds
+        #   though?
+        qd_score = np.nansum(archive.quality_array + max_loss)
     else:
         df = archive.as_pandas(include_solutions=False)
-        max_loss = env.get_max_loss(ctrl_metrics=bc_names)
-        max_loss = max_loss * TARGETS_PENALTY_WEIGHT
         qd_score = (df['objective'] + max_loss).sum()
-        return qd_score
+    return qd_score
 
 
 def save_train_stats(objs, archive, env, bc_names, itr=None):
@@ -605,6 +607,18 @@ class MEGrid(containers.Grid):
                                      features_domain=bin_bounds,
                                      fitness_domain=((-np.inf, np.inf),),
                                      )
+
+        # pyribs compatibility
+        def get_index(self, bcs):
+            return self.index_grid(features=bcs)
+
+    def add(self, item):
+        # We'll clip the feature calues at the extremes
+        # TODO: what's happening in this case using pyribs?
+        item.features.setValues([np.clip(item.features.values[i], *self.features_domain[i])
+                                 for i in range(len(item.features.values))])
+        return super(MEGrid, self).add(item)
+
 
 class MEInitStatesArchive(MEGrid):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
@@ -2940,31 +2954,21 @@ class EvoPCGRL:
         if args.algo == "ME":
             nonempty_idxs = np.stack(np.where(
                 np.isnan(archive.quality_array) == False), axis=1)
+            # Assume 2nd BC is a measure of complexity
             # Sort according to 2nd BC
             idxs = nonempty_idxs.tolist()
             idxs.sort(key=lambda x: x[1])
             idxs_T = tuple(np.array(idxs).T)
             objs = archive.quality_array[idxs_T]
-            TT()  # TODO: get and sort BCs by objectives
+            # Get list of individuals in same order. First get list of features belonging to individuals in bin,
+            # then get individual by bin-coordinate
+            bcs = [archive.features[tuple(idx[:-1])][idx[-1]].values for idx in idxs]
+            models = [archive.solutions[tuple(idx[:-1])][idx[-1]] for idx in idxs]
+            # Get rid of bin coordinate for our purposes
+            # TODO: for more flexibility, instead adapt the below to get this bin coordinate
+            idxs = [idx[:-1] for idx in idxs]
         else:
             df = archive.as_pandas()
-            #       high_performing = df[df["behavior_1"] > 50].sort_values("behavior_1", ascending=False)
-            
-
-    #       if "binary" in PROBLEM:
-    #           #           high_performing = df.sort_values("behavior_1", ascending=False)
-    #           high_performing = df.sort_values("objective", ascending=False)
-
-    #       if "zelda" in PROBLEM:
-    #           # path lenth
-    #           #           high_performing = df.sort_values("behavior_1", ascending=False)
-    #           # nearest enemies
-    #           #           high_performing = df.sort_values("behavior_0", ascending=False)
-    #           high_performing = df.sort_values("objective", ascending=False)
-    #       else:
-    #           high_performing = df.sort_values("objective", ascending=False)
-
-            # Assume 2nd BC is a measure of complexity
             rows = df.sort_values("behavior_1", ascending=False)
             models = np.array(rows.loc[:, "solution_0":])
             bcs_0 = np.array(rows.loc[:, "behavior_0"])
@@ -3021,6 +3025,7 @@ class EvoPCGRL:
                         #                           diversity_bonus,
                         #                       ) = simulate(
 
+                        raise NotImplementedError
                         TT()  # don't have a way of rendering CMAES yet??
                         level_frames_i = simulate(
                             self.env,
@@ -3156,29 +3161,43 @@ class EvoPCGRL:
             eval_bc_names = list(set([tuple(self.bc_names)] + eval_bc_names))
 
             if not CMAES:
-                eval_archives = [
-                    GridArchive(
-                        # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
-                        # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
-                        [100 for _ in eval_bcs],
-                        # min/max for each BC
-                        [self.bc_bounds[bc_name] for bc_name in eval_bcs],
-                    )
-                    for eval_bcs in eval_bc_names
-                ]
-                [
-                    eval_archive.initialize(solution_dim=len(models[0]))
-                    for eval_archive in eval_archives
-                ]
+                if ALGO == "ME":
+                    eval_archives = [
+                        MEGrid(
+                            [N_BINS for _ in eval_bcs],
+                            [self.bc_bounds[bc_name] for bc_name in eval_bcs],
+                        )
+                        for eval_bcs in eval_bc_names
+                    ]
+                else:
+                    eval_archives = [
+                        GridArchive(
+                            # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
+                            # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
+                            [N_BINS for _ in eval_bcs],
+                            # min/max for each BC
+                            [self.bc_bounds[bc_name] for bc_name in eval_bcs],
+                        )
+                        for eval_bcs in eval_bc_names
+                    ]
+                    [
+                        eval_archive.initialize(solution_dim=len(models[0]))
+                        for eval_archive in eval_archives
+                    ]
 
             RENDER = False
             # Iterate through our archive of trained elites, evaluating them and storing stats about them.
             # Borrowing logic from grid_archive_heatmap from pyribs.
 
             # Retrieve data from archive
-            lower_bounds = archive.lower_bounds
-            upper_bounds = archive.upper_bounds
-            x_dim, y_dim = archive.dims
+            if ALGO == 'ME':
+                lower_bounds = [archive.features_domain[i][0] for i in range(len(archive.features_domain))]
+                upper_bounds = [archive.features_domain[i][1] for i in range(len(archive.features_domain))]
+                x_dim, y_dim = archive.shape
+            else:
+                lower_bounds = archive.lower_bounds
+                upper_bounds = archive.upper_bounds
+                x_dim, y_dim = archive.dims
             x_bounds = np.linspace(lower_bounds[0], upper_bounds[0], x_dim + 1)
             y_bounds = np.linspace(lower_bounds[1], upper_bounds[1], y_dim + 1)
 
@@ -3306,7 +3325,13 @@ class EvoPCGRL:
                     ) = result
                     # id_0 = idxs_0[i]
                     # id_1 = idxs_1[i]
-                    id_0, id_1 = archive.get_index(np.array(final_bcs[:n_train_bcs]))
+                    grid_bcs = final_bcs[:n_train_bcs]
+                    # TODO: remove this (it's for backward compatibility) since we've implemented get_index for qdpy
+                    #   grid
+                    if ALGO == "ME":
+                        id_0, id_1 = archive.index_grid(tuple(grid_bcs))
+                    else:
+                        id_0, id_1 = archive.get_index(np.array(grid_bcs))
 
                     if SAVE_LEVELS:
                         save_levels(level_json, overwrite=i == 0, headers=i==0)
@@ -3332,15 +3357,25 @@ class EvoPCGRL:
 #                               final_bcs[n_train_bcs + 2 * j : n_train_bcs + 2 * j + 2]
                                 final_bcs[2 * j: 2 * (j + 1)]
                             )
-                            id_0, id_1 = eval_archive.get_index(eval_bcs)
-                            # Add dummy solution weights for now
-                            status, _ = eval_archive.add(
-                                np.zeros(eval_archive.solution_dim),
-                                batch_reward,
-                                eval_bcs,
-                            )
+                            if ALGO == "ME":
+                                id_0, id_1 = archive.index_grid(tuple(eval_bcs))
+                                # Dummy individual
+                                individual = Individual(type(self.gen_model), self.n_tile_types, self.n_tile_types)
+                                individual.fitness = Fitness([batch_reward])
+                                individual.features = Features(final_bcs)
+                                idx = eval_archive.add(individual)
+                                ind_added = idx is not None
+                            else:
+                                id_0, id_1 = eval_archive.get_index(eval_bcs)
+                                # Add dummy solution weights for now
+                                status, _ = eval_archive.add(
+                                    np.zeros(eval_archive.solution_dim),
+                                    batch_reward,
+                                    eval_bcs,
+                                )
+                                ind_added = status != AddStatus.NOT_ADDED
 
-                            if status != AddStatus.NOT_ADDED:
+                            if ind_added:
                                 # For eval archive, only record new best individuals in each filled cell
                                 record_scores(
                                     id_0,
@@ -3372,10 +3407,9 @@ class EvoPCGRL:
 
                     if init_states is None:
                         init_states = get_init_states(
-                            init_states_archive, np.array(idxs[i])
+                            init_states_archive, tuple(idxs[i])
                         )
 
-                    # TODO: Parallelize me
                     gen_model = set_weights(self.gen_model, model)
                     level_json, batch_reward, final_bcs, (
                         time_penalty,
@@ -3383,12 +3417,12 @@ class EvoPCGRL:
                         variance_penalty,
                         diversity_bonus,
                     ) = simulate(
-                        self.env,
-                        gen_model,
-                        self.n_tile_types,
-                        init_states,
-                        self.bc_names,
-                        self.static_targets,
+                        env=self.env,
+                        model=gen_model,
+                        n_tile_types=self.n_tile_types,
+                        init_states=init_states,
+                        bc_names=self.bc_names,
+                        static_targets=self.static_targets,
                         seed=None,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -3409,13 +3443,20 @@ class EvoPCGRL:
                         reliability_scores,
                     )
 
-            assert len(models) == len(archive._occupied_indices)
+            if ALGO == "ME":
+                n_filled_bins = eval_archive.filled_bins
+                assert len(models) == archive.filled_bins
+                n_total_bins = archive.size
+            else:
+                n_filled_bins = len(eval_archive._occupied_indices)
+                assert len(models) == len(archive._occupied_indices)
+                n_total_bins = archive.bins
             qd_score = get_qd_score(archive, self.env, self.bc_names)
             eval_qd_score = get_qd_score(eval_archive, self.env, self.bc_names)
             stats = {
                 "generations completed": self.n_itr,
-                "% train archive full": len(models) / archive.bins,
-                "archive size": len(eval_archive._occupied_indices),
+                "% train archive full": len(models) / n_total_bins,
+                "archive size": n_filled_bins,
                 "QD score": qd_score,
                 "eval QD score": eval_qd_score,
                 "% eval archives full": {},
@@ -3458,7 +3499,7 @@ class EvoPCGRL:
                         # include this redundant data to try and pinpoint it. Note that this is only redundant in
                         # stats_fixLvls, though, because otherwise, we are doing evaluation in the same BC space.
                         pct_archive_full = (
-                            len(eval_archive._occupied_indices) / eval_archive.bins
+                            n_filled_bins / n_total_bins
                         )
 
                         if not RANDOM_INIT_LEVELS:
@@ -3475,15 +3516,15 @@ class EvoPCGRL:
 
                         stats["% fresh train archive full"] = pct_archive_full
                         stats["% fresh train archive full"] = pct_archive_full
-                    n_occupied = len(eval_archive.as_pandas(include_solutions=False))
-                    assert n_occupied == len(eval_archive._occupied_indices)
+                    n_occupied = n_filled_bins
+#                   assert n_occupied == len(eval_archive._occupied_indices)
                     bcs_key = "-".join(bc_names)
                     stats["% eval archives full"].update(
                         {
-                            bcs_key: len(eval_archive._occupied_indices) / eval_archive.bins
+                            bcs_key: n_occupied / n_total_bins,
                     })
                     stats["eval archive sizes"].update({
-                        bcs_key: len(eval_archive._occupied_indices)
+                        bcs_key: n_occupied,
                     })
                     stats["eval QD scores"].update({
                         bcs_key: get_qd_score(eval_archive, self.env, bc_names)
@@ -3578,6 +3619,7 @@ if __name__ == "__main__":
     Set Parameters
     """
     seed = 420
+    N_BINS = 100
     CA_ACTION = True
     args, arg_dict = get_args()
     global INFER

@@ -140,8 +140,9 @@ def compile_results(settings_list, tex=False):
 
     hyperparam_rename = {
         "model" : {
-            "CPPN": "VanillaCPPN",
+            "CPPN": "Vanilla CPPN",
             "GenSinCPPN": "CPPN",
+            "GenCPPN": "Mutable CPPN"
         },
         "fix_level_seeds": {
             True: "Fix",
