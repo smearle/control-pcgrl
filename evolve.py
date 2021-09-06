@@ -3050,7 +3050,10 @@ class EvoPCGRL:
 
             else:
                 fig, axs = plt.subplots(ncols=d, nrows=d, figsize=(figw, figh))
-                df_g = df.sort_values(by=["behavior_0", "behavior_1"], ascending=False)
+                if ALGO == "ME":
+                    pass
+                else:
+                    df_g = df.sort_values(by=["behavior_0", "behavior_1"], ascending=False)
 
                 df_g["row"] = np.floor(
                     np.linspace(0, d, len(df_g), endpoint=False)

@@ -17,8 +17,8 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-#       "binary_ctrl",
-        "zelda_ctrl",
+        "binary_ctrl",
+#       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
 ]

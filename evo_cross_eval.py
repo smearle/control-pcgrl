@@ -1,3 +1,4 @@
+import math
 from pdb import set_trace as TT
 import json
 import os
@@ -142,7 +143,7 @@ def compile_results(settings_list, tex=False):
         "model" : {
             "CPPN": "Vanilla CPPN",
             "GenSinCPPN": "CPPN",
-            "GenCPPN": "Mutable CPPN"
+            "GenCPPN": " "+newline("Mutable", "CPPN"),
         },
         "fix_level_seeds": {
             True: "Fix",
@@ -223,6 +224,14 @@ def compile_results(settings_list, tex=False):
             pass
 #           new_keys.append('{}_{}'.format(k, 2))
     print(tuples, new_keys)
+    def sort_rows(row_tpl, row_keys):
+        i = row_keys.index('model')
+        if row_tpl[i] == 'NCA':
+            return 2
+        if row_tpl[i] == 'CPPN':
+            return 0
+        return 1
+#   tuples.sort(key=lambda x: sort_rows(x, new_keys))
     row_indices = pd.MultiIndex.from_tuples(tuples, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
     z_cols = [
@@ -309,7 +318,7 @@ def compile_results(settings_list, tex=False):
 ##      caption=(
 ##          "Zelda, with emptiness and path-length as measures. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
 ##      ),
-        label={'tbl:zelda_empty-path_cell_{}'.format(batch_exp_name)},
+        label={'tbl:cross_eval_{}'.format(batch_exp_name)},
         bold_rows=True,
     )
 
