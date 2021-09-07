@@ -58,7 +58,7 @@ models = [
     "NCA",
     "GenSinCPPN",
     "GenCPPN",
-    "CPPNCA",
+#   "CPPNCA",
 #   "AuxNCA",
 #   "DoneAuxNCA",
 #   "CoordNCA",
@@ -86,7 +86,7 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
+#   0,
     10,
     20,
 ]

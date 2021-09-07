@@ -18,12 +18,16 @@ col_keys = {
     "(generalize) % elites maintained": "(infer) archive maintained",
 #   "(generalize) % elites maintained": newline("(infer) archive", "maintained"),
     "(generalize) % QD score maintained": "(infer) QD score maintained",
-    "(generalize) QD score": "(infer) QD score",
+    "(generalize) eval QD score": "(infer) QD score",
+    "(generalize) QD score": "QD score 2",
+    "(generalize) diversity (mean)": "(infer) diversity",
+    "diversity (mean)": "diversity",
 }
 
 col_key_linebreaks = {
     'archive maintained': newline("archive", "maintained"),
     'QD score maintained': newline("QD score", "maintained"),
+    'diversity': newline("generator", "diversity"),
 }
 
 row_idx_names = {
@@ -142,8 +146,8 @@ def compile_results(settings_list, tex=False):
     hyperparam_rename = {
         "model" : {
             "CPPN": "Vanilla CPPN",
-            "GenSinCPPN": "CPPN",
-            "GenCPPN": " "+newline("Mutable", "CPPN"),
+            "GenSinCPPN": " "+newline("Fixed", "CPPN"),
+            "GenCPPN": "CPPN",
         },
         "fix_level_seeds": {
             True: "Fix",
@@ -238,11 +242,13 @@ def compile_results(settings_list, tex=False):
 #       "% train archive full",
         "archive size",
         "QD score",
-#       "(generalize) % train archive full",
+        "diversity (mean)",
+        #       "(generalize) % train archive full",
         "(generalize) archive size",
-        "(generalize) QD score",
-        "(generalize) archive maintained",
-        "(infer) QD score maintained",
+        "(generalize) eval QD score",
+#       "(generalize) archive maintained",
+#       "(infer) QD score maintained",
+        "(generalize) diversity (mean)"
     ]
     z_cols = [col_keys[z] if z in col_keys else z for z in z_cols]
     # Hierarchical columns!
