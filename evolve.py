@@ -244,7 +244,7 @@ def get_stats(stats):
     }
 
 
-def save_grid(csv_name="levels", d=4):
+def save_grid(csv_name="levels", d=6):
     fontsize = 32
     if "zelda" in PROBLEM:
         d = 3
@@ -254,7 +254,7 @@ def save_grid(csv_name="levels", d=4):
     if CMAES:
         # TODO: implement me
 
-        return
+#       return
     # save grid using csv file
     # get path to CSV
     levels_path = os.path.join(SAVE_PATH, csv_name + ".csv")

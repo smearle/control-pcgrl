@@ -17,8 +17,8 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 problems = [
-        "binary_ctrl",
-#       "zelda_ctrl",
+#       "binary_ctrl",
+        "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
 ]
@@ -56,8 +56,8 @@ local_bcs = {
 }
 models = [
     "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
+#   "GenSinCPPN",
+#   "GenCPPN",
 #   "CPPNCA",
 #   "AuxNCA",
 #   "DoneAuxNCA",
@@ -92,9 +92,9 @@ n_init_states_lst = [
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
 #   10,
-    50,
+#   50,
     100,
 ]
 
