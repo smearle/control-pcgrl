@@ -19,7 +19,7 @@ RENDER_LEVELS = True
 problems = [
 #       "binary_ctrl",
         "zelda_ctrl",
-#       "sokoban_ctrl",
+        "sokoban_ctrl",
 #       "smb_ctrl"
 ]
 representations = [
@@ -28,32 +28,6 @@ representations = [
 #       "narrow", 
 #       "turtle"
 ]
-global_bcs: List[List] = [
-#       ["NONE"], 
-#       ["emptiness", "symmetry"],
-]
-local_bcs = {
-    "binary_ctrl": [
-#       ["regions", "path-length"],
-#       ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
-    ],
-    "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
-#       ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
-    ],
-    "sokoban_ctrl": [
-        ["crate", "sol-length"],
-        ["emptiness", "sol-length"],
-        ["symmetry", "sol-length"],
-    ],
-    "smb_ctrl": [
-        ["jumps", "sol-length"],
-        ["emptiness", "sol-length"],
-       ["symmetry", "sol-length"]
-       ],
-}
 models = [
     "NCA",
 #   "GenSinCPPN",
@@ -97,7 +71,32 @@ n_steps_lst = [
 #   50,
     100,
 ]
-
+global_bcs: List[List] = [
+#       ["NONE"], 
+#       ["emptiness", "symmetry"],
+]
+local_bcs = {
+    "binary_ctrl": [
+#       ["regions", "path-length"],
+#       ["emptiness", "path-length"],
+        ["symmetry", "path-length"],
+    ],
+    "zelda_ctrl": [
+#       ["nearest-enemy", "path-length"],
+#       ["emptiness", "path-length"],
+        ["symmetry", "path-length"],
+    ],
+    "sokoban_ctrl": [
+        ["crate", "sol-length"],
+        ["emptiness", "sol-length"],
+        ["symmetry", "sol-length"],
+    ],
+    "smb_ctrl": [
+        ["jumps", "sol-length"],
+        ["emptiness", "sol-length"],
+       ["symmetry", "sol-length"]
+       ],
+}
 
 def launch_batch(exp_name, collect_params=False):
     if collect_params:
