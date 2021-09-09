@@ -29,7 +29,7 @@ do
     if [ $duration -lt 60 ]
     then
       echo "Too soon. Something is wrong. Terminating node."
-      exit 420
+      exit 42
     else
       echo "Killing ray processes and re-launching script."
       ray stop

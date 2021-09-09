@@ -3476,7 +3476,7 @@ class EvoPCGRL:
                 }
                 plot_score_heatmap(playability_scores, "playability", self.bc_names, **plot_args,
                                    bcs_in_filename=False)
-                plot_score_heatmap(diversity_scores, "diversity", self.bc_names, **plot_args, bcs_in_filename=False)
+                plot_score_heatmap(diversity_scores / 10, "diversity", self.bc_names, **plot_args, bcs_in_filename=False)
                 plot_score_heatmap(reliability_scores, "reliability", self.bc_names, **plot_args, bcs_in_filename=False)
                 plot_score_heatmap(fitness_scores, "fitness_eval", self.bc_names, **plot_args, bcs_in_filename=False)
 
@@ -3488,7 +3488,7 @@ class EvoPCGRL:
                             eval_playability_scores[j], "playability", bc_names, **plot_args,
                         )
                         plot_score_heatmap(
-                            eval_diversity_scores[j], "diversity", bc_names, **plot_args,
+                            eval_diversity_scores[j] / 10, "diversity", bc_names, **plot_args,
                         )
                         plot_score_heatmap(
                             eval_reliability_scores[j], "reliability", bc_names, **plot_args,
@@ -3536,7 +3536,7 @@ class EvoPCGRL:
             stats.update(
                 {
                     "playability": get_stats(playability_scores),
-                    "diversity": get_stats(diversity_scores),
+                    "diversity": get_stats(diversity_scores / 10),
                     "reliability": get_stats(reliability_scores),
                 }
             )
