@@ -20,7 +20,7 @@ problems = [
 #       "binary_ctrl",
         "zelda_ctrl",
         "sokoban_ctrl",
-#       "smb_ctrl"
+        "smb_ctrl"
 ]
 representations = [
         "cellular", 
@@ -68,7 +68,7 @@ n_init_states_lst = [
 n_steps_lst = [
 #   1,
 #   10,
-#   50,
+    50,
     100,
 ]
 global_bcs: List[List] = [
@@ -77,13 +77,13 @@ global_bcs: List[List] = [
 ]
 local_bcs = {
     "binary_ctrl": [
-#       ["regions", "path-length"],
-#       ["emptiness", "path-length"],
+        ["regions", "path-length"],
+        ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
-#       ["emptiness", "path-length"],
+        ["nearest-enemy", "path-length"],
+        ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [

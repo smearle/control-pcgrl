@@ -253,8 +253,7 @@ def save_grid(csv_name="levels", d=6):
         d = 4
     if CMAES:
         # TODO: implement me
-
-#       return
+        return
     # save grid using csv file
     # get path to CSV
     levels_path = os.path.join(SAVE_PATH, csv_name + ".csv")

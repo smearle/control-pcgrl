@@ -83,8 +83,8 @@ def render_gifs(settings_list):
 #                   writer.append_data(np.array(im))
             print(gif_name)
 #           frames_to_gif('{}.gif'.format(gif_name), grid_frames)
-#           os.system("ffmpeg -y -r 30 -f gif -i \"{0}.gif\" -pix_fmt yuv420p \"{0}.mp4\"".format(gif_name))
-            os.system("ffmpeg -i \"{0}/frame_%04d.png\" \"{0}\".gif".format(grid_frames_dir))
+            os.system("ffmpeg -y -r 15 -i \"{0}/frame_%04d.png\" -vf tpad=stop_mode=clone:stop_duration=2 \"{0}\".gif".format(grid_frames_dir))
+            os.system("ffmpeg -y -r 10 -f gif -i \"{0}.gif\" -c:v libx264 -crf 20 -vf tpad=stop_mode=clone:stop_duration=2 \"{0}.mp4\"".format(gif_name))
 
 
 def frames_to_gif(gif_path, filenames):

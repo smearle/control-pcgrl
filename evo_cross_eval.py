@@ -33,8 +33,8 @@ col_key_linebreaks = {
 row_idx_names = {
     "fix_level_seeds": "latents",
     "fix_elites": "elites",
-    "n_init_states": newline("n.", "latents"),
-    "n_steps": newline("n.", "steps"),
+    "n_init_states": newline("batch", "size"),
+    "n_steps": newline("num.", "steps"),
 }
 
 # flatten the dictionary here
@@ -47,9 +47,12 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
     else: bold = False
 
     if "QD score" in col_name:
-        data = int(data)
+        # FIXME ad hoc
+        data = int(data / 10000)
     if any(c in col_name for c in ["archive size",  "QD score"]):
         data = "{:,}".format(data)
+    elif "diversity" in col_name[1]:
+        data = "{:.2f}".format(data)
     else:
         data = "{:.1f}".format(data)
 
@@ -290,10 +293,8 @@ def compile_results(settings_list, tex=False):
     if not tex:
         return
 
-#   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
     tex_name = r"{}/cross_eval_{}.tex".format(EVO_DIR, batch_exp_name)
-    df = df.round(1)
-    df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
+    df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"]
 #   df_tex = df.loc["zelda_ctrl", "nearest-enemy-path-length", :, "cellular"].round(1)
 
     for k in z_cols:
