@@ -19,8 +19,8 @@ RENDER_LEVELS = True
 problems = [
 #       "binary_ctrl",
         "zelda_ctrl",
-        "sokoban_ctrl",
-        "smb_ctrl"
+#       "sokoban_ctrl",
+#       "smb_ctrl"
 ]
 representations = [
         "cellular", 
@@ -82,8 +82,8 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
-        ["emptiness", "path-length"],
+#       ["nearest-enemy", "path-length"],
+#       ["emptiness", "path-length"],
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [

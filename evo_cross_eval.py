@@ -136,10 +136,10 @@ def compile_results(settings_list, tex=False):
     #       if k not in ignored_keys:
     #           keys.append(k)
     hyperparams = [
-        "problem",
-        "behavior_characteristics",
+#       "problem",
+#       "behavior_characteristics",
         "model",
-        "representation",
+#       "representation",
         "n_init_states",
         "fix_level_seeds",
 #       "fix_elites",
@@ -294,7 +294,9 @@ def compile_results(settings_list, tex=False):
         return
 
     tex_name = r"{}/cross_eval_{}.tex".format(EVO_DIR, batch_exp_name)
-    df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"]
+#   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"]
+    df_tex = df
+#   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
 #   df_tex = df.loc["zelda_ctrl", "nearest-enemy-path-length", :, "cellular"].round(1)
 
     for k in z_cols:
