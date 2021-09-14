@@ -469,7 +469,7 @@ def local_observation(obs, **kwargs):
     x = kwargs.get("x")
     y = kwargs.get("y")
     local_obs = np.zeros((1, obs.shape[1], obs.shape[2]))
-    # What is up with these y x lol
+    # Might be some inconsistencies in ordering of x, y?
     local_obs[0, y, x] = 1
     np.concatenate((obs, local_obs), axis=0)
 
@@ -719,14 +719,6 @@ class FlexArchive(InitStatesArchive):
 
         self.add(solution, mean_obj, mean_bcs, None, n_evals=n_evals)
 
-    #       self._occupied[new_idx] = True
-    #       self._behavior_values[new_idx] = mean_bcs
-    #       # FIXME: how to remove old index from occupied_indices :((( Hopefully this does not fuxk us too hard
-    #       # (it fucks get_random_elite and checking emptiness... but that's ok for now)
-    #       self._occupied_indices.append(new_idx)  # this doesn't really do anything then
-    # self._add_occupied_index(new_idx)
-    #       self.bc_hists[new_idx] = bc_hists
-    #       self.obj_hists[new_idx] = obj_hists
 
     def add(self, solution, objective_value, behavior_values, meta, n_evals=0):
 
@@ -2433,7 +2425,7 @@ class EvoPCGRL:
                 OptimizingEmitter(
                     self.play_archive,
                     initial_play_w.flatten(),
-                    # NOTE: Big step size, shit otherwise
+                    # NOTE: Big step size, no good otherwise
                     1,  # Initial step size.
                     batch_size=batch_size,
                 )

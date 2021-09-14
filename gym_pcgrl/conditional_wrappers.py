@@ -394,7 +394,7 @@ class ParamRew(gym.Wrapper):
         if self.render_gui:
             self.win.destroy()
 
-# TODO: What the fuck is this actually doing and why does it kind of work?
+# TODO: What by jove this actually doing and why does it kind of work?
 # class PerlinNoiseyTargets(gym.Wrapper):
 #    '''A bunch of simplex noise instances modulate target metrics.'''
 #    def __init__(self, env, **kwargs):
@@ -481,7 +481,7 @@ class ALPGMMTeacher(gym.Wrapper):
     def reset(self):
         if self.trg_vec is not None:
             if self.n_trial_steps == 0:
-                # This is some whack shit that happens when we reset manually from the inference script.
+                # This is some whackness that happens when we reset manually from the inference script.
                 rew = 0
             else:
                 rew = self.trial_reward / self.n_trial_steps
