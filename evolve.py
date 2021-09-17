@@ -244,7 +244,7 @@ def get_stats(stats):
     }
 
 
-def save_grid(csv_name="levels", d=6):
+def save_grid(csv_name="levels", d=4):
     fontsize = 32
     if "zelda" in PROBLEM:
         d = 3
@@ -2987,6 +2987,9 @@ class EvoPCGRL:
             if "smb" in PROBLEM:
                 d = 4
                 figw, figh = 32, 4
+            elif "zelda" in PROBLEM:
+                d = 3
+                figw, figh = self.env._prob._width, self.env._prob._height
             else:
                 d = 6  # number of rows and columns
                 figw, figh = self.env._prob._width, self.env._prob._height
@@ -3620,7 +3623,6 @@ if __name__ == "__main__":
     """
     Set Parameters
     """
-    seed = 420
     N_BINS = 100
     CA_ACTION = True
     args, arg_dict = get_args()
@@ -3650,7 +3652,17 @@ if __name__ == "__main__":
     global preprocess_action
     global N_PROC
     global ALGO
+    global seed
     CONCAT_GIFS = False
+    if arg_dict["exp_name"] == '5':
+        seed = 420
+    else:
+        try:
+            seed = int(arg_dict["exp_name"])
+        except Exception:
+            print("Assigning random seed")
+            seed = np.random.randint()
+    print("Random number seed is: {}".format(seed))
     N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]
     ALGO = arg_dict["algo"]
