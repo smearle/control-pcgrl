@@ -1,12 +1,13 @@
 [submodule "teachDeepRL"]
 	path = teachDeepRL
-	url = git@github.com:flowersteam/teachDeepRL
+	url = https://github.com/flowersteam/teachDeepRL
 [submodule "pytorch-neat"]
 	path = pytorch-neat
-	url = git@github.com:smearle/pytorch-neat
+	url = https://github.com/smearle/pytorch-neat
 [submodule "dqd"]
 	path = dqd
 	url = git@github.com:icaros-usc/dqd
+	url = https://github.com/icaros-usc/dqd
 [submodule "qdpy"]
 	path = qdpy
-	url = git@gitlab.com:smearle/qdpy
+	url = https://gitlab.com/smearle/qdpy

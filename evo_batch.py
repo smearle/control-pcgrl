@@ -17,12 +17,17 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 exp_ids = [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
+        0,
+#       1,
+#       2,
+#       3,
+#       4,
+#       5,
+#       6,
+#       7,
+#       8,
+#       9,
+#       10,
 ]
 problems = [
         "binary_ctrl",
@@ -38,8 +43,9 @@ representations = [
 ]
 models = [
     "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
+#   "GenSinCPPN",
+#   "GenCPPN",
+
 #   "CPPNCA",
 #   "AuxNCA",
 #   "DoneAuxNCA",
@@ -62,22 +68,22 @@ fix_elites = [
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-        True,
+#       True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
 #   0,
-    10,
+#   10,
     20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
 #   10,
     50,
-    100,
+#   100,
 ]
 global_bcs: List[List] = [
 #       ["NONE"], 
