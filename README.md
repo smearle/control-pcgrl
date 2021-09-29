@@ -19,11 +19,14 @@ To evaluate saved archives, run `python evo_batch.py --evaluate` (which essentia
 
 Clone this repository along with its submodules:
 
-```git clone --recurse-submodules -j8 https://github.com/smearle/neural-mmo```
+```git clone --recurse-submodules -j8 https://github.com/smearle/control-pcgrl```
 
 It is recommended to use a virtual environment using anaconda or similar. We use python 3.8.
 
-```conda create -n pcg_nca python=3.7```
+```
+conda create -n pcgrl python=3.7
+conda activate pcgrl
+```
 
 To install the required python packages, it should suffice to run
 
