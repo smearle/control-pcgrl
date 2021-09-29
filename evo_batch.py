@@ -16,6 +16,8 @@ from render_gifs import render_gifs
 
 RENDER_LEVELS = True
 
+##### HYPERPARAMETERS #####
+
 exp_ids = [
         0,
 #       1,
@@ -36,20 +38,21 @@ problems = [
 #       "smb_ctrl"
 ]
 representations = [
-        "cellular", 
-#       "wide", 
-#       "narrow", 
-#       "turtle"
+        "cellular",  # change entire board at each step
+#       "wide",  # agent "picks" one tile to change
+#       "narrow",  # scan over board in sequence, feed current tile to agent as observation
+#       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
     "NCA",
 #   "GenSinCPPN",
 #   "GenCPPN",
 
-#   "CPPNCA",
-#   "AuxNCA",
-#   "DoneAuxNCA",
-#   "CoordNCA",
+#   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
+#   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+#   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
+#   "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
+
 #   "MixCPPN",
 #   "MixNCA",
 
@@ -101,16 +104,21 @@ local_bcs = {
         ["symmetry", "path-length"],
     ],
     "sokoban_ctrl": [
-        ["crate", "sol-length"],
+#       ["crate", "sol-length"],
         ["emptiness", "sol-length"],
-        ["symmetry", "sol-length"],
+#       ["symmetry", "sol-length"],
     ],
     "smb_ctrl": [
-        ["jumps", "sol-length"],
-        ["emptiness", "sol-length"],
+       ["jumps", "sol-length"],
+       ["emptiness", "sol-length"],
        ["symmetry", "sol-length"]
        ],
 }
+
+###########################
+
+
+
 
 def launch_batch(exp_name, collect_params=False):
     if collect_params:
