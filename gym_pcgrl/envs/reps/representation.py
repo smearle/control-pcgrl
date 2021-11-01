@@ -1,3 +1,5 @@
+import gym
+from gym import spaces
 from pdb import set_trace as TT
 from gym.utils import seeding
 from gym_pcgrl.envs.helper import gen_random_map
@@ -36,7 +38,8 @@ class Representation:
     Parameters:
         width (int): the generated map width
         height (int): the generated map height
-        prob (dict(int,float)): the probability distribution of each tile value
+        prob (dict(int,float)): the probabi
+        lity distribution of each tile value
     """
     def reset(self, width, height, prob):
         if self._random_start or self._old_map is None:
@@ -116,3 +119,16 @@ class Representation:
     """
     def render(self, lvl_image, tile_size, border_size):
         return lvl_image
+
+class DesignerRepresentation(Representation):
+    def __init__(self):
+        super(DesignerRepresentation).__init__()
+
+    def get_action_space(self, width, height, num_actions):
+        return spaces.Dict({
+            "moves": spaces.Discrete(n=num_actions)
+        })
+
+class ContinuousTileTypeRepresentation(gym.Wrapper):
+    def __init__(self, rep):
+        gym.Wrapper.__init__(self, rep)

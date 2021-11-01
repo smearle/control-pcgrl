@@ -17,16 +17,18 @@ from render_gifs import render_gifs
 RENDER_LEVELS = True
 
 exp_ids = [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
+        0,
+#       5,
+#       6,
+#       7,
+#       8,
+#       9,
+#       10,
 ]
 problems = [
-        "binary_ctrl",
+#       "binary_ctrl",
 #       "zelda_ctrl",
+        "zelda_play",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
 ]
@@ -38,23 +40,20 @@ representations = [
 ]
 models = [
     "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
+#   "GenSinCPPN",
+#   "GenCPPN",
 #   "CPPNCA",
 #   "AuxNCA",
 #   "DoneAuxNCA",
 #   "CoordNCA",
 #   "MixCPPN",
 #   "MixNCA",
-
 #   "CPPN",
-
 #   "GenReluCPPN",
 #   "GenMixCPPN",
-
 #   "FeedForwardCPPN",
 #   "SinCPPN",
-    # "CNN"  # Doesn't learn atm
+#   "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
@@ -62,7 +61,7 @@ fix_elites = [
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-        True,
+#       True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
@@ -70,14 +69,14 @@ fix_seeds = [
 n_init_states_lst = [
 #   0,
     10,
-    20,
+#   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
 #   10,
     50,
-    100,
+#   100,
 ]
 global_bcs: List[List] = [
 #       ["NONE"], 
@@ -105,7 +104,9 @@ local_bcs = {
        ["symmetry", "sol-length"]
        ],
 }
+local_bcs["zelda_play"] = local_bcs["zelda_ctrl"]
 
+# TODO: smh, use itertools to take a cartesian product of iterables
 def launch_batch(exp_name, collect_params=False):
     if collect_params:
         settings_list = []
@@ -205,6 +206,8 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_steps": n_steps,
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
+                                                "play_level": args.designer,
+                                                "n_cpu": 1,
                                             }
                                         )
                                         if args.render:
@@ -300,6 +303,10 @@ if __name__ == "__main__":
     opts.add_argument(
         "--gif",
         help="Make gifs from previously-rendered level-generation episodes.",
+        action="store_true",
+    )
+    opts.add_argument(
+        "--designer",
         action="store_true",
     )
     args = opts.parse_args()

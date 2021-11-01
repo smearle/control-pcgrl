@@ -1862,6 +1862,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
                 env._rep._random_start = False
                 _ = env.reset()
 
+                TT()
                 if env.is_playable():
                     final_levels.append(int_map)
             n_step += 1
@@ -1880,6 +1881,7 @@ def player_simulate(
         if INFER:
             #           env.render()
             input("ready player 1")
+        TT()
         p_1_rew, p_bcs = play_level(env, int_map, player_1)
         bcs.append(p_bcs)
 
@@ -1962,9 +1964,9 @@ def simulate(
     if seed is not None:
         env.seed(seed)
 
-    if PLAY_LEVEL:
-        assert player_1 is not None
-        assert player_2 is not None
+#   if PLAY_LEVEL:
+#       assert player_1 is not None
+#       assert player_2 is not None
 
     if CMAES:
         bc_names = ["NONE", "NONE"]
@@ -2277,17 +2279,17 @@ class EvoPCGRL:
             }
             self.gen_archive = gen_archive_cls(
                 [100 for _ in self.bc_names],
-                # [1],
-                # [(-1, 1)],
+                [1],
+                [(-1, 1)],
                 [self.bc_bounds[bc_name] for bc_name in self.bc_names],
             )
-            self.play_archive = FlexArchive(
-                # minimum of: 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
-                # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
-                [100 for _ in self.play_bc_names],
-                # min/max for each BC
-                [self.play_bc_bounds[bc_name] for bc_name in self.play_bc_names],
-            )
+#           self.play_archive = FlexArchive(
+#               # minimum of: 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
+#               # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
+#               [100 for _ in self.play_bc_names],
+#               # min/max for each BC
+#               [self.play_bc_bounds[bc_name] for bc_name in self.play_bc_names],
+#           )
         else:
             if CMAES:
                 # Restrict the archive to 1 cell so that we are effectively doing CMAES. BCs should be ignored.
@@ -2688,9 +2690,10 @@ class EvoPCGRL:
 
             if PLAY_LEVEL:
                 # elite_model_w = self.gen_archive.get_random_elite()[0]
-                df = self.gen_archive.as_pandas()
-                high_performing = df.sort_values("objective", ascending=False)
-                models = np.array(high_performing.loc[:, "solution_0":])
+#               df = self.gen_archive.as_pandas()
+#               high_performing = df.sort_values("objective", ascending=False)
+#               models = np.array(high_performing.loc[:, "solution_0":])
+                models = sorted(self.gen_archive, key=lambda i: i.fitness.values[0])
                 np.random.shuffle(models)
                 playable_levels = []
 

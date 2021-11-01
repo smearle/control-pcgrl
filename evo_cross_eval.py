@@ -107,34 +107,8 @@ def flatten_stats(stats, tex, evaluation=False):
 def compile_results(settings_list, tex=False):
     batch_exp_name = settings_list[0]["exp_name"]
     EVO_DIR = "evo_runs"
-#   if batch_exp_name == "0":
-#       EVO_DIR = "evo_runs_06-12"
-#   else:
-#       #       EVO_DIR = "evo_runs_06-13"
-#       EVO_DIR = "evo_runs_06-14"
-    #   ignored_keys = set(
-    #       (
-    #           "exp_name",
-    #           "evaluate",
-    #           "show_vis",
-    #           "visualize",
-    #           "render_levels",
-    #           "multi_thread",
-    #           "play_level",
-    #           "evaluate",
-    #           "save_levels",
-    #           "cascade_reward",
-    #           "model",
-    #           "n_generations",
-    #           "render",
-    #           "infer",
-    #       )
-    #   )
-    #   keys = []
 
-    #   for k in settings_list[0].keys():
-    #       if k not in ignored_keys:
-    #           keys.append(k)
+    # these appear as hierarchical row indices/headers and are listed from left to right,
     hyperparams = [
 #       "problem",
 #       "behavior_characteristics",
@@ -144,6 +118,7 @@ def compile_results(settings_list, tex=False):
         "fix_level_seeds",
 #       "fix_elites",
         "n_steps",
+        "exp_name",
     ]
 
     hyperparam_rename = {

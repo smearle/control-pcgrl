@@ -22,7 +22,7 @@ PROBLEMS = {
     "zelda": ZeldaProblem,
     "smb": SMBProblem,
     "mini": MiniZeldaProblem,
-    "zeldaplay": ZeldaPlayProblem,
+    "zelda_play": ZeldaPlayProblem,
     "zelda_ctrl": ZeldaCtrlProblem,
     "smb_ctrl": SMBCtrlProblem,
 }

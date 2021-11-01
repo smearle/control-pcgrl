@@ -3,9 +3,10 @@ from gym.spaces import Discrete
 
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
+from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 
 
-class PlayPcgrlEnv(PcgrlEnv):
+class PlayPcgrlEnv(PcgrlCtrlEnv):
     '''A designable and playable level.
     First, the designer creates a level. If it is playable, the player takes over.
     '''
