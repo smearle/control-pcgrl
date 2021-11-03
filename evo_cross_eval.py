@@ -3,10 +3,13 @@ from pdb import set_trace as TT
 import json
 import os
 
+import numpy as np
 import pandas as pd
+import scipy.stats
 
 from evo_args import get_args, get_exp_name
 from tex_formatting import pandas_to_latex, newline
+from matplotlib import pyplot as plt
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
 
@@ -31,6 +34,7 @@ col_key_linebreaks = {
 }
 
 row_idx_names = {
+    "exp_name": "exp_name",
     "fix_level_seeds": "latents",
     "fix_elites": "elites",
     "n_init_states": newline("batch", "size"),
@@ -50,7 +54,7 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
         # FIXME ad hoc
         data = int(data / 10000)
     if any(c in col_name for c in ["archive size",  "QD score"]):
-        data = "{:,}".format(data)
+        data = "{:,.0f}".format(data)
     elif "diversity" in col_name[1]:
         data = "{:.2f}".format(data)
     else:
@@ -105,7 +109,7 @@ def flatten_stats(stats, tex, evaluation=False):
 
 
 def compile_results(settings_list, tex=False):
-    batch_exp_name = settings_list[0]["exp_name"]
+#   batch_exp_name = settings_list[0]["exp_name"]
     EVO_DIR = "evo_runs"
 #   if batch_exp_name == "0":
 #       EVO_DIR = "evo_runs_06-12"
@@ -144,6 +148,7 @@ def compile_results(settings_list, tex=False):
         "fix_level_seeds",
 #       "fix_elites",
         "n_steps",
+        "exp_name",
     ]
 
     hyperparam_rename = {
@@ -230,7 +235,6 @@ def compile_results(settings_list, tex=False):
         else:
             pass
 #           new_keys.append('{}_{}'.format(k, 2))
-    print(tuples, new_keys)
     def sort_rows(row_tpl, row_keys):
         i = row_keys.index('model')
         if row_tpl[i] == 'NCA':
@@ -278,22 +282,57 @@ def compile_results(settings_list, tex=False):
     # columns = pd.MultiIndex.from_tuples(col_tuples)
     df = pd.DataFrame(data=data, index=row_indices, columns=col_indices).sort_values(by=new_keys)
 
-    csv_name = r"{}/cross_eval_{}.csv".format(EVO_DIR, batch_exp_name)
-    html_name = r"{}/cross_eval_{}.html".format(EVO_DIR, batch_exp_name)
-    df.to_html(html_name)
+    csv_name = r"{}/cross_eval_multi.csv".format(EVO_DIR)
+    html_name = r"{}/cross_eval_multi.html".format(EVO_DIR)
     print(df)
     for i, k in enumerate(new_keys):
         if k in row_idx_names:
             new_keys[i] = row_idx_names[k]
-    df.index.rename(new_keys, inplace=True)
-#   df.rename(col_keys, axis=1)
 
+    df.index.rename(new_keys, inplace=True)
+    # Take mean/std over multiple runs with the same relevant hyperparameters
+    new_rows = []
+    new_row_names = []
+    # Get some p-values for statistical significance
+    eval_qd_scores = []
+    for i in range(df.shape[0]):
+        row = df.iloc[i]
+        name = row.name
+        if name[:-1] in new_row_names:
+            continue
+        new_row_names.append(name[:-1])
+        repeat_exps = df.loc[name[:-1]]
+        eval_qd_scores.append(repeat_exps[('Evaluation', 'QD score')].to_numpy())
+        mean_exp = repeat_exps.mean(axis=0)
+        new_rows.append(mean_exp)
+    pvals = np.zeros(shape=(len(new_row_names), len(new_row_names)))
+    for i, vi in enumerate(eval_qd_scores):
+        for j, vj in enumerate(eval_qd_scores):
+            pvals[i,j] = scipy.stats.mannwhitneyu(vi, vj)[1]
+    plt.imshow(pvals)
+    TT()
+    plt.xticks(range(len(new_row_names)), labels=[str(i) for i in new_row_names], rotation='vertical')
+    plt.show()
+    TT()
     df.to_csv(csv_name)
+    df.to_html(html_name)
+    csv_name = r"{}/cross_eval.csv".format(EVO_DIR)
+    html_name = r"{}/cross_eval.html".format(EVO_DIR)
+    ndf = pd.DataFrame().reindex(columns=df.columns)
+    ndf = ndf.append(new_rows)
+    new_row_indices = pd.MultiIndex.from_tuples(new_row_names)
+    ndf.index = new_row_indices
+    ndf.index.names = df.index.names[:-1]
+    ndf = ndf.sort_values(by=new_keys[:-1])
+    ndf.to_csv(csv_name)
+    ndf.to_html(html_name)
+#   df.rename(col_keys, axis=1)
+    df = ndf
 
     if not tex:
         return
 
-    tex_name = r"{}/cross_eval_{}.tex".format(EVO_DIR, batch_exp_name)
+    tex_name = r"{}/cross_eval.tex".format(EVO_DIR)
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"]
     df_tex = df
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
@@ -305,7 +344,7 @@ def compile_results(settings_list, tex=False):
                 lambda data: bold_extreme_values(data, data_max=df_tex[k].max(), col_name=k)
             )
     df_tex = df_tex.round(1)
-    df.reset_index(level=0, inplace=True)
+#   df.reset_index(level=0, inplace=True)
     print(df_tex)
     col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}p{0.8cm}"
     print('Col names:')
@@ -327,7 +366,7 @@ def compile_results(settings_list, tex=False):
 ##      caption=(
 ##          "Zelda, with emptiness and path-length as measures. Evolution runs in which agents are exposed to more random seeds appear to generalize better during inference. Re-evaluation of elites on new random seeds during evolution increases generalizability but the resulting instability greatly diminishes CMA-ME's ability to meaningfully explore the space of generators. All experiments were run for 10,000 generations"
 ##      ),
-        label={'tbl:cross_eval_{}'.format(batch_exp_name)},
+        label={'tbl:cross_eval'},
         bold_rows=True,
     )
 

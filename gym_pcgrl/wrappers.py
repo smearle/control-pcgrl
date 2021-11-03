@@ -205,6 +205,7 @@ class OneHotEncoding(gym.Wrapper):
         return obs
 
     def transform(self, obs):
+        TT()
         old = obs[self.name]
         obs[self.name] = np.eye(self.dim)[old]
 
