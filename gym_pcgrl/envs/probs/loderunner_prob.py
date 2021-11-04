@@ -6,7 +6,7 @@ from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_cer
 from gym_pcgrl.envs.probs.loderunner.engine import get_score
 
 
-class LRProblem(Problem):
+class LoderunnerProblem(Problem):
     def __init__(self):
         super().__init__()
         self._width = 12

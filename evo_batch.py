@@ -19,20 +19,21 @@ RENDER_LEVELS = True
 ##### HYPERPARAMETERS #####
 
 exp_ids = [
-#       0,
+        0,
 #       1,
 #       2,
 #       3,
 #       4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
+#       5,
+#       6,
+#       7,
+#       8,
+#       9,
+#       10,
 ]
 problems = [
-        "binary_ctrl",
+        "loderunner_ctrl",
+#       "binary_ctrl",
 #       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
@@ -45,8 +46,8 @@ representations = [
 ]
 models = [
     "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
+#   "GenSinCPPN",
+#   "GenCPPN",
 
 #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
@@ -71,7 +72,7 @@ fix_elites = [
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-        True,
+#       True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
@@ -79,14 +80,14 @@ fix_seeds = [
 n_init_states_lst = [
 #   0,
     10,
-    20,
+#   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
 #   10,
     50,
-    100,
+#   100,
 ]
 global_bcs: List[List] = [
 #       ["NONE"], 
@@ -113,6 +114,9 @@ local_bcs = {
        ["emptiness", "sol-length"],
        ["symmetry", "sol-length"]
        ],
+    "loderunner_ctrl": [
+        ["path-length", "symmetry"],
+    ]
 }
 
 ###########################

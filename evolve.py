@@ -887,6 +887,7 @@ class GeneratorNN(ResettableNN):
             x = self.l2(x)
             x = th.nn.functional.relu(x)
             x = self.l3(x)
+            # TODO: try softmax
             x = th.sigmoid(x)
 
 
@@ -1848,7 +1849,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
         while not done:
             int_tensor = th.unsqueeze(th.Tensor(obs), 0)
             action, done = gen_model(int_tensor)[0].numpy()
-            obs = action
+#           obs = action
             int_map = done or action.argmax(axis=0)
             env._rep._map = int_map
             done = done or (int_map == last_int_map).all() or n_step >= N_STEPS
@@ -2492,7 +2493,8 @@ class EvoPCGRL:
 
             # Evaluate the models and record the objectives and BCs.
             objs, bcs = [], []
-            stats = ["batch_reward", "variance", "diversity", "targets"]
+            # targets = "validity", variance = "reliability"
+            stats = ["batch_reward", "variance", "diversity", "targets"]  
             stat_json = {
                 "batch_reward": [],
                 "variance": [],

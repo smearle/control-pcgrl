@@ -1,73 +1,45 @@
 from pdb import set_trace as TT
-from numpy import np
+import numpy as np
 
-#from gym_pcgrl.envs.helper import (
-#    calc_certain_tile,
-#    calc_num_regions,
-#    get_range_reward,
-#    get_tile_locations,
-#    run_dikjstra,
-#    get_path_coords,
-#)
-from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProb
+from gym_pcgrl.envs.helper import (
+    calc_certain_tile,
+    calc_num_regions,
+    get_range_reward,
+    get_tile_locations,
+    run_dikjstra,
+    get_path_coords,
+)
+from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 
 
-class LoderunnerCtrlProb(LoderunnerProb):
+class LoderunnerCtrlProblem(LoderunnerProblem):
     def __init__(self):
-        super(LoderunnerProb, self).__init__()
-        self._max_nearest_enemy = np.ceil(self._width / 2 + 1) * (self._height)
-        #FIXME lmao this is half what it should be. Seennndddiiinggg me!! :~)
+        super(LoderunnerCtrlProblem, self).__init__()
         # TODO: Do not assume it's a square
         # Twice the optimal zig-zag minus one for the end-point at which the player turns around
         self._max_path_length = (np.ceil(self._width / 2) * (self._height) + np.floor(self._height / 2)) * 2 - 1
 #       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         # like "_rewards" but for use with ParamRew
-        self.weights = {
-            "player": 3,
-            "key": 3,
-            "door": 3,
-            "regions": 5,
-            "enemies": 1,
-            "nearest-enemy": 1,
-            "path-length": 1,
-        }
+        self.weights = self._rewards
 
         self.static_trgs = {
-            "enemies": (2, self._max_enemies),
-            "path-length": self._max_path_length,
-            "nearest-enemy": (5, self._max_nearest_enemy),
-            "regions": 1,
             "player": 1,
-            "key": 1,
-            "door": 1,
+            "enemies": 2,
+            "gold": 5,
+            "win": 1,
+            "path-length": self._max_path_length,
         }
         # conditional inputs/targets ( just a default we don't use in the ParamRew wrapper)
-        self.cond_trgs = {
-            "player": 1,
-            "key": 1,
-            "door": 1,
-            "regions": 1,
-            "enemies": 5,
-            "nearest-enemy": 7,
-            "path-length": 100,
-        }
+        self.cond_trgs = self.static_trgs
+
+        max_n_tile = self._height * self._width
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
-            "nearest-enemy": (0, self._max_nearest_enemy),
-            "enemies": (0, self._width * self._height - 2),
-            "player": (0, self._width * self._height - 2),
-            "key": (0, self._width * self._height - 2),
-            "door": (0, self._width * self._height - 2),
-            "regions": (0, self._width * self._height / 2),
-            # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
-            # and "snake" along that one
-            # Upper bound: zig-zag
+            "player": (0, max_n_tile),
+            "enemies": (0, max_n_tile),
+            "gold": (0, max_n_tile),
+            "win": (0, 1),
             "path-length": (0, self._max_path_length),
-            #   11111111
-            #   00000001
-            #   11111111
-            #   10000000
-            #   11111111
         }
 
     # We do these things in the ParamRew wrapper
