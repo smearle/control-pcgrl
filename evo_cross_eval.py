@@ -4,6 +4,7 @@ import json
 import os
 
 import numpy as np
+import matplotlib
 import pandas as pd
 import scipy.stats
 
@@ -46,13 +47,14 @@ row_idx_names = {
 
 def bold_extreme_values(data, data_max=-1, col_name=None):
 
+    data, err = data
     if data == data_max:
         bold = True
     else: bold = False
 
     if "QD score" in col_name:
         # FIXME ad hoc
-        data = int(data / 10000)
+        data, err = int(data / 10000), int(err / 10000)
     if any(c in col_name for c in ["archive size",  "QD score"]):
         data = "{:,.0f}".format(data)
     elif "diversity" in col_name[1]:
@@ -68,6 +70,11 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
     if "maintained" in col_name[1]:
         data = "{} \%".format(data)
 
+    if np.any(['diversity' in c for c in col_name]):
+        err = "{:.1e}".format(err)
+    else:
+        err = "{:.1f}".format(err)
+    data = f'{data} ± {err}'
     return data
 
 
@@ -304,24 +311,27 @@ def compile_results(settings_list, tex=False):
         repeat_exps = df.loc[name[:-1]]
         eval_qd_scores.append(repeat_exps[('Evaluation', 'QD score')].to_numpy())
         mean_exp = repeat_exps.mean(axis=0)
+        std_exp = repeat_exps.std(axis=0)
+        mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
         new_rows.append(mean_exp)
     pvals = np.zeros(shape=(len(new_row_names), len(new_row_names)))
     for i, vi in enumerate(eval_qd_scores):
         for j, vj in enumerate(eval_qd_scores):
             pvals[i,j] = scipy.stats.mannwhitneyu(vi, vj)[1]
-    plt.imshow(pvals)
-    TT()
-    plt.xticks(range(len(new_row_names)), labels=[str(i) for i in new_row_names], rotation='vertical')
-    plt.show()
-    TT()
+    im = plt.figure()
+
+    cross_eval_heatmap(pvals, row_labels=new_row_names, col_labels=new_row_names, title='Eval QD score p-values', pvals=True, swap_xticks=False)
+#   plt.xticks(range(len(new_row_names)), labels=[str(i) for i in new_row_names], rotation='vertical')
     df.to_csv(csv_name)
     df.to_html(html_name)
     csv_name = r"{}/cross_eval.csv".format(EVO_DIR)
     html_name = r"{}/cross_eval.html".format(EVO_DIR)
-    ndf = pd.DataFrame().reindex(columns=df.columns)
+    ndf = pd.DataFrame()
     ndf = ndf.append(new_rows)
+    new_col_indices = pd.MultiIndex.from_tuples(df.columns)
     new_row_indices = pd.MultiIndex.from_tuples(new_row_names)
     ndf.index = new_row_indices
+    ndf.columns = new_col_indices
     ndf.index.names = df.index.names[:-1]
     ndf = ndf.sort_values(by=new_keys[:-1])
     ndf.to_csv(csv_name)
@@ -338,10 +348,11 @@ def compile_results(settings_list, tex=False):
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)
 #   df_tex = df.loc["zelda_ctrl", "nearest-enemy-path-length", :, "cellular"].round(1)
 
+    # format the value in each cell to a string
     for k in z_cols:
         if k in df_tex:
             df_tex[k] = df_tex[k].apply(
-                lambda data: bold_extreme_values(data, data_max=df_tex[k].max(), col_name=k)
+                lambda data: bold_extreme_values(data, data_max=max([d[0] for d in df_tex[k]]), col_name=k)
             )
     df_tex = df_tex.round(1)
 #   df.reset_index(level=0, inplace=True)
@@ -377,3 +388,208 @@ def compile_results(settings_list, tex=False):
 #       df.loc[df[k].duplicated(), k] = ''
 #   csv_name = r"{}/cross_eval_{}.csv".format(OVERLEAF_DIR, batch_exp_name)
 
+
+### HEATMAP VISUALISATION STUFF ###
+
+def cross_eval_heatmap(data, row_labels, col_labels, title, cbarlabel='', errors=None, pvals=False, figshape=(30,30),
+                       xlabel='maps', ylabel='models', filename=None, swap_xticks=True):
+   if filename is None:
+      filename = title
+   fig, ax = plt.subplots()
+   # Remove empty rows and columns
+   i = 0
+
+   # Remove empty rows and columns
+   for data_row in data:
+      if np.isnan(data_row).all():
+         data = np.vstack((data[:i], data[i+1:]))
+         assert np.isnan(errors[i]).all()
+         errors = np.vstack((errors[:i], errors[i+1:]))
+         row_labels = row_labels[:i] + row_labels[i+1:]
+         continue
+      i += 1
+   i = 0
+   for data_col in data.T:
+      if np.isnan(data_col).all():
+         data = (np.vstack((data.T[:i], data.T[i + 1:]))).T
+         assert np.isnan(errors.T[i]).all()
+         errors = (np.vstack((errors.T[:i], errors.T[i+1:]))).T
+         col_labels = col_labels[:i] + col_labels[i+1:]
+         continue
+      i += 1
+
+#  fig.set_figheight(1.5*len(col_labels))
+#  fig.set_figwidth(1.0*len(row_labels))
+   fig.set_figwidth(figshape[0])
+   fig.set_figheight(figshape[1])
+
+   if pvals:
+      cmap="viridis"
+   else:
+      cmap="magma"
+   im, cbar = heatmap(data, row_labels, col_labels, ax=ax,
+                      cmap=cmap, cbarlabel=cbarlabel)
+   if not swap_xticks:
+      im.axes.xaxis.tick_bottom()
+
+   class CellFormatter(object):
+      def __init__(self, errors):
+         self.errors = errors
+      def func(self, x, pos):
+        #if np.isnan(x) or np.isnan(errors[pos]):
+#       #   print(x, errors[pos])
+
+        #   # Turns out the data entry is "masked" while the error entry is nan
+#       #   assert np.isnan(x) and np.isnan(errors[pos])
+#       #   if not np.isnan(x) and np.isnan(errors[pos]):
+        #   return '--'
+         if not pvals:
+            x_str = "{:.1f}".format(x)
+         else:
+            x_str = "{:.4e}".format(x)
+#           x_str = "{:.3f}".format(x)
+         if errors is None:
+            return x_str
+         err = errors[pos]
+         x_str = x_str + "  ± {:.1f}".format(err)
+         return x_str
+   cf = CellFormatter(errors)
+
+   if pvals:
+      textcolors = ("white", "black")
+   else:
+      textcolors = ("white", "black")
+   texts = annotate_heatmap(im, valfmt=matplotlib.ticker.FuncFormatter(cf.func), textcolors=textcolors)
+   ax.set_title(title)
+
+#  fig.tight_layout(rect=[1,0,1,0])
+   fig.tight_layout(pad=3)
+#  plt.show()
+   ax.set_xlabel(xlabel)
+   ax.set_ylabel(ylabel)
+   plt.savefig(os.path.join(
+      'eval_experiment',
+      '{}.png'.format(filename),
+   ))
+   plt.close()
+
+
+def annotate_heatmap(im, data=None, valfmt=lambda x: x,
+                     textcolors=("white", "black"),
+                     threshold=None, **textkw):
+   """
+   A function to annotate a heatmap.
+
+   Parameters
+   ----------
+   im
+       The AxesImage to be labeled.
+   data
+       Data used to annotate.  If None, the image's data is used.  Optional.
+   valfmt
+       The format of the annotations inside the heatmap.  This should either
+       use the string format method, e.g. "$ {x:.2f}", or be a
+       `matplotlib.ticker.Formatter`.  Optional.
+   textcolors
+       A pair of colors.  The first is used for values below a threshold,
+       the second for those above.  Optional.
+   threshold
+       Value in data units according to which the colors from textcolors are
+       applied.  If None (the default) uses the middle of the colormap as
+       separation.  Optional.
+   **kwargs
+       All other arguments are forwarded to each call to `text` used to create
+       the text labels.
+   """
+
+   if not isinstance(data, (list, np.ndarray)):
+      data = im.get_array()
+
+   # Normalize the threshold to the images color range.
+   if threshold is not None:
+      threshold = im.norm(threshold)
+   else:
+      threshold = im.norm(data.max()) / 2.
+
+   # Set default alignment to center, but allow it to be
+   # overwritten by textkw.
+   kw = dict(horizontalalignment="center",
+             verticalalignment="center")
+   kw.update(textkw)
+
+   # Get the formatter in case a string is supplied
+   if isinstance(valfmt, str):
+      valfmt = matplotlib.ticker.StrMethodFormatter(valfmt)
+
+   # Loop over the data and create a `Text` for each "pixel".
+   # Change the text's color depending on the data.
+   texts = []
+   for i in range(data.shape[0]):
+      for j in range(data.shape[1]):
+         kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
+         text = im.axes.text(j, i, valfmt(data[i, j], pos=(i, j)), **kw)
+         texts.append(text)
+
+   return texts
+
+
+def heatmap(data, row_labels, col_labels, ax=None,
+            cbar_kw={}, cbarlabel="", **kwargs):
+   """
+   Create a heatmap from a numpy array and two lists of labels.
+
+   Parameters
+   ----------
+   data
+       A 2D numpy array of shape (N, M).
+   row_labels
+       A list or array of length N with the labels for the rows.
+   col_labels
+       A list or array of length M with the labels for the columns.
+   ax
+       A `matplotlib.axes.Axes` instance to which the heatmap is plotted.  If
+       not provided, use current axes or create a new one.  Optional.
+   cbar_kw
+       A dictionary with arguments to `matplotlib.Figure.colorbar`.  Optional.
+   cbarlabel
+       The label for the colorbar.  Optional.
+   **kwargs
+       All other arguments are forwarded to `imshow`.
+   """
+
+   if not ax:
+      ax = plt.gca()
+
+   # Plot the heatmap
+   im = ax.imshow(data, **kwargs)
+
+   # Create colorbar
+   cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
+   cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+
+   # We want to show all ticks...
+   ax.set_xticks(np.arange(data.shape[1]))
+   ax.set_yticks(np.arange(data.shape[0]))
+   # ... and label them with the respective list entries.
+   ax.set_xticklabels(col_labels)
+   plt.setp(ax.get_xticklabels(), rotation=30, ha="right",
+            rotation_mode="anchor")
+   ax.set_yticklabels(row_labels)
+
+   # Let the horizontal axes labeling appear on top.
+   ax.tick_params(top=True, bottom=False,
+                  labeltop=True, labelbottom=False)
+
+   # Rotate the tick labels and set their alignment.
+   plt.setp(ax.get_yticklabels(), rotation=30, ha="right",
+            rotation_mode="anchor")
+
+   # Turn spines off and create white grid.
+   #ax.spines[:].set_visible(False)
+
+   ax.set_xticks(np.arange(data.shape[1] + 1) - .5, minor=True)
+   ax.set_yticks(np.arange(data.shape[0] + 1) - .5, minor=True)
+   ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
+   ax.tick_params(which="minor", bottom=False, left=False)
+
+   return im, cbar
