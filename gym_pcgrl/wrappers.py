@@ -145,7 +145,6 @@ class ToImageCA(ToImage):
 
     def step(self, action):
         action = action.reshape((self.h, self.w))
-        TT()
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
 

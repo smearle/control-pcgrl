@@ -84,7 +84,7 @@ n_init_states_lst = [
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-#   1,
+    1,
 #   10,
     50,
 #   100,
@@ -115,7 +115,9 @@ local_bcs = {
        ["symmetry", "sol-length"]
        ],
     "loderunner_ctrl": [
-        ["path-length", "symmetry"],
+        ["emptiness", "path-length"],
+        ["symmetry", "path-length"],
+        ["win", "path-length"],
     ]
 }
 
@@ -265,7 +267,8 @@ def launch_batch(exp_name, collect_params=False):
                                             settings_list.append(exp_config)
                                         elif LOCAL:
                                             os.system("python evolve.py -la {}".format(i))
-                                            os.system("ray stop")
+                                            # Turned off for mid-training evals
+#                                           os.system("ray stop")
                                         else:
                                             os.system("sbatch {}".format(script_name))
                                         i += 1

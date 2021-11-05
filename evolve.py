@@ -3143,6 +3143,10 @@ class EvoPCGRL:
                 "smb": [
 #                   ("emptiness", "jumps")
                 ],
+                "loderunner": [
+#                   ("emptiness", "path-length"),
+#                   ("symmetry", "path-length"),
+                ]
             }
 
 #           for k in problem_eval_bc_names.keys():
@@ -3708,7 +3712,7 @@ if __name__ == "__main__":
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = "EvoPCGRL_"
+    exp_name = ''
     if ALGO == "ME":
         exp_name += "ME_"
     exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(

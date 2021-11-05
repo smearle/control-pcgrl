@@ -16,13 +16,13 @@ class LoderunnerProblem(Problem):
 
         self._min_enemies = 1
         self._max_enemies = 3
-        self._min_golds = 1
-        self._max_golds = 10
+        self._min_gold = 1
+        self._max_gold = 10
 
         self._rewards = {
             "player": 3,
             "enemies": 1,
-            "golds": 1,
+            "gold": 1,
             "win": 5,
             "path-length": 2
         }
@@ -35,8 +35,8 @@ class LoderunnerProblem(Problem):
 
         self._min_enemies = kwargs.get('min_enemies', self._min_enemies)
         self._max_enemies = kwargs.get('max_enemies', self._max_enemies)
-        self._min_golds = kwargs.get('min_golds', self._min_golds)
-        self._max_golds = kwargs.get('max_golds', self._max_golds)
+        self._min_gold = kwargs.get('min_gold', self._min_gold)
+        self._max_gold = kwargs.get('max_gold', self._max_gold)
 
         rewards = kwargs.get('rewards')
         if rewards is not None:
@@ -65,13 +65,13 @@ class LoderunnerProblem(Problem):
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
             "enemies": calc_certain_tile(map_locations, ["enemy"]),
-            "golds": calc_certain_tile(map_locations, ["gold"]),
+            "gold": calc_certain_tile(map_locations, ["gold"]),
             "win": 0,
             "path-length": 0
         }
-        if map_stats["player"] == 1 and map_stats["golds"] > 0:
-            map_stats["win"], map_stats["length"] = self._run_game(map)
-        
+        if map_stats["player"] == 1 and map_stats["gold"] > 0:
+            map_stats["win"], map_stats["path-length"] = self._run_game(map)
+
         return map_stats
 
     def get_reward(self, new_stats, old_stats):
@@ -79,14 +79,14 @@ class LoderunnerProblem(Problem):
         rewards = {
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
             "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], self._min_enemies, self._max_enemies),
-            "golds": get_range_reward(new_stats["golds"], old_stats["golds"], self._min_golds, self._max_golds),
+            "gold": get_range_reward(new_stats["gold"], old_stats["gold"], self._min_gold, self._max_gold),
             "win": get_range_reward(new_stats["win"], old_stats["win"], 0, 1),
             "path-length": get_range_reward(new_stats["path-length"], old_stats["path-length"], np.inf, np.inf),
         }
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["golds"] * self._rewards["golds"] +\
+            rewards["gold"] * self._rewards["gold"] +\
             rewards["win"] * self._rewards["win"] +\
             rewards["path-length"] * self._rewards["path-length"] 
 
@@ -97,7 +97,7 @@ class LoderunnerProblem(Problem):
         return {
             "player": new_stats["player"],
             "enemies": new_stats["enemies"],
-            "golds": new_stats["golds"],
+            "gold": new_stats["gold"],
             "win": new_stats["win"],
             "path-length": new_stats["path-length"]
         }

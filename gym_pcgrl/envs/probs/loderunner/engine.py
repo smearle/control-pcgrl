@@ -1,3 +1,4 @@
+from pdb import set_trace as TT
 import random
 import os
 import numpy as np
@@ -166,15 +167,15 @@ class Node:
     
     def get_path(self):
         path = list()
-        other_golds = list()
+        other_gold = list()
         node = self
         path.append((node.row, node.col))
         while node.parent!= None :
             path.append((node.parent.row, node.parent.col))
             if self.level[node.parent.row, node.parent.col] =='G':
-                other_golds.append((node.parent.row, node.parent.col))
+                other_gold.append((node.parent.row, node.parent.col))
             node = node.parent
-        return path, other_golds
+        return path, other_gold
     
     
 class PriorityQueue:
