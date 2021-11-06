@@ -19,8 +19,8 @@ RENDER_LEVELS = True
 ##### HYPERPARAMETERS #####
 
 exp_ids = [
-        0,
-#       1,
+#       0,
+        1,
 #       2,
 #       3,
 #       4,
@@ -118,6 +118,7 @@ local_bcs = {
         ["emptiness", "path-length"],
         ["symmetry", "path-length"],
         ["win", "path-length"],
+        ["gold", "emptiness"],
     ]
 }
 

@@ -235,7 +235,7 @@ def get_exp_name(args, arg_dict):
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = "EvoPCGRL_"
+    exp_name = ""
     if arg_dict['algo'] == "ME":
         exp_name += "ME_"
     exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
