@@ -48,6 +48,7 @@ class Node:
             self.score = abs(self.row - goal_row) + abs(self.col - goal_col) + self.step
         return self.score
 
+    # returns next valid actions
     def get_actions(self):
         level = self.level
         left_end = 0
@@ -122,7 +123,7 @@ class Node:
                     row + 1, col + 1] != '#'): actions.append("d-right")
 
         # if current position is empty or gold or enemy
-        elif level[row, col] == '.' or level[row, col] == 'G' or level[row, col] == 'E' or level[row, col] == 'M':
+        elif level[row, col] == '.' or level[row, col] == 'G' or level[row, col] == 'E':
             # if player is not on the lowest row
             if row != bottom:
                 # below is empty or rope or gold
@@ -160,7 +161,7 @@ class Node:
                 if col != right_end and level[row, col + 1] != 'b' and level[row, col + 1] != 'B': actions.append(
                     "right")
 
-        # print("actions : {}".format(actions))
+        # print("{},{} actions : {}".format(row,col,actions))
         return actions
 
         # returns children of a node
@@ -337,22 +338,51 @@ def get_starting_point(map2d):
     return row, col, golds
 
 
+def get_hamm_dist(golds, row, col):
+    # manhattan distance to golds
+    total_dist = 0
+    for g in golds:
+        dist = abs(row - g[0]) + abs(col - g[1])
+        total_dist += dist
+    return total_dist
+
+
+def get_gold_dist(golds):
+    cnt = 0
+    total_dist = 0
+    avg_dist = 0
+    if len(golds) > 1:
+        for i in range(len(golds)):
+            for j in range(i + 1, len(golds)):
+                cnt += 1
+                g1 = golds[i]
+                g2 = golds[j]
+                dist = abs(g1[0] - g2[0]) + abs(g1[1] - g2[1])
+                total_dist += dist
+
+        avg_dist = total_dist / cnt
+    return avg_dist
+
+
 def get_score(level):
     timer = time.time()
     map2d = Map2D(level)
     all_golds = count_elements(map2d)
     row, col, coll_on_start = get_starting_point(map2d)
     golds = [g for g in all_golds if g not in coll_on_start]
+    map2d.replace(row, col, '.')
 
     score = 0
     dist = 0
+    path_len = 0
 
     if len(all_golds) == 0:
         score = -1
     else:
         root = Node(row, col, map2d, None, None)
-        seq, dist = find_all_golds(root, golds, map2d)
+        seq, path_len = find_all_golds(root, golds, map2d)
         collected = seq + len(coll_on_start)
         score = 1 / (1 + (len(all_golds) - collected))
+        # dist = get_gold_dist(all_golds)
     # print(time.time() - timer)
-    return score, dist
+    return score, path_len

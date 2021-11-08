@@ -20,15 +20,18 @@ class LoderunnerProblem(Problem):
         self._max_gold = 10
 
         self._rewards = {
-            "player": 3,
-            "enemies": 1,
-            "gold": 1,
-            "win": 5,
-            "path-length": 2
+            "player": 1,
+#           "enemies": 1,
+            "enemies": 0,
+#           "gold": 1,
+            "gold": 0,
+            "win": 1,
+#           "path-length": 2,
+            "path-length": 0,
         }
 
     def get_tile_types(self):
-        return ["solid", "brick", "ladder", "rope", "empty", "gold", "enemy", "player"]
+        return ["empty", "brick", "ladder", "rope", "solid", "gold", "enemy", "player"]
 
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
@@ -69,19 +72,21 @@ class LoderunnerProblem(Problem):
             "win": 0,
             "path-length": 0
         }
-        if map_stats["player"] == 1 and map_stats["gold"] > 0:
-            map_stats["win"], map_stats["path-length"] = self._run_game(map)
+#       if map_stats["player"] == 1 and map_stats["gold"] > 0:
+        if map_stats["player"] == 1:
+                map_stats["win"], map_stats["path-length"] = self._run_game(map)
 
         return map_stats
 
+    #TODO: calculate reward as below for NCA
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
-            "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], self._min_enemies, self._max_enemies),
-            "gold": get_range_reward(new_stats["gold"], old_stats["gold"], self._min_gold, self._max_gold),
+#           "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], self._min_enemies, self._max_enemies),
+#           "gold": get_range_reward(new_stats["gold"], old_stats["gold"], self._min_gold, self._max_gold),
             "win": get_range_reward(new_stats["win"], old_stats["win"], 0, 1),
-            "path-length": get_range_reward(new_stats["path-length"], old_stats["path-length"], np.inf, np.inf),
+#           "path-length": get_range_reward(new_stats["path-length"], old_stats["path-length"], np.inf, np.inf),
         }
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\

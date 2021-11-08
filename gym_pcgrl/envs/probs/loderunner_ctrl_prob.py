@@ -25,7 +25,7 @@ class LoderunnerCtrlProblem(LoderunnerProblem):
         self.static_trgs = {
             "player": 1,
             "enemies": 2,
-            "gold": 5,
+            "gold": (1, 10),
             "win": 1,
             "path-length": self._max_path_length,
         }
@@ -37,7 +37,8 @@ class LoderunnerCtrlProblem(LoderunnerProblem):
         self.cond_bounds = {
             "player": (0, max_n_tile),
             "enemies": (0, max_n_tile),
-            "gold": (0, max_n_tile),
+#           "gold": (0, max_n_tile),
+            "gold": (0, 10),
             "win": (0, 1),
             "path-length": (0, self._max_path_length),
         }

@@ -85,7 +85,7 @@ n_init_states_lst = [
 # How many steps in an episode of level editing?
 n_steps_lst = [
     1,
-#   10,
+    10,
     50,
 #   100,
 ]
@@ -115,9 +115,9 @@ local_bcs = {
        ["symmetry", "sol-length"]
        ],
     "loderunner_ctrl": [
-        ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
-        ["win", "path-length"],
+#       ["emptiness", "path-length"],
+#       ["symmetry", "path-length"],
+#       ["win", "path-length"],
         ["gold", "emptiness"],
     ]
 }

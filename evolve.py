@@ -1508,6 +1508,7 @@ def get_emptiness(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns an emptiness value normalized to a range of 0.0 to 1.0
     """
+    # TODO: double check that the "0th" tile-type actually corresponds to empty tiles
     max_val = env._prob._width * env._prob._height  # for example 14*14=196
 
     return np.sum(int_map.flatten() == 0) / max_val
@@ -1774,6 +1775,7 @@ def multi_evo(
     init_states,
     bc_names,
     static_targets,
+    target_weights,
     seed,
     player_1,
     player_2,
@@ -1794,6 +1796,7 @@ def multi_evo(
         init_states=init_states,
         bc_names=bc_names,
         static_targets=static_targets,
+        target_weights=target_weights,
         seed=seed,
         player_1=player_1,
         player_2=player_2,
@@ -1939,6 +1942,7 @@ def simulate(
         init_states,
         bc_names,
         static_targets,
+        target_weights,
         seed=None,
         player_1=None,
         player_2=None,
@@ -2082,11 +2086,13 @@ def simulate(
                     if isinstance(static_targets[k], tuple):
                         # take the smallest distance from current value to any point in range
                         # NOTE: we're assuming this metric is integer-valued
-                        targets_penalty += abs(
+                        trg_penalty_k = abs(
                             np.arange(static_targets[k][0], static_targets[k][1]) - stats[k]
                         ).min()
                     else:
-                        targets_penalty += abs(static_targets[k] - stats[k])
+                        trg_penalty_k = abs(static_targets[k] - stats[k])
+                    trg_penalty_k *= target_weights[k]
+                    targets_penalty += trg_penalty_k
                 #                   targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
                 batch_targets_penalty -= targets_penalty
                 # if SAVE_LEVELS:
@@ -2165,7 +2171,8 @@ def simulate(
             ) / (N_INIT_STATES * N_INIT_STATES - 1)
             # ad hoc scaling :/
             diversity_bonus = 10 * diversity_bonus / (width * height)
-            batch_reward = batch_reward + max(0, variance_penalty + diversity_bonus)
+            # TODO: Removing this for ad-hoc comparison for now (re: loderunner)
+#           batch_reward = batch_reward + max(0, variance_penalty + diversity_bonus)
         else:
             variance_penalty = None
             diversity_bonus = None
@@ -2525,6 +2532,7 @@ class EvoPCGRL:
                             init_states,
                             self.bc_names,
                             self.static_targets,
+                            self.env.weights,
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2564,6 +2572,7 @@ class EvoPCGRL:
                         init_states=init_states,
                         bc_names=self.bc_names,
                         static_targets=self.static_targets,
+                        target_weights=self.env.weights,
                         seed=seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -2618,6 +2627,7 @@ class EvoPCGRL:
                             init_states,
                             self.bc_names,
                             self.static_targets,
+                            self.env.weights,
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2671,6 +2681,7 @@ class EvoPCGRL:
                             init_states=init_states,
                             bc_names=self.bc_names,
                             static_targets=self.static_targets,
+                            target_weights=self.env.weights,
                             seed=seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -3030,6 +3041,7 @@ class EvoPCGRL:
                             self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
+                            target_weights=self.env.weights,
                             seed=None,
                             render_levels=True,
                         )
@@ -3087,6 +3099,7 @@ class EvoPCGRL:
                             self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
+                            target_weights=self.env.weights,
                             seed=None,
                             render_levels=True,
                         )
@@ -3306,6 +3319,7 @@ class EvoPCGRL:
                         init_states,
                         [bc for bc_names in eval_bc_names for bc in bc_names],
                         self.static_targets,
+                        self.env.weights,
                         seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -3426,6 +3440,7 @@ class EvoPCGRL:
                         init_states=init_states,
                         bc_names=self.bc_names,
                         static_targets=self.static_targets,
+                        target_weights=self.env.weights,
                         seed=None,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -3578,6 +3593,7 @@ class EvoPCGRL:
                 init_states,
                 self.bc_names,
                 self.static_targets,
+                target_weights=self.env.weights,
                 seed=None,
                 player_1=self.player_1,
                 player_2=self.player_2,
