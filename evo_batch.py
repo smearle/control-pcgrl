@@ -19,8 +19,8 @@ RENDER_LEVELS = True
 ##### HYPERPARAMETERS #####
 
 exp_ids = [
-#       0,
-        1,
+        0,
+#       1,
 #       2,
 #       3,
 #       4,
@@ -32,8 +32,8 @@ exp_ids = [
 #       10,
 ]
 problems = [
-        "loderunner_ctrl",
-#       "binary_ctrl",
+#       "loderunner_ctrl",
+        "binary_ctrl",
 #       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
@@ -45,9 +45,10 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-    "NCA",
+#   "NCA",
 #   "GenSinCPPN",
 #   "GenCPPN",
+    "Attention",
 
 #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
@@ -79,14 +80,15 @@ fix_seeds = [
 # in the center)
 n_init_states_lst = [
 #   0,
-    10,
+    1,
+#   10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
     10,
-    50,
+#   50,
 #   100,
 ]
 global_bcs: List[List] = [
@@ -115,10 +117,10 @@ local_bcs = {
        ["symmetry", "sol-length"]
        ],
     "loderunner_ctrl": [
-#       ["emptiness", "path-length"],
+        ["emptiness", "path-length"],
 #       ["symmetry", "path-length"],
 #       ["win", "path-length"],
-        ["gold", "emptiness"],
+#       ["gold", "emptiness"],
     ]
 }
 

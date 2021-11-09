@@ -853,6 +853,7 @@ class DoneAuxNCA(AuxNCA):
         super().__init__(n_in_chans, n_actions, n_aux=n_aux)
         done_kernel_size = 3
         self.l_done = Conv2d(1, 1, 7, stride=999)
+        self.layers += [self.l_done]
 
     def forward(self, x):
         with th.no_grad():
@@ -862,6 +863,33 @@ class DoneAuxNCA(AuxNCA):
             done = (done_x > 0).item()
 
         return x, done
+
+    def reset(self, init_aux=None):
+        self.last_aux = None
+
+from models.cbam import CBAM
+
+class Attention(ResettableNN):
+    def __init__(self, n_in_chans, n_actions, n_aux=3):
+        # Add an extra auxiliary ("done") channel after the others
+        n_aux += 1
+        super().__init__()
+        self.l1 = Conv2d(n_in_chans, 32, 1, 1, 0, bias=True)
+        self.cbam = CBAM(32, 1)
+        self.l2 = Conv2d(32, n_actions, 1, 1, 0, bias=True)
+#       self.layers = [getattr(self.cbam, k) for k in self.cbam.state_dict().keys()]
+        self.layers = [self.l1, self.l2, self.cbam.ChannelGate.l1, self.cbam.ChannelGate.l2, self.cbam.SpatialGate.spatial.conv]
+
+    def forward(self, x):
+        with th.no_grad():
+            x = self.l1(x)
+            x = th.relu(x)
+            x = self.cbam(x)
+            x = th.relu(x)
+            x = self.l2(x)
+            x = th.sigmoid(x)
+
+        return x, False
 
     def reset(self, init_aux=None):
         self.last_aux = None
@@ -1413,7 +1441,8 @@ def get_init_weights(nn):
     else:
         for lyr in nn.layers:
             init_params.append(lyr.weight.view(-1).numpy())
-            init_params.append(lyr.bias.view(-1).numpy())
+            if lyr.bias is not None:
+                init_params.append(lyr.bias.view(-1).numpy())
     init_params = np.hstack(init_params)
     print("number of initial NN parameters: {}".format(init_params.shape))
 
@@ -1443,11 +1472,13 @@ def set_weights(nn, weights):
                 l_weights = l_weights.reshape(layer.weight.shape)
                 layer.weight = th.nn.Parameter(th.Tensor(l_weights))
                 layer.weight.requires_grad = False
-                b_weights = weights[n_el : n_el + layer.bias.numel()]
-                n_el += layer.bias.numel()
-                b_weights = b_weights.reshape(layer.bias.shape)
-                layer.bias = th.nn.Parameter(th.Tensor(b_weights))
-                layer.bias.requires_grad = False
+                if layer.bias is not None:
+                    n_bias = layer.bias.numel()
+                    b_weights = weights[n_el : n_el + n_bias]
+                    n_el += n_bias
+                    b_weights = b_weights.reshape(layer.bias.shape)
+                    layer.bias = th.nn.Parameter(th.Tensor(b_weights))
+                    layer.bias.requires_grad = False
 
     return nn
 
@@ -2171,7 +2202,7 @@ def simulate(
             ) / (N_INIT_STATES * N_INIT_STATES - 1)
             # ad hoc scaling :/
             diversity_bonus = 10 * diversity_bonus / (width * height)
-            # TODO: Removing this for ad-hoc comparison for now (re: loderunner)
+            # FIXME: Removing this for ad-hoc comparison for now (re: loderunner)
 #           batch_reward = batch_reward + max(0, variance_penalty + diversity_bonus)
         else:
             variance_penalty = None

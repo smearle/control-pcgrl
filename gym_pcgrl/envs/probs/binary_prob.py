@@ -14,8 +14,8 @@ class BinaryProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 16
-        self._height = 16
+        self._width = 64
+        self._height = 64
         self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
