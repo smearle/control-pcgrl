@@ -369,6 +369,7 @@ Returns:
     int[][]: the random generated map
 """
 def gen_random_map(random, width, height, prob):
+    TT()
     map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
     return map
 
@@ -382,7 +383,9 @@ Parameters:
 Returns:
     string[][]: a 2D map of tile strings instead of numbers
 """
-def get_string_map(map, tiles):
+def get_string_map(map, tiles, continuous=False):
+    if continuous:
+        return map  # AD HOC this is not applicable to continuous domains
     int_to_string = dict((i, s) for i, s in enumerate(tiles))
     result = []
     for y in range(map.shape[0]):

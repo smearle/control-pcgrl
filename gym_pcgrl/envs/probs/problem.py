@@ -32,6 +32,9 @@ class Problem:
         self._graphics = None
         self.render_path = False
 
+    def is_continuous(self):
+        return False
+
     """
     Seeding the used random variable to get the same result. If the seed is None,
     it will seed it with random start.

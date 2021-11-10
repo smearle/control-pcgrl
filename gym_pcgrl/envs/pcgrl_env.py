@@ -106,7 +106,7 @@ class PcgrlEnv(gym.Env):
         self._changes = 0
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
-        self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=self._prob.get_continuous()))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
@@ -208,7 +208,7 @@ class PcgrlEnv(gym.Env):
     """
     def render(self, mode='human'):
         tile_size = 16
-        img = self._prob.render(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        img = self._prob.render(get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
         if mode == 'rgb_array':

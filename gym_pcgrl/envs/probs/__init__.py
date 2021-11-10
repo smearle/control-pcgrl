@@ -12,6 +12,7 @@ from gym_pcgrl.envs.probs.zelda_play_prob import ZeldaPlayProblem
 from gym_pcgrl.envs.probs.smb_ctrl_prob import SMBCtrlProblem
 from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 from gym_pcgrl.envs.probs.loderunner_ctrl_prob import LoderunnerCtrlProblem
+from gym_pcgrl.envs.probs.face_prob import FaceProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
@@ -29,4 +30,5 @@ PROBLEMS = {
     "smb_ctrl": SMBCtrlProblem,
     "loderunner": LoderunnerProblem,
     "loderunner_ctrl": LoderunnerCtrlProblem,
+    "face_ctrl": FaceProblem,
 }

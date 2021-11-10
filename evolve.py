@@ -7,11 +7,13 @@ import pprint
 import sys
 import time
 from datetime import datetime
+from functools import reduce
 from timeit import default_timer as timer
 from pathlib import Path
 from pdb import set_trace as TT
 from random import randint
 
+from operator import mul
 import cv2
 from typing import Tuple
 
@@ -25,6 +27,7 @@ import ray
 import scipy
 import torch as th
 import torch.nn.functional as F
+from skimage import measure
 from gym import envs
 from numba import njit
 from qdpy.phenotype import Fitness, Features
@@ -578,9 +581,14 @@ class InitStatesArchive(GridArchive):
 
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
         super(InitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
-        self.init_states_archive = np.empty(
-            shape=(*bin_sizes, n_init_states, map_w, map_h)
-        )
+        if CONTINUOUS:
+            self.init_states_archive = np.empty(
+                shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
+            )
+        else:
+            self.init_states_archive = np.empty(
+                shape=(*bin_sizes, n_init_states, map_w, map_h)
+            )
 
     def set_init_states(self, init_states):
         self.init_states = init_states
@@ -625,9 +633,14 @@ class MEInitStatesArchive(MEGrid):
 
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
         super(MEInitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
-        self.init_states_archive = np.empty(
-            shape=(*bin_sizes, n_init_states, map_w, map_h)
-        )
+        if CONTINUOUS:
+            self.init_states_archive = np.empty(
+                shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
+            )
+        else:
+            self.init_states_archive = np.empty(
+                shape=(*bin_sizes, n_init_states, map_w, map_h)
+            )
 
     def set_init_states(self, init_states):
         self.init_states = init_states
@@ -878,6 +891,7 @@ class Attention(ResettableNN):
         self.cbam = CBAM(32, 1)
         self.l2 = Conv2d(32, n_actions, 1, 1, 0, bias=True)
 #       self.layers = [getattr(self.cbam, k) for k in self.cbam.state_dict().keys()]
+#       self.bn = nn.BatchNorm2d(n_actions, affine=False)
         self.layers = [self.l1, self.l2, self.cbam.ChannelGate.l1, self.cbam.ChannelGate.l2, self.cbam.SpatialGate.spatial.conv]
 
     def forward(self, x):
@@ -887,6 +901,7 @@ class Attention(ResettableNN):
             x = self.cbam(x)
             x = th.relu(x)
             x = self.l2(x)
+ #          x = self.bn(x)
             x = th.sigmoid(x)
 
         return x, False
@@ -1245,6 +1260,7 @@ class GenCPPN(CPPN):
         self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
 
     def forward(self, x):
+        x[:, :, :, :] = x[:, :, 0:1, 0:1]
         X = th.arange(x.shape[-2])
         Y = th.arange(x.shape[-1])
         X, Y = th.meshgrid(X/X.max(), Y/Y.max())
@@ -1253,6 +1269,7 @@ class GenCPPN(CPPN):
         tile_probs = [self.cppn[i](**inputs) for i in range(self.n_actions)]
         multi_hot = th.stack(tile_probs, axis=0)
         multi_hot = multi_hot.unsqueeze(0)
+        multi_hot = (multi_hot + 1) / 2
         return multi_hot, True
 
 
@@ -1484,6 +1501,8 @@ def set_weights(nn, weights):
 
 
 def get_one_hot_map(int_map, n_tile_types):
+    if CONTINUOUS:
+        return int_map  # AD HOC continuous af
     obs = (np.arange(n_tile_types) == int_map[..., None]).astype(int)
     obs = obs.transpose(2, 0, 1)
 
@@ -1494,6 +1513,8 @@ def get_one_hot_map(int_map, n_tile_types):
 Behavior Characteristics Functions
 """
 
+def get_blur(float_map, env):
+    return measure.blur_effect(float_map)
 
 def get_entropy(int_map, env):
     """
@@ -1502,6 +1523,10 @@ def get_entropy(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns the entropy of the level normalized roughly to a range of 0.0 to 1.0
     """
+    if CONTINUOUS:
+        a = 0
+        b = 10
+        return (measure.shannon_entropy(int_map) - a) / (b - a)
     # FIXME: make this robust to different action spaces
     n_classes = len(env._prob._prob)
     max_val = -(1 / n_classes) * np.log(1 / n_classes) * n_classes
@@ -1531,6 +1556,17 @@ def get_counts(int_map, env):
         for tile in range(len(env._prob._prob))
     ]
 
+def get_brightness(float_map, env):
+    assert np.min(float_map) >= 0.0 and np.max(float_map) <= 1.0
+    return np.sum(float_map) / reduce(mul, float_map.shape)
+
+rand_sols = {}
+
+def get_rand_sol(float_map, env, idx=0):
+    # TODO: discrete version
+    if idx not in rand_sols:
+        rand_sols[idx] = np.random.uniform(0, 1, size=float_map.shape)
+    return np.sum(np.abs(float_map - rand_sols[idx])) / reduce(mul, float_map.shape)
 
 def get_emptiness(int_map, env):
     """
@@ -1646,7 +1682,7 @@ def get_path_length(stats):
 # TODO: call this once to return the releveant get_bc function, then call this after each eval, so that we don't have to repeatedly compare strings
 
 
-def get_bc(bc_name, int_map, stats, env):
+def get_bc(bc_name, int_map, stats, env, idx):
     if bc_name in stats.keys():
         return stats[bc_name]
     elif bc_name == "co-occurance":
@@ -1659,8 +1695,14 @@ def get_bc(bc_name, int_map, stats, env):
         return get_hor_sym(int_map, env)
     elif bc_name == "emptiness":
         return get_emptiness(int_map, env)
+    elif bc_name == "brightness":
+        return get_brightness(int_map, env)  # FIXME: name incorrect, this a float map
     elif bc_name == "entropy":
         return get_entropy(int_map, env)
+    elif bc_name == 'blur':
+        return get_blur(int_map, env)
+    elif bc_name == 'rand_sol':
+        return get_rand_sol(int_map, env, idx=idx)
     elif bc_name == "NONE":
         return 0
     else:
@@ -2069,7 +2111,7 @@ def simulate(
                 n_dirs=N_DIRS,
                 n_tiles=n_tile_types,
             )
-            change, x, y = env._rep.update(action)
+            change, x, y = env._rep.update(action, continuous=CONTINUOUS)
             int_map = env._rep._map
             obs = get_one_hot_map(env._rep.get_observation()["map"], n_tile_types)
             preprocess_observation(obs, x=env._rep._x, y=env._rep._y)
@@ -2090,7 +2132,7 @@ def simulate(
                 # we'll need this to compute Hamming diversity
                 final_levels[n_episode] = int_map
                 stats = env._prob.get_stats(
-                    get_string_map(int_map, env._prob.get_tile_types()),
+                    get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
                     # lenient_paths = True,
                 )
 
@@ -2099,7 +2141,7 @@ def simulate(
 
                 for i in range(len(bc_names)):
                     bc_name = bc_names[i]
-                    bcs[i, n_episode] = get_bc(bc_name, int_map, stats, env)
+                    bcs[i, n_episode] = get_bc(bc_name, int_map, stats, env, idx=i)
 
                 # TODO: reward calculation should depend on self.reward_names
                 # ad hoc reward: shorter episodes are better?
@@ -2150,7 +2192,7 @@ def simulate(
             if RENDER:
                 if INFER:
                     stats = env._prob.get_stats(
-                        get_string_map(int_map, env._prob.get_tile_types()),
+                        get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
                         # lenient_paths=True,
                     )
                 env.render()
@@ -2279,6 +2321,9 @@ class EvoPCGRL:
                 "symmetry-horizontal": (0.0, 1.0),
                 "emptiness": (0.0, 1.0),
                 "entropy": (0.0, 1.0),
+                "brightness": (0.0, 1.0),
+                "blur": (0.0, 1.0),
+                "rand_sol": (0.0, 1.0),
             }
         )
 
@@ -2338,6 +2383,7 @@ class EvoPCGRL:
                     # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
                     # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
                     [100 for _ in self.bc_names],
+#                   [1 for _ in self.bc_names],
                     # min/max for each BC
                     [self.bc_bounds[bc_name] for bc_name in self.bc_names],
                     *init_level_archive_args,
@@ -2916,6 +2962,8 @@ class EvoPCGRL:
             N_DIRS = 0
 
         global N_STEPS
+        global CONTINUOUS
+        CONTINUOUS = PROBLEM == 'face_ctrl'
 
         #       if N_STEPS is None:
         #       if REPRESENTATION != "cellular":
@@ -3064,7 +3112,8 @@ class EvoPCGRL:
                         #                       ) = simulate(
 
                         raise NotImplementedError
-                        TT()  # don't have a way of rendering CMAES yet??
+                        raise Exception
+                        # don't have a way of rendering CMAES yet??
                         level_frames_i = simulate(
                             self.env,
                             init_nn,
@@ -3190,7 +3239,10 @@ class EvoPCGRL:
                 "loderunner": [
 #                   ("emptiness", "path-length"),
 #                   ("symmetry", "path-length"),
-                ]
+                ],
+                "face": [
+                    ("brightness", "entropy"),
+                ],
             }
 
 #           for k in problem_eval_bc_names.keys():
@@ -3639,9 +3691,12 @@ class EvoPCGRL:
 
 
 def gen_random_levels(n_init_states, env):
-    init_states = np.random.randint(
-        0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
-    )
+    if env._prob.is_continuous():  # AD HOC continous representation
+        init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, env._prob._height, env._prob._width))
+    else:
+        init_states = np.random.randint(
+            0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
+        )
     return init_states
 
 #   init_states = np.zeros(shape=(n_init_states, env._prob._height, env._prob._width))

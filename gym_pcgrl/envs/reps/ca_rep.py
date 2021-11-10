@@ -66,8 +66,11 @@ class CARepresentation(Representation):
     Returns:
         boolean: True if the action change the map, False if nothing changed
     """
-    def update(self, action):
-        next_map = action.argmax(axis=0)
+    def update(self, action, continuous=False):
+        if not continuous:
+            next_map = action.argmax(axis=0)
+        else:
+            next_map = action
 #       print(next_map.shape, self._map.shape, 'reppy')
         change = (next_map != self._map).any()
         self._map = next_map

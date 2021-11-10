@@ -1,7 +1,6 @@
 from pdb import set_trace as TT
 from gym.utils import seeding
 from gym_pcgrl.envs.helper import gen_random_map
-
 """
 The base class of all the representations
 """

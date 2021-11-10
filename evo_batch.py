@@ -32,8 +32,9 @@ exp_ids = [
 #       10,
 ]
 problems = [
+        "face_ctrl",
 #       "loderunner_ctrl",
-        "binary_ctrl",
+#       "binary_ctrl",
 #       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
@@ -87,8 +88,8 @@ n_init_states_lst = [
 # How many steps in an episode of level editing?
 n_steps_lst = [
 #   1,
-    10,
-#   50,
+#   10,
+    50,
 #   100,
 ]
 global_bcs: List[List] = [
@@ -121,6 +122,12 @@ local_bcs = {
 #       ["symmetry", "path-length"],
 #       ["win", "path-length"],
 #       ["gold", "emptiness"],
+    ],
+    "face_ctrl": [
+#       ["face_1", "brightness"],
+#       ['brightness', 'blur'],
+        ['brightness', 'entropy'],
+#       ['rand_sol', 'rand_sol']
     ]
 }
 
