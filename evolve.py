@@ -2460,7 +2460,9 @@ class EvoPCGRL:
         if args.n_init_states == 0:
             # special square patch
             self.init_states = np.zeros(shape=(1, self.height, self.width))
-            self.init_states[0, 5:-5, 5:-5] = 1
+            sw = self.width // 3
+            sh = self.height // 3
+            self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
         else:
             #           self.init_states = np.random.randint(
             #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)

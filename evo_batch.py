@@ -19,8 +19,8 @@ RENDER_LEVELS = True
 ##### HYPERPARAMETERS #####
 
 exp_ids = [
-#       0,
-        1,
+        0,
+#       1,
 #       2,
 #       3,
 #       4,
@@ -32,6 +32,7 @@ exp_ids = [
 #       10,
 ]
 problems = [
+#       "face_ctrl",
         "loderunner_ctrl",
 #       "binary_ctrl",
 #       "zelda_ctrl",
@@ -48,6 +49,7 @@ models = [
     "NCA",
 #   "GenSinCPPN",
 #   "GenCPPN",
+#   "Attention",
 
 #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
@@ -72,22 +74,23 @@ fix_elites = [
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-#       True,
+        True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
+    0,
+    1,
     10,
-#   20,
+    20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
     10,
     50,
-#   100,
+    100,
 ]
 global_bcs: List[List] = [
 #       ["NONE"], 
@@ -116,9 +119,15 @@ local_bcs = {
        ],
     "loderunner_ctrl": [
 #       ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
+        ["symmetry", "path-length"],
 #       ["win", "path-length"],
-        ["gold", "emptiness"],
+#       ["gold", "emptiness"],
+    ],
+    "face_ctrl": [
+#       ["face_1", "brightness"],
+#       ['brightness', 'blur'],
+        ['brightness', 'entropy'],
+#       ['rand_sol', 'rand_sol']
     ]
 }
 

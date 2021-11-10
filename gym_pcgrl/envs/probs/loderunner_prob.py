@@ -4,6 +4,7 @@ import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, get_floor_dist, get_type_grouping, get_changes
 from gym_pcgrl.envs.probs.loderunner.engine import get_score
+from pdb import set_trace as TT
 
 
 class LoderunnerProblem(Problem):
@@ -18,6 +19,18 @@ class LoderunnerProblem(Problem):
         self._max_enemies = 3
         self._min_gold = 1
         self._max_gold = 10
+        chars_to_tiles = \
+            {
+                '.': 'empty',
+                 'B': 'solid',
+                 'b': 'brick',
+                 '#': 'ladder',
+                 '-': 'rope',
+                 'E': 'enemy',
+                 'G': 'gold',
+                 'M': 'player',
+             }
+        self.tiles_to_chars = {v: k for k, v in chars_to_tiles.items()}
 
         self._rewards = {
             "player": 1,
@@ -49,14 +62,13 @@ class LoderunnerProblem(Problem):
 
     
     def _run_game(self, map):
-        gameCharacters="Bb#-.GEM"
-        string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
+   #    string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
         lvl= []
         for i in range(len(map)):
             line = []
             for j in range(len(map[i])):
                 string = map[i][j]
-                line.append(string_to_char[string])
+                line.append(self.tiles_to_chars[string])
             lvl.append(line)
                 
         score, dist = get_score(lvl)           

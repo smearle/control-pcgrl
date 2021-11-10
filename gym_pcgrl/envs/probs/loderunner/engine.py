@@ -363,6 +363,7 @@ def get_gold_dist(golds):
         avg_dist = total_dist / cnt
     return avg_dist
 
+from pdb import set_trace as TT
 
 def get_score(level):
     timer = time.time()
