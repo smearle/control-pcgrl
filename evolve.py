@@ -265,6 +265,7 @@ def save_grid(csv_name="levels", d=4):
     # create env
     env = gym.make(env_name)
     map_width = env._prob._width
+    map_height = env._prob._height
 
     df = pd.read_csv(levels_path, header=0, skipinitialspace=True)
     #   .rename(
@@ -313,7 +314,11 @@ def save_grid(csv_name="levels", d=4):
 
         for col_num in range(len(row)):
             axs[row_num, col_num].set_axis_off()
-            level = np.zeros((map_width, map_width), dtype=int)
+            TT()
+            if CONTINUOUS:
+                level = np.zeros((3, map_width, map_height), dtype=int)
+            else:
+                level = np.zeros((map_width, map_height), dtype=int)
 
             for i, l_rows in enumerate(grid_models[col_num].split("], [")):
                 for j, l_col in enumerate(l_rows.split(",")):
@@ -884,25 +889,31 @@ from models.cbam import CBAM
 
 class Attention(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_aux=3):
-        # Add an extra auxiliary ("done") channel after the others
-        n_aux += 1
+        self.n_aux = n_aux
         super().__init__()
+        n_in_chans += n_aux
         self.l1 = Conv2d(n_in_chans, 32, 1, 1, 0, bias=True)
         self.cbam = CBAM(32, 1)
-        self.l2 = Conv2d(32, n_actions, 1, 1, 0, bias=True)
+        self.l2 = Conv2d(32, n_actions + n_aux, 1, 1, 0, bias=True)
 #       self.layers = [getattr(self.cbam, k) for k in self.cbam.state_dict().keys()]
 #       self.bn = nn.BatchNorm2d(n_actions, affine=False)
         self.layers = [self.l1, self.l2, self.cbam.ChannelGate.l1, self.cbam.ChannelGate.l2, self.cbam.SpatialGate.spatial.conv]
+        self.last_aux = None
 
     def forward(self, x):
         with th.no_grad():
-            x = self.l1(x)
+            if self.last_aux is None:
+                self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-2:]))
+            x_in = th.cat([x, self.last_aux], axis=1)
+            x = self.l1(x_in)
             x = th.relu(x)
             x = self.cbam(x)
             x = th.relu(x)
             x = self.l2(x)
  #          x = self.bn(x)
             x = th.sigmoid(x)
+            self.last_aux = x[:,-self.n_aux:,:,:]
+            x = x[:, :-self.n_aux,:,:]
 
         return x, False
 
@@ -2535,9 +2546,15 @@ class EvoPCGRL:
         # These are the initial maps which will act as seeds to our NCA models
 
         if args.n_init_states == 0:
-            # special square patch
-            self.init_states = np.zeros(shape=(1, self.height, self.width))
-            self.init_states[0, 5:-5, 5:-5] = 1
+            sw = self.width // 3
+            sh = self.height // 3
+            if CONTINUOUS:
+                self.init_states = np.zeros(shape=(1, 3, self.height, self.width))
+                self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
+            else:
+                # special square patch
+                self.init_states = np.zeros(shape=(1, self.height, self.width))
+                self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
         else:
             #           self.init_states = np.random.randint(
             #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)

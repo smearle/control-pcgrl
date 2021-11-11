@@ -19,10 +19,10 @@ RENDER_LEVELS = True
 ##### HYPERPARAMETERS #####
 
 exp_ids = [
-        0,
+#       0,
 #       1,
 #       2,
-#       3,
+        3,
 #       4,
 #       5,
 #       6,
@@ -74,14 +74,14 @@ fix_elites = [
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
-#       True,
+        True,
         False
         ]
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
-    1,
+    0,
+#   1,
 #   10,
 #   20,
 ]
@@ -89,8 +89,8 @@ n_init_states_lst = [
 n_steps_lst = [
 #   1,
 #   10,
-    50,
-#   100,
+#   50,
+    100,
 ]
 global_bcs: List[List] = [
 #       ["NONE"], 
@@ -120,6 +120,8 @@ local_bcs = {
     "loderunner_ctrl": [
         ["emptiness", "path-length"],
 #       ["symmetry", "path-length"],
+#       ["emptiness", "path-length"],
+        ["symmetry", "path-length"],
 #       ["win", "path-length"],
 #       ["gold", "emptiness"],
     ],

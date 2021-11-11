@@ -1,10 +1,9 @@
 import os
 from functools import reduce
 
-from PIL import Image
 import numpy as np
 from operator import mul
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 from pdb import set_trace as TT
@@ -19,13 +18,27 @@ class FaceProblem(Problem):
     """
     def __init__(self):
         super().__init__()
+#       font_size = 32
+#       try:
+#           font = ImageFont.truetype("arial.ttf", font_size)
+#       except OSError:
+#           try:
+#               font = ImageFont.truetype("LiberationMono-Regular.ttf", font_size)
+#           except OSError:
+#               font = ImageFont.truetype("SFNSMono.ttf", font_size)
+#       trg_image = Image.new(mode="RGB", size=(16, 16))
+#       draw = ImageDraw.Draw(trg_image)
+#       draw.text((1, 1), "A", font=font, fill=(255, 0, 0))
+#       trg_image.save("trg_img.png")
+#       self.face_np = np.array(trg_image)
+
         with Image.open("gym_pcgrl/envs/probs/face/lena.jpeg") as im:
 #           im.show()
             im = im.resize((16, 16))
             self.face_np = np.array(im)
 #           im.show()
         im.save('face_trg.png')
-        self.face_np = self.face_np.transpose(2, 0, 1)
+#       self.face_np = self.face_np.transpose(2, 0, 1)
 
         self._width = 16
         self._height = 16
@@ -41,7 +54,7 @@ class FaceProblem(Problem):
 
         # default conditional targets
         self.static_trgs = {
-            "face_1": 1,
+            "face_1": 0,
         }
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
@@ -110,9 +123,10 @@ class FaceProblem(Problem):
  #          "regions": calc_num_regions(map, map_locations, ["empty"]),
  #          "path-length": self.path_length,
  #      }
-        return {
-            "face_1": np.sum(np.abs(self.face_np - map * 255)) / (reduce(mul, map.shape) * 255),
+        stats = {
+            "face_1": np.sum(np.abs(self.face_np.transpose(2, 0, 1)/255 - map)) / reduce(mul, map.shape),
         }
+        return stats
 
     """
     Get the current game reward between two stats
@@ -176,7 +190,7 @@ class FaceProblem(Problem):
         # FIXME: this seems maaaaad inefficient no?
         map = map.transpose(1, 2, 0)
 #       map = self.face_np.transpose(1, 2, 0)
-        return Image.fromarray(map, 'RGB')
+        return Image.fromarray((map*255).astype(np.uint8), 'RGB')
 #   def render(self, map):
 #       if self._graphics == None:
 #           if self.GVGAI_SPRITES:
