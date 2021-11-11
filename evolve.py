@@ -314,7 +314,6 @@ def save_grid(csv_name="levels", d=4):
 
         for col_num in range(len(row)):
             axs[row_num, col_num].set_axis_off()
-            TT()
             if CONTINUOUS:
                 level = np.zeros((3, map_width, map_height), dtype=int)
             else:
@@ -837,9 +836,9 @@ class AuxNCA(ResettableNN):
                 self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-2:]))
             x_in = th.cat([x, self.last_aux], axis=1)
             x = self.l1(x_in)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l2(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l3(x)
             x = th.sigmoid(x)
             self.last_aux = x[:,-self.n_aux:,:,:]
@@ -892,9 +891,10 @@ class Attention(ResettableNN):
         self.n_aux = n_aux
         super().__init__()
         n_in_chans += n_aux
-        self.l1 = Conv2d(n_in_chans, 32, 1, 1, 0, bias=True)
-        self.cbam = CBAM(32, 1)
-        self.l2 = Conv2d(32, n_actions + n_aux, 1, 1, 0, bias=True)
+        h_chan = 48
+        self.l1 = Conv2d(n_in_chans, h_chan, 1, 1, 0, bias=True)
+        self.cbam = CBAM(h_chan, 1)
+        self.l2 = Conv2d(h_chan, n_actions + n_aux, 1, 1, 0, bias=True)
 #       self.layers = [getattr(self.cbam, k) for k in self.cbam.state_dict().keys()]
 #       self.bn = nn.BatchNorm2d(n_actions, affine=False)
         self.layers = [self.l1, self.l2, self.cbam.ChannelGate.l1, self.cbam.ChannelGate.l2, self.cbam.SpatialGate.spatial.conv]
@@ -1536,7 +1536,7 @@ def get_entropy(int_map, env):
     """
     if CONTINUOUS:
         a = 0
-        b = 10
+        b = 15
         return (measure.shannon_entropy(int_map) - a) / (b - a)
     # FIXME: make this robust to different action spaces
     n_classes = len(env._prob._prob)

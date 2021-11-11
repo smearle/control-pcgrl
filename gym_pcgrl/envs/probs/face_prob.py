@@ -18,6 +18,10 @@ class FaceProblem(Problem):
     """
     def __init__(self):
         super().__init__()
+
+
+        self._width = 32
+        self._height = 32
 #       font_size = 32
 #       try:
 #           font = ImageFont.truetype("arial.ttf", font_size)
@@ -32,16 +36,15 @@ class FaceProblem(Problem):
 #       trg_image.save("trg_img.png")
 #       self.face_np = np.array(trg_image)
 
+
         with Image.open("gym_pcgrl/envs/probs/face/lena.jpeg") as im:
 #           im.show()
-            im = im.resize((16, 16))
+            im = im.resize((self._width, self._height))
             self.face_np = np.array(im)
 #           im.show()
         im.save('face_trg.png')
 #       self.face_np = self.face_np.transpose(2, 0, 1)
 
-        self._width = 16
-        self._height = 16
 #       self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
