@@ -13,6 +13,7 @@ from gym_pcgrl.envs.probs.smb_ctrl_prob import SMBCtrlProblem
 from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 from gym_pcgrl.envs.probs.loderunner_ctrl_prob import LoderunnerCtrlProblem
 from gym_pcgrl.envs.probs.face_prob import FaceProblem
+from gym_pcgrl.envs.probs.microstructure_prob import MicroStructureProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
@@ -31,4 +32,5 @@ PROBLEMS = {
     "loderunner": LoderunnerProblem,
     "loderunner_ctrl": LoderunnerCtrlProblem,
     "face_ctrl": FaceProblem,
+    "microstructure": MicroStructureProblem
 }

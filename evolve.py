@@ -26,7 +26,6 @@ import psutil
 import ray
 import scipy
 import torch as th
-import torch.nn.functional as F
 from skimage import measure
 from gym import envs
 from numba import njit
@@ -937,9 +936,9 @@ class GeneratorNN(ResettableNN):
     def forward(self, x):
         with th.no_grad():
             x = self.l1(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l2(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l3(x)
             # TODO: try softmax
             x = th.sigmoid(x)
@@ -987,9 +986,9 @@ class CoordNCA(ResettableNN):
             coords = get_coord_grid(x, normalize=True)
             x = th.hstack((coords, x))
             x = self.l1(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l2(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l3(x)
             x = th.sigmoid(x)
 
@@ -1243,9 +1242,9 @@ class CPPNCA(ResettableNN):
     def forward(self, x):
         with th.no_grad():
             x = self.l1(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l2(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = th.sigmoid(x)
         x, _ = self.cppn_body(x)
         return x, False
@@ -1333,9 +1332,9 @@ class GeneratorNNDenseSqueeze(ResettableNN):
     def forward(self, x):
         with th.no_grad():
             x = self.l1(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             x = self.l2(x)
-            x = th.nn.functional.relu(x)
+            x = th.relu(x)
             #           for i in range(int(np.log2(x.shape[2])) + 1):
             #               x = self.l2(x)
             #               x = th.nn.functional.relu(x)
@@ -1370,12 +1369,12 @@ class GeneratorNNDense(ResettableNN):
 
     def forward(self, x):
         with th.no_grad():
-            x = F.relu(self.conv1(x))
-            x = F.relu(self.conv2(x))
-            x = F.relu(self.conv3(x))
+            x = th.relu(self.conv1(x))
+            x = th.relu(self.conv2(x))
+            x = th.relu(self.conv3(x))
             x = self.flatten(x)
-            x = F.relu(self.fc1(x))
-            x = F.softmax(self.fc2(x), dim=1)
+            x = th.relu(self.fc1(x))
+            x = th.softmax(self.fc2(x), dim=1)
 
         return x, False
 
@@ -1591,6 +1590,29 @@ def get_emptiness(int_map, env):
 
     return np.sum(int_map.flatten() == 0) / max_val
 
+from pymks import PrimitiveTransformer, plot_microstructures, two_point_stats, TwoPointCorrelation
+
+
+def get_two_spatial(int_map, env):
+    int_map = np.expand_dims(int_map, axis=0)
+    data = PrimitiveTransformer(n_state=2, min_=0.0, max_=1.0).transform(int_map)
+#   plot_microstructures(
+#       data[0, :, :, 0],
+#       data[0, :, :, 1],
+#       titles=['First phase with ones', 'Second phase with ones'],
+#       cmap='gray',
+#       colorbar=False
+#   )
+
+    auto_correlation = TwoPointCorrelation(
+        periodic_boundary=True,
+        cutoff=25,
+        correlations=[(0, 0)]
+    ).transform(data)
+    mean_2nd_moment = np.asarray(auto_correlation.mean()).item()
+
+    return mean_2nd_moment
+
 
 def get_hor_sym(int_map, env):
     """
@@ -1716,6 +1738,8 @@ def get_bc(bc_name, int_map, stats, env, idx):
         return get_rand_sol(int_map, env, idx=idx)
     elif bc_name == "NONE":
         return 0
+    elif bc_name == "two_spatial":
+        return get_two_spatial(int_map, env)
     else:
         print("The BC {} is not recognized.".format(bc_name))
         raise Exception
@@ -2335,6 +2359,7 @@ class EvoPCGRL:
                 "brightness": (0.0, 1.0),
                 "blur": (0.0, 1.0),
                 "rand_sol": (0.0, 1.0),
+                "two_spatial": (0.0, 1.0),
             }
         )
 

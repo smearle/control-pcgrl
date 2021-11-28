@@ -32,7 +32,8 @@ exp_ids = [
 #       10,
 ]
 problems = [
-        "face_ctrl",
+        "microstructure"
+#       "face_ctrl",
 #       "loderunner_ctrl",
 #       "binary_ctrl",
 #       "zelda_ctrl",
@@ -46,10 +47,10 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-#   "NCA",
+    "NCA",
 #   "GenSinCPPN",
 #   "GenCPPN",
-    "Attention",
+#   "Attention",
 
 #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
@@ -130,6 +131,9 @@ local_bcs = {
 #       ['brightness', 'blur'],
         ['brightness', 'entropy'],
 #       ['rand_sol', 'rand_sol']
+    ],
+    "microstructure": [
+        ["emptiness", "two_spatial"],
     ]
 }
 
@@ -237,6 +241,7 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_steps": n_steps,
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
+                                                "multi_thread": True,
                                             }
                                         )
                                         if args.render:

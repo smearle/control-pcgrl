@@ -85,7 +85,8 @@ def get_args(load_args=None):
         "-m",
         "--multi_thread",
         help="Use multi-thread evolution process.",
-        action="store_true",
+        type=bool,
+        default=False,
     )
     opts.add_argument(
         "--play_level",
