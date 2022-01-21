@@ -3,7 +3,7 @@ import os
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, get_floor_dist, get_type_grouping, get_changes
-from gym_pcgrl.envs.probs.smb.engine import State,BFSAgent,AStarAgent
+from gym_pcgrl.envs.probs.smb.smb.engine import State,BFSAgent,AStarAgent
 
 
 class SMBProblem(Problem):

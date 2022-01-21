@@ -9,6 +9,60 @@ from gym_pcgrl import wrappers
 from stable_baselines import PPO2
 from stable_baselines.bench import Monitor
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
+import gym
+
+import grpc
+import minecraft_pb2_grpc
+from minecraft_pb2 import *
+import time
+
+CHANNEL = grpc.insecure_channel('localhost:5001')
+CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
+
+b_map = [DIRT, AIR, QUARTZ_BLOCK]
+block_map = dict(zip(range(len(b_map)), b_map))
+inv_block_map = dict(zip(b_map, range(len(b_map))))
+N_BLOCK_TYPE = 3
+
+def clear(n, e):
+    '''
+    Clear a background of size (n e) in position (0 0 0) for rendering in Minecraft
+    n stands for length in NORTH direction
+    e stands for length in EAST direction
+    '''
+    CLIENT.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=0, y=4, z=0),
+            max=Point(x=n, y=7, z=e)
+        ),
+        type=AIR
+    ))
+    CLIENT.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=-3, y=4, z=-3),
+            max=Point(x=n+3, y=4, z=e+3)
+        ),
+        type=QUARTZ_BLOCK
+    ))
+
+def get_tile(tile):
+    '''
+    return the types blocks of each tiles in Minecraft
+    '''
+    # TODO add
+
+def spawn_maze(map, base=5):
+    '''
+    Spawn maze iterately in Minecraft
+    '''
+    blocks = []
+    for j in range(len(map)):
+        for i in range(len(map[j])):
+            item = get_tile(map[j][i])
+            blocks.append(Block(position=Point(x=i, y=base,z=j),
+                               type=item, orientation=NORTH))
+    CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    #time.sleep(0.2)
 
 class RenderMonitor(Monitor):
     """
@@ -28,6 +82,24 @@ class RenderMonitor(Monitor):
             self.render()
         return Monitor.step(self, action)
 
+class RenderMinecraftWrapper(gym.Wrapper):
+    """
+    Wrapper class for rendering in Evocraft environment for Minecraft game.
+    """
+    def __init__(self, env, **kwargs):
+        mode = kwargs.get('render_mode', 'human')
+        self.env
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+
+    def render(self, mode='human'):
+        if mode == 'evocraft':
+            # TODO add func calls
+
+            return
+        else:
+            return self.env.render(mode=mode)
+
 def get_action(obs, env, model, action_type=True):
     action = None
     if action_type == 0:
@@ -45,6 +117,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     '''
     max_step = kwargs.get('max_step', None)
     render = kwargs.get('render', False)
+    render_mode = kwargs.get('render_mode', 'human')
     def _thunk():
         if representation == 'wide':
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
@@ -54,6 +127,8 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         # RenderMonitor must come last
         if render or log_dir is not None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)
+        if render_mode == 'evocraft':
+            env = RenderMinecraftWrapper(env, **kwargs)
         return env
     return _thunk
 
