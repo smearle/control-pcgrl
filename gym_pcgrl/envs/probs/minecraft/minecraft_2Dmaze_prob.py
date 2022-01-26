@@ -3,6 +3,7 @@ import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
+from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_2Dmaze
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -15,8 +16,8 @@ class Minecraft2DmazeProblem(Problem):
         super().__init__()
         self._width = 14
         self._height = 14
-        self._prob = {"empty": 0.5, "solid":0.5}
-        self._border_tile = "solid"
+        self._prob = {"AIR": 0.5, "DIRT":0.5}
+        self._border_tile = "DIRT"
 
         self._target_path = 20
         self._random_probs = True
@@ -33,7 +34,7 @@ class Minecraft2DmazeProblem(Problem):
         string[]: that contains all the tile names
     """
     def get_tile_types(self):
-        return ["empty", "solid"]
+        return ["AIR", "DIRT"]
 
     """
     Adjust the parameters for the current problem
@@ -68,8 +69,8 @@ class Minecraft2DmazeProblem(Problem):
     def reset(self, start_stats):
         super().reset(start_stats)
         if self._random_probs:
-            self._prob["empty"] = self._random.random()
-            self._prob["solid"] = 1 - self._prob["empty"]
+            self._prob["AIR"] = self._random.random()
+            self._prob["DIRT"] = 1 - self._prob["AIR"]
 
     """
     Get the current stats of the map
@@ -81,8 +82,8 @@ class Minecraft2DmazeProblem(Problem):
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
         return {
-            "regions": calc_num_regions(map, map_locations, ["empty"]),
-            "path-length": calc_longest_path(map, map_locations, ["empty"])
+            "regions": calc_num_regions(map, map_locations, ["AIR"]),
+            "path-length": calc_longest_path(map, map_locations, ["DIRT"])
         }
 
     """
@@ -149,7 +150,8 @@ class Minecraft2DmazeProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
+                "AIR": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
+                "DIRT": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
             }
+        spawn_2Dmaze(map, self._border_tile, self._border_size)
         return super().render(map)

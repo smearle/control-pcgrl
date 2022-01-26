@@ -4,6 +4,8 @@ from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
+# from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_2Dmaze
+
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
@@ -152,4 +154,5 @@ class BinaryProblem(Problem):
                 "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
                 "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
             }
+        # spawn_2Dmaze(map, self._border_tile, self._border_size)
         return super().render(map)

@@ -3,7 +3,8 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import minecraft_pb2 as minecraft__pb2
+# import minecraft_pb2 as minecraft__pb2
+import gym_pcgrl.envs.probs.minecraft.minecraft_pb2 as minecraft__pb2
 
 
 class MinecraftServiceStub(object):
@@ -40,21 +41,21 @@ class MinecraftServiceServicer(object):
     """
 
     def spawnBlocks(self, request, context):
-        """* Spawn multiple blocks. 
+        """* Spawn multiple blocks.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def readCube(self, request, context):
-        """* Return all blocks in a cube 
+        """* Return all blocks in a cube
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def fillCube(self, request, context):
-        """* Fill a cube with a block type 
+        """* Fill a cube with a block type
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

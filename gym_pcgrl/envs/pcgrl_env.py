@@ -13,7 +13,7 @@ class PcgrlEnv(gym.Env):
     """
     The type of supported rendering
     """
-    metadata = {'render.modes': ['human', 'rgb_array','evocraft']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     """
     Constructor for the interface.

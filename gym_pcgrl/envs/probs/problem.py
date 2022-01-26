@@ -137,7 +137,7 @@ class Problem:
             self._graphics = {}
             for i in range(len(tiles)):
                 color = (i*255/len(tiles),i*255/len(tiles),i*255/len(tiles),255)
-                self._graphics[tile[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
+                self._graphics[tiles[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
 
         full_width = len(map[0])+2*self._border_size[0]
         full_height = len(map)+2*self._border_size[1]

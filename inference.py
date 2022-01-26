@@ -28,7 +28,6 @@ def infer(game, representation, model_path, **kwargs):
 
     agent = PPO2.load(model_path)
     env = make_vec_envs(env_name, representation, None, 1, **kwargs)
-    env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
     obs = env.reset()
 
     dones = False
@@ -50,8 +49,7 @@ model_path = 'models/{}/{}/model_1.pkl'.format(game, representation)
 kwargs = {
     'change_percentage': 0.4,
     'trials': 1,
-    'verbose': True,
-    'render_mode':'evocraft'
+    'verbose': True
 }
 
 if __name__ == '__main__':
