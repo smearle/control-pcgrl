@@ -11,7 +11,7 @@ CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
 b_map = [AIR, DIRT]
-string_map = ["empty", "solid"]
+string_map = ["AIR", "DIRT"]
 
 # map string map entries into Minecraft item type
 block_map = dict(zip(string_map, b_map))  
