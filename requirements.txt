@@ -12,6 +12,7 @@ graphviz
 tqdm
 ribs
 scikit-image
+pingouin
 ray
 stable-baselines==2.9.0
 #tensorflow==1.15

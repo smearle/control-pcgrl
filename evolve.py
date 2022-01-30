@@ -658,7 +658,6 @@ class MEInitStatesArchive(MEGrid):
         return index
 
 
-
 class FlexArchive(InitStatesArchive):
     """ Subclassing a pyribs archive class to do some funky stuff."""
 
@@ -950,6 +949,30 @@ class GeneratorNN(ResettableNN):
         # axis 0,2 is the y value
 
         return x, False
+
+
+class Decoder(ResettableNN):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__()
+        n_hid_1 = 32
+        self.l1 = nn.ConvTranspose2d(n_in_chans, n_hid_1, 3, 2, 1, 1, bias=True)
+        self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 2, 1, 1, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            x = self.l1(x)
+            x = th.relu(x)
+            x = self.l2(x)
+            x = th.relu(x)
+            x = self.l3(x)
+            # TODO: try softmax
+            x = th.sigmoid(x)
+
+        return x, False
+
 
 class MixNCA(ResettableNN):
     def __init__(self, *args, **kwargs):
@@ -1281,6 +1304,11 @@ class GenCPPN(CPPN):
         multi_hot = multi_hot.unsqueeze(0)
         multi_hot = (multi_hot + 1) / 2
         return multi_hot, True
+
+
+# CPPN2 takes latent seeds not onehot levels
+GenSinCPPN2 = SinCPPN
+GenCPPN2 = CPPN
 
 
 class Individual(qdpy.phenotype.Individual):
@@ -1894,8 +1922,8 @@ def multi_evo(
     if init_states is None:
         init_states = get_init_states(init_states_archive, tuple(index))
 
-    if proc_id is not None:
-        print("simulating id: {}".format(proc_id))
+    # if proc_id is not None:
+    #     print("simulating id: {}".format(proc_id))
     model = set_weights(model, model_w)
     result = simulate(
         env=env,
@@ -2095,7 +2123,9 @@ def simulate(
     bcs = np.empty(shape=(len(bc_names), n_init_states))
     # if SAVE_LEVELS:
     trg = np.empty(shape=(n_init_states))
-    final_levels = np.empty(shape=init_states.shape, dtype=np.uint8)
+
+    # init_states has shape (n_episodes, n_chan, height, width)
+    final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width), dtype=np.uint8)
     batch_reward = 0
     batch_time_penalty = 0
     batch_targets_penalty = 0
@@ -2105,18 +2135,22 @@ def simulate(
         level_frames = []
 
     for (n_episode, init_state) in enumerate(init_states):
-        # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
-        # Set the representation to begin in the upper left corner
-        env._rep._map = init_state.copy()
-        env._prob.path_coords = []
-        env._prob.path_length = None
-        # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
         # TODO: wrap the env instead
         env._rep._x = env._rep._y = 0
-        # env._rep._x = np.random.randint(env._prob._width)
-        # env._rep._y = np.random.randint(env._prob._height)
-        int_map = init_state
-        obs = get_one_hot_map(int_map, n_tile_types)
+        # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
+        if MODEL == "Decoder" or ("CPPN2" in MODEL):
+            obs = init_state
+        else:
+            # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
+            # Set the representation to begin in the upper left corner
+            env._rep._map = init_state.copy()
+            env._prob.path_coords = []
+            env._prob.path_length = None
+            # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
+            # env._rep._x = np.random.randint(env._prob._width)
+            # env._rep._y = np.random.randint(env._prob._height)
+            int_map = init_state
+            obs = get_one_hot_map(int_map, n_tile_types)
 
         if RENDER:
             env.render()
@@ -2130,8 +2164,9 @@ def simulate(
         n_step = 0
 
         while not done:
-            if render_levels:
-                level_frames.append(env.render(mode="rgb_array"))
+            if env._rep._map is not None:
+                if render_levels:
+                    level_frames.append(env.render(mode="rgb_array"))
             #           in_tensor = th.unsqueeze(
             #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = th.unsqueeze(th.Tensor(obs), 0)
@@ -2153,7 +2188,7 @@ def simulate(
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
             #           env._rep._map = int_map
-            done = done or not (change or skip) or n_step >= N_STEPS
+            done = done or not (change or skip) or n_step >= N_STEPS - 1
             # done = n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
@@ -2584,7 +2619,7 @@ class EvoPCGRL:
             #           self.init_states = np.random.randint(
             #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)
             #           )
-            self.init_states = gen_random_levels(N_INIT_STATES, self.env)
+            self.init_states = gen_latent_seeds(N_INIT_STATES, self.env)
 
         self.start_time = time.time()
         self.total_itrs = N_GENERATIONS
@@ -2629,7 +2664,7 @@ class EvoPCGRL:
             }
 
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
-                init_states = gen_random_levels(N_INIT_STATES, self.env)
+                init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             else:
                 init_states = self.init_states
 
@@ -3417,7 +3452,7 @@ class EvoPCGRL:
                 else:
                     N_EVAL_STATES = N_INIT_STATES = 20  #= 100  # e.g. 10
 
-                init_states = gen_random_levels(N_INIT_STATES, self.env)
+                init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             #               init_states = np.random.randint(
             #                   0,
             #                   self.n_tile_types,
@@ -3700,7 +3735,7 @@ class EvoPCGRL:
             #           RANDOM_INIT_LEVELS = not opts.fix_level_seeds
 
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
-                init_states = gen_random_levels(N_INIT_STATES, self.env)
+                init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             elif not args.fix_level_seeds and args.n_init_states != 0:
                 init_states_archive = archive.init_states_archive
                 init_states = get_init_states(init_states_archive, tuple(idxs[i]))
@@ -3732,9 +3767,14 @@ class EvoPCGRL:
 #               i=0
 
 
-def gen_random_levels(n_init_states, env):
+def gen_latent_seeds(n_init_states, env):
     if env._prob.is_continuous():  # AD HOC continous representation
         init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, env._prob._height, env._prob._width))
+    elif MODEL == "Decoder":
+        init_states = np.random.random((N_INIT_STATES, len(env._prob.get_tile_types()), env._prob._height // 4, env._prob._width // 4))
+    elif "CPPN2" in MODEL:
+        init_states = np.random.random((N_INIT_STATES, len(env._prob.get_tile_types())))
+        init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height, env._prob._width))
     else:
         init_states = np.random.randint(
             0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
@@ -3849,6 +3889,8 @@ if __name__ == "__main__":
             assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES
         if MODEL != "CPPNCA":
             assert N_STEPS == 1
+    if MODEL == "Decoder" or ("CPPN2" in MODEL):
+        assert N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
@@ -3856,7 +3898,7 @@ if __name__ == "__main__":
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = ''
+    exp_name = 'EvoPCGRL_'
     if ALGO == "ME":
         exp_name += "ME_"
     exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(

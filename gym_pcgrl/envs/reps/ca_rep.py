@@ -71,7 +71,11 @@ class CARepresentation(Representation):
             next_map = action.argmax(axis=0)
         else:
             next_map = action
-#       print(next_map.shape, self._map.shape, 'reppy')
-        change = (next_map != self._map).any()
+        if self._map is None:
+            # This is the case when using an actual latent seed (so we do only one pass through the generator and have
+            # no need to set an initial map in the environment).
+            change = True
+        else:
+            change = (next_map != self._map).any()
         self._map = next_map
         return change, None, None

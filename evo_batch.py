@@ -19,23 +19,23 @@ RENDER_LEVELS = True
 ##### HYPERPARAMETERS #####
 
 exp_ids = [
-#       0,
-#       1,
-#       2,
-#       3,
-        4,
-#       5,
-#       6,
-#       7,
-#       8,
-#       9,
-#       10,
+        0,
+        # 1,
+        # 2,
+        # 3,
+        # 4,
+        # 5,
+        # 6,
+        # 7,
+        # 8,
+        # 9,
+        # 10,
 ]
 problems = [
-        "microstructure"
+#       "microstructure"
 #       "face_ctrl",
 #       "loderunner_ctrl",
-#       "binary_ctrl",
+        "binary_ctrl",
 #       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
@@ -47,12 +47,15 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-    "NCA",
-#   "GenSinCPPN",
-#   "GenCPPN",
-#   "Attention",
+    # "NCA",
+    "Attention",
+    # "GenSinCPPN",
+    # "GenCPPN",
+    # "Decoder",
+    # "GenCPPN2"
+    # "GenSinCPPN2"
 
-#   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
+    #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
 #   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
 #   "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
@@ -81,14 +84,14 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
+#   0,
 #   1,
-#   10,
+    10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-#   1,
+    1,
 #   10,
     50,
 #   100,
@@ -208,6 +211,9 @@ def launch_batch(exp_name, collect_params=False):
 
                                             if model != "CPPNCA" and n_steps != 1:
                                                 continue
+
+                                        if model == 'Decoder' and n_steps != 1:
+                                            continue
 
                                         # Edit the sbatch file to load the correct config file
 

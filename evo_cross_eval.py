@@ -6,6 +6,7 @@ import os
 import numpy as np
 import matplotlib
 import pandas as pd
+import pingouin as pg
 import scipy.stats
 
 from evo_args import get_args, get_exp_name
@@ -216,6 +217,15 @@ def compile_results(settings_list, tex=False):
             else:
                 data[-1].append(flat_stats[c])
 
+    # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
+    # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
+    oa_metric = 'eval QD score'
+    qd_score_idx = col_indices.index(oa_metric)
+    oneway_anove_data = {'model': [v[0] for v in vals], oa_metric: [d[qd_score_idx] for d in data]}
+    oneway_anova_df = pd.DataFrame(oneway_anove_data)
+    oneway_anova = pg.anova(data=oneway_anova_df, dv=oa_metric, between='model', detailed=True)
+    oneway_anova.to_html(os.path.join('eval_experiment', 'oneway_anova.html'))
+
     tuples = vals
     for i, tpl in enumerate(tuples):
         # Preprocess row headers
@@ -280,6 +290,7 @@ def compile_results(settings_list, tex=False):
         z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
                            i in range(len(hier_col))])
     col_tuples = []
+
     for col in col_indices:
         hier_col = hierarchicalize_col(col)
         col_tuples.append(tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
@@ -324,6 +335,8 @@ def compile_results(settings_list, tex=False):
 #   plt.xticks(range(len(new_row_names)), labels=[str(i) for i in new_row_names], rotation='vertical')
     df.to_csv(csv_name)
     df.to_html(html_name)
+
+    # Create new data-frame that squashes different iterations of the same experiment
     csv_name = r"{}/cross_eval.csv".format(EVO_DIR)
     html_name = r"{}/cross_eval.html".format(EVO_DIR)
     ndf = pd.DataFrame()
@@ -337,6 +350,7 @@ def compile_results(settings_list, tex=False):
     ndf.to_csv(csv_name)
     ndf.to_html(html_name)
 #   df.rename(col_keys, axis=1)
+
     df = ndf
 
     if not tex:
