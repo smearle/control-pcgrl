@@ -76,6 +76,9 @@ class CARepresentation(Representation):
             # no need to set an initial map in the environment).
             change = True
         else:
+            if next_map.shape != self._map.shape:
+                print(next_map.shape, self._map.shape)
+                raise Exception
             change = (next_map != self._map).any()
         self._map = next_map
         return change, None, None

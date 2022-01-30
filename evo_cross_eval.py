@@ -326,9 +326,11 @@ def compile_results(settings_list, tex=False):
         mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
         new_rows.append(mean_exp)
     pvals = np.zeros(shape=(len(new_row_names), len(new_row_names)))
+
     for i, vi in enumerate(eval_qd_scores):
         for j, vj in enumerate(eval_qd_scores):
             pvals[i,j] = scipy.stats.mannwhitneyu(vi, vj)[1]
+
     im = plt.figure()
 
     cross_eval_heatmap(pvals, row_labels=new_row_names, col_labels=new_row_names, title='Eval QD score p-values', pvals=True, swap_xticks=False)

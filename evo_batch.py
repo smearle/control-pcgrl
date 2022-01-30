@@ -20,25 +20,25 @@ RENDER_LEVELS = True
 
 exp_ids = [
         0,
-        # 1,
-        # 2,
-        # 3,
-        # 4,
-        # 5,
-        # 6,
-        # 7,
-        # 8,
-        # 9,
-        # 10,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
 ]
 problems = [
 #       "microstructure"
-#       "face_ctrl",
-#       "loderunner_ctrl",
         "binary_ctrl",
 #       "zelda_ctrl",
 #       "sokoban_ctrl",
 #       "smb_ctrl"
+#       "loderunner_ctrl",
+#       "face_ctrl",
 ]
 representations = [
         "cellular",  # change entire board at each step
@@ -47,16 +47,17 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-    # "NCA",
-    "Attention",
-    # "GenSinCPPN",
-    # "GenCPPN",
+    "NCA",
+    "GenSinCPPN",
+    "GenCPPN",
+
+    #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+    # "AttentionNCA",
     # "Decoder",
-    # "GenCPPN2"
+    # "GenCPPN2",
     # "GenSinCPPN2"
 
     #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
-#   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
 #   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
 #   "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
 

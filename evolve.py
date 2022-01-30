@@ -884,7 +884,7 @@ class DoneAuxNCA(AuxNCA):
 
 from models.cbam import CBAM
 
-class Attention(ResettableNN):
+class AttentionNCA(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_aux=3):
         self.n_aux = n_aux
         super().__init__()
@@ -952,10 +952,13 @@ class GeneratorNN(ResettableNN):
 
 
 class Decoder(ResettableNN):
+    """
+    Decoder-like architecture (e.g. as in VAEs and GANs).
+    """
     def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__()
-        n_hid_1 = 32
-        self.l1 = nn.ConvTranspose2d(n_in_chans, n_hid_1, 3, 2, 1, 1, bias=True)
+        n_hid_1 = 16
+        self.l1 = nn.ConvTranspose2d(n_in_chans + 2, n_hid_1, 3, 2, 1, 1, bias=True)
         self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 2, 1, 1, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
@@ -963,6 +966,9 @@ class Decoder(ResettableNN):
 
     def forward(self, x):
         with th.no_grad():
+            # Observe the coordinates
+            coords = get_coord_grid(x, normalize=True)
+            x = th.hstack((coords, x))
             x = self.l1(x)
             x = th.relu(x)
             x = self.l2(x)
@@ -2513,8 +2519,9 @@ class EvoPCGRL:
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
         else:
+            n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN2" in MODEL else self.n_tile_types
             self.gen_model = globals()[MODEL](
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+                n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans
             )
         set_nograd(self.gen_model)
         initial_w = get_init_weights(self.gen_model)
@@ -3177,7 +3184,7 @@ class EvoPCGRL:
                         # parallelization would be kind of pointelss here
                         init_nn = set_weights(self.gen_model, model)
                         # run simulation, but only on a single level-seed
-#                       init_state = gen_random_levels(1, self.env)
+#                       init_state = (1, self.env)
                         #                       init_state = np.random.randint(
                         #                           0, self.n_tile_types, size=(1, *self.init_states.shape[1:])
                         #                       )
@@ -3770,11 +3777,13 @@ class EvoPCGRL:
 def gen_latent_seeds(n_init_states, env):
     if env._prob.is_continuous():  # AD HOC continous representation
         init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, env._prob._height, env._prob._width))
-    elif MODEL == "Decoder":
-        init_states = np.random.random((N_INIT_STATES, len(env._prob.get_tile_types()), env._prob._height // 4, env._prob._width // 4))
-    elif "CPPN2" in MODEL:
-        init_states = np.random.random((N_INIT_STATES, len(env._prob.get_tile_types())))
-        init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height, env._prob._width))
+    elif "CPPN2" in MODEL or "Decoder" in MODEL:
+        init_states = np.random.normal(0, 1, (N_INIT_STATES, N_LATENTS))
+        if "CPPN2" in MODEL:
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height, env._prob._width))
+        if "Decoder" in MODEL:
+            assert env._prob._width % 4 == env._prob._height % 4 == 0
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height // 4, env._prob._width // 4))
     else:
         init_states = np.random.randint(
             0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
@@ -3870,7 +3879,13 @@ if __name__ == "__main__":
     PLAY_LEVEL = arg_dict["play_level"]
     BCS = arg_dict["behavior_characteristics"]
     N_GENERATIONS = arg_dict["n_generations"]
+
+    # Number of generation episodes (i.e. number of latent seeds or initial states in the case of NCA)
     N_INIT_STATES = arg_dict["n_init_states"]
+
+    # How many latents for Decoder and CPPN architectures
+    # TODO: Try making this nonzero for NCA?
+    N_LATENTS = 0 if "NCA" in MODEL else 16
     N_STEPS = arg_dict["n_steps"]
 
     SHOW_VIS = arg_dict["show_vis"]
