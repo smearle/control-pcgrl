@@ -119,6 +119,7 @@ def flatten_stats(stats, tex, evaluation=False):
 def compile_results(settings_list, tex=False):
 #   batch_exp_name = settings_list[0]["exp_name"]
     EVO_DIR = "evo_runs"
+    EVAL_DIR = "eval_experiment"
 #   if batch_exp_name == "0":
 #       EVO_DIR = "evo_runs_06-12"
 #   else:
@@ -152,17 +153,18 @@ def compile_results(settings_list, tex=False):
 #       "behavior_characteristics",
         "model",
 #       "representation",
-        "n_init_states",
-        "fix_level_seeds",
+#         "n_init_states",
+        # "fix_level_seeds",
 #       "fix_elites",
-        "n_steps",
+#         "n_steps",
         "exp_name",
     ]
 
     hyperparam_rename = {
         "model" : {
             "CPPN": "Vanilla CPPN",
-            "GenSinCPPN": " "+newline("Fixed", "CPPN"),
+            # "GenSinCPPN": " "+newline("Fixed", "CPPN"),
+            "GenSinCPPN": " Fixed CPPN",
             "GenCPPN": "CPPN",
         },
         "fix_level_seeds": {
@@ -300,8 +302,8 @@ def compile_results(settings_list, tex=False):
     # columns = pd.MultiIndex.from_tuples(col_tuples)
     df = pd.DataFrame(data=data, index=row_indices, columns=col_indices).sort_values(by=new_keys)
 
-    csv_name = r"{}/cross_eval_multi.csv".format(EVO_DIR)
-    html_name = r"{}/cross_eval_multi.html".format(EVO_DIR)
+    csv_name = r"{}/cross_eval_multi.csv".format(EVAL_DIR)
+    html_name = r"{}/cross_eval_multi.html".format(EVAL_DIR)
     print(df)
     for i, k in enumerate(new_keys):
         if k in row_idx_names:
@@ -339,8 +341,8 @@ def compile_results(settings_list, tex=False):
     df.to_html(html_name)
 
     # Create new data-frame that squashes different iterations of the same experiment
-    csv_name = r"{}/cross_eval.csv".format(EVO_DIR)
-    html_name = r"{}/cross_eval.html".format(EVO_DIR)
+    csv_name = r"{}/cross_eval.csv".format(EVAL_DIR)
+    html_name = r"{}/cross_eval.html".format(EVAL_DIR)
     ndf = pd.DataFrame()
     ndf = ndf.append(new_rows)
     new_col_indices = pd.MultiIndex.from_tuples(df.columns)
@@ -358,7 +360,7 @@ def compile_results(settings_list, tex=False):
     if not tex:
         return
 
-    tex_name = r"{}/cross_eval.tex".format(EVO_DIR)
+    tex_name = r"{}/cross_eval.tex".format(EVAL_DIR)
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"]
     df_tex = df
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)

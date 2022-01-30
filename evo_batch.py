@@ -51,7 +51,7 @@ models = [
     "GenSinCPPN",
     "GenCPPN",
 
-    #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+      # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
     # "AttentionNCA",
     # "Decoder",
     # "GenCPPN2",
@@ -359,7 +359,8 @@ if __name__ == "__main__":
         if not args.tex:
             print("Produced html at evo_runs/cross_eval_{}.html".format(args.experiment_name))
         else:
-            os.system(f'pdflatex evo_runs/tables.tex')
+            os.chdir('eval_experiment')
+            os.system(f'pdflatex tables.tex')
     elif args.gif:
         render_gifs(settings_list)
     else:
