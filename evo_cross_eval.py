@@ -63,10 +63,6 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
     else:
         data = "{:.1f}".format(data)
 
-    if bold:
-#       data = "\\cellcolor{blue!25} "
-        data = "\\bfseries {}".format(data)
-
     print(col_name)
     if "maintained" in col_name[1]:
         data = "{} \%".format(data)
@@ -75,7 +71,11 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
         err = "{:.1e}".format(err)
     else:
         err = "{:.1f}".format(err)
-    data = f'{data} ± {err}'
+
+    if bold:
+        data = '\\textbf{' + str(data) + '} ± ' + str(err)
+    else:
+        data = f'{data} ± {err}'
     return data
 
 
@@ -162,10 +162,10 @@ def compile_results(settings_list, tex=False):
 
     hyperparam_rename = {
         "model" : {
-            "CPPN": "Vanilla CPPN",
+            # "CPPN": "Vanilla CPPN",
             # "GenSinCPPN": " "+newline("Fixed", "CPPN"),
-            "GenSinCPPN": " Fixed CPPN",
-            "GenCPPN": "CPPN",
+            # "GenSinCPPN": " Fixed CPPN",
+            # "GenCPPN": "CPPN",
         },
         "fix_level_seeds": {
             True: "Fix",
@@ -219,14 +219,23 @@ def compile_results(settings_list, tex=False):
             else:
                 data[-1].append(flat_stats[c])
 
-    # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
-    # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
-    oa_metric = 'eval QD score'
-    qd_score_idx = col_indices.index(oa_metric)
-    oneway_anove_data = {'model': [v[0] for v in vals], oa_metric: [d[qd_score_idx] for d in data]}
-    oneway_anova_df = pd.DataFrame(oneway_anove_data)
-    oneway_anova = pg.anova(data=oneway_anova_df, dv=oa_metric, between='model', detailed=True)
-    oneway_anova.to_html(os.path.join('eval_experiment', 'oneway_anova.html'))
+    def analyze_metric(metric):
+        """Run statistical significance tests for come metric (i.e. column header) of interest."""
+        # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
+        # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
+        qd_score_idx = col_indices.index(metric)
+        oneway_anove_data = {'model': [v[0] for v in vals], metric: [d[qd_score_idx] for d in data]}
+        oneway_anova_df = pd.DataFrame(oneway_anove_data)
+        oneway_anova = pg.anova(data=oneway_anova_df, dv=metric, between='model', detailed=True)
+        oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
+        oneway_anova.to_html(os.path.join('eval_experiment', f'oneway_anova_{metric}.html'))
+
+        pairwise_tukey = pg.pairwise_tukey(data=oneway_anova_df, dv=metric, between='model')
+        pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
+        pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
+
+    for metric in ['eval QD score', '(generalize) archive size', '(infer) diversity']:
+        analyze_metric(metric)
 
     tuples = vals
     for i, tpl in enumerate(tuples):

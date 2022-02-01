@@ -1093,6 +1093,7 @@ class GenReluCPPN(ResettableNN):
 
 
 class SinCPPN(ResettableNN):
+    """A vanilla CPPN that only takes (x, y) coordinates. #TODO: merge with GenSinCPPN"""
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid = 64
@@ -1100,7 +1101,6 @@ class SinCPPN(ResettableNN):
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
 
     def forward(self, x):
         x = get_coord_grid(x, normalize=True) * 2
@@ -1120,7 +1120,11 @@ class GenSinCPPN(ResettableNN):
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
+        if (MODEL == "GenSin2CPPN2") or (MODEL == "GenSin2CPPN"):
+            init_siren_weights(self.layers[0], first_layer=True)
+            [init_siren_weights(li, first_layer=False) for li in self.layers[1:]]
+        else:
+            self.apply(init_weights)
 
     def forward(self, x):
         coord_x = get_coord_grid(x, normalize=True) * 2
@@ -1313,8 +1317,9 @@ class GenCPPN(CPPN):
 
 
 # CPPN2 takes latent seeds not onehot levels
-GenSinCPPN2 = SinCPPN
-GenCPPN2 = CPPN
+GenSinCPPN2 = GenSinCPPN
+GenSin2CPPN2 = GenSinCPPN
+GenCPPN2 = GenCPPN
 
 
 class Individual(qdpy.phenotype.Individual):
@@ -1461,6 +1466,20 @@ class PlayerNN(ResettableNN):
         mean_rew = self.net_reward / self.n_episodes
 
         return mean_rew
+
+
+def init_siren_weights(m, first_layer=False):
+    if first_layer:
+        th.nn.init.constant_(m.weight, 30)
+        return
+    if type(m) == th.nn.Conv2d:
+        ws = m.weight.shape
+        # number of _inputs
+        n = ws[0] * ws[1] * ws[2]
+        th.nn.init.uniform_(m.weight, -np.sqrt(6/n), np.sqrt(6/n))
+        m.bias.data.fill_(0.01)
+    else:
+        raise Exception
 
 
 def init_weights(m):

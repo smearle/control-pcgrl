@@ -20,16 +20,16 @@ RENDER_LEVELS = True
 
 exp_ids = [
         0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
+        # 1,
+        # 2,
+        # 3,
+        # 4,
+        # 5,
+        # 6,
+        # 7,
+        # 8,
+        # 9,
+        # 10,
 ]
 problems = [
 #       "microstructure"
@@ -47,15 +47,18 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-    "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
+    # "NCA",
+    # "GenSinCPPN",
+    # "GenCPPN",
 
-      # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-    # "AttentionNCA",
     # "Decoder",
     # "GenCPPN2",
-    # "GenSinCPPN2"
+    # "GenSinCPPN2",
+
+    "GenSin2CPPN2",
+
+    # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+    # "AttentionNCA",
 
     #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
@@ -248,7 +251,7 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_steps": n_steps,
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
-                                                "multi_thread": True,
+                                                "multi_thread": False,
                                             }
                                         )
                                         if args.render:
