@@ -50,15 +50,18 @@ models = [
     # "NCA",
     # "GenSinCPPN",
     # "GenCPPN",
-
+    #
     # "Decoder",
     # "GenCPPN2",
     # "GenSinCPPN2",
-
+    #
     "GenSin2CPPN2",
-
+    #
     # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
     # "AttentionNCA",
+
+    # "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
+    # "Sin2CPPN",
 
     #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
@@ -66,8 +69,6 @@ models = [
 
 #   "MixCPPN",
 #   "MixNCA",
-
-#   "CPPN",
 
 #   "GenReluCPPN",
 #   "GenMixCPPN",
@@ -88,8 +89,8 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
-#   1,
+    0,
+    # 1,
     10,
 #   20,
 ]
@@ -251,7 +252,7 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_steps": n_steps,
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
-                                                "multi_thread": False,
+                                                "multi_thread": not args.single_thread,
                                             }
                                         )
                                         if args.render:
@@ -349,6 +350,9 @@ if __name__ == "__main__":
         "--gif",
         help="Make gifs from previously-rendered level-generation episodes.",
         action="store_true",
+    )
+    opts.add_argument(
+        "-st", "--single_thread", help="No parallel processes.", action="store_true",
     )
     args = opts.parse_args()
     EXP_NAME = args.experiment_name

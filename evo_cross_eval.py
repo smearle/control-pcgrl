@@ -224,8 +224,8 @@ def compile_results(settings_list, tex=False):
         # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
         # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
         qd_score_idx = col_indices.index(metric)
-        oneway_anove_data = {'model': [v[0] for v in vals], metric: [d[qd_score_idx] for d in data]}
-        oneway_anova_df = pd.DataFrame(oneway_anove_data)
+        oneway_anova_data = {'model': [v[0] for v in vals], metric: [d[qd_score_idx] for d in data]}
+        oneway_anova_df = pd.DataFrame(oneway_anova_data)
         oneway_anova = pg.anova(data=oneway_anova_df, dv=metric, between='model', detailed=True)
         oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
         oneway_anova.to_html(os.path.join('eval_experiment', f'oneway_anova_{metric}.html'))

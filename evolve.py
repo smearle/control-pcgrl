@@ -1101,6 +1101,12 @@ class SinCPPN(ResettableNN):
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
+        if "Sin2" in MODEL:
+            # print('init_siren')
+            init_siren_weights(self.layers[0], first_layer=True)
+            [init_siren_weights(li, first_layer=False) for li in self.layers[1:]]
+        else:
+            self.apply(init_weights)
 
     def forward(self, x):
         x = get_coord_grid(x, normalize=True) * 2
@@ -1120,7 +1126,7 @@ class GenSinCPPN(ResettableNN):
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
-        if (MODEL == "GenSin2CPPN2") or (MODEL == "GenSin2CPPN"):
+        if "Sin2" in MODEL:
             init_siren_weights(self.layers[0], first_layer=True)
             [init_siren_weights(li, first_layer=False) for li in self.layers[1:]]
         else:
@@ -1315,6 +1321,8 @@ class GenCPPN(CPPN):
         multi_hot = (multi_hot + 1) / 2
         return multi_hot, True
 
+# Sin2 is siren-type net (i.e. sinusoidal, fixed-topology CPPN), with proper activation as per paper
+Sin2CPPN = SinCPPN
 
 # CPPN2 takes latent seeds not onehot levels
 GenSinCPPN2 = GenSinCPPN
