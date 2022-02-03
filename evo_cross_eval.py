@@ -213,6 +213,7 @@ def compile_results(settings_list, tex=False):
         vals.append(tuple(val_lst))
         data.append([])
         stats = json.load(open(stats_f, "r"))
+        print(fixLvl_stats_f)
         fixLvl_stats = json.load(open(fixLvl_stats_f, "r"))
         flat_stats = flatten_stats(fixLvl_stats, tex=tex)
         flat_stats.update(flatten_stats(stats, tex=tex, evaluation=True))

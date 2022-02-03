@@ -18,19 +18,19 @@ RENDER_LEVELS = True
 
 ##### HYPERPARAMETERS #####
 
-GENERATIVE_ONLY_CROSS_EVAL = True
+GENERATIVE_ONLY_CROSS_EVAL = False
 exp_ids = [
         0,
-        # 1,
-        # 2,
-        # 3,
-        # 4,
-        # 5,
-        # 6,
-        # 7,
-        # 8,
-        # 9,
-        # 10,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
 ]
 problems = [
 #       "microstructure"
@@ -48,22 +48,22 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-    # "NCA",
-    # "GenSinCPPN",
-    # "GenCPPN",
-    #
-    # "Decoder",
-    "DeepDecoder",
-    # "GenCPPN2",
-    # "GenSinCPPN2",
-    #
-    # "GenSin2CPPN2",
-    #
-    # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-    # "AttentionNCA",
-    #
-    # "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
-    # "Sin2CPPN",
+    "NCA",
+    "GenSinCPPN",
+    "GenCPPN",
+
+    "Decoder",
+    # "DeepDecoder",
+    "GenCPPN2",
+    "GenSinCPPN2",
+
+    "GenSin2CPPN2",
+
+    "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+    "AttentionNCA",
+
+    "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
+    "Sin2CPPN",
 
     #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
@@ -93,7 +93,7 @@ fix_seeds = [
 n_init_states_lst = [
     0,
     1,
-    # 10,
+    10,
 #   20,
 ]
 # How many steps in an episode of level editing?
@@ -204,8 +204,8 @@ def launch_batch(exp_name, collect_params=False):
                                         if n_init_states == 0 and not (fix_seed and fix_el):
                                             continue
 
-                                        # The hand-made seed is only valid for NCAs
-                                        if n_init_states == 0 and "NCA" not in model:
+                                        # The hand-made seed is not valid for Decoders (or CPPNs, handled below)
+                                        if n_init_states == 0 and "Decoder" in model:
                                             continue
 
                                         # For the sake of cross-evaluating over model variable alone, do not look at
