@@ -980,6 +980,46 @@ class Decoder(ResettableNN):
         return x, False
 
 
+class DeepDecoder(ResettableNN):
+    """
+    Decoder-like architecture (e.g. as in VAEs and GANs). But deeper.
+    """
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__()
+        n_hid_1 = 10
+        self.l1 = nn.ConvTranspose2d(n_in_chans + 2, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l3 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l4 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l5 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l6 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l7 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6, self.l7]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            # Observe the coordinates
+            coords = get_coord_grid(x, normalize=True)
+            x = th.hstack((coords, x))
+            x = self.l1(x)
+            x = th.relu(x)
+            x = self.l2(x)
+            x = th.relu(x)
+            x = self.l3(x)
+            x = th.relu(x)
+            x = self.l4(x)
+            x = th.relu(x)
+            x = self.l5(x)
+            x = th.relu(x)
+            x = self.l6(x)
+            x = th.relu(x)
+            x = self.l7(x)
+            x = th.sigmoid(x)
+
+        return x, False
+
+
 class MixNCA(ResettableNN):
     def __init__(self, *args, **kwargs):
         super(MixNCA, self).__init__()
@@ -2171,7 +2211,7 @@ def simulate(
         # TODO: wrap the env instead
         env._rep._x = env._rep._y = 0
         # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
-        if MODEL == "Decoder" or ("CPPN2" in MODEL):
+        if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
             obs = init_state
         else:
             # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
@@ -3931,7 +3971,7 @@ if __name__ == "__main__":
             assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES
         if MODEL != "CPPNCA":
             assert N_STEPS == 1
-    if MODEL == "Decoder" or ("CPPN2" in MODEL):
+    if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
         assert N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE

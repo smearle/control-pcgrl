@@ -18,6 +18,7 @@ RENDER_LEVELS = True
 
 ##### HYPERPARAMETERS #####
 
+GENERATIVE_ONLY_CROSS_EVAL = True
 exp_ids = [
         0,
         # 1,
@@ -52,14 +53,15 @@ models = [
     # "GenCPPN",
     #
     # "Decoder",
+    "DeepDecoder",
     # "GenCPPN2",
     # "GenSinCPPN2",
     #
-    "GenSin2CPPN2",
+    # "GenSin2CPPN2",
     #
     # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
     # "AttentionNCA",
-
+    #
     # "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
     # "Sin2CPPN",
 
@@ -90,8 +92,8 @@ fix_seeds = [
 # in the center)
 n_init_states_lst = [
     0,
-    # 1,
-    10,
+    1,
+    # 10,
 #   20,
 ]
 # How many steps in an episode of level editing?
@@ -198,10 +200,19 @@ def launch_batch(exp_name, collect_params=False):
                                         continue
 
                                     for n_init_states in n_init_states_lst:
+                                        # The hand-made seed cannot be randomized
                                         if n_init_states == 0 and not (fix_seed and fix_el):
-                                            # The hand-made seed cannot be randomized
-
                                             continue
+
+                                        # The hand-made seed is only valid for NCAs
+                                        if n_init_states == 0 and "NCA" not in model:
+                                            continue
+
+                                        # For the sake of cross-evaluating over model variable alone, do not look at
+                                        # experiments treating models with generative capabilities as indirect encodings
+                                        if args.cross_eval and GENERATIVE_ONLY_CROSS_EVAL:
+                                            if n_init_states == 0 and not (model == "CPPN" or model == "Sin2CPPN" or model == "SinCPPN"):
+                                                continue
 
                                         if model in ["CPPN", "GenCPPN", "CPPNCA"]:
                                             algo = "ME"
@@ -217,7 +228,8 @@ def launch_batch(exp_name, collect_params=False):
                                             if model != "CPPNCA" and n_steps != 1:
                                                 continue
 
-                                        if model == 'Decoder' and n_steps != 1:
+                                        # The decoder generates levels in a single pass (from a smaller latent)
+                                        if 'Decoder' in model and n_steps != 1:
                                             continue
 
                                         # Edit the sbatch file to load the correct config file

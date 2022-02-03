@@ -55,7 +55,15 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
 
     if "QD score" in col_name:
         # FIXME ad hoc
-        data, err = int(data / 10000), int(err / 10000)
+        if np.isnan(data):
+            data = np.nan
+        else:
+            data = int(data / 10000)
+        if np.isnan(err):
+            err = np.nan
+        else:
+            err = int(data / 10000)
+        # data, err = int(data / 10000), int(err / 10000)
     if any(c in col_name for c in ["archive size",  "QD score"]):
         data = "{:,.0f}".format(data)
     elif "diversity" in col_name[1]:
@@ -153,10 +161,10 @@ def compile_results(settings_list, tex=False):
 #       "behavior_characteristics",
         "model",
 #       "representation",
-#         "n_init_states",
-        # "fix_level_seeds",
-#       "fix_elites",
-#         "n_steps",
+        "n_init_states",
+        "fix_level_seeds",
+        "fix_elites",
+        "n_steps",
         "exp_name",
     ]
 
@@ -234,7 +242,7 @@ def compile_results(settings_list, tex=False):
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
-    for metric in ['eval QD score', '(generalize) archive size', '(infer) diversity']:
+    for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
         analyze_metric(metric)
 
     tuples = vals

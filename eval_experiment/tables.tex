@@ -1,14 +1,14 @@
 \documentclass{article}
-\usepackage[paperheight=10.75in,paperwidth=10.75in,margin=1in,heightrounded,showframe]{geometry}
+\usepackage[paperheight=40in,paperwidth=10.75in,margin=1in,heightrounded,showframe]{geometry}
 %\usepackage{table}
 \usepackage{booktabs}
 \usepackage{multirow}
 \begin{document}
-    Hyperparameter ablations:\\
+%    Hyperparameter ablations:\\
 \input{cross_eval.tex}
-    Eval QD score\\
+    \subsubsection*{Eval QD score}
     One-way ANOVA:\\
-    \input{oneway_anova_eval QD score.tex}\\
+    \input{oneway_anova_(infer) QD score.tex}\\
     Pairwise Tukey:\\
-    \input{pairwise_tukey_eval QD score.tex}
+    \input{pairwise_tukey_(infer) QD score.tex}
 \end{document}
