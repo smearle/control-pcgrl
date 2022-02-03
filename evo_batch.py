@@ -18,7 +18,7 @@ RENDER_LEVELS = True
 
 ##### HYPERPARAMETERS #####
 
-GENERATIVE_ONLY_CROSS_EVAL = False
+GENERATIVE_ONLY_CROSS_EVAL = True
 exp_ids = [
         0,
         1,
@@ -49,19 +49,15 @@ representations = [
 ]
 models = [
     "NCA",
-    "GenSinCPPN",
-    "GenCPPN",
-
+    # "GenSinCPPN",
+    # "GenCPPN",
     "Decoder",
     # "DeepDecoder",
     "GenCPPN2",
-    "GenSinCPPN2",
-
+    # "GenSinCPPN2",
     "GenSin2CPPN2",
-
     "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
     "AttentionNCA",
-
     "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
     "Sin2CPPN",
 

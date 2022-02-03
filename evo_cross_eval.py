@@ -62,7 +62,7 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
         if np.isnan(err):
             err = np.nan
         else:
-            err = int(data / 10000)
+            err = err / 10000
         # data, err = int(data / 10000), int(err / 10000)
     if any(c in col_name for c in ["archive size",  "QD score"]):
         data = "{:,.0f}".format(data)
@@ -75,7 +75,7 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
     if "maintained" in col_name[1]:
         data = "{} \%".format(data)
 
-    if np.any(['diversity' in c for c in col_name]):
+    if False and np.any(['diversity' in c for c in col_name]):
         err = "{:.1e}".format(err)
     else:
         err = "{:.1f}".format(err)
@@ -213,7 +213,6 @@ def compile_results(settings_list, tex=False):
         vals.append(tuple(val_lst))
         data.append([])
         stats = json.load(open(stats_f, "r"))
-        print(fixLvl_stats_f)
         fixLvl_stats = json.load(open(fixLvl_stats_f, "r"))
         flat_stats = flatten_stats(fixLvl_stats, tex=tex)
         flat_stats.update(flatten_stats(stats, tex=tex, evaluation=True))
