@@ -150,8 +150,8 @@ class Minecraft2DmazeProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "AIR": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                "DIRT": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
+                "AIR": Image.open(os.path.dirname(__file__) + "/minecraft/empty.png").convert('RGBA'),
+                "DIRT": Image.open(os.path.dirname(__file__) + "/minecraft/solid.png").convert('RGBA')
             }
         spawn_2Dmaze(map, self._border_tile, self._border_size)
         return super().render(map)
