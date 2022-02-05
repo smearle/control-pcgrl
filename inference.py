@@ -23,6 +23,9 @@ def infer(game, representation, model_path, **kwargs):
     elif game == "sokoban":
         model.FullyConvPolicy = model.FullyConvPolicySmallMap
         kwargs['cropped_size'] = 10
+    # elif game == "minecraft_2Dmaze":
+    #     model.FullyConvPolicy = model.FullyConvPolicyBigMap
+    #     kwargs['cropped_size'] = 28
 
     kwargs['render'] = True
 

@@ -220,6 +220,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
+            # ) or ('minecraft_2Dmaze' not in game)
             env = OneHotEncoding(env, 'map')
         # Indices for flatting
         flat_indices = ['map']
@@ -242,6 +243,7 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         env = ActionMap(env)
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
+            # ) or ('minecraft_2Dmaze' not in game)
             env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, flat_indices)

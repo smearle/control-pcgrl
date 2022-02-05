@@ -2,25 +2,26 @@ import os
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
-
-from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_2Dmaze
+from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
+from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3Dmaze, spawn_3D_border
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
-class BinaryProblem(Problem):
+class Minecraft3DmazeProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
     """
     def __init__(self):
         super().__init__()
+        self._length = 14
         self._width = 14
         self._height = 14
-        self._prob = {"empty": 0.5, "solid":0.5}
-        self._border_tile = "solid"
+        self._prob = {"AIR": 0.5, "DIRT":0.5}
+        self._border_tile = "DIRT"
+        self._border_size = (1, 1, 1)
 
-        self._target_path = 20
+        self._target_path = 10
         self._random_probs = True
 
         self._rewards = {
@@ -35,7 +36,7 @@ class BinaryProblem(Problem):
         string[]: that contains all the tile names
     """
     def get_tile_types(self):
-        return ["empty", "solid"]
+        return ["AIR", "DIRT"]
 
     """
     Adjust the parameters for the current problem
@@ -50,7 +51,7 @@ class BinaryProblem(Problem):
     """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
-
+        self._length = kwargs.get('length', self._length)
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
@@ -70,8 +71,8 @@ class BinaryProblem(Problem):
     def reset(self, start_stats):
         super().reset(start_stats)
         if self._random_probs:
-            self._prob["empty"] = self._random.random()
-            self._prob["solid"] = 1 - self._prob["empty"]
+            self._prob["AIR"] = self._random.random()
+            self._prob["DIRT"] = 1 - self._prob["AIR"]
 
     """
     Get the current stats of the map
@@ -83,8 +84,8 @@ class BinaryProblem(Problem):
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
         return {
-            "regions": calc_num_regions(map, map_locations, ["empty"]),
-            "path-length": calc_longest_path(map, map_locations, ["empty"])
+            "regions": calc_num_regions(map, map_locations, ["AIR"]),
+            "path-length": calc_longest_path(map, map_locations, ["DIRT"])
         }
 
     """
@@ -139,20 +140,7 @@ class BinaryProblem(Problem):
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
 
-    """
-    Get an image on how the map will look like for a specific map
-
-    Parameters:
-        map (string[][]): the current game map
-
-    Returns:
-        Image: a pillow image on how the map will look like using the binary graphics
-    """
     def render(self, map):
-        if self._graphics == None:
-            self._graphics = {
-                "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
-            }
-        # spawn_2Dmaze(map, self._border_tile, self._border_size)
-        return super().render(map)
+        spawn_3D_border(map, self._border_tile)
+        spawn_3Dmaze(map, self._border_tile)
+        return 
