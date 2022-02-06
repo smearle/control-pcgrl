@@ -30,7 +30,7 @@ exp_ids = [
         7,
         8,
         9,
-        10,
+#       10,
 ]
 problems = [
 #       "microstructure"
@@ -48,18 +48,18 @@ representations = [
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
 ]
 models = [
-    "NCA",
+#   "NCA",
     # "GenSinCPPN",
     # "GenCPPN",
-    "Decoder",
+#   "Decoder",
     # "DeepDecoder",
     "GenCPPN2",
     # "GenSinCPPN2",
-    "GenSin2CPPN2",
-    "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-    "AttentionNCA",
-    "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
-    "Sin2CPPN",
+#   "GenSin2CPPN2",
+#   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+#   "AttentionNCA",
+#   "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
+#   "Sin2CPPN",
 
     #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
 #   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
@@ -87,8 +87,8 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-    0,
-    1,
+#   0,
+#   1,
     10,
 #   20,
 ]
@@ -210,7 +210,7 @@ def launch_batch(exp_name, collect_params=False):
                                             if n_init_states == 0 and not (model == "CPPN" or model == "Sin2CPPN" or model == "SinCPPN"):
                                                 continue
 
-                                        if model in ["CPPN", "GenCPPN", "CPPNCA"]:
+                                        if model in ["CPPN", "GenCPPN", "GenCPPN2", "CPPNCA"]:
                                             algo = "ME"
                                         else:
                                             algo = "CMAME"

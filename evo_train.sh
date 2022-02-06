@@ -6,7 +6,7 @@
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mem=64GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
@@ -22,7 +22,7 @@ source activate
 conda activate evo-pcgrl
 
 start=$SECONDS
-while ! python evolve.py -la 153
+while ! python evolve.py -la 1
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
