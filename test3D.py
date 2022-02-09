@@ -1,7 +1,7 @@
 """
 Run random agent to test the 3D environment
 """
-import imp
+# import imp
 import gym
 import gym_pcgrl
 from utils import make_vec_envs
