@@ -14,6 +14,8 @@ from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 from gym_pcgrl.envs.probs.loderunner_ctrl_prob import LoderunnerCtrlProblem
 from gym_pcgrl.envs.probs.face_prob import FaceProblem
 from gym_pcgrl.envs.probs.microstructure_prob import MicroStructureProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_2Dmaze_prob import Minecraft2DmazeProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_prob import Minecraft3DmazeProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
@@ -32,5 +34,7 @@ PROBLEMS = {
     "loderunner": LoderunnerProblem,
     "loderunner_ctrl": LoderunnerCtrlProblem,
     "face_ctrl": FaceProblem,
-    "microstructure": MicroStructureProblem
+    "microstructure": MicroStructureProblem,
+    "minecraft_2D_maze": Minecraft2DmazeProblem,
+    "minecraft_3D_maze": Minecraft3DmazeProblem
 }
