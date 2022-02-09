@@ -22,27 +22,29 @@ GENERATIVE_ONLY_CROSS_EVAL = True
 exp_ids = [
         0,
         1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
+        # 2,
+        # 3,
+        # 4,
+        # 5,
+        # 6,
+        # 7,
+        # 8,
+        # 9,
 #       10,
 ]
 problems = [
-#       "microstructure"
-        "binary_ctrl",
-#       "zelda_ctrl",
-#       "sokoban_ctrl",
-#       "smb_ctrl"
-#       "loderunner_ctrl",
-#       "face_ctrl",
+      # "microstructure"
+      # "binary_ctrl",
+      # "zelda_ctrl",
+      # "sokoban_ctrl",
+      # "smb_ctrl"
+      # "loderunner_ctrl",
+      # "face_ctrl",
+      "minecraft_3D_maze",
 ]
 representations = [
         "cellular",  # change entire board at each step
+        "narrow3D",
 #       "wide",  # agent "picks" one tile to change
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
 #       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
@@ -53,7 +55,7 @@ models = [
     # "GenCPPN",
 #   "Decoder",
     # "DeepDecoder",
-    "GenCPPN2",
+    # "GenCPPN2",
     # "GenSinCPPN2",
 #   "GenSin2CPPN2",
 #   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
@@ -77,7 +79,7 @@ models = [
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
-        True, 
+        True,
        ]
 # Fix a set of random levels with which to seed the generator, or use new ones each generation?
 fix_seeds = [
@@ -100,7 +102,7 @@ n_steps_lst = [
 #   100,
 ]
 global_bcs: List[List] = [
-#       ["NONE"], 
+#       ["NONE"],
 #       ["emptiness", "symmetry"],
 ]
 local_bcs = {
