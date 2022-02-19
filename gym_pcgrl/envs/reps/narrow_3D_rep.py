@@ -70,7 +70,7 @@ class Narrow3DRepresentation(Representation):
     def get_observation_space(self, length, width, height, num_tiles):
         return spaces.Dict({
             "pos": spaces.Box(low=np.array([0, 0, 0]), high=np.array([length-1, width-1, height-1]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(length, height, width))
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width, length))
         })
 
     """

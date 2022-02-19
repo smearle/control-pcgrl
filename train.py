@@ -12,7 +12,7 @@ import numpy as np
 import os
 
 n_steps = 0
-log_dir = './'
+log_dir = '/scratch/zj2086/pcgrl/'
 best_mean_reward, n_steps = -np.inf, 0
 
 def callback(_locals, _globals):
@@ -100,7 +100,7 @@ experiment = None
 steps = 1e8
 render = False
 logging = True
-n_cpu = 8
+n_cpu = 50
 kwargs = {
     'resume': False
 }
