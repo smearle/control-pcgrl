@@ -1,3 +1,4 @@
+import imp
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.narrow_cast_rep import NarrowCastRepresentation
 from gym_pcgrl.envs.reps.narrow_multi_rep import NarrowMultiRepresentation
@@ -6,7 +7,9 @@ from gym_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
 from gym_pcgrl.envs.reps.turtle_cast_rep import TurtleCastRepresentation
 from gym_pcgrl.envs.reps.ca_rep import CARepresentation
 from gym_pcgrl.envs.reps.narrow_3D_rep import Narrow3DRepresentation
-from gym_pcgrl.envs.reps.ca3D_rep import CA3DRepresentation
+from gym_pcgrl.envs.reps.ca_3D_rep import CA3DRepresentation
+from gym_pcgrl.envs.reps.turtle_3D_rep import Turtle3DRepresentation
+from gym_pcgrl.envs.reps.wide_3D_rep import Wide3DRepresentation
 
 # all the representations should be defined here with its corresponding class
 REPRESENTATIONS = {
@@ -18,5 +21,7 @@ REPRESENTATIONS = {
     "turtlecast": TurtleCastRepresentation,
     "cellular": CARepresentation,
     "narrow3D": Narrow3DRepresentation,
-    "cellular3D": CA3DRepresentation
+    "cellular3D": CA3DRepresentation,
+    "turtle3D": Turtle3DRepresentation,
+    "wide3D": Wide3DRepresentation,
 }

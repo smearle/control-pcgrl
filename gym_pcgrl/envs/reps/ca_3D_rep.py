@@ -1,6 +1,6 @@
 from pdb import set_trace as TT
 from pdb import set_trace as T
-from gym_pcgrl.envs.reps.representation import Representation
+from gym_pcgrl.envs.reps.representation3D import Representation3D
 from PIL import Image
 from gym import spaces
 import numpy as np
@@ -8,7 +8,7 @@ import numpy as np
 """
 The cellular (autamaton-like) representation, where the agent may change all tiles on the map at each step.
 """
-class CA3DRepresentation(Representation):
+class CA3DRepresentation(Representation3D):
     """
     Initialize all the parameters used by that representation
     """
@@ -19,6 +19,7 @@ class CA3DRepresentation(Representation):
     Gets the action space used by the cellular representation
 
     Parameters:
+        length: the current map length
         width: the current map width
         height: the current map height
         num_tiles: the total number of the tile values
@@ -34,23 +35,24 @@ class CA3DRepresentation(Representation):
     Get the observation space used by the cellular representation
 
     Parameters:
+        length: the current map length
         width: the current map width
         height: the current map height
         num_tiles: the total number of the tile values
 
     Returns:
-        Box: the observation space used by that representation. A 2D array of tile numbers
+        Box: the observation space used by that representation. A 3D array of tile numbers
     """
     def get_observation_space(self, length, width, height, num_tiles):
         return spaces.Dict({
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(length, height, width))
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width, length))
         })
 
     """
     Get the current representation observation object at the current moment
 
     Returns:
-        observation: the current observation at the current moment. A 2D array of tile numbers
+        observation: the current observation at the current moment. A 3D array of tile numbers
     """
     def get_observation(self):
         return {

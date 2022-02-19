@@ -13,13 +13,13 @@
 #SBATCH --mail-user=zj2086@nyu.edu
 #SBATCH --output=evopcgrl_%j.out
 
-cd /scratch/zj2086/control-pcgrl
+cd /scratch/zj2086/control-pcgrl3D
 
 ## Is this actually necessary?
 source activate
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate evo-pcgrl
+conda activate pcgrl
 
 start=$SECONDS
 while ! python evolve.py -la 1

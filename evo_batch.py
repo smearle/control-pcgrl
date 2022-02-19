@@ -30,7 +30,7 @@ exp_ids = [
         # 7,
         # 8,
         # 9,
-#       10,
+        # 10,
 ]
 problems = [
       # "microstructure"
@@ -43,39 +43,42 @@ problems = [
       "minecraft_3D_maze",
 ]
 representations = [
-        "cellular",  # change entire board at each step
-        "narrow3D",
+#       "cellular",  # change entire board at each step
+        "cellular3D",
 #       "wide",  # agent "picks" one tile to change
+        "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
-#       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
+        "narrow3D",
+#       "turtle", # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
+        "turtle3D"
 ]
 models = [
-#   "NCA",
-    # "GenSinCPPN",
-    # "GenCPPN",
-#   "Decoder",
-    # "DeepDecoder",
-    # "GenCPPN2",
-    # "GenSinCPPN2",
-#   "GenSin2CPPN2",
-#   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-#   "AttentionNCA",
-#   "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
-#   "Sin2CPPN",
+#     "NCA",
+#     "GenSinCPPN",
+#     "GenCPPN",
+#     "Decoder",
+#     "DeepDecoder",
+#     "GenCPPN2",
+#     "GenSinCPPN2",
+#     "GenSin2CPPN2",
+#     "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+#     "AttentionNCA",
+#     "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
+#     "Sin2CPPN",
 
-    #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
-#   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
-#   "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
+#     "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
+#     "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
+#     "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
 
-#   "MixCPPN",
-#   "MixNCA",
+#     "MixCPPN",
+#     "MixNCA",
 
-#   "GenReluCPPN",
-#   "GenMixCPPN",
+#     "GenReluCPPN",
+#     "GenMixCPPN",
 
-#   "FeedForwardCPPN",
-#   "SinCPPN",
-    # "CNN"  # Doesn't learn atm
+#     "FeedForwardCPPN",
+#     "SinCPPN",
+#     "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
