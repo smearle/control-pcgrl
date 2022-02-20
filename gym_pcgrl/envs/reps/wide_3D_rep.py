@@ -2,6 +2,7 @@ from gym_pcgrl.envs.reps.representation3D import Representation3D
 from PIL import Image
 from gym import spaces
 import numpy as np
+from gym_pcgrl.envs.probs.minecraft.mc_render import reps_3D_render
 
 """
 The wide representation where the agent can pick the tile position and tile value at each update.

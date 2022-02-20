@@ -116,6 +116,6 @@ class Representation3D:
     Returns:
         img: the modified level image
     """
-    def render(self, lvl_image, tile_size, border_size):
+    def render(self, map):
         # return lvl_image
         return

@@ -83,4 +83,5 @@ class CA3DRepresentation(Representation3D):
                 raise Exception
             change = (next_map != self._map).any()
         self._map = next_map
-        return change, None, None
+        return change, None, None, None
+    
