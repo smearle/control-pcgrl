@@ -21,7 +21,7 @@ RENDER_LEVELS = True
 GENERATIVE_ONLY_CROSS_EVAL = True
 exp_ids = [
         0,
-        1,
+        # 1,
         # 2,
         # 3,
         # 4,
@@ -41,19 +41,21 @@ problems = [
       # "loderunner_ctrl",
       # "face_ctrl",
       "minecraft_3D_maze",
+      # "minecraft_3D_maze_ctrl",
 ]
 representations = [
 #       "cellular",  # change entire board at each step
         "cellular3D",
 #       "wide",  # agent "picks" one tile to change
-        "wide3D",
+#       "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
-        "narrow3D",
+#       "narrow3D",
 #       "turtle", # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
-        "turtle3D"
+#       "turtle3D"
 ]
 models = [
 #     "NCA",
+      "NCA3D",
 #     "GenSinCPPN",
 #     "GenCPPN",
 #     "Decoder",
@@ -99,7 +101,7 @@ n_init_states_lst = [
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+ #   1,
 #   10,
     50,
 #   100,
@@ -145,6 +147,12 @@ local_bcs = {
     ],
     "microstructure": [
         ["emptiness", "two_spatial"],
+    ],
+    "minecraft_3D_maze":[
+        ["symmetry", "path-length"]
+    ],
+    "minecraft_3D_maze_ctrl": [
+        ["symmetry", "path-length"]
     ]
 }
 

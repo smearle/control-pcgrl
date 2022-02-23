@@ -33,7 +33,7 @@ from qdpy.phenotype import Fitness, Features
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
 from ribs.emitters import (
-    GradientImprovementEmitter,
+    # GradientImprovementEmitter,
     ImprovementEmitter,
     OptimizingEmitter,
 )
@@ -41,7 +41,7 @@ from ribs.emitters.opt import CMAEvolutionStrategy
 from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
 from torch import ByteTensor, Tensor, nn
-from torch.nn import Conv2d, CrossEntropyLoss, Linear
+from torch.nn import Conv2d, Conv3d, CrossEntropyLoss, Linear
 from torch.utils.tensorboard import SummaryWriter
 import deap
 import deap.tools
@@ -124,11 +124,19 @@ def draw_net(config: object, genome: object, view: object = False, filename: obj
 
     assert type(node_colors) is dict
 
-    node_attrs = {
-        'shape': 'circle',
-        'fontsize': '9',
-        'height': '0.2',
-        'width': '0.2'}
+    if not ENV3D:
+        node_attrs = {
+            'shape': 'circle',
+            'fontsize': '9',
+            'height': '0.2',
+            'width': '0.2'}
+    else:
+        node_attrs = {
+            'shape': 'circle',
+            'fontsize': '9',
+            'height': '0.2',
+            'width': '0.2',
+            'length': '0.2'}
 
     dot = graphviz.Digraph(format=fmt, node_attr=node_attrs)
 
@@ -265,6 +273,8 @@ def save_grid(csv_name="levels", d=4):
     env = gym.make(env_name)
     map_width = env._prob._width
     map_height = env._prob._height
+    if ENV3D:
+        map_length = env._prob._length
 
     df = pd.read_csv(levels_path, header=0, skipinitialspace=True)
     #   .rename(
@@ -315,6 +325,8 @@ def save_grid(csv_name="levels", d=4):
             axs[row_num, col_num].set_axis_off()
             if CONTINUOUS:
                 level = np.zeros((3, map_width, map_height), dtype=int)
+            if ENV3D:
+                level = np.zeros((map_length, map_width, map_height), dtype=int)
             else:
                 level = np.zeros((map_width, map_height), dtype=int)
 
@@ -450,6 +462,7 @@ def flat_to_turtle(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=No
 preprocess_action_funcs = {
     "NCA": {
         "cellular": id_action,
+        "cellular3D": id_action,
         "wide": wide_action,
         "narrow": narrow_action,
         "turtle": turtle_action,
@@ -485,6 +498,7 @@ def local_observation(obs, **kwargs):
 preprocess_observation_funcs = {
     "NCA": {
         "cellular": id_observation,
+        "cellular3D": id_observation,
         "wide": id_observation,
         "narrow": local_observation,
         "turtle": local_observation,
@@ -919,6 +933,38 @@ class AttentionNCA(ResettableNN):
         self.last_aux = None
 
 
+class NCA3D(ResettableNN):
+    """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
+
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__()
+        n_hid_1 = 32
+        self.l1 = Conv3d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
+        self.l2 = Conv3d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+        self.l3 = Conv3d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            x = self.l1(x)
+            x = th.relu(x)
+            x = self.l2(x)
+            x = th.relu(x)
+            x = self.l3(x)
+            # TODO: try softmax
+            x = th.sigmoid(x)
+
+        # axis 0 is batch
+        # axis 1 is the tile-type (one-hot)
+        # axis 0,1 is the x value
+        # axis 0,2 is the y value
+
+        return x, False
+
+
+
+
 class GeneratorNN(ResettableNN):
 #class NCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
@@ -1074,18 +1120,33 @@ import neat
 from neat.genome import DefaultGenome
 
 def get_coord_grid(x, normalize=False):
+    if ENV3D:
+        length = x.shape[-3]
     width = x.shape[-2]
     height = x.shape[-1]
+        
     X = th.arange(width)
     Y = th.arange(height)
+
+    if ENV3D:
+        Z = th.arange(length)
+
     if normalize:
         X = X / width
         Y = Y / height
+        if ENV3D:
+            Z = Z / length
     else:
         X = X / 1
         Y = Y / 1
-    X, Y = th.meshgrid(X, Y)
-    x = th.stack((X, Y)).unsqueeze(0)
+        if ENV3D:
+            Z = Z / 1
+    if not ENV3D:
+        X, Y = th.meshgrid(X, Y)
+        x = th.stack((X, Y)).unsqueeze(0)
+    else:
+        X, Y, Z = th.meshgrid(X, Y, Z)
+        x = th.stack((X, Y, Z)).unsqueeze(0)
 
     return x
 
@@ -1660,7 +1721,10 @@ def get_counts(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns a python list with tile counts for each tile normalized to a range of 0.0 to 1.0
     """
-    max_val = env._prob._width * env._prob._height  # for example 14*14=196
+    if not ENV3D:
+        max_val = env._prob._width * env._prob._height  # for example 14*14=196
+    else:
+        max_val = env._prob._width * env._prob._height * env._prob.length
 
     return [
         np.sum(int_map.flatten() == tile) / max_val
@@ -1687,7 +1751,10 @@ def get_emptiness(int_map, env):
     returns an emptiness value normalized to a range of 0.0 to 1.0
     """
     # TODO: double check that the "0th" tile-type actually corresponds to empty tiles
-    max_val = env._prob._width * env._prob._height  # for example 14*14=196
+    if not ENV3D:
+        max_val = env._prob._width * env._prob._height  # for example 14*14=196
+    else:
+        max_val = env._prob._width * env._prob._height * env._prob._length
 
     return np.sum(int_map.flatten() == 0) / max_val
 
@@ -1722,7 +1789,10 @@ def get_hor_sym(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns a symmetry float value normalized to a range of 0.0 to 1.0
     """
-    max_val = env._prob._width * env._prob._height / 2  # for example 14*14/2=98
+    if not ENV3D:
+        max_val = env._prob._width * env._prob._height / 2  # for example 14*14/2=98
+    else:
+        max_val = env._prob._width * env._prob._length / 2 * env._prob._height  
     m = 0
 
     if int(int_map.shape[0]) % 2 == 0:
@@ -1752,7 +1822,10 @@ def get_ver_sym(int_map, env):
     env (gym-pcgrl environment instance): used to get the action space dims
     returns a symmetry float value normalized to a range of 0.0 to 1.0
     """
-    max_val = env._prob._width * env._prob._height / 2  # for example 14*14/2=98
+    if not ENV3D:
+        max_val = env._prob._width * env._prob._height / 2  # for example 14*14/2=98
+    else:
+        max_val = env._prob._width * env._prob._length / 2 * env._prob._height  
     m = 0
 
     if int(int_map.shape[1]) % 2 == 0:
@@ -2198,7 +2271,10 @@ def simulate(
     trg = np.empty(shape=(n_init_states))
 
     # init_states has shape (n_episodes, n_chan, height, width)
-    final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width), dtype=np.uint8)
+    if not ENV3D:
+        final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width), dtype=np.uint8)
+    else:
+        final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width, env._prob._length), dtype=np.uint8)
     batch_reward = 0
     batch_time_penalty = 0
     batch_targets_penalty = 0
@@ -2438,10 +2514,15 @@ def simulate(
 class EvoPCGRL:
     def __init__(self):
         self.init_env()
-        assert self.env.observation_space["map"].low[0, 0] == 0
-        # get number of tile types from environment's observation space
-        # here we assume that all (x, y) locations in the observation space have the same upper/lower bound
-        self.n_tile_types = self.env.observation_space["map"].high[0, 0] + 1
+        if not ENV3D:
+            assert self.env.observation_space["map"].low[0, 0] == 0
+            # get number of tile types from environment's observation space
+            # here we assume that all (x, y) locations in the observation space have the same upper/lower bound
+            self.n_tile_types = self.env.observation_space["map"].high[0, 0] + 1
+        else:
+            assert self.env.observation_space["map"].low[0,0,0] == 0
+            self.n_tile_types = self.env.observation_space["map"].high[0, 0, 0] + 1
+            self.length = self.env._prob._length
         self.width = self.env._prob._width
         self.height = self.env._prob._height
 
@@ -2473,8 +2554,10 @@ class EvoPCGRL:
 
         self.static_targets = self.env._prob.static_trgs
 
-        if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0):
+        if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and (not ENV3D):
             init_level_archive_args = (N_INIT_STATES, self.height, self.width)
+        elif REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and ENV3D:
+            init_level_archive_args = (N_INIT_STATES, self.height, self.width, self.length)
         else:
             init_level_archive_args = ()
 
@@ -2615,20 +2698,20 @@ class EvoPCGRL:
         if ALGO == "ME":
             pass
 
-        elif args.mega:
-            gen_emitters = [
-                GradientImprovementEmitter(
-                    self.gen_archive,
-                    initial_w.flatten(),
-                    # TODO: play with initial step size?
-                    sigma_g=10.0,
-                    stepsize=0.002,  # Initial step size.
-                    gradient_optimizer="adam",
-                    selection_rule="mu",
-                    batch_size=batch_size,
-                )
-                for _ in range(n_emitters)  # Create 5 separate emitters.
-            ]
+        # elif args.mega:
+        #     gen_emitters = [
+        #         GradientImprovementEmitter(
+        #             self.gen_archive,
+        #             initial_w.flatten(),
+        #             # TODO: play with initial step size?
+        #             sigma_g=10.0,
+        #             stepsize=0.002,  # Initial step size.
+        #             gradient_optimizer="adam",
+        #             selection_rule="mu",
+        #             batch_size=batch_size,
+        #         )
+        #         for _ in range(n_emitters)  # Create 5 separate emitters.
+        #     ]
         else:
             gen_emitters = [
                 #           ImprovementEmitter(
@@ -2682,12 +2765,17 @@ class EvoPCGRL:
         if args.n_init_states == 0:
             sw = self.width // 3
             sh = self.height // 3
-            if CONTINUOUS:
+            if CONTINUOUS and (not ENV3D):
                 self.init_states = np.zeros(shape=(1, 3, self.height, self.width))
                 self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
+            elif CONTINUOUS and ENV3D:
+                self.init_states = np.zeros(shape=(1, 3, self.height, self.width, self.length))
+                self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width //
+                                 2-sw//2: self.width//2+sw//2, self.length//2-sh//2:self.length//2+sh//2, ] = 1
+            
             else:
                 # special square patch
-                self.init_states = np.zeros(shape=(1, self.height, self.width))
+                self.init_states = np.zeros(shape=(1, self.height, self.width, self.length))
                 self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
         else:
             #           self.init_states = np.random.randint(
@@ -2729,7 +2817,7 @@ class EvoPCGRL:
             # Evaluate the models and record the objectives and BCs.
             objs, bcs = [], []
             # targets = "validity", variance = "reliability"
-            stats = ["batch_reward", "variance", "diversity", "targets"]  
+            stats = ["batch_reward", "variance", "diversity", "targets"]
             stat_json = {
                 "batch_reward": [],
                 "variance": [],
@@ -3119,9 +3207,15 @@ class EvoPCGRL:
         #       if N_STEPS is None:
         #       if REPRESENTATION != "cellular":
         max_ca_steps = args.n_steps
+        
         max_changes = self.env._prob._height * self.env._prob._width
+        if ENV3D:
+            max_changes *= self.env._prob._length
+
         reps_to_steps = {
             "cellular": max_ca_steps,
+            "cellular3D": max_ca_steps,
+
             "wide": max_changes,
             #           "narrow": max_changes,
             "narrow": max_changes,
@@ -3911,6 +4005,7 @@ if __name__ == "__main__":
     global N_PROC
     global ALGO
     global seed
+
     CONCAT_GIFS = False
     if arg_dict["exp_name"] == '5':
         seed = 420
@@ -3966,6 +4061,8 @@ if __name__ == "__main__":
     THREADS = arg_dict["multi_thread"]  # or EVALUATE
     SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
+    ENV3D = PROBLEM in ["minecraft_3D_maze"]
+
     if "CPPN" in MODEL:
         if MODEL != "CPPNCA" and "Gen" not in MODEL:
             assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES
@@ -4037,7 +4134,7 @@ if __name__ == "__main__":
             evolver.visualize()
 
         if INFER:
-            global RENDER
+            # global RENDER
             RENDER = True
             N_STEPS = N_INFER_STEPS
 
