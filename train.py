@@ -94,7 +94,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'minecraft_2Dmaze'
+game = 'minecraft_2D_maze'
 representation = 'narrow'
 experiment = None
 steps = 1e8
