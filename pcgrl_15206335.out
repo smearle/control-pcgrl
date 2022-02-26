@@ -1,0 +1,666 @@
+/opt/slurm/data/slurmd/job15206335/slurm_script: line 19: activate: No such file or directory
+
+CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
+To initialize your shell, run
+
+    $ conda init <SHELL_NAME>
+
+Currently supported shells are:
+  - bash
+  - fish
+  - tcsh
+  - xonsh
+  - zsh
+  - powershell
+
+See 'conda init --help' for more information and options.
+
+IMPORTANT: You may need to close and restart your shell after running 'conda init'.
+
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+Process ForkServerProcess-4:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+Process ForkServerProcess-5:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+Process ForkServerProcess-8:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+Process ForkServerProcess-2:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+Process ForkServerProcess-7:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ale_py/roms/utils.py:90: DeprecationWarning: SelectableGroups dict interface is deprecated. Use select.
+  for external in metadata.entry_points().get(self.group, []):
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+Process ForkServerProcess-22:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+Process ForkServerProcess-1:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+Process ForkServerProcess-17:
+Traceback (most recent call last):
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 297, in _bootstrap
+    self.run()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/process.py", line 99, in run
+    self._target(*self._args, **self._kwargs)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 13, in _worker
+    env = env_fn_wrapper.var()
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 54, in _thunk
+    env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 220, in __init__
+    env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+  File "/scratch/zj2086/gym-pcgrl/gym_pcgrl/wrappers.py", line 174, in __init__
+    assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
+AssertionError: This wrapper only works on 2D arrays.
+Traceback (most recent call last):
+  File "train.py", line 110, in <module>
+    main(game, repre, experiment, steps, n_cpu, render, logging, **kwargs)
+  File "train.py", line 86, in main
+    env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
+  File "/scratch/zj2086/gym-pcgrl/utils.py", line 69, in make_vec_envs
+    env = SubprocVecEnv(env_lst)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/site-packages/stable_baselines/common/vec_env/subproc_vec_env.py", line 96, in __init__
+    observation_space, action_space = self.remotes[0].recv()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/connection.py", line 250, in recv
+    buf = self._recv_bytes()
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/connection.py", line 407, in _recv_bytes
+    buf = self._recv(4)
+  File "/scratch/zj2086/miniconda3/envs/pcgrl/lib/python3.7/multiprocessing/connection.py", line 379, in _recv
+    chunk = read(handle, remaining)
+ConnectionResetError: [Errno 104] Connection reset by peer
