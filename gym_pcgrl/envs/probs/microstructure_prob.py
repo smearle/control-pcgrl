@@ -25,8 +25,8 @@ class MicroStructureProblem(Problem):
             # nth moment?
 #           "short_circuit_current",  # max amount of current-per-unit-area when applied voltage is zero
 #           "fill_factor",  # max amount of power
-            "F_abs": 1,
         }
+        
 
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
         self._target_path = 20
@@ -38,14 +38,15 @@ class MicroStructureProblem(Problem):
         #       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
 
         # default conditional targets
-        self.static_trgs = {"regions": 1, "F_abs": self._max_path_length}
+        self.static_trgs = {}
 
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
-            "F_abs": (0, self._max_path_length),
+            "path-length": (0, self._max_path_length),
         }
 
-        self.weights = {"regions": 1, "F_abs": 1}
+
+        self.weights = {"regions": 0, "path-length": 0}
 
     """
     Get a list of all the different tile names
@@ -103,9 +104,13 @@ class MicroStructureProblem(Problem):
     def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
         self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
+        m=np.array(map)
+        emptiness= (m=='empty').sum()/m.size
+        emptiness+= 01e-04
         return {
             "regions": calc_num_regions(map, map_locations, ["empty"]),
-            "F_abs": self.path_length,
+            "path-length": self.path_length/emptiness,
+            "tortuosity": self.path_length,
         }
 
     """
@@ -120,13 +125,9 @@ class MicroStructureProblem(Problem):
     """
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
-        rewards = {
-            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "F_abs": get_range_reward(new_stats["F_abs"],old_stats["F_abs"], 125, 125)
-        }
+        rewards = {}
         #calculate the total reward
-        return rewards["regions"] * self._rewards["regions"] +\
-            rewards["F_abs"] * self._rewards["F_abs"]
+        return 0
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -141,7 +142,7 @@ class MicroStructureProblem(Problem):
     """
     def get_episode_over(self, new_stats, old_stats):
 #       return new_stats["regions"] == 1 and new_stats["F_abs"] - self._start_stats["F_abs"] >= self._target_path
-        return new_stats["regions"] == 1 and new_stats["F_abs"] == self._max_path_length
+        return False
 
     """
     Get any debug information need to be printed

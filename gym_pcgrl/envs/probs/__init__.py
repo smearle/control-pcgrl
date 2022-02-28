@@ -32,5 +32,5 @@ PROBLEMS = {
     "loderunner": LoderunnerProblem,
     "loderunner_ctrl": LoderunnerCtrlProblem,
     "face_ctrl": FaceProblem,
-    "microstructure": MicroStructureProblem
+    "microstructure_ctrl": MicroStructureProblem
 }

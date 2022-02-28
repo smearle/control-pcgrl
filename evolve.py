@@ -33,7 +33,6 @@ from qdpy.phenotype import Fitness, Features
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
 from ribs.emitters import (
-    GradientImprovementEmitter,
     ImprovementEmitter,
     OptimizingEmitter,
 )
@@ -104,6 +103,8 @@ RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 TARGETS_PENALTY_WEIGHT = 10
+
+D=
 
 def draw_net(config: object, genome: object, view: object = False, filename: object = None, node_names: object = None, show_disabled: object = True,
              prune_unused: object = False,
@@ -1590,7 +1591,7 @@ def get_emptiness(int_map, env):
 
     return np.sum(int_map.flatten() == 0) / max_val
 
-from pymks import PrimitiveTransformer, plot_microstructures, two_point_stats, TwoPointCorrelation
+#from pymks import PrimitiveTransformer, plot_microstructures, two_point_stats, TwoPointCorrelation
 
 
 def get_two_spatial(int_map, env):
@@ -2224,6 +2225,8 @@ def simulate(
                     # add this in case we get worst possible regret (don't want to punish a playable map)
                     batch_play_bonus += max_regret + p_1_rew - p_2_rew
 
+                    #TODO Add discriminator here
+
             if RENDER:
                 if INFER:
                     stats = env._prob.get_stats(
@@ -2727,21 +2730,24 @@ class EvoPCGRL:
 #               for emitter in self.gen_optimizer.emitters:
 #
 
-            # Re-evaluate elite generators. If doing CMAES, re-evaluate every iteration. Otherwise, try to let the archive grow.
+            # Re-evaluate elite generators. If doing CMAES,re-evaluate every iteration. Otherwise, try to let the archive grow.
 
             if REEVALUATE_ELITES and (CMAES or self.n_itr % 1 == 0):
                 df = self.gen_archive.as_pandas()
                 #               curr_archive_size = len(df)
                 high_performing = df.sample(frac=1)
                 elite_models = np.array(high_performing.loc[:, "solution_0":])
-                elite_bcs = np.array(high_performing.loc[:, "behavior_0":"behavior_1"])
-
+                if 'behavior_1' in high_performing.columns:
+                    elite_bcs = np.array(high_performing.loc[:, "behavior_0":"behavior_1"])
+                else:
+                    elite_bcs = np.array(high_performing.loc[:, "behavior_0"])
+                #if there is not behavior_1
                 if THREADS:
                     futures = [
                         multi_evo.remote(
                             self.env,
                             self.gen_model,
-                            elite_models[i],
+                            elite_models[i], 
                             self.n_tile_types,
                             init_states,
                             self.bc_names,
@@ -2790,6 +2796,9 @@ class EvoPCGRL:
                         # pprint.pprint(self.gen_archive.obj_hist, width=1)
                         # pprint.pprint(self.gen_archive.bc_hist, width=1)
                         old_el_bcs = elite_bcs[elite_i]
+                        if not isinstance(old_el_bcs,np.ndarray):
+                            old_el_bcs = np.array([old_el_bcs])
+                        #TODO fix here
                         gen_model_weights = elite_models[elite_i]
                         gen_model = set_weights(self.gen_model, gen_model_weights)
 
@@ -3285,6 +3294,7 @@ class EvoPCGRL:
                 "face": [
                     ("brightness", "entropy"),
                 ],
+                "microstructure": []
             }
 
 #           for k in problem_eval_bc_names.keys():
@@ -3803,7 +3813,7 @@ if __name__ == "__main__":
             seed = int(arg_dict["exp_name"])
         except Exception:
             print("Assigning random seed")
-            seed = np.random.randint()
+            seed = np.random.randint(10000)
     print("Random number seed is: {}".format(seed))
     N_PROC = arg_dict["n_cpu"]
     MODEL = arg_dict["model"]

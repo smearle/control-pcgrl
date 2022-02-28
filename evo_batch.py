@@ -32,7 +32,7 @@ exp_ids = [
 #       10,
 ]
 problems = [
-        "microstructure"
+        "microstructure_ctrl"
 #       "face_ctrl",
 #       "loderunner_ctrl",
 #       "binary_ctrl",
@@ -101,7 +101,7 @@ local_bcs = {
     "binary_ctrl": [
 #       ["regions", "path-length"],
 #       ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+        ["emptiness", "path-length"],
     ],
     "zelda_ctrl": [
 #       ["nearest-enemy", "path-length"],
@@ -132,8 +132,8 @@ local_bcs = {
         ['brightness', 'entropy'],
 #       ['rand_sol', 'rand_sol']
     ],
-    "microstructure": [
-        ["emptiness", "two_spatial"],
+    "microstructure_ctrl": [
+        ["emptiness", "path-length"],
     ]
 }
 
@@ -271,7 +271,7 @@ def launch_batch(exp_name, collect_params=False):
                                             "Saving experiment config:\n{}".format(
                                                 exp_config
                                             )
-                                        )
+                                         )
                                         with open(
                                             "configs/evo/settings_{}.json".format(i), "w"
                                         ) as f:

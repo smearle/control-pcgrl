@@ -56,3 +56,4 @@ evalevopcgrl*.out
 
 *.DS_Store
 
+discriminator.pt

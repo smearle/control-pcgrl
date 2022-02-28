@@ -273,6 +273,9 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
         path = get_path_coords(path_map)
     return final_value, path
 
+def calc_tortuosity(map,map_locations,passable_values,get_path=False):
+    #TODO
+    pass
 
 def get_path_coords(path_map, init_coords=None):
     '''Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, or else from the furthest point.'''
