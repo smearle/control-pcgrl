@@ -46,15 +46,15 @@ def infer(game, representation, model_path, **kwargs):
 
 
 ################################## MAIN ########################################
-# game = 'minecraft_2Dmaze'
+game = 'minecraft_3D_maze'
+representation = 'narrow3D'
+exp_id = 1
+model_path = 'runs/{}_{}_{}_log/latest_model.pkl'.format(game, representation, exp_id)
+
+# game = 'binary'
 # representation = 'narrow'
 # exp_id = 1
-# model_path = 'runs/{}_{}_{}_log/latest_model.pkl'.format(game, representation, exp_id)
-
-game = 'binary'
-representation = 'narrow'
-exp_id = 1
-model_path = 'models/{}/{}/model_1.pkl'.format(game, representation, exp_id)
+# model_path = 'models/{}/{}/model_1.pkl'.format(game, representation, exp_id)
 kwargs = {
     'change_percentage': 0.4,
     'trials': 1,

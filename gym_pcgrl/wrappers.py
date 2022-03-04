@@ -31,7 +31,10 @@ class ToImage(gym.Wrapper):
             if self.shape == None:
                 self.shape = self.env.observation_space[n].shape
             new_shape = self.env.observation_space[n].shape
+
+            # Add 1 or more dimensions
             depth += 1 if len(new_shape) <= 2 else new_shape[2]
+
             assert self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1], 'This wrapper only works when all objects have same width and height'
             if self.env.observation_space[n].high.max() > max_value:
                 max_value = self.env.observation_space[n].high.max()
@@ -59,6 +62,39 @@ class ToImage(gym.Wrapper):
                 final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], -1), axis=2)
         return final
 
+
+class ToImage3D(ToImage):
+    def __init__(self, game, names, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+        self.shape = None
+        depth=0
+        max_value = 0
+        for n in names:
+            assert n in self.env.observation_space.spaces.keys(), 'This wrapper only works if your observation_space is spaces.Dict with the input names.'
+            if self.shape == None:
+                self.shape = self.env.observation_space[n].shape
+            new_shape = self.env.observation_space[n].shape
+            depth += 1 if len(new_shape) <= 3 else new_shape[3]
+            assert self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1] and self.shape[2] == new_shape[2], 'This wrapper only works when all objects have same length, width and height'
+            if self.env.observation_space[n].high.max() > max_value:
+                max_value = self.env.observation_space[n].high.max()
+        self.names = names
+
+        self.observation_space = gym.spaces.Box(low=0, high=max_value,shape=(self.shape[0], self.shape[1], self.shape[2], depth))
+
+    def transform(self, obs):
+        final = np.empty([])
+        for n in self.names:
+            if len(final.shape) == 0:
+                final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
+            else:
+                final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2)
+        return final
 """
 Transform any object in the dictionary to one hot encoding
 
@@ -205,6 +241,39 @@ class Cropped(gym.Wrapper):
 
         return obs
 
+class Cropped3D(Cropped):
+    def __init__(self, game, crop_size, pad_value, name, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
+        assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
+        assert len(self.env.observation_space.spaces[name].shape) == 3, "This wrapper only works on 2D arrays."
+        self.name = name
+        self.size = crop_size
+        self.pad = crop_size//2
+        self.pad_value = pad_value
+
+        self.observation_space = gym.spaces.Dict({})
+        for (k,s) in self.env.observation_space.spaces.items():
+            self.observation_space.spaces[k] = s
+        high_value = self.observation_space[self.name].high.max()
+        self.observation_space.spaces[self.name] = gym.spaces.Box(low=0, high=high_value, shape=(crop_size, crop_size, crop_size), dtype=np.uint8)
+
+    def transform(self, obs):
+        map = obs[self.name]
+        x, y, z = obs['pos']
+
+        #View Centering
+        padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        cropped = padded[z:z+self.size, y:y+self.size, x:x+self.size]
+        obs[self.name] = cropped
+        return obs
+
 ################################################################################
 #   Final used wrappers for the experiments
 ################################################################################
@@ -228,6 +297,24 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
+
+class Cropped3DImagePCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, crop_size, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Cropping the map to the correct crop_size
+        env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            # ) or ('minecraft_2Dmaze' not in game)
+            env = OneHotEncoding(env, 'map')
+        # Indices for flatting
+        flat_indices = ['map']
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage3D(env, flat_indices)
+        gym.Wrapper.__init__(self, self.env)
+
+
 """
 Similar to the previous wrapper but the input now is the index in a 3D map (height, width, num_tiles) of the highest value
 Used for wide experiments
@@ -236,7 +323,25 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
-        # Indices for flatting
+        # Indices for flattening
+        flat_indices = ['map']
+        env = self.pcgrl_env
+        # Add the action map wrapper
+        env = ActionMap(env)
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            # ) or ('minecraft_2Dmaze' not in game)
+            env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, flat_indices)
+        gym.Wrapper.__init__(self, self.env)
+
+
+class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Indices for flattening
         flat_indices = ['map']
         env = self.pcgrl_env
         # Add the action map wrapper

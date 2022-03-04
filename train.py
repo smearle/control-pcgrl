@@ -10,9 +10,10 @@ from stable_baselines.results_plotter import load_results, ts2xy
 import tensorflow as tf
 import numpy as np
 import os
+from pdb import set_trace as TT
 
 n_steps = 0
-log_dir = '/scratch/zj2086/pcgrl/'
+log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
 
 def callback(_locals, _globals):
@@ -87,20 +88,26 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
-        model.set_env(env)
+        model.set_env(env) 
+
+    n_params = 0
+    for param in model.params:
+        n_params += np.prod(param.shape)
+    print(f'Model has {n_params} params.')
+
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'minecraft_2D_maze'
-representation = 'narrow'
+game = 'minecraft_3D_maze'
+representation = 'narrow3D'
 experiment = None
 steps = 1e8
 render = False
 logging = True
-n_cpu = 50
+n_cpu = 40
 kwargs = {
     'resume': False
 }
