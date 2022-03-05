@@ -16,6 +16,7 @@ REPRESENTATIONS = {
     "narrow": NarrowRepresentation,
     "narrowcast": NarrowCastRepresentation,
     "narrowmulti": NarrowMultiRepresentation,
+    "narrow3D": Narrow3DRepresentation,
     "wide": WideRepresentation,
     "turtle": TurtleRepresentation,
     "turtlecast": TurtleCastRepresentation,

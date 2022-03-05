@@ -7,7 +7,7 @@ import gym_pcgrl
 from utils import make_vec_envs
 
 if __name__=="__main__":
-    env = gym.make('minecraft_3D_maze-cellular3D-v0')
+    env = gym.make('minecraft_3D_maze-turtle3D-v0')
     observation = env.reset()
     for step in range(30):
         action = env.action_space.sample()

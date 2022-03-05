@@ -127,7 +127,7 @@ class State:
         self.player=None
 
     def randomInitialize(self, width, height):
-        self.width-width
+        self.width=width # Modified: - to =
         self.height=height
 
         return

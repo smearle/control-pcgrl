@@ -424,7 +424,7 @@ Parameters:
     low (float): low bound for the optimal region
     high (float): high bound for the optimal region
 
-Retruns:
+Returns:
     float: the reward value for the change between new_value and old_value
 """
 def get_range_reward(new_value, old_value, low, high):

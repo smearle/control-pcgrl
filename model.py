@@ -5,6 +5,7 @@ import numpy as np
 from stable_baselines.common.policies import ActorCriticPolicy, FeedForwardPolicy
 from stable_baselines.common.distributions import CategoricalProbabilityDistributionType, ProbabilityDistributionType, CategoricalProbabilityDistribution, ProbabilityDistribution, DiagGaussianProbabilityDistributionType, MultiCategoricalProbabilityDistributionType
 from stable_baselines.a2c.utils import conv, linear, conv_to_fc
+from pdb import set_trace as TT
 
 def NCA(x, channel_n, n_tools, angle=0.0, step_size=1.0,  **kwargs):
     relu = tf.nn.relu
@@ -118,6 +119,61 @@ def Cnn2(image, **kwargs):
     layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+
+
+DTYPE = tf.float32
+
+def _weight_variable(name, shape):
+    return tf.get_variable(name, shape, DTYPE, tf.truncated_normal_initializer(stddev=0.1))
+
+
+def _bias_variable(name, shape):
+    return tf.get_variable(name, shape, DTYPE, tf.constant_initializer(0.1, dtype=DTYPE))
+
+
+def Cnn2_3D(image, **kwargs):
+    activ = tf.nn.relu
+
+    in_filters = image.shape[-1]
+
+    with tf.variable_scope('c1') as scope:
+        out_filters = 32
+        kernel = _weight_variable('weights', [3, 3, 3, in_filters, out_filters])
+        conv = tf.nn.conv3d(image, kernel, [1, 2, 2, 2, 1], padding='SAME')
+        biases = _bias_variable('biases', [out_filters])
+        bias = tf.nn.bias_add(conv, biases)
+        conv1 = tf.nn.relu(bias, name=scope.name)
+
+        prev_layer = conv1
+        in_filters = out_filters
+
+    with tf.variable_scope('c2') as scope:
+        out_filters = 32
+        kernel = _weight_variable('weights', [3, 3, 3, in_filters, out_filters])
+        conv = tf.nn.conv3d(prev_layer, kernel, [1, 2, 2, 2, 1], padding='SAME')
+        biases = _bias_variable('biases', [out_filters])
+        bias = tf.nn.bias_add(conv, biases)
+        conv2 = tf.nn.relu(bias, name=scope.name)
+
+        prev_layer = conv2
+        in_filters = out_filters
+
+    with tf.variable_scope('c3') as scope:
+        out_filters = 16
+        kernel = _weight_variable('weights', [3, 3, 3, in_filters, out_filters])
+        conv = tf.nn.conv3d(prev_layer, kernel, [1, 2, 2, 2, 1], padding='SAME')
+        biases = _bias_variable('biases', [out_filters])
+        bias = tf.nn.bias_add(conv, biases)
+        conv3 = tf.nn.relu(bias, name=scope.name)
+
+        prev_layer = conv3
+        in_filters = out_filters
+    # layer_1 = activ(tf.nn.conv3d(input=image, name='c1', filters=32, filter=3, strides=2, **kwargs))
+    # layer_2 = activ(tf.nn.conv3d(input=layer_1, name='c2', filters=64, filter=3, strides=2, **kwargs))
+    # layer_3 = activ(tf.nn.conv3d(input=layer_2, name='c3', filters=64, filter=3, strides=1, **kwargs))
+    layer_3 = conv_to_fc(prev_layer)
+    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+
 
 def FullyConv1(image, n_tools, **kwargs):
     activ = tf.nn.relu
@@ -443,7 +499,12 @@ class FullyConvPolicySmallMap(ActorCriticPolicy):
 
 class CustomPolicyBigMap(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, cnn_extractor=Cnn2, feature_extraction="cnn")
+        obs_space = args[1]
+        if len(obs_space.shape) == 4:
+            cnn_extractor = Cnn2_3D
+        else:
+            cnn_extractor = Cnn2
+        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, cnn_extractor=cnn_extractor, feature_extraction="cnn")
 
 class CustomPolicySmallMap(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
