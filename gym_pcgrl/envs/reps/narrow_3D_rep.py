@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.reps.representation import Representation
+from gym_pcgrl.envs.reps.representation import Representation3D
 from PIL import Image
 from gym import spaces
 import numpy as np
@@ -10,7 +10,7 @@ from gym_pcgrl.envs.probs.minecraft.mc_render import reps_3D_render
 The narrow representation where the agent is trying to modify the tile value of a certain
 selected position that is selected randomly or sequentially similar to cellular automata
 """
-class Narrow3DRepresentation(Representation):
+class Narrow3DRepresentation(Representation3D):
     """
     Initialize all the parameters used by that representation
     """

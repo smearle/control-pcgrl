@@ -47,11 +47,19 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     render = kwargs.get('render', False)
     render_mode = kwargs.get('render_mode', 'human')
     def _thunk():
-        if representation == 'wide':
-            env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
+        if "3D" in representation:
+            if representation == 'wide':
+               env = wrappers.ActionMap3DImagePCGRLWrapper(env_name, **kwargs)
+            else:
+               crop_size = kwargs.get('cropped_size', 28)
+               env = wrappers.Cropped3DImagePCGRLWrapper(env_name, crop_size, **kwargs)
+
         else:
-            crop_size = kwargs.get('cropped_size', 28)
-            env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+            if representation == 'wide':
+               env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
+            else:
+               crop_size = kwargs.get('cropped_size', 28)
+               env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
         # RenderMonitor must come last
         if render or log_dir is not None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)

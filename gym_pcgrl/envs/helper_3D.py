@@ -364,7 +364,7 @@ Returns:
 def get_longest_path(map, start, end, map_locations, passable_values):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
-    longest_path = []
+    longest_path = []       #TODO
 
 
 """
