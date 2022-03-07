@@ -169,9 +169,33 @@ def _get_certain_tiles(map_locations, tile_values):
         tiles.extend(map_locations[v])
     return tiles
 
+'''
+Private function that see whether the current position is standable: The position is passable only when height >= 2
+(character is 2 blocks tall)
+
+Parameters:
+    x (int): The current x position
+    y (int): The current y position
+    z (int): The current z position   
+    map (any[][][]): the current tile map to check
+    passable_values (any[]): an array of all the passable tile values
+
+Return:
+    boolen: True if the aisle is passable
+'''
+def _standable(map, x, y, z, passable_values):
+    nx, ny, nz = x, y, z+1
+    if nz < 0 or nz >= len(map):
+        return False
+    elif (map[nz][ny][nx] in passable_values
+          and map[z][y][x] in passable_values):
+        return True
+    else:
+        return False
 
 '''
-Private function that see whether the aisle is passable: The aisle is passable only when height >= 3
+Private function that see whether the aisle is passable: The aisle is passable only when the agent can move to a adjcent position.
+    (The adjacent position won't block the character's head)
 
 Parameters:
     x (int): The current x position
@@ -181,22 +205,35 @@ Parameters:
     passable_values (any[]): an array of all the passable tile values
 
 Return:
-boolen: True if the aisle is passable
-
-# TODO: whether necessary to check x, y direction
+    boolen: True if the aisle is passable
 '''
 def _passable(map, x, y, z, passable_values):
-    aisle_height = 0
-    for dz in [-1, 0, 1, 2]:            # TODO; for dz in [-2, -1, 0, 1, 2]
-        nx, ny, nz = x, y, z+dz
-        if nz < 0 or nz >= len(map):
+    for dir in [(1,0), (0,1), (-1,0), (0,-1)]:   # check 4 adjcent directions: forward, back, left, right
+        nx, ny, nz= x+dir[0], y+dir[1], z
+        if (nx < 0 or ny < 0 
+            or nx >= len(map[nz][ny]) or ny >= len(map[nz])):
             continue
-        if map[nz][ny][nx] in passable_values:
-            aisle_height += 1
-    if aisle_height >= 3:
-        return True
-    else:
-        return False
+        
+        # check whether can go down stairs
+        if (nz-1 >= 0 and nz+1 < len(map) and (map[nz-1][ny][nx] in passable_values
+                                            and map[nz][ny][nx] in passable_values
+                                            and map[nz+1][ny][nx] in passable_values)):
+            return True
+
+        # check whether can go straight forward
+        elif (nz+1 < len(map) and (map[nz][ny][nx] in passable_values
+                                and map[nz+1][ny][nx] in passable_values)):
+            return True
+        
+        # check whether can go up stairs
+        elif nz+2 < len(map) and (map[nz+2][y][x] in passable_values
+                                 and map[nz+1][ny][nx] in passable_values
+                                 and map[nz+2][ny][nx] in passable_values):
+            return True
+        else:
+            continue
+
+    return False
 
 """
 Private function that runs flood fill algorithm on the current color map
@@ -218,7 +255,7 @@ def _flood_fill(x, y, z, color_map, map, color_index, passable_values):
     queue = [(x, y, z)]
     while len(queue) > 0:
         (cx, cy, cz) = queue.pop(0)
-        if color_map[cz][cy][cx] != -1 or not _passable(map, cx, cy, cz, passable_values):
+        if color_map[cz][cy][cx] != -1 or (not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)):
             continue
         num_tiles += 1
         color_map[cz][cy][cx] = color_index
@@ -272,13 +309,14 @@ def run_dikjstra(x, y, z, map, passable_values):
     queue = [(x, y, z, 0)]
     while len(queue) > 0:
         (cx,cy,cz,cd) = queue.pop(0)
-        if not _passable(map, x, y, z, passable_values) or (dikjstra_map[cz][cy][cx] >= 0 and dikjstra_map[cz][cy][cx] <= cd):
+        if ((not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)) 
+                or (dikjstra_map[cz][cy][cx] >= 0 and dikjstra_map[cz][cy][cx] <= cd)):
             continue
         visited_map[cz][cy][cx] = 1
         dikjstra_map[cz][cy][cx] = cd
         for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
             nx,ny,nz=cx+dx,cy+dy,cz+dz
-            if nx < 0 or ny < 0 or nz <0 or nx >= len(map[0]) or ny >= len(map) or nz >=len(map):
+            if nx < 0 or ny < 0 or nz <0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >=len(map):
                 continue
             queue.append((nx, ny, nz, cd + 1))
     return dikjstra_map, visited_map
@@ -292,7 +330,7 @@ Parameters:
     passable_values (any[]): an array of all passable tiles in the map
 
 Returns:
-    int: the longest path in tiles in the current map
+    int: the longest path value in tiles in the current map
 """
 def calc_longest_path(map, map_locations, passable_values):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
@@ -309,6 +347,25 @@ def calc_longest_path(map, map_locations, passable_values):
         if max_value > final_value:
             final_value = max_value
     return final_value
+
+"""
+Get the longest path in the map
+
+Parameters:
+    map (any[][][]): the current map being tested
+    start (tuple(int, int, int)): the coordinate of the entrance (starting point)
+    end (tuple(int, int, int)): the coordinate of the exit (destination)
+    map_locations (Dict(string,(int,int,int)[])): the histogram of locations of the current map
+    passable_values (any[]): an array of all passable tiles in the map
+
+Returns:
+    list: the longest path's coordinates
+"""
+def get_longest_path(map, start, end, map_locations, passable_values):
+    empty_tiles = _get_certain_tiles(map_locations, passable_values)
+    final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
+    longest_path = []
+
 
 """
 Calculate the number of tiles that have certain values in the map

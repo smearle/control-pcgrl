@@ -12,7 +12,7 @@ import numpy as np
 import os
 
 n_steps = 0
-log_dir = '/scratch/zj2086/pcgrl/'
+log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
 
 def callback(_locals, _globals):
@@ -94,8 +94,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'minecraft_3D_maze'
-representation = ['narrow3D']
+game = 'minecraft_2D_maze'
+representation = ['narrow']
 experiment = None
 steps = 1e8
 render = False
