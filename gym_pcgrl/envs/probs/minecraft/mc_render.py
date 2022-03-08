@@ -10,8 +10,8 @@ import time
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-b_map = [AIR, STAINED_GLASS]
-string_map = ["AIR", "DIRT"]
+b_map = [AIR, STAINED_GLASS, CHEST]
+string_map = ["AIR", "DIRT","CHEST"]
 
 # map string map entries into Minecraft item type
 block_map = dict(zip(string_map, b_map))
@@ -58,7 +58,7 @@ def get_tile(tile):
         return AIR
 
 
-def spawn_2Dmaze(map, border_tile, border_size=(1,1), base_pos=5, maze_height=3):
+def spawn_2D_maze(map, border_tile, border_size=(1,1), base_pos=5, maze_height=3):
     '''
     Spawn maze iterately in Minecraft
 
@@ -122,9 +122,9 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
     CLIENT.fillCube(FillCubeRequest(
         cube=Cube(
             min=Point(x=-boundary_size-border_size[0] + 2, y=base_pos -
-                      1, z=-boundary_size-border_size[2] + 2),
+                      1, z=-boundary_size-border_size[1] + 2),
             max=Point(x=i + boundary_size + border_size[0] - 3,
-                      y=base_pos - 1, z=j + boundary_size + border_size[2] - 3)
+                      y=base_pos - 1, z=j + boundary_size + border_size[1] - 3)
         ),
         type=backgroud_type
     ))
@@ -134,7 +134,7 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
         cube=Cube(
             min=Point(x=-border_size[0], y=base_pos, z=-border_size[1]),
             max=Point(x=i+border_size[0]-1, y=base_pos + k +
-                      border_size[1]-1, z=j+border_size[2]-1)
+                      border_size[2]-1, z=j+border_size[1]-1)
         ),
         type=item
     ))
@@ -145,9 +145,30 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
         ),
         type=AIR
     ))
+
+    # render the entrance's door on the border 
+    CLIENT.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=-border_size[0], y=base_pos, z=0),
+            max=Point(x=-1,y=base_pos+1, z=0)
+        ),
+        type=AIR
+    ))
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=GOLD_BLOCK, orientation=NORTH)]))
+
+    # render the exit on the border
+    CLIENT.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=i, y=base_pos+k-2, z=j-1), 
+            max=Point(x=i+border_size[0]-1, y=base_pos+k-1, z=j-1)
+        ),
+        type=AIR
+    ))
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=base_pos+k-3, z=j-1),type=DIAMOND_BLOCK, orientation=NORTH)]))
+
     return
 
-def spawn_3Dmaze(map, base_pos=5):
+def spawn_3D_maze(map, base_pos=5):
     '''
     Note that: in Minecraft, the vertical direction is y (map[z][][])
                              the horizontal direction x is (map[][][x])
