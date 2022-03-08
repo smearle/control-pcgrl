@@ -48,7 +48,7 @@ def infer(game, representation, model_path, **kwargs):
 ################################## MAIN ########################################
 game = 'minecraft_3D_maze'
 representation = 'narrow3D'
-exp_id = 1
+exp_id = 4
 model_path = 'runs/{}_{}_{}_log/latest_model.pkl'.format(game, representation, exp_id)
 
 # game = 'binary'

@@ -211,7 +211,7 @@ def _passable(map, x, y, z, passable_values):
     for dir in [(1,0), (0,1), (-1,0), (0,-1)]:   # check 4 adjcent directions: forward, back, left, right
         nx, ny, nz= x+dir[0], y+dir[1], z
         if (nx < 0 or ny < 0 
-            or nx >= len(map[nz][ny]) or ny >= len(map[nz])):
+            or nx >= len(map[z][y]) or ny >= len(map[z])):
             continue
         
         # check whether can go down stairs
