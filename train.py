@@ -88,7 +88,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
-        model.set_env(env) 
+        model.set_env(env)
 
     n_params = 0
     for param in model.params:
@@ -101,13 +101,13 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'minecraft_2D_maze'
-representation = ['narrow']
+game = 'minecraft_3D_maze'
+representation = ['narrow3D']
 experiment = None
 steps = 1e8
 render = False
 logging = True
-n_cpu = 40
+n_cpu = 60
 kwargs = {
     'resume': False
 }

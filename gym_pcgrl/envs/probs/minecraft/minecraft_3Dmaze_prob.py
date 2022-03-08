@@ -14,9 +14,9 @@ class Minecraft3DmazeProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._length = 14
-        self._width = 14
-        self._height = 14
+        self._length = 7
+        self._width = 7
+        self._height = 7
         self._prob = {"AIR": 0.5, "DIRT":0.5}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)

@@ -16,7 +16,7 @@ class Narrow3DRepresentation(Representation3D):
     """
     def __init__(self):
         super().__init__()
-        self._random_tile = True
+        self._random_tile = False 
 
     """
     Resets the current representation where it resets the parent and the current
