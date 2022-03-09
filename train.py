@@ -103,11 +103,11 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 ################################## MAIN ########################################
 game = 'minecraft_3D_maze'
 representation = ['narrow3D']
-experiment = 5
+experiment = 0
 steps = 1e8
 render = False
 logging = True
-n_cpu = 20
+n_cpu = 30
 kwargs = {
     'resume': False
 }
