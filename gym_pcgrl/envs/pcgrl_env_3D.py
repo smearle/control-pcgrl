@@ -60,8 +60,8 @@ class PcgrlEnv3D(PcgrlEnv):
             percentage = min(1, max(0, kwargs.get('change_percentage')))
             self._max_changes = max(
                 int(percentage * self._prob._length * self._prob._width * self._prob._height), 1)
-        self._max_iterations = self._max_changes * \
-            self._prob._length * self._prob._width * self._prob._height
+#       self._max_iterations = self._max_changes * \
+#           self._prob._length * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(
