@@ -2,7 +2,7 @@ import os
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, calc_certain_tile
+from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, get_path_coords, calc_certain_tile, run_dikjstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border
 
 """
@@ -14,7 +14,7 @@ class Minecraft3DZeldaProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._length = 7
+        self._length = 11
         self._width = 7
         self._height = 7
         self._prob = {"AIR": 0.5, "DIRT":0.45, "CHEST":0.05}
@@ -24,14 +24,17 @@ class Minecraft3DZeldaProblem(Problem):
         self._target_path = 20
         self._random_probs = False
 
-        self._max_keys = 1
+        self.path_length = 0
+        self.path = []
+
+        self._max_chests = 1
 
         self.render_path = True
 
         self._rewards = {
             "regions": 5,
             "path-length": 1,
-            "key": 3
+            "chest": 3
         }
 
     """
@@ -90,13 +93,28 @@ class Minecraft3DZeldaProblem(Problem):
         The used status are "reigons": number of connected empty tiles, "path-length": the longest path across the map
     """
     def get_stats(self, map):
+        self.path = []
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
-            "path-length": calc_longest_path(map, map_locations, ["DIRT"]),
-            "key": calc_certain_tile(map_locations, ["CHEST"])
+            "path-length": 0,
+            "chest": calc_certain_tile(map_locations, ["CHEST"])
         }
-        
+        if map_stats["regions"] == 1:
+            p_x, p_y, p_z= 0, 0, 0
+            if map_stats["chest"] == 1:
+                c_x, c_y, c_z = map_locations["CHEST"][0]
+                d_x, d_y, d_z = len(map[0][0]), len(map[0]), len(map)-1
+                dikjstra_c, _ = run_dikjstra(
+                    p_x, p_y, p_z, map, ["AIR"])
+                map_stats["path-length"] += dikjstra_c[c_z][c_y][c_x]
+                dikjstra_d, _ = run_dikjstra(
+                    c_x, c_y, c_z, map, ["AIR"])
+                map_stats["path-length"] += dikjstra_d[d_z][d_y][d_x]
+                if self.render_path:
+                    pass  # TODO add path rendering
+
+        self.path_length = map_stats["path-length"]
         return map_stats
 
     """
@@ -113,11 +131,13 @@ class Minecraft3DZeldaProblem(Problem):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
+            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
+            "chest": get_range_reward(new_stats["chest"], old_stats["chest"], 1, 1),
         }
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\
-            rewards["path-length"] * self._rewards["path-length"]
+            rewards["path-length"] * self._rewards["path-length"] +\
+            rewards["chest"] * self._rewards["chest"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -148,10 +168,12 @@ class Minecraft3DZeldaProblem(Problem):
         return {
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
-            "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
+            "path-imp": new_stats["path-length"] - self._start_stats["path-length"],
+            "chest": new_stats["chest"]
         }
 
     def render(self, map):
         spawn_3D_border(map, self._border_tile)
         spawn_3D_maze(map, self._border_tile)
+        # TODO add path rendering
         return 

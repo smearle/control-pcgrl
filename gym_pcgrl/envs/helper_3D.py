@@ -349,7 +349,8 @@ def calc_longest_path(map, map_locations, passable_values):
     return final_value
 
 """
-Get the longest path in the map
+Recover a shortest path (as list of coords) from a dikjstra map, 
+using either some initial coords, or else from the furthest point
 
 Parameters:
     map (any[][][]): the current map being tested
@@ -361,10 +362,37 @@ Parameters:
 Returns:
     list: the longest path's coordinates
 """
-def get_longest_path(map, start, end, map_locations, passable_values):
-    empty_tiles = _get_certain_tiles(map_locations, passable_values)
-    final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
-    longest_path = []       #TODO
+# TODO change to 3D
+def get_path_coords(path_map, init_coords=None):
+    '''Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, or else from the furthest point.'''
+    width, height = len(path_map), len(path_map[0])
+    pad_path_map = np.zeros(shape=(width + 2, height + 2), dtype=np.int32)
+    pad_path_map.fill(0)
+    pad_path_map[1:width + 1, 1:height + 1] = path_map + 1
+    if not init_coords:
+        # Work from the greatest cell value (end of the path) backward
+        max_cell = pad_path_map.max()
+        curr = np.array(np.where(pad_path_map == max_cell))
+    else:
+        curr = np.array([init_coords], dtype=np.int32).T + 1
+        max_cell = pad_path_map[curr[0][0], curr[1][0]]
+    xi, yi = curr[:, 0]
+    path = np.zeros(shape=(max_cell, 2), dtype=np.int32)
+    i = 0
+    while max_cell > 1:
+        path[i, :] = [xi - 1, yi - 1]
+        pad_path_map[xi, yi] = -1
+        max_cell -= 1
+        x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
+        adj_mask = np.zeros((width + 2, height + 2), dtype=np.int32)
+        #adj_mask[x0: x1, y0: y1] = ADJ_FILTER
+        curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
+        xi, yi = curr[:, 0]
+        i += 1
+    if i > 0:
+        path[i, :] = [xi - 1, yi - 1]
+
+    return path
 
 
 """
