@@ -194,7 +194,8 @@ def _standable(map, x, y, z, passable_values):
         return False
 
 '''
-Private function that see whether the aisle is passable: The aisle is passable only when the agent can move to a adjcent position.
+Private function that see whether the aisle is passable: The aisle is passable only when the agent can move to a 
+adjacent position.
     (The adjacent position won't block the character's head)
 
 Parameters:
@@ -208,32 +209,39 @@ Return:
     boolen: True if the aisle is passable
 '''
 def _passable(map, x, y, z, passable_values):
-    for dir in [(1,0), (0,1), (-1,0), (0,-1)]:   # check 4 adjcent directions: forward, back, left, right
+
+    passable_tiles = []
+
+    # Check 4 adjcent directions: forward, back, left, right. For each, it is passable if we can move to it while
+    # moving up/down-stairs or staying level.
+    for dir in [(1,0), (0,1), (-1,0), (0,-1)]:   
         nx, ny, nz= x+dir[0], y+dir[1], z
-        if (nx < 0 or ny < 0 
-            or nx >= len(map[z][y]) or ny >= len(map[z])):
+
+        # Check if out of bounds, if so, skip it
+        if (nx < 0 or ny < 0 or nx >= len(map[z][y]) or ny >= len(map[z])):
             continue
         
-        # check whether can go down stairs
+        # Check whether can go down stairs
         if (nz-1 >= 0 and nz+1 < len(map) and (map[nz-1][ny][nx] in passable_values
                                             and map[nz][ny][nx] in passable_values
                                             and map[nz+1][ny][nx] in passable_values)):
-            return True
+            passable_tiles.append((nx, ny, nz-1))
 
-        # check whether can go straight forward
+        # Check whether can stay at the same level
         elif (nz+1 < len(map) and (map[nz][ny][nx] in passable_values
                                 and map[nz+1][ny][nx] in passable_values)):
-            return True
+            passable_tiles.append((nx, ny, nz))
         
-        # check whether can go up stairs
+        # Check whether can go up stairs
         elif nz+2 < len(map) and (map[nz+2][y][x] in passable_values
                                  and map[nz+1][ny][nx] in passable_values
                                  and map[nz+2][ny][nx] in passable_values):
-            return True
+            passable_tiles.append((nx, ny, nz+1))
+
         else:
             continue
 
-    return False
+    return passable_tiles
 
 """
 Private function that runs flood fill algorithm on the current color map
@@ -303,23 +311,37 @@ Parameters:
 Returns:
     int[][][]: returns the dikjstra map after running the dijkstra algorithm
 """
-def run_dikjstra(x, y, z, map, passable_values):
-    dikjstra_map = np.full((len(map), len(map[0]), len(map[0][0])), -1)
+def run_dijkstra(x, y, z, map, passable_values):
+    dijkstra_map = np.full((len(map), len(map[0]), len(map[0][0])), -1)
     visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
     queue = [(x, y, z, 0)]
     while len(queue) > 0:
+        # Looking at a new tile
         (cx,cy,cz,cd) = queue.pop(0)
-        if ((not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)) 
-                or (dikjstra_map[cz][cy][cx] >= 0 and dikjstra_map[cz][cy][cx] <= cd)):
+
+        # Skip tile if we've already visited it
+        if dijkstra_map[cz][cy][cx] >= 0 and dijkstra_map[cz][cy][cx] <= cd:
             continue
+
+        # Count the tile as visited and record its distance 
         visited_map[cz][cy][cx] = 1
-        dikjstra_map[cz][cy][cx] = cd
-        for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
-            nx,ny,nz=cx+dx,cy+dy,cz+dz
-            if nx < 0 or ny < 0 or nz <0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >=len(map):
-                continue
-            queue.append((nx, ny, nz, cd + 1))
-    return dikjstra_map, visited_map
+        dijkstra_map[cz][cy][cx] = cd
+
+        # Call passable, which will return, (x, y, z) coordinates of tiles to which the player can travel from here
+        # for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
+        for (dx, dy, dz) in _passable(map, cx, cy, cz, passable_values):
+
+#           # Check that the new tiles are in the bounds of the level
+#           nx,ny,nz=cx+dx,cy+dy,cz+dz
+#           if nx < 0 or ny < 0 or nz <0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >=len(map):
+
+#               # If out of bounds, do not add the new tile to the frontier
+#               continue
+
+            # Add the new tile to the frontier
+            queue.append((dx, dy, dz, cd + 1))
+
+    return dijkstra_map, visited_map
 
 """
 Calculate the longest path on the map
@@ -339,10 +361,10 @@ def calc_longest_path(map, map_locations, passable_values):
     for (x,y,z) in empty_tiles:
         if final_visited_map[z][y][x] > 0:
             continue
-        dikjstra_map, visited_map = run_dikjstra(x, y, z, map, passable_values)
+        dikjstra_map, visited_map = run_dijkstra(x, y, z, map, passable_values)
         final_visited_map += visited_map
         (mz,my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
-        dikjstra_map, _ = run_dikjstra(mx, my, mz, map, passable_values)
+        dikjstra_map, _ = run_dijkstra(mx, my, mz, map, passable_values)
         max_value = np.max(dikjstra_map)
         if max_value > final_value:
             final_value = max_value
@@ -419,7 +441,7 @@ Returns:
 """
 def calc_num_reachable_tile(map, map_locations, start_value, passable_values, reachable_values):
     (sx,sy,sz) = _get_certain_tiles(map_locations, [start_value])[0]
-    dikjstra_map, _ = run_dikjstra(sx, sy, sz, map, passable_values)
+    dikjstra_map, _ = run_dijkstra(sx, sy, sz, map, passable_values)
     tiles = _get_certain_tiles(map_locations, reachable_values)
     total = 0
     for (tx,ty,tz) in tiles:

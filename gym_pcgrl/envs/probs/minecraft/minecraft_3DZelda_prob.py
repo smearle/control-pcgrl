@@ -2,7 +2,7 @@ import os
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, get_path_coords, calc_certain_tile, run_dikjstra
+from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, get_path_coords, calc_certain_tile, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border
 
 """
@@ -105,10 +105,10 @@ class Minecraft3DZeldaProblem(Problem):
             if map_stats["chest"] == 1:
                 c_x, c_y, c_z = map_locations["CHEST"][0]
                 d_x, d_y, d_z = len(map[0][0]), len(map[0]), len(map)-1
-                dikjstra_c, _ = run_dikjstra(
+                dikjstra_c, _ = run_dijkstra(
                     p_x, p_y, p_z, map, ["AIR"])
                 map_stats["path-length"] += dikjstra_c[c_z][c_y][c_x]
-                dikjstra_d, _ = run_dikjstra(
+                dikjstra_d, _ = run_dijkstra(
                     c_x, c_y, c_z, map, ["AIR"])
                 map_stats["path-length"] += dikjstra_d[d_z][d_y][d_x]
                 if self.render_path:
