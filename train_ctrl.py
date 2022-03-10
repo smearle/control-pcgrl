@@ -217,6 +217,8 @@ elif 'zelda' in problem:
     map_width = 14
 elif 'binary' in problem:
     map_width = 16
+elif 'minecraft' in problem:
+    map_width = 7
 else:
     raise NotImplementedError(
         "Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))

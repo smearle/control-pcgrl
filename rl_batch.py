@@ -15,7 +15,8 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-    "minecraft_3D_zelda",
+    "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_zelda_ctrl",
 #   "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
@@ -64,10 +65,18 @@ local_controls: Dict[str, List] = {
     "RCT": [
         # ['income'],
     ],
+    "minecraft_3D_zelda_ctrl": [
+#       ["emptiness", "path-length"],
+    ],
+    "minecraft_3D_maze_ctrl": [
+#       ["emptiness", "path-length"],
+    ],
 }
+
+# Whether to use a funky curriculum (Absolute Learning Progress w/ Gaussian Mixture Models) for sampling controllable metric targets
 alp_gmms = [
     False,
-    True,
+#   True,
 ]
 #change_percentages = np.arange(2, 11, 4) / 10
 change_percentages = [

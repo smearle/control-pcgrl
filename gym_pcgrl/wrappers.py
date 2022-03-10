@@ -182,6 +182,9 @@ class ToImage3D(ToImage):
             else:
                 final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2)
         return final
+
+
+class OneHotEncoding(gym.Wrapper):
     """
     Transform any object in the dictionary to one hot encoding
 
@@ -239,7 +242,6 @@ class ToImage3D(ToImage):
         return obs
 
     def transform(self, obs):
-        TT()
         old = obs[self.name]
         obs[self.name] = np.eye(self.dim)[old]
 

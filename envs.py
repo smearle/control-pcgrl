@@ -25,9 +25,14 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
            # env = wrappers.CAWrapper(env_name, **kwargs)
             env = wrappers.CAactionWrapper(env_name, **kwargs)
 #          TT()
-        else:
+        elif representation in ['narrow', 'turtle']:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+        elif representation in ['narrow3D', 'turtle3D']:
+            crop_size = kwargs.get('cropped_size', 14)
+            env = wrappers.Cropped3DImagePCGRLWrapper(env_name, crop_size, **kwargs)
+        else:
+            raise Exception('Unknown representation: {}'.format(representation))
 #       if evo_compare:
 #           # FIXME: THIS DOES NOT WORK
 

@@ -369,7 +369,6 @@ Returns:
     int[][]: the random generated map
 """
 def gen_random_map(random, width, height, prob):
-    TT()
     map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
     return map
 

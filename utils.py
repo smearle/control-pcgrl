@@ -61,8 +61,10 @@ def get_crop_size(game):
         return 32
     elif "sokoban" in game:
         return 10
+    elif "minecraft" in game:
+        return 14
     else:
-        return None
+        raise Exception("Unknown game")
 
 
 class RenderMonitor(Monitor):
