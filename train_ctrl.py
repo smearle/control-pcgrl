@@ -68,7 +68,7 @@ def callback(_locals, _globals):
 
 
 def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
-    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]:
+    if (game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and ("minecraft" not in game):
         raise Exception(
             "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
     kwargs['n_cpu'] = n_cpu
@@ -84,7 +84,6 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         policy = FullyConvPolicyBigMap
 
         if game == "sokoban" or game == "sokoban_ctrl":
-            #           T()
             policy = FullyConvPolicySmallMap
     elif representation == 'cellular':
         policy = CAPolicy

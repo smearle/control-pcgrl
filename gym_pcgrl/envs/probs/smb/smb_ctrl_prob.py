@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.probs.smb_prob import SMBProblem
+from gym_pcgrl.envs.probs.smb.smb_prob import SMBProblem
 import numpy as np
 
 class SMBCtrlProblem(SMBProblem):

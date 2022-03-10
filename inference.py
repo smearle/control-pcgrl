@@ -46,10 +46,11 @@ def infer(game, representation, model_path, **kwargs):
 
 
 ################################## MAIN ########################################
-game = 'minecraft_3D_maze'
+# game = 'minecraft_3D_maze'
+game = 'minecraft_3D_zelda'
 representation = 'narrow3D'
-exp_id = 1
-model_path = 'runs/{}_{}_{}_log/latest_model.pkl'.format(game, representation, exp_id)
+exp_id = "0_1"
+model_path = 'runs/{}_{}_{}_log/best_model.pkl'.format(game, representation, exp_id)
 
 # game = 'binary'
 # representation = 'narrow'

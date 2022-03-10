@@ -34,17 +34,17 @@ exp_ids = [
 ]
 problems = [
       # "microstructure"
-      # "binary_ctrl",
+    #   "binary_ctrl",
       # "zelda_ctrl",
       # "sokoban_ctrl",
       # "smb_ctrl"
       # "loderunner_ctrl",
       # "face_ctrl",
-      "minecraft_3D_maze",
-      # "minecraft_3D_maze_ctrl",
+    #   "minecraft_3D_maze",
+      "minecraft_3D_maze_ctrl",
 ]
 representations = [
-#       "cellular",  # change entire board at each step
+    #   "cellular",  # change entire board at each step
         "cellular3D",
 #       "wide",  # agent "picks" one tile to change
 #       "wide3D",
@@ -54,7 +54,7 @@ representations = [
 #       "turtle3D"
 ]
 models = [
-#     "NCA",
+    # "NCA",
       "NCA3D",
 #     "GenSinCPPN",
 #     "GenCPPN",
@@ -149,10 +149,10 @@ local_bcs = {
         ["emptiness", "two_spatial"],
     ],
     "minecraft_3D_maze":[
-        ["symmetry", "path-length"]
+        ["emptiness", "path-length"]
     ],
     "minecraft_3D_maze_ctrl": [
-        ["symmetry", "path-length"]
+        ["emptiness", "path-length"]
     ]
 }
 
@@ -274,6 +274,7 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
                                                 "multi_thread": not args.single_thread,
+                                                "save_interval": 1,
                                             }
                                         )
                                         if args.render:

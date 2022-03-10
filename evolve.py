@@ -60,6 +60,7 @@ from tqdm import tqdm
 import gym_pcgrl
 from evo_args import get_args
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
+from gym_pcgrl.envs.helper_3D import get_string_map as get_string_map_3d
 
 # from example_play_call import random_player
 # gvgai_path = '/home/sme/GVGAI_GYM/'
@@ -1629,9 +1630,9 @@ def get_init_weights(nn):
             init_params.append(node.bias)
     else:
         for lyr in nn.layers:
-            init_params.append(lyr.weight.view(-1).numpy())
+            init_params.append(lyr.weight.view(-1).cpu().numpy())
             if lyr.bias is not None:
-                init_params.append(lyr.bias.view(-1).numpy())
+                init_params.append(lyr.bias.view(-1).cpu().numpy())
     init_params = np.hstack(init_params)
     print("number of initial NN parameters: {}".format(init_params.shape))
 
@@ -1676,7 +1677,10 @@ def get_one_hot_map(int_map, n_tile_types):
     if CONTINUOUS:
         return int_map  # AD HOC continuous af
     obs = (np.arange(n_tile_types) == int_map[..., None]).astype(int)
-    obs = obs.transpose(2, 0, 1)
+    if not ENV3D:
+        obs = obs.transpose(2, 0, 1)
+    else:
+        obs = obs.transpose(3, 0, 1, 2)
 
     return obs
 
@@ -2330,7 +2334,10 @@ def simulate(
                 n_dirs=N_DIRS,
                 n_tiles=n_tile_types,
             )
-            change, x, y = env._rep.update(action, continuous=CONTINUOUS)
+            if not ENV3D:
+                change, x, y = env._rep.update(action, continuous=CONTINUOUS)
+            else:
+                change, x, y, z = env._rep.update(action, continuous=CONTINUOUS)
             int_map = env._rep._map
             obs = get_one_hot_map(env._rep.get_observation()["map"], n_tile_types)
             preprocess_observation(obs, x=env._rep._x, y=env._rep._y)
@@ -2350,10 +2357,16 @@ def simulate(
                     level_frames.append(env.render(mode="rgb_array"))
                 # we'll need this to compute Hamming diversity
                 final_levels[n_episode] = int_map
-                stats = env._prob.get_stats(
-                    get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
-                    # lenient_paths = True,
-                )
+                if not ENV3D:
+                    stats = env._prob.get_stats(
+                        get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
+                        # lenient_paths = True,
+                    )
+                else:
+                    stats = env._prob.get_stats(
+                        get_string_map_3d(int_map, env._prob.get_tile_types()),
+                        # lenient_paths = True,
+                    )
 
                 # get BCs
                 # Resume here. Use new BC function.
@@ -2410,10 +2423,16 @@ def simulate(
 
             if RENDER:
                 if INFER:
-                    stats = env._prob.get_stats(
-                        get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
-                        # lenient_paths=True,
-                    )
+                    if ENV3D:
+                        stats = env._prob.get_stats(
+                            get_string_map_3d(int_map, env._prob.get_tile_types()),
+                            # lenient_paths=True,
+                        )
+                    else:
+                        stats = env._prob.get_stats(
+                            get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
+                            # lenient_paths=True,
+                        )
                 env.render()
 
 
@@ -2618,6 +2637,7 @@ class EvoPCGRL:
 
         reps_to_out_chans = {
             "cellular": self.n_tile_types,
+            "cellular3D": self.n_tile_types,
             "wide": self.n_tile_types,
             "narrow": self.n_tile_types + 1,
             "turtle": self.n_tile_types + N_DIRS,
@@ -2625,6 +2645,7 @@ class EvoPCGRL:
 
         reps_to_in_chans = {
             "cellular": self.n_tile_types,
+            "cellular3D": self.n_tile_types,
             "wide": self.n_tile_types,
             "narrow": self.n_tile_types + 1,
             "turtle": self.n_tile_types + 1,
@@ -2673,6 +2694,9 @@ class EvoPCGRL:
             self.gen_model = globals()[MODEL](
                 n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans
             )
+        # TODO: make it controllable
+        if CUDA:
+            self.gen_model.cuda()
         set_nograd(self.gen_model)
         initial_w = get_init_weights(self.gen_model)
         assert len(initial_w.shape) == 1
@@ -2763,20 +2787,22 @@ class EvoPCGRL:
         # These are the initial maps which will act as seeds to our NCA models
 
         if args.n_init_states == 0:
+            # special square patch with all 1s in a box in the middle
             sw = self.width // 3
             sh = self.height // 3
             if CONTINUOUS and (not ENV3D):
                 self.init_states = np.zeros(shape=(1, 3, self.height, self.width))
                 self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
-            elif CONTINUOUS and ENV3D:
+            elif CONTINUOUS:
                 self.init_states = np.zeros(shape=(1, 3, self.height, self.width, self.length))
                 self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width //
                                  2-sw//2: self.width//2+sw//2, self.length//2-sh//2:self.length//2+sh//2, ] = 1
             
-            else:
-                # special square patch
+            elif ENV3D:
                 self.init_states = np.zeros(shape=(1, self.height, self.width, self.length))
                 self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
+            else:
+                raise Exception
         else:
             #           self.init_states = np.random.randint(
             #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)
@@ -3195,6 +3221,7 @@ class EvoPCGRL:
 
         global N_DIRS
 
+        # if hasattr(self.env.unwrapped._rep, "_dirs"):
         if hasattr(self.env._rep, "_dirs"):
             N_DIRS = len(self.env._rep._dirs)
         else:
@@ -3936,18 +3963,22 @@ class EvoPCGRL:
 
 
 def gen_latent_seeds(n_init_states, env):
+    if ENV3D:
+        im_dims = (env._prob._height, env._prob._width, env._prob._length)
+    else:
+        im_dims = (env._prob._height, env._prob._width)
     if env._prob.is_continuous():  # AD HOC continous representation
-        init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, env._prob._height, env._prob._width))
+        init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, *im_dims))
     elif "CPPN2" in MODEL or "Decoder" in MODEL:
         init_states = np.random.normal(0, 1, (N_INIT_STATES, N_LATENTS))
         if "CPPN2" in MODEL:
-            init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height, env._prob._width))
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, *im_dims))
         if "Decoder" in MODEL:
             assert env._prob._width % 4 == env._prob._height % 4 == 0
-            init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height // 4, env._prob._width // 4))
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, *tuple(np.array(im_dims // 4))))
     else:
         init_states = np.random.randint(
-            0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
+            0, len(env._prob.get_tile_types()), (N_INIT_STATES, *im_dims)
         )
     return init_states
 
@@ -4061,7 +4092,7 @@ if __name__ == "__main__":
     THREADS = arg_dict["multi_thread"]  # or EVALUATE
     SAVE_INTERVAL = arg_dict["save_interval"]
     VIS_INTERVAL = 50
-    ENV3D = PROBLEM in ["minecraft_3D_maze"]
+    ENV3D = "3D" in PROBLEM
 
     if "CPPN" in MODEL:
         if MODEL != "CPPNCA" and "Gen" not in MODEL:

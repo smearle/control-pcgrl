@@ -1,6 +1,6 @@
 import numpy as np
 
-from gym_pcgrl.envs.probs.binary_prob import BinaryProblem
+from gym_pcgrl.envs.probs.binary.binary_prob import BinaryProblem
 
 
 class BinaryCtrlProblem(BinaryProblem):

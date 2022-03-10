@@ -25,26 +25,27 @@ def callback(_locals, _globals):
     """
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
-    if (n_steps + 1) % 10 == 0:
+    if n_steps % 10 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
-        if len(x) > 100:
-           #pdb.set_trace()
-            mean_reward = np.mean(y[-100:])
-            print(x[-1], 'timesteps')
-            print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
+        # if len(x) > 100:
+        #pdb.set_trace()
+        mean_reward = np.mean(y[-100:])
+        ti = 0 if len(x) == 0 else x[-1]
+        print(f'{ti} timesteps')
+        print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
 
-            # New best model, we save the agent here
-            if mean_reward > best_mean_reward:
-                best_mean_reward = mean_reward
-                # Example for saving best model
-                print("Saving new best model")
-                _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
-            else:
-                print("Saving latest model")
-                _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
+        # New best model, we save the agent here
+        if mean_reward > best_mean_reward:
+            best_mean_reward = mean_reward
+            # Example for saving best model
+            print("Saving new best model")
+            _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
         else:
-            print('{} monitor entries'.format(len(x)))
-            pass
+            print("Saving latest model")
+            _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
+#   else:
+#       print('{} monitor entries'.format(len(x)))
+#       pass
     n_steps += 1
     # Returning False will stop training early
     return True
@@ -69,15 +70,27 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         kwargs['cropped_size'] = 22
     elif game == "sokoban":
         kwargs['cropped_size'] = 10
+
+    # What's the ID of the latest log directory corresponding to this experiment?
     n = max_exp_idx(exp_name)
-    global log_dir
-    if not resume:
+
+    # If reloading, load the latest model
+    if resume:
+        old_log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+        model = load_model(old_log_dir)
         n = n + 1
+
+    # Name of the new log directory to be created and logged to
+    global log_dir
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
-    if not resume:
-        os.makedirs(log_dir)
-    else:
-        model = load_model(log_dir)
+
+    # If the new log directory exists, we have a problem
+    if os.path.isdir(log_dir):
+        raise Exception(f'Log directory {log_dir} already exists.')
+
+    # Create the new log directory
+    os.makedirs(log_dir)
+    # log_dir = 'runs/{}_{}'.format(exp_name, 'log')
     kwargs = {
         **kwargs,
         'render_rank': 0,
@@ -90,7 +103,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
-        model.set_env(env) 
+        model.set_env(env)
 
     n_params = 0
     for param in model.params:
@@ -103,16 +116,18 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'minecraft_3D_maze'
-representation = 'narrow3D'
-experiment = None
+# game = 'minecraft_3D_maze'
+game = 'minecraft_3D_zelda'
+representation = ['narrow3D']
+experiment = 'logTest'
 steps = 1e8
 render = False
 logging = True
-n_cpu = 40
+n_cpu = 20
 kwargs = {
-    'resume': False
+    'resume': True
 }
 
 if __name__ == '__main__':
-    main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)
+    for repre in representation:
+        main(game, repre, experiment, steps, n_cpu, render, logging, **kwargs)

@@ -10,13 +10,8 @@ from gym_pcgrl.envs.helper import (
     get_tile_locations,
 )
 from gym_pcgrl.envs.probs.problem import Problem
-<<<<<<< HEAD:gym_pcgrl/envs/probs/sokoban_prob.py
-from gym_pcgrl.envs.probs.sokoban.engine import AStarAgent, BFSAgent, State
-
-=======
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.sokoban.sokoban.engine import State,BFSAgent,AStarAgent
->>>>>>> 5291612711bee5215505cca74c884f9c1ffb6594:gym_pcgrl/envs/probs/sokoban/sokoban_prob.py
 
 """
 Generate a fully connected Sokoban(https://en.wikipedia.org/wiki/Sokoban) level that can be solved

@@ -12,7 +12,7 @@
 #SBATCH --job-name=pcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=pcgrl_%j.out
+#SBATCH --output=pcgrl-narrow3D_%j.out
 
 cd /scratch/zj2086/gym-pcgrl
 

@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
-from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3Dmaze, spawn_3D_border
+from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -14,9 +14,9 @@ class Minecraft3DmazeProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._length = 14
-        self._width = 14
-        self._height = 14
+        self._length = 7
+        self._width = 7
+        self._height = 7
         self._prob = {"AIR": 0.5, "DIRT":0.5}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
@@ -28,6 +28,7 @@ class Minecraft3DmazeProblem(Problem):
             "regions": 5,
             "path-length": 1
         }
+        self.static_trgs = {"regions": 1, "path-length": np.inf}
 
     """
     Get a list of all the different tile names
@@ -142,5 +143,5 @@ class Minecraft3DmazeProblem(Problem):
 
     def render(self, map):
         spawn_3D_border(map, self._border_tile)
-        spawn_3Dmaze(map, self._border_tile)
+        spawn_3D_maze(map, self._border_tile)
         return 

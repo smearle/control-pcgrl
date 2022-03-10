@@ -6,10 +6,11 @@ from gym_pcgrl.envs.reps import REPRESENTATIONS
 for prob in PROBLEMS.keys():
     if 'play' in prob:
         entry_point='gym_pcgrl.envs:PlayPcgrlEnv'
-    elif "_ctrl" in prob:
-        entry_point='gym_pcgrl.envs:PcgrlCtrlEnv'
+    # NOTE: we assume 3D envs are controllable and manually copy over certain __init__ logic into the 3D env
     elif "3D" in prob:
         entry_point="gym_pcgrl.envs:PcgrlEnv3D"
+    elif "_ctrl" in prob:
+        entry_point='gym_pcgrl.envs:PcgrlCtrlEnv'
     else:
         entry_point='gym_pcgrl.envs:PcgrlEnv'
     for rep in REPRESENTATIONS.keys():
@@ -17,7 +18,8 @@ for prob in PROBLEMS.keys():
             register(
                 id='{}-{}-v0'.format(prob, rep),
                 entry_point=entry_point,
-                kwargs={"prob": prob, "rep": rep}
+                kwargs={"prob": prob, "rep": rep},
+                order_enforce=False,
             )
         else:
             continue

@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from gym_pcgrl.envs.probs.sokoban_prob import SokobanProblem
+from gym_pcgrl.envs.probs.sokoban.sokoban_prob import SokobanProblem
 
 
 class SokobanCtrlProblem(SokobanProblem):

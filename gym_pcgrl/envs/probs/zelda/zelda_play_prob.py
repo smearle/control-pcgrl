@@ -4,7 +4,7 @@ from gym_pcgrl.envs.helper import (_get_certain_tiles, calc_certain_tile,
                                    calc_num_regions, get_range_reward,
                                    get_tile_locations)
 #from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
-from gym_pcgrl.envs.probs.zelda_ctrl_prob import ZeldaCtrlProblem
+from gym_pcgrl.envs.probs.zelda.zelda_ctrl_prob import ZeldaCtrlProblem
 
 class Player():
     def __init__(self):

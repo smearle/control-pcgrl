@@ -15,14 +15,16 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-    "binary_ctrl",
+    "minecraft_3D_zelda",
+#   "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
     # 'smb_ctrl',
 ]
 representations: List[str] = [
-    'cellular',
+    "narrow3D",
+    # 'cellular',
     # "wide",
     # "narrow",
     # 'turtle',

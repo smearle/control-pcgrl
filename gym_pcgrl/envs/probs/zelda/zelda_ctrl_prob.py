@@ -9,7 +9,7 @@ from gym_pcgrl.envs.helper import (
     run_dikjstra,
     get_path_coords,
 )
-from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
+from gym_pcgrl.envs.probs.zelda.zelda_prob import ZeldaProblem
 
 
 class ZeldaCtrlProblem(ZeldaProblem):

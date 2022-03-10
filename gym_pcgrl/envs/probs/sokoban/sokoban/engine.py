@@ -108,7 +108,7 @@ class AStarAgent(Agent):
             if current.checkWin():
                 return current.getActions(), current, iterations
             if current.getKey() not in visisted:
-                if bestNode == None or current.getHeuristic() < bestNode.getHeuristic():
+                if bestNode == None or current.getHeuristic( ) < bestNode.getHeuristic():
                     bestNode = current
                 elif current.getHeuristic() == bestNode.getHeuristic() and current.getCost() < bestNode.getCost():
                     bestNode = current
