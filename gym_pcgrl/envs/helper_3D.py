@@ -261,17 +261,27 @@ Returns:
 def _flood_fill(x, y, z, color_map, map, color_index, passable_values):
     num_tiles = 0
     queue = [(x, y, z)]
+
     while len(queue) > 0:
         (cx, cy, cz) = queue.pop(0)
-        if color_map[cz][cy][cx] != -1 or (not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)):
+
+        if color_map[cz][cy][cx] != -1:  # or (not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)):
             continue
+
         num_tiles += 1
         color_map[cz][cy][cx] = color_index
+
         for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
-            nx,ny,nz=cx+dx,cy+dy,cz+dz
+            nx,ny,nz = cx+dx, cy+dy, cz+dz
+
             if nx < 0 or ny < 0 or nz < 0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >= len(map):
                 continue
+
+            if map[nz][ny][nx] in passable_values:
+                continue
+
             queue.append((nx, ny, nz))
+
     return num_tiles
 
 """
@@ -329,7 +339,7 @@ def run_dijkstra(x, y, z, map, passable_values):
 
         # Call passable, which will return, (x, y, z) coordinates of tiles to which the player can travel from here
         # for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
-        for (dx, dy, dz) in _passable(map, cx, cy, cz, passable_values):
+        for (nx, ny, nz) in _passable(map, cx, cy, cz, passable_values):
 
 #           # Check that the new tiles are in the bounds of the level
 #           nx,ny,nz=cx+dx,cy+dy,cz+dz
@@ -339,7 +349,7 @@ def run_dijkstra(x, y, z, map, passable_values):
 #               continue
 
             # Add the new tile to the frontier
-            queue.append((dx, dy, dz, cd + 1))
+            queue.append((nx, ny, nz, cd + 1))
 
     return dijkstra_map, visited_map
 

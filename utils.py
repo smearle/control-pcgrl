@@ -87,11 +87,15 @@ def get_exp_name(game, representation, experiment, **kwargs):
 
 def max_exp_idx(exp_name):
     log_dir = os.path.join("./runs", exp_name)
+
+    # Collect log directories corresponding to this experiment.
     log_files = glob.glob('{}*'.format(log_dir))
+
     if len(log_files) == 0:
-        n = 0
+        n = 1
     else:
-        log_ns = [re.search('_(\d+)', f).group(1) for f in log_files]
+        # Get the IDs of past log directories, assign the next one to this experiment (should only apply when reloading!)
+        log_ns = [re.search('_(\d+)(_log)?$', f).group(1) for f in log_files]
         n = max(log_ns)
     return int(n)
 
