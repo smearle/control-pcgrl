@@ -17,7 +17,7 @@ from rl_cross_eval import compile_results
 problems: List[str] = [
 #   "minecraft_3D_maze_ctrl",
     # "minecraft_3D_zelda_ctrl",
-  "binary_ctrl",
+    "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
@@ -25,9 +25,9 @@ problems: List[str] = [
 ]
 representations: List[str] = [
     # "narrow3D",
+    "narrow",
     # 'cellular',
     # "wide",
-    "narrow",
     # 'turtle',
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
@@ -125,6 +125,11 @@ def launch_batch(exp_name, collect_params=False):
 
                 for alp_gmm in alp_gmms:
                     for change_percentage in change_percentages:
+
+                        if sum(['3D' in name for name in [prob, rep]]) == 1:
+                            print('Dimensions (2D or 3D) of problem and representation do not match. Skipping '
+                                  'experiment.')
+                            continue
 
                         if alp_gmm and controls == ["NONE"]:
                             continue
