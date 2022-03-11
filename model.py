@@ -148,7 +148,7 @@ def Cnn2_3D(image, **kwargs):
         in_filters = out_filters
 
     with tf.variable_scope('c2') as scope:
-        out_filters = 32
+        out_filters = 64
         kernel = _weight_variable('weights', [3, 3, 3, in_filters, out_filters])
         conv = tf.nn.conv3d(prev_layer, kernel, [1, 2, 2, 2, 1], padding='SAME')
         biases = _bias_variable('biases', [out_filters])
@@ -159,7 +159,7 @@ def Cnn2_3D(image, **kwargs):
         in_filters = out_filters
 
     with tf.variable_scope('c3') as scope:
-        out_filters = 16
+        out_filters = 32
         kernel = _weight_variable('weights', [3, 3, 3, in_filters, out_filters])
         conv = tf.nn.conv3d(prev_layer, kernel, [1, 2, 2, 2, 1], padding='SAME')
         biases = _bias_variable('biases', [out_filters])

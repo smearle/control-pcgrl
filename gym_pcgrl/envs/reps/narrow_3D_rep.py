@@ -126,7 +126,7 @@ class Narrow3DRepresentation(Representation3D):
                     self._z += 1
                     if self._z >= self._map.shape[0]:
                         self._z = 0
-        return change, self._x, self._y, self._z
+        return change, [self._x, self._y, self._z]
 
     def render(self, map):
         return reps_3D_render(map, self._x, self._y, self._z)

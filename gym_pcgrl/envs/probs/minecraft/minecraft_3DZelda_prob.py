@@ -14,7 +14,7 @@ class Minecraft3DZeldaProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._length = 11
+        self._length = 7
         self._width = 7
         self._height = 7
         self._prob = {"AIR": 0.5, "DIRT":0.45, "CHEST":0.05}
@@ -34,7 +34,7 @@ class Minecraft3DZeldaProblem(Problem):
         self._rewards = {
             "regions": 5,
             "path-length": 1,
-            "chest": 3
+            "chests": 3
         }
 
     """
@@ -98,11 +98,11 @@ class Minecraft3DZeldaProblem(Problem):
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": 0,
-            "chest": calc_certain_tile(map_locations, ["CHEST"])
+            "chests": calc_certain_tile(map_locations, ["CHEST"])
         }
         if map_stats["regions"] == 1:
             p_x, p_y, p_z= 0, 0, 0
-            if map_stats["chest"] == 1:
+            if map_stats["chests"] == 1:
                 c_x, c_y, c_z = map_locations["CHEST"][0]
                 d_x, d_y, d_z = len(map[0][0]), len(map[0]), len(map)-1
                 dikjstra_c, _ = run_dijkstra(
@@ -132,12 +132,12 @@ class Minecraft3DZeldaProblem(Problem):
         rewards = {
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
-            "chest": get_range_reward(new_stats["chest"], old_stats["chest"], 1, 1),
+            "chests": get_range_reward(new_stats["chests"], old_stats["chests"], 1, 1),
         }
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\
             rewards["path-length"] * self._rewards["path-length"] +\
-            rewards["chest"] * self._rewards["chest"]
+            rewards["chests"] * self._rewards["chests"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -169,7 +169,7 @@ class Minecraft3DZeldaProblem(Problem):
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"],
-            "chest": new_stats["chest"]
+            "chests": new_stats["chests"]
         }
 
     def render(self, map):

@@ -265,21 +265,26 @@ def _flood_fill(x, y, z, color_map, map, color_index, passable_values):
     while len(queue) > 0:
         (cx, cy, cz) = queue.pop(0)
 
+        # If tile has been visited, skip it.
         if color_map[cz][cy][cx] != -1:  # or (not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)):
             continue
 
         num_tiles += 1
         color_map[cz][cy][cx] = color_index
 
+        # Look at all adjacent tiles.
         for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
             nx,ny,nz = cx+dx, cy+dy, cz+dz
 
+            # If adjacent tile is out of bounds, skip it.
             if nx < 0 or ny < 0 or nz < 0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >= len(map):
                 continue
 
-            if map[nz][ny][nx] in passable_values:
+            # If adjacent tile is not passable, skip it.
+            if map[nz][ny][nx] not in passable_values:
                 continue
 
+            # Otherwise, add adjacent tile to the queue.
             queue.append((nx, ny, nz))
 
     return num_tiles

@@ -21,15 +21,14 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         if representation == 'wide':
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
 
-        if representation == 'cellular':
+        elif representation == 'cellular':
            # env = wrappers.CAWrapper(env_name, **kwargs)
             env = wrappers.CAactionWrapper(env_name, **kwargs)
-#          TT()
         elif representation in ['narrow', 'turtle']:
-            crop_size = kwargs.get('cropped_size', 28)
+            crop_size = kwargs.get('cropped_size')
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
         elif representation in ['narrow3D', 'turtle3D']:
-            crop_size = kwargs.get('cropped_size', 14)
+            crop_size = kwargs.get('cropped_size')
             env = wrappers.Cropped3DImagePCGRLWrapper(env_name, crop_size, **kwargs)
         else:
             raise Exception('Unknown representation: {}'.format(representation))
@@ -75,6 +74,9 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     Prepare a vectorized environment using a list of 'make_env' functions.
     '''
     map_width = get_map_width(env_name)
+    cropped_size = kwargs.get('cropped_size')
+    cropped_size = map_width * 2 if cropped_size == -1 else cropped_size
+    kwargs['cropped_size'] = cropped_size
     kwargs['map_width'] = map_width
     n_cpu = kwargs.pop('n_cpu')
     if n_cpu > 1:
@@ -84,7 +86,7 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
         env = SubprocVecEnv(env_lst)
     else:
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
-    # A hack :~)
+    # A hack :~)  Use a dummy env to get the action space
     dummy_env = make_env(env_name, representation, -1, None, **kwargs)()
     action_space = dummy_env.action_space
     if isinstance(action_space, spaces.Discrete):

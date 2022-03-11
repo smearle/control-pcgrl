@@ -18,6 +18,7 @@ from gym_pcgrl.envs.probs.minecraft.minecraft_2Dmaze_prob import Minecraft2Dmaze
 from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_ctrl_prob import Minecraft3DmazeCtrlProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3DZelda_prob import Minecraft3DZeldaProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3DZelda_ctrl_prob import Minecraft3DZeldaCtrlProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
@@ -40,5 +41,6 @@ PROBLEMS = {
     "minecraft_2D_maze": Minecraft2DmazeProblem,
     "minecraft_3D_maze": Minecraft3DmazeProblem,
     "minecraft_3D_maze_ctrl": Minecraft3DmazeCtrlProblem,
-    "minecraft_3D_zelda": Minecraft3DZeldaProblem
+    "minecraft_3D_zelda": Minecraft3DZeldaProblem,
+    "minecraft_3D_zelda_ctrl": Minecraft3DZeldaCtrlProblem,
 }

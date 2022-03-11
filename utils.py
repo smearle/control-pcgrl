@@ -13,7 +13,8 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from gym_pcgrl import wrappers
 
-MAP_WIDTHS = {"binary": 16, "zelda": 16, "sokoban": 5}
+# NOTE: minecraft has to precede zelda since minecraft zelda maze has both phrases in its name.
+MAP_WIDTHS = [("binary", 16), ("minecraft_3D", 7), ("zelda", 16), ("sokoban", 5)]
 
 PROB_CONTROLS = {
     "binary_ctrl": [
@@ -49,20 +50,20 @@ PROB_CONTROLS = {
 
 
 def get_map_width(game):
-    for (k, v) in MAP_WIDTHS.items():
+    for k, v in MAP_WIDTHS:
         if k in game:
             return v
-    return 16
+    raise Exception("Unknown game")
 
 def get_crop_size(game):
     if "binary" in game:
         return 32
+    elif "minecraft_3D" in game:
+        return 14
     elif "zelda" in game:
         return 32
     elif "sokoban" in game:
         return 10
-    elif "minecraft" in game:
-        return 14
     else:
         raise Exception("Unknown game")
 

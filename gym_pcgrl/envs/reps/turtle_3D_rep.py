@@ -144,7 +144,7 @@ class Turtle3DRepresentation(Representation3D):
         else:
             change = [0,1][self._map[self._z][self._y][self._x] != action - len(self._dirs)]
             self._map[self._z][self._y][self._x] = action - len(self._dirs)
-        return change, self._x, self._y, self._z
+        return change, [self._x, self._y, self._z]
 
         ###########################################################
     def render(self, map):

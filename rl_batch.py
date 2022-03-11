@@ -15,19 +15,19 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-    "minecraft_3D_maze_ctrl",
+#   "minecraft_3D_maze_ctrl",
     # "minecraft_3D_zelda_ctrl",
-#   "binary_ctrl",
+  "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
     # 'smb_ctrl',
 ]
 representations: List[str] = [
-    "narrow3D",
+    # "narrow3D",
     # 'cellular',
     # "wide",
-    # "narrow",
+    "narrow",
     # 'turtle',
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
@@ -210,7 +210,7 @@ if __name__ == "__main__":
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
-        default="2",
+        default="0",
     )
     opts.add_argument(
         "-ev",

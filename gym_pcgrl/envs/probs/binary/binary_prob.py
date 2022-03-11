@@ -17,11 +17,15 @@ class BinaryProblem(Problem):
         super().__init__()
         self._width = 16
         self._height = 16
-        self._prob = {"empty": 0.5, "solid":0.5}
+
+        # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
+        # beginning of a level-generation episode.
+        self._prob = {"empty": 0.0, "solid": 1.0}
+
         self._border_tile = "solid"
 
         self._target_path = 20
-        self._random_probs = True
+        self._random_probs = False
 
         self._rewards = {
             "regions": 5,
@@ -144,7 +148,7 @@ class BinaryProblem(Problem):
         return {
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
-            "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
+            # "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
 
     """

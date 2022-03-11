@@ -28,10 +28,10 @@ class NarrowRepresentation(Representation):
     """
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
-        self._x = self._random.randint(width)
-        self._y = self._random.randint(height)
-#       self._x = 0
-#       self._y = 0
+#       self._x = self._random.randint(width)
+#       self._y = self._random.randint(height)
+        self._x = 0
+        self._y = 0
 
     """
     Gets the action space used by the narrow representation
@@ -114,7 +114,7 @@ class NarrowRepresentation(Representation):
                 self._y += 1
                 if self._y >= self._map.shape[0]:
                     self._y = 0
-        return change, self._x, self._y
+        return change, [self._x, self._y]
 
     """
     Modify the level image with a red rectangle around the tile that is

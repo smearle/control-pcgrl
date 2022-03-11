@@ -70,4 +70,4 @@ class Wide3DRepresentation(Representation3D):
     def update(self, action):
         change = [0,1][self._map[action[2]][action[1]][action[0]] != action[3]]
         self._map[action[2]][action[1]][action[0]] = action[3]
-        return change, action[0], action[1], action[2]
+        return change, [action[0], action[1], action[2]]

@@ -55,8 +55,8 @@ class MaxStep(gym.Wrapper):
         self.n_step = 0
         gym.Wrapper.__init__(self, self.env)
 
-    def step(self, action):
-        obs, reward, done, info = self.env.step(action)
+    def step(self, action, **kwargs):
+        obs, reward, done, info = self.env.step(action, **kwargs)
         self.n_step += 1
 
         if self.n_step == self.max_step:
@@ -113,9 +113,9 @@ class ToImage(gym.Wrapper):
             low=0, high=max_value, shape=(self.shape[0], self.shape[1], depth)
         )
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         action = get_action(action)
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
         return obs, reward, done, info
@@ -143,9 +143,9 @@ class ToImageCA(ToImage):
     def __init__(self, game, name, **kwargs):
         super().__init__(game, name, **kwargs)
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         action = action.reshape((self.h, self.w))
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
         return obs, reward, done, info
@@ -228,9 +228,9 @@ class OneHotEncoding(gym.Wrapper):
             low=0, high=1, shape=new_shape, dtype=np.uint8
         )
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         action = get_action(action)
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
         return obs, reward, done, info
@@ -272,7 +272,6 @@ class ActionMap(gym.Wrapper):
             "map" in self.env.observation_space.spaces.keys()
         ), "This wrapper only works if you have a map key"
         self.old_obs = None
-        print(self.env.observation_space)
         self.one_hot = len(self.env.observation_space.spaces["map"].shape) > 2
         w, h, dim = 0, 0, 0
 
@@ -292,7 +291,7 @@ class ActionMap(gym.Wrapper):
 
         return self.old_obs
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         # y, x, v = np.unravel_index(np.argmax(action), action.shape)
         y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
 
@@ -300,15 +299,15 @@ class ActionMap(gym.Wrapper):
             o_x, o_y = self.old_obs["pos"]
 
             if o_x == x and o_y == y:
-                obs, reward, done, info = self.env.step(v)
+                obs, reward, done, info = self.env.step(v, **kwargs)
             else:
                 o_v = self.old_obs["map"][o_y][o_x]
 
                 if self.one_hot:
                     o_v = o_v.argmax()
-                obs, reward, done, info = self.env.step(o_v)
+                obs, reward, done, info = self.env.step(o_v, **kwargs)
         else:
-            obs, reward, done, info = self.env.step([x, y, v])
+            obs, reward, done, info = self.env.step([x, y, v], **kwargs)
         self.old_obs = obs
 
         return obs, reward, done, info
@@ -328,7 +327,6 @@ class CAMap(gym.Wrapper):
                 "map" in self.env.observation_space.spaces.keys()
         ), "This wrapper only works if you have a map key"
         self.old_obs = None
-        print(self.env.observation_space)
         self.one_hot = len(self.env.observation_space.spaces["map"].shape) > 2
         w, h, dim = 0, 0, 0
 
@@ -385,9 +383,9 @@ class Cropped(gym.Wrapper):
             low=0, high=high_value, shape=(crop_size, crop_size), dtype=np.uint8
         )
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         action = get_action(action)
-        obs, reward, done, info = self.env.step(action)
+        obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
         return obs, reward, done, info
@@ -572,7 +570,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         self.last_action = None
         self.INFER = kwargs.get('infer')
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         env = self.env
         pcgrl_env = self.pcgrl_env
         action = action.reshape(pcgrl_env._rep._map.shape).astype(int)
@@ -624,8 +622,8 @@ class SimCityWrapper(gym.Wrapper):
 
     #       self.action_space = self.unwrapped.action_space = gym.spaces.MultiDiscrete((self.map_width, self.map_width, self.n_tools))
 
-    def step(self, action):
-        obs, rew, done, info = super().step(action)
+    def step(self, action, **kwargs):
+        obs, rew, done, info = super().step(action, **kwargs)
         #       obs = {'map': np.array(obs).transpose(1, 2, 0)}
         obs = obs.transpose(1, 2, 0)
 
@@ -656,9 +654,9 @@ class RCTWrapper(gym.Wrapper):
         self.unwrapped.static_trgs = self.unwrapped.metric_trgs
         self.unwrapped.cond_bounds = self.param_bounds
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         action = np.array(action)
-        obs, rew, done, info = super().step(action)
+        obs, rew, done, info = super().step(action, **kwargs)
         #       obs = {'map': np.array(obs).transpose(1, 2, 0)}
         obs = obs.transpose(1, 2, 0)
 

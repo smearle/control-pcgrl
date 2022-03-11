@@ -1,3 +1,4 @@
+import copy
 from pdb import set_trace as TT
 import imp
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
@@ -15,6 +16,7 @@ The 3D PCGRL GYM Environment
 """
 class PcgrlEnv3D(PcgrlCtrlEnv):
     def __init__(self, prob="minecraft_3D_maze", rep="narrow3D"):
+        self.get_string_map = get_string_map
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
@@ -83,35 +85,6 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
             self._prob._height, self._prob._width, self._prob._length))
 
 
-    def step(self, action):
-        self._iteration += 1
-        #save copy of the old stats to calculate the reward
-        old_stats = self._rep_stats
-        # update the current state to the new state based on the taken action
-        change, x, y, z= self._rep.update(action)
-        if change > 0:
-            self._changes += change
-            self._heatmap[z][y][x] += 1.0
-            self._rep_stats = self._prob.get_stats(
-                get_string_map(self._rep._map, self._prob.get_tile_types()))
-        # calculate the values
-        observation = self._rep.get_observation()
-        observation["heatmap"] = self._heatmap.copy()
-        reward = self._prob.get_reward(self._rep_stats, old_stats)
-
-        # NOTE: not ending the episode if we reach targets in our metrics of interest for now
-#       done = self._prob.get_episode_over(self._rep_stats, old_stats) or \
-#           self._changes >= self._max_changes or \
-#           self._iteration >= self._max_iterations
-        done = self._iteration >= self._max_iterations
-
-        info = self._prob.get_debug_info(self._rep_stats, old_stats)
-        info["iterations"] = self._iteration
-        info["changes"] = self._changes
-        info["max_iterations"] = self._max_iterations
-        info["max_changes"] = self._max_changes
-        #return the values
-        return observation, reward, done, info
     
     def render(self, mode='human'):
         self._prob.render(get_string_map(

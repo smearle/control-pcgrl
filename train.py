@@ -108,7 +108,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     n_params = 0
     for param in model.params:
         n_params += np.prod(param.shape)
-    print(f'Model has {n_params} params.')
+    print(f'Model has {n_params} parameters.')
 
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)

@@ -128,7 +128,7 @@ class TurtleRepresentation(Representation):
         else:
             change = [0,1][self._map[self._y][self._x] != action - len(self._dirs)]
             self._map[self._y][self._x] = action - len(self._dirs)
-        return change, self._x, self._y
+        return change, [self._x, self._y]
 
     """
     Modify the level image with a red rectangle around the tile that the turtle is on

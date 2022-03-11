@@ -17,6 +17,7 @@ from model import (CustomPolicyBigMap, CustomPolicySmallMap,
 from stable_baselines import PPO2
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 from stable_baselines.results_plotter import load_results, ts2xy
+import tensorflow as tf
 from utils import (get_crop_size, get_env_name, get_exp_name, load_model,
 #                  max_exp_idx
                    )
@@ -38,32 +39,41 @@ def callback(_locals, _globals):
     if (n_steps + 1) % 10 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
 
-        if len(x) > 100:
-            # pdb.set_trace()
-            mean_reward = np.mean(y[-100:])
-            print(x[-1], 'timesteps')
-            print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(
-                best_mean_reward, mean_reward))
+        # pdb.set_trace()
+        mean_reward = np.mean(y[-100:])
+        ti = 0 if len(x) == 0 else x[-1]
+        print(f'{ti} timesteps')
+        print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(
+            best_mean_reward, mean_reward))
 
-            # New best model, we save the agent here
+        # New best model, we save the agent here
 
-            if mean_reward > best_mean_reward:
-                best_mean_reward = mean_reward
-                # Example for saving best model
-                print("Saving new best model")
-                _locals['self'].save(os.path.join(log_dir, 'best_model.zip'))
-            else:
-                print("Saving latest model")
-                _locals['self'].save(os.path.join(log_dir, 'latest_model.zip'))
-
-            if alp_gmm:
-                pass
+        if mean_reward > best_mean_reward:
+            best_mean_reward = mean_reward
+            # Example for saving best model
+            print("Saving new best model")
+            _locals['self'].save(os.path.join(log_dir, 'best_model.zip'))
         else:
-            #           print('{} monitor entries'.format(len(x)))
-            pass
-    n_steps += 1
-    # Returning False will stop training early
+            print("Saving latest model")
+            _locals['self'].save(os.path.join(log_dir, 'latest_model.zip'))
 
+        if alp_gmm:
+            pass
+
+    # TODO: log env._rep_stats ??? Q: how to pass from env to callback? Possibly 
+    writer = _locals['writer']
+    ep_info_buf = _locals['ep_info_buf']
+
+#   summary = tf.Summary(value=[tf.Summary.Value(tag="episode_reward", simple_value=rew_acc[env_idx])])
+#   writer.add_summary(summary, steps + dones_idx[0, 0])
+#   for k in range(1, len(dones_idx[:, 0])):
+#       rew_acc[env_idx] = sum(rewards[env_idx, dones_idx[k-1, 0]:dones_idx[k, 0]])
+#       summary = tf.Summary(value=[tf.Summary.Value(tag="episode_reward", simple_value=rew_acc[env_idx])])
+#       writer.add_summary(summary, steps + dones_idx[k, 0])
+#   rew_acc[env_idx] = sum(rewards[env_idx, dones_idx[-1, 0]:])
+    n_steps += 1
+
+    # Returning False will stop training early
     return True
 
 
@@ -77,7 +87,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     exp_name = get_exp_name(game, representation, **kwargs)
 
 
-    resume = kwargs.get('resume', False)
+    resume = kwargs.get('resume', True)
     ca_action = kwargs.get('ca_action')
 
     if representation == 'wide' and not ('RCT' in game or 'Micropolis' in game):
@@ -96,8 +106,9 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
             policy = CustomPolicySmallMap
     crop_size = kwargs.get('cropped_size')
 
-    if crop_size == -1:
-        kwargs['cropped_size'] = get_crop_size(game)
+#   if crop_size == -1:
+#       kwargs['cropped_size'] = map_width * 2
+        # kwargs['cropped_size'] = get_crop_size(game)
 
     exp_id = kwargs.get('experiment_id')
 #   n = kwargs.get('experiment_id')
@@ -172,7 +183,12 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         #             tensorboard_log="./runs", policy_kwargs=policy_kwargs)
         model = PPO2(policy, env, verbose=1,
                      tensorboard_log="./rl_runs", policy_kwargs=policy_kwargs, learning_rate=learning_rate)
-#   else:
+
+    n_params = 0
+    for param in model.params:
+        n_params += np.prod(param.shape)
+    print(f'Model has {n_params} parameters.')
+
     model.set_env(env)
 
     #model.policy = model.policy.to('cuda:0')
@@ -211,17 +227,17 @@ ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
 #################
 
-if 'sokoban' in problem:
-    map_width = 5
-elif 'zelda' in problem:
-    map_width = 14
-elif 'binary' in problem:
-    map_width = 16
-elif 'minecraft' in problem:
-    map_width = 7
-else:
-    raise NotImplementedError(
-        "Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
+#if 'sokoban' in problem:
+#    map_width = 5
+#elif 'minecraft' in problem:
+#    map_width = 7
+#elif 'zelda' in problem:
+#    map_width = 14
+#elif 'binary' in problem:
+#    map_width = 16
+#else:
+#    raise NotImplementedError(
+#        "Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
 
 
 max_step = opts.max_step
@@ -236,7 +252,7 @@ else:
     COND_METRICS = []
 #   change_percentage = opts.change_percentage
 kwargs = {
-    'map_width': map_width,
+#   'map_width': map_width,
     'change_percentage': change_percentage,
     'conditional': conditional,
     'cond_metrics': COND_METRICS,

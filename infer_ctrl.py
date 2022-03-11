@@ -5,6 +5,7 @@ from pdb import set_trace as TT
 
 import cv2
 import numpy as np
+from gym_pcgrl.envs.helper import get_string_map
 
 from rl_args import parse_args
 from envs import make_vec_envs
@@ -24,7 +25,7 @@ def infer(game, representation, infer_kwargs, **kwargs):
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
     """
-    infer_kwargs = {**infer_kwargs, "inference": True, "render": True}
+    infer_kwargs = {**infer_kwargs, "inference": True, "render": True, "compute_stats": True}
     max_trials = kwargs.get("max_trials", -1)
 #   n = kwargs.get("n", None)
     exp_id = infer_kwargs.get('experiment_id')
@@ -79,6 +80,7 @@ def infer(game, representation, infer_kwargs, **kwargs):
         # action = get_action(obs, env, model)
         action, _ = model.predict(obs)
         obs, rewards, dones, info = env.step(action)
+
         #       print('reward: {}'.format(rewards))
         #       reward = rewards[0]
         #       n_regions = info[0]['regions']
