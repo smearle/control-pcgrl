@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from pdb import set_trace as TT
 import shutil
+import sys
 import gym
 
 import numpy as np
@@ -118,7 +119,10 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         with open(checkpoint_path_file, 'r') as f:
             checkpoint_path = f.read()
 
+        # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
+        #  back up when reloading (see tensorboard logs).
         trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+        print(f"Loaded checkpoint from {checkpoint_path}.")
 
     n_params = 0
     param_dict = trainer.get_weights()['default_policy']
@@ -127,13 +131,13 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     print(f'default_policy has {n_params} parameters.')
     print('model overview: \n', trainer.get_policy('default_policy').model)
 
-    # Do inference, i.e., observe agent behavior for endless episodes.
+    # Do inference, i.e., observe agent behavior for many episodes.
     if opts.infer:
         env = make_env(kwargs)
-        while True:
+        for i in range(100):
             obs = env.reset()
             # TODO: get max steps or set this manually
-            for i in range(1000):
+            for j in range(1000):
                 action = trainer.compute_single_action(obs)
                 obs, reward, done, info = env.step(action)
                 env.render()
@@ -147,7 +151,10 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     # The training loop.
     for i in range(n_updates):
         result = trainer.train()
+
+        # TODO: make this prettier (include less information)
         print(pretty_print(result))
+
         trainer.train()
 
         # Intermittently save model checkpoints.
