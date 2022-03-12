@@ -1,7 +1,7 @@
 """
 Run a trained agent and get generated maps
 """
-import model
+import model_sb2
 from stable_baselines import PPO2
 
 import time
@@ -15,13 +15,13 @@ def infer(game, representation, model_path, **kwargs):
     """
     env_name = '{}-{}-v0'.format(game, representation)
     if game == "binary":
-        model.FullyConvPolicy = model.FullyConvPolicyBigMap
+        model_sb2.FullyConvPolicy = model_sb2.FullyConvPolicyBigMap
         kwargs['cropped_size'] = 28
     elif game == "zelda":
-        model.FullyConvPolicy = model.FullyConvPolicyBigMap
+        model_sb2.FullyConvPolicy = model_sb2.FullyConvPolicyBigMap
         kwargs['cropped_size'] = 22
     elif game == "sokoban":
-        model.FullyConvPolicy = model.FullyConvPolicySmallMap
+        model_sb2.FullyConvPolicy = model_sb2.FullyConvPolicySmallMap
         kwargs['cropped_size'] = 10
     # elif game == "minecraft_2Dmaze":
     #     model.FullyConvPolicy = model.FullyConvPolicyBigMap

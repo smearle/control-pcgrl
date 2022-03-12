@@ -138,11 +138,12 @@ def launch_batch(exp_name, collect_params=False):
 #                           # For now we're only looking at uniform-random target-sampling with both control metrics
 #                           continue
 
+                        # TODO: integrate evaluate with rllib
                         if EVALUATE:
                             py_script_name = "evaluate_ctrl.py"
                             sbatch_name = "rl_eval.sh"
-                        elif opts.render:
-                            py_script_name = "infer_ctrl.py"
+#                       elif opts.infer:
+#                           py_script_name = "infer_ctrl_sb2.py"
                         else:
                             py_script_name = "train_ctrl.py"
                             sbatch_name = "rl_train.sh"
@@ -169,13 +170,16 @@ def launch_batch(exp_name, collect_params=False):
                                 "alp_gmm": alp_gmm,
                                 "experiment_id": exp_name,
                                 "render": opts.render,
+                                "load": opts.load or opts.infer,
+                                "infer": opts.infer,
+                                "overwrite": opts.overwrite,
                             }
                         )
 
                         if EVALUATE:
                             exp_config.update(
                                 {
-                                    "resume": True,
+                                    "load": True,
                                     "n_maps": n_maps,
                                     "render": False,
 #                                   "render_levels": opts.render_levels,
@@ -250,11 +254,28 @@ if __name__ == "__main__":
     opts.add_argument(
         "--render",
         action='store_true',
+        help="Visualize agent taking actions in environment by calling environments render function."
+    )
+    opts.add_argument(
+        "-in",
+        "--infer",
+        action="store_true",
+        help="Run inference with a trained model.",
     )
     opts.add_argument(
         "--n_cpu",
         type=int,
         default=48,
+    )
+    opts.add_argument(
+        "--load",
+        action="store_true",
+        help="Load previous checkpoint of model to resume training or do inference or evaluation.",
+    )
+    opts.add_argument(
+        '--overwrite',
+        action='store_true',
+        help="Overwrite previous experiment with same name."
     )
 
     opts = opts.parse_args()

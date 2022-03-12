@@ -8,8 +8,10 @@ import numpy as np
 from gym_pcgrl.envs.helper import get_string_map
 
 from rl_args import parse_args
-# from envs import make_vec_envs
-from utils import get_crop_size, get_env_name, get_exp_name
+from envs_sb2 import make_vec_envs
+from utils import get_crop_size, get_env_name, get_exp_name, load_model
+
+print("importing tensorflow stuff, if a hang happens after this just reboot :~)\n")
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10, 500)

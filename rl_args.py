@@ -173,5 +173,10 @@ def get_args():
         type=int,
         default=None,
     )
+    args.add_argument(
+        '--overwrite',
+        action='store_true',
+        help="Overwrite previous experiment with same name."
+    )
 
     return args

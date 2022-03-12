@@ -1,3 +1,6 @@
+# Install pytorch and cuda with the following: 
+# conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+
 pandas
 deap
 pyglet
@@ -14,14 +17,22 @@ ribs
 scikit-image
 pingouin
 pymks
-stable-baselines==2.9.0
 ./qdpy
+ray[rllib]
+
+# Would be great to try using dqd-rl inside evolve.py
 #./dqd
+
 ./pytorch-neat
+
+# For fancy curriculum of metric targets for controllable RL
 # ./teachDeepRL
+
 #PyGObject
-ray
-tensorflow==1.15
-torch==1.9.0
-gym==0.21.0    # or 0.16.0
-cloudpickle==2.0.0   # or 1.2.2
+
+# Leftovers from gym-pcgrl with stable-baselines 2
+# stable-baselines==2.9.0
+# tensorflow==1.15
+# torch==1.9.0
+# gym==0.21.0    # or 0.16.0
+# cloudpickle==2.0.0   # or 1.2.2

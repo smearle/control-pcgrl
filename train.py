@@ -1,8 +1,8 @@
 #pip install tensorflow==1.15
 #Install stable-baselines as described in the documentation
 
-import model
-from model import FullyConvPolicy, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
+import model_sb2
+from model_sb2 import FullyConvPolicy, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
 #from stable_baselines import PPO2
 from policy import PPO2
