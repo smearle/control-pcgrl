@@ -29,6 +29,9 @@ class Minecraft3DmazeProblem(Problem):
             "path-length": 1
         }
         self.static_trgs = {"regions": 1, "path-length": np.inf}
+        self.path_coords = []
+        self.path_length = None
+        self.render_path = False
 
     """
     Get a list of all the different tile names
@@ -56,6 +59,7 @@ class Minecraft3DmazeProblem(Problem):
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
+        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
@@ -84,9 +88,10 @@ class Minecraft3DmazeProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
+        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
-            "path-length": calc_longest_path(map, map_locations, ["DIRT"])
+            "path-length": self.path_length,
         }
 
     """

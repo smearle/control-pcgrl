@@ -27,6 +27,10 @@ class Minecraft2DmazeProblem(Problem):
             "path-length": 1
         }
 
+        self.render_path = False
+        self.path_coords = []
+        self.path_length = None
+
     """
     Get a list of all the different tile names
 
@@ -50,6 +54,7 @@ class Minecraft2DmazeProblem(Problem):
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
 
+        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
@@ -81,9 +86,10 @@ class Minecraft2DmazeProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
+        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
-            "path-length": calc_longest_path(map, map_locations, ["DIRT"])
+            "path-length": self.path_length,
         }
 
     """

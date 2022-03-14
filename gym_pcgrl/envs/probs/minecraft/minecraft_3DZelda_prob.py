@@ -28,11 +28,11 @@ class Minecraft3DZeldaProblem(Problem):
         self._random_probs = False
 
         self.path_length = 0
-        self.path = []
+        self.path_coords = []
 
         self._max_chests = 1
 
-        self.render_path = True
+        self.render_path = False 
 
         self._rewards = {
             "regions": 5,
@@ -96,8 +96,8 @@ class Minecraft3DZeldaProblem(Problem):
         The used status are "reigons": number of connected empty tiles, "path-length": the longest path across the map
     """
     def get_stats(self, map):
-        self.path = []
         map_locations = get_tile_locations(map, self.get_tile_types())
+        self.path = []
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": 0,

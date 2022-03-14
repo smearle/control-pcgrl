@@ -369,7 +369,7 @@ Parameters:
 Returns:
     int: the longest path value in tiles in the current map
 """
-def calc_longest_path(map, map_locations, passable_values):
+def calc_longest_path(map, map_locations, passable_values, get_path=False):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
     final_value = 0
@@ -383,27 +383,23 @@ def calc_longest_path(map, map_locations, passable_values):
         max_value = np.max(dikjstra_map)
         if max_value > final_value:
             final_value = max_value
-    return final_value
+            if get_path:
+                path_map = dikjstra_map
+    path = None
+    if get_path and final_value > 0:
+        path = get_path_coords(path_map)
+    return final_value, path
 
 """
 Recover a shortest path (as list of coords) from a dikjstra map, 
 using either some initial coords, or else from the furthest point
 
-Parameters:
-    map (any[][][]): the current map being tested
-    start (tuple(int, int, int)): the coordinate of the entrance (starting point)
-    end (tuple(int, int, int)): the coordinate of the exit (destination)
-    map_locations (Dict(string,(int,int,int)[])): the histogram of locations of the current map
-    passable_values (any[]): an array of all passable tiles in the map
-
 Returns:
     list: the longest path's coordinates
 """
-# TODO change to 3D
 def get_path_coords(path_map, init_coords=None):
-    '''Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, or else from the furthest point.'''
-    width, height = len(path_map), len(path_map[0])
-    pad_path_map = np.zeros(shape=(width + 2, height + 2), dtype=np.int32)
+    length, width, height = len(path_map[0][0]), len(path_map[0]), len(path_map)
+    pad_path_map = np.zeros(shape=(height + 2, width + 2, length + 2), dtype=np.int32)
     pad_path_map.fill(0)
     pad_path_map[1:width + 1, 1:height + 1] = path_map + 1
     if not init_coords:
