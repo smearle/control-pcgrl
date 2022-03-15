@@ -16,16 +16,19 @@ from rl_cross_eval import compile_results
 
 problems: List[str] = [
 #   "minecraft_3D_maze_ctrl",
-    # "minecraft_3D_zelda_ctrl",
-    "binary_ctrl",
+    "minecraft_3D_zelda_ctrl",
+   #"binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
     # 'smb_ctrl',
 ]
 representations: List[str] = [
-    # "narrow3D",
-    "narrow",
+    "narrow3D",
+    # "turtle3D",
+    # "wide3D",
+    # "cellular3D",
+    # "narrow",
     # 'cellular',
     # "wide",
     # 'turtle',

@@ -6,7 +6,7 @@ from PIL import Image
 
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, get_path_coords, calc_certain_tile, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border
+from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -20,7 +20,7 @@ class Minecraft3DZeldaProblem(Problem):
         self._length = 7
         self._width = 7
         self._height = 7
-        self._prob = {"AIR": 0.5, "DIRT":0.45, "CHEST":0.05}
+        self._prob = {"AIR": 0.5, "DIRT":0.35, "CHEST":0.05, "SKULL":0.05, "PUMPKIN":0.05}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
 
@@ -32,15 +32,21 @@ class Minecraft3DZeldaProblem(Problem):
 
         self._max_chests = 1
 
+        self._max_enemies = 5
+        self._target_enemy_dist = 4
+
         self.render_path = False 
 
         self._rewards = {
             "regions": 5,
             "path-length": 1,
-            "chests": 3
+            "chests": 3,
+            "enemies": 1,
+            "nearest-enemy":2
         }
 # NEXT: add platform game or use NCA repre / RL agent to train a Zelda
 # and add a easy render 3D pillow option
+# and add a jumping game
 
     """
     Get a list of all the different tile names
@@ -49,7 +55,7 @@ class Minecraft3DZeldaProblem(Problem):
         string[]: that contains all the tile names
     """
     def get_tile_types(self):
-        return ["AIR", "DIRT","CHEST"]
+        return ["AIR", "DIRT", "CHEST", "SKULL", "PUMPKIN"]
 
     """
     Adjust the parameters for the current problem
@@ -88,7 +94,11 @@ class Minecraft3DZeldaProblem(Problem):
         if self._random_probs:
             self._prob["AIR"] = self._random.random()
             self._prob["DIRT"] = self._random.random()
-            self._prob["CHEST"] = 1 - self._prob["AIR"] - self._prob["DIRT"]
+            
+            self._prob["PUMPKIN"] = self._random.random()
+            self._prob["SKULL"] = self._random.random()
+
+            self._prob["CHEST"] = 1 - self._prob["AIR"] - self._prob["DIRT"] - self._prob["SKULL"] - self._prob["PUMPKIN"]
 
     """
     Get the current stats of the map
@@ -103,21 +113,40 @@ class Minecraft3DZeldaProblem(Problem):
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": 0,
-            "chests": calc_certain_tile(map_locations, ["CHEST"])
+            "chests": calc_certain_tile(map_locations, ["CHEST"]),
+            "enemies": calc_certain_tile(map_locations, ["SKULL", "PUMPKIN"]),
+            "nearest-enemy": 0,
         }
         if map_stats["regions"] == 1:
+            # entrance is fixed at the bottom of the maze house
             p_x, p_y, p_z= 0, 0, 0
+
+            enemies = []
+            enemies.extend(map_locations["SKULL"])
+            enemies.extend(map_locations["PUMPKIN"])
+            if len(enemies) > 0:
+                dijkstra, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                min_dist = self._width * self._height * self._depth
+                for e_x, e_y, e_z in enemies:
+                    if dijkstra[e_z][e_y][e_x] > 0 and dijkstra[e_z][e_y][e_x] < min_dist:
+                        min_dist = dijkstra[e_z][e_y][e_x]
+                map_stats["nearest-enemy"] = min_dist
+
+
             if map_stats["chests"] == 1:
                 c_x, c_y, c_z = map_locations["CHEST"][0]
                 d_x, d_y, d_z = len(map[0][0])-1, len(map[0])-1, len(map)-2
-                dikjstra_c, _ = run_dijkstra(
-                    p_x, p_y, p_z, map, ["AIR"])
-                map_stats["path-length"] += dikjstra_c[c_z][c_y][c_x]
-                dikjstra_d, _ = run_dijkstra(
-                    c_x, c_y, c_z, map, ["AIR"])
-                map_stats["path-length"] += dikjstra_d[d_z][d_y][d_x]
+
+                # start point is 0, 0, 0
+                dijkstra_c, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                map_stats["path-length"] += dijkstra_c[c_z][c_y][c_x]
+
+                # start point is chests
+                dijkstra_d, _ = run_dijkstra(c_x, c_y, c_z, map, ["AIR"])
+                map_stats["path-length"] += dijkstra_d[d_z][d_y][d_x]
                 if self.render_path:
-                    pass  # TODO add path rendering
+                    self.path_coords = np.vstack((get_path_coords(dijkstra_c, c_x, c_y, c_z),
+                                                  get_path_coords(dijkstra_d, d_x, d_y, d_z)))
 
         self.path_length = map_stats["path-length"]
         return map_stats
@@ -138,11 +167,15 @@ class Minecraft3DZeldaProblem(Problem):
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
             "chests": get_range_reward(new_stats["chests"], old_stats["chests"], 1, 1),
+            "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
+            "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
         }
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\
             rewards["path-length"] * self._rewards["path-length"] +\
-            rewards["chests"] * self._rewards["chests"]
+            rewards["chests"] * self._rewards["chests"] +\
+            rewards["enemies"] * self._rewards["enemies"] +\
+            rewards["nearest-enemy"] * self._rewards["nearest-enemy"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -156,7 +189,9 @@ class Minecraft3DZeldaProblem(Problem):
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
+        return (new_stats["regions"] == 1 and
+              new_stats["nearest-enemy"] >= self._target_enemy_dist and
+              new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path)
 
     """
     Get any debug information need to be printed
@@ -174,11 +209,13 @@ class Minecraft3DZeldaProblem(Problem):
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"],
-            "chests": new_stats["chests"]
+            "chests": new_stats["chests"],
+            "enemies": new_stats["enemies"],
+            "nearest-enemy": new_stats["nearest-enemy"],
         }
 
     def render(self, map):
         spawn_3D_border(map, self._border_tile)
         spawn_3D_maze(map, self._border_tile)
-        # TODO add path rendering
+        spawn_3D_path(path=self.path_coords)
         return 

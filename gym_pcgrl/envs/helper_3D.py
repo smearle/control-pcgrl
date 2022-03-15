@@ -444,7 +444,6 @@ def get_path_coords(path_map, x=None, y=None, z=None):
         path[i, :] = [xi - 1, yi - 1, zi - 1]
 
     return path
-# NEXT add mc_render path
 
 """
 Calculate the number of tiles that have certain values in the map

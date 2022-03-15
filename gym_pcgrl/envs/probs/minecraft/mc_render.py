@@ -10,8 +10,8 @@ import time
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-b_map = [AIR, STAINED_GLASS, CHEST]
-string_map = ["AIR", "DIRT","CHEST"]
+b_map = [AIR, STAINED_GLASS, CHEST, SKULL, PUMPKIN]
+string_map = ["AIR", "DIRT","CHEST", "SKULL", "PUMPKIN"]
 
 # map string map entries into Minecraft item type
 block_map = dict(zip(string_map, b_map))
@@ -101,7 +101,17 @@ def spawn_2D_maze(map, border_tile, border_size=(1,1), base_pos=5, maze_height=3
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     #time.sleep(0.2)
-# NEXT : add mc zelda game's monster
+
+
+def spawn_2D_path(path=None, base_pos=5, item=LEAVES):
+    blocks = []
+    if path:
+        for pos in path:
+            blocks.append(Block(position=Point(x=pos[0], y=base_pos, z=pos[1]),
+                                    type=item))
+    CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    return
+
 
 def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
                     boundary_size=3, backgroud_type=QUARTZ_BLOCK):
@@ -191,6 +201,16 @@ def spawn_3D_maze(map, base_pos=5):
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
+
+def spawn_3D_path(path=None, base_pos=5, item=LEAVES):
+    blocks = []
+    if path:
+        for pos in path:
+            blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
+                                    type=item))
+    CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    return
+    # NEXT: optimize the path showing list to solve the stairing problems
 
 def reps_3D_render(map, i, j, k, base_pos=5):
     '''

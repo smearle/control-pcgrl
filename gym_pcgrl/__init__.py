@@ -19,7 +19,7 @@ for prob in PROBLEMS.keys():
                 id='{}-{}-v0'.format(prob, rep),
                 entry_point=entry_point,
                 kwargs={"prob": prob, "rep": rep},
-                order_enforce=False,
+            #   order_enforce=False,
             )
         else:
             continue
