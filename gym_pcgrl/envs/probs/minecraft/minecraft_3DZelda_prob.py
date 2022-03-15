@@ -39,6 +39,8 @@ class Minecraft3DZeldaProblem(Problem):
             "path-length": 1,
             "chests": 3
         }
+# NEXT: add platform game or use NCA repre / RL agent to train a Zelda
+# and add a easy render 3D pillow option
 
     """
     Get a list of all the different tile names

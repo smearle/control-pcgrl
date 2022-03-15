@@ -221,21 +221,21 @@ Returns:
     int[][]: returns the dikjstra map after running the dijkstra algorithm
 """
 def run_dikjstra(x, y, map, passable_values):
-    dikjstra_map = np.full((len(map), len(map[0])),-1)
+    dijkstra_map = np.full((len(map), len(map[0])),-1)
     visited_map = np.zeros((len(map), len(map[0])))
     queue = [(x, y, 0)]
     while len(queue) > 0:
         (cx,cy,cd) = queue.pop(0)
-        if map[cy][cx] not in passable_values or (dikjstra_map[cy][cx] >= 0 and dikjstra_map[cy][cx] <= cd):
+        if map[cy][cx] not in passable_values or (dijkstra_map[cy][cx] >= 0 and dijkstra_map[cy][cx] <= cd):
             continue
         visited_map[cy][cx] = 1
-        dikjstra_map[cy][cx] = cd
+        dijkstra_map[cy][cx] = cd
         for (dx,dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx,ny=cx+dx,cy+dy
             if nx < 0 or ny < 0 or nx >= len(map[0]) or ny >= len(map):
                 continue
             queue.append((nx, ny, cd + 1))
-    return dikjstra_map, visited_map
+    return dijkstra_map, visited_map
 
 ADJ_FILTER = np.array([[0,1,0],[1,0,1],[0,1,0]])
 
@@ -275,7 +275,73 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
 
 
 def get_path_coords(path_map, init_coords=None):
-    '''Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, or else from the furthest point.'''
+    '''
+    Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, 
+    or else from the furthest point.
+
+    When width = heigth = 3
+
+    map
+    array([[0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.]])
+
+    The dijkstra map starts from 1 to max
+    pad_path_map
+    array([[0., 0., 0., 0., 0.],
+           [0., 1., 1., 1., 0.],
+           [0., 1., 5., 2., 0.],
+           [0., 10., 1., 3., 0.],
+           [0., 0., 0., 0., 0.]])
+    
+    max_cell
+    10.0
+
+    np.where(pad_path_map == max_cell)
+    (array([3]), array([1])) 
+
+    np.where(any_other_map == max_cell)
+    (array([], dtype=int64), array([], dtype=int64))
+
+    curr = np.array(np.where(pad_path_map == max_cell))
+    array([[3],
+           [1]])
+
+    a = (1, 2)
+
+    b = np.array([a])
+    array([[1, 2]])
+
+    b = np.array([a]).T
+    array([[1],
+           [2]])
+
+    xi, yi = b[:, 0]
+    xi
+    1
+    yi
+    2
+
+    adj_mask
+    array([[0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0]], dtype=int32)
+    xi, yi = 3, 3
+    x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
+    2,  5,  2,  5
+    adj_mask[x0: x1, y0: y1] = ADJ_FILTER   # ADJ_FILTER = np.array([[0,1,0],[1,0,1],[0,1,0]])
+    adj_mask
+    array([[0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0],
+        [0, 0, 1, 0, 1],
+        [0, 0, 0, 1, 0]], dtype=int32)
+    
+    '''
     width, height = len(path_map), len(path_map[0])
     pad_path_map = np.zeros(shape=(width + 2, height + 2), dtype=np.int32)
     pad_path_map.fill(0)
@@ -285,18 +351,28 @@ def get_path_coords(path_map, init_coords=None):
         max_cell = pad_path_map.max()
         curr = np.array(np.where(pad_path_map == max_cell))
     else:
+        # add 1 because there are 0s padding around the dijkstra map
         curr = np.array([init_coords], dtype=np.int32).T + 1
         max_cell = pad_path_map[curr[0][0], curr[1][0]]
+    
+    # current position in pad_path_map
     xi, yi = curr[:, 0]
     path = np.zeros(shape=(max_cell, 2), dtype=np.int32)
     i = 0
     while max_cell > 1:
+        # turn xi, yi into real dijstra map entry coordinates
         path[i, :] = [xi - 1, yi - 1]
+
+        # delete the current position's value
         pad_path_map[xi, yi] = -1
+
+        # path length - 1
         max_cell -= 1
+        
         x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
         adj_mask = np.zeros((width + 2, height + 2), dtype=np.int32)
         adj_mask[x0: x1, y0: y1] = ADJ_FILTER
+
         curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
         xi, yi = curr[:, 0]
         i += 1
@@ -304,7 +380,7 @@ def get_path_coords(path_map, init_coords=None):
         path[i, :] = [xi - 1, yi - 1]
 
     return path
-
+    # This func is too hard to understand. Do we have a better way?
 
 def calc_longest_path_old(map, map_locations, passable_values):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)

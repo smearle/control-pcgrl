@@ -394,39 +394,57 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
 Recover a shortest path (as list of coords) from a dikjstra map, 
 using either some initial coords, or else from the furthest point
 
+If you have trouble understand this func, you can refer to the 2D version of this in helper.py
+
+Parameters:
+    path_map: 3D dijkstra map
+    x, y, z (optional): ending point of the path
+
 Returns:
-    list: the longest path's coordinates
+    list: the longest path's coordinates (in x, y, z form)
 """
-def get_path_coords(path_map, init_coords=None):
+
+ADJ_FILTER = np.array([[[0,0,0],
+                        [0,1,0],
+                        [0,0,0]],
+                       [[0,1,0],
+                        [1,0,1],
+                        [0,1,0]],
+                       [[0,0,0],
+                        [0,1,0],
+                        [0,0,0]]])
+
+def get_path_coords(path_map, x=None, y=None, z=None):
     length, width, height = len(path_map[0][0]), len(path_map[0]), len(path_map)
     pad_path_map = np.zeros(shape=(height + 2, width + 2, length + 2), dtype=np.int32)
     pad_path_map.fill(0)
-    pad_path_map[1:width + 1, 1:height + 1] = path_map + 1
-    if not init_coords:
+    pad_path_map[1:height + 1, 1:width + 1, 1:length + 1] = path_map + 1
+    if not x:
         # Work from the greatest cell value (end of the path) backward
         max_cell = pad_path_map.max()
         curr = np.array(np.where(pad_path_map == max_cell))
     else:
-        curr = np.array([init_coords], dtype=np.int32).T + 1
-        max_cell = pad_path_map[curr[0][0], curr[1][0]]
-    xi, yi = curr[:, 0]
-    path = np.zeros(shape=(max_cell, 2), dtype=np.int32)
+        curr = np.array([(z, y, x)], dtype=np.int32).T + 1
+        max_cell = pad_path_map[curr[0][0], curr[1][0], curr[2][0]]
+    zi, yi, xi = curr[:, 0]
+    path = np.zeros(shape=(max_cell, 3), dtype=np.int32)
     i = 0
     while max_cell > 1:
-        path[i, :] = [xi - 1, yi - 1]
-        pad_path_map[xi, yi] = -1
+        path[i, :] = [xi - 1, yi - 1, zi -1]
+        pad_path_map[zi, yi, xi] = -1
         max_cell -= 1
-        x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
-        adj_mask = np.zeros((width + 2, height + 2), dtype=np.int32)
-        #adj_mask[x0: x1, y0: y1] = ADJ_FILTER
+        x0, x1, y0, y1, z0, z1= xi - 1, xi + 2, yi - 1, yi + 2, zi-1, zi + 2
+        adj_mask = np.zeros(shape=(height + 2, width + 2, length + 2), dtype=np.int32)
+        adj_mask[z0: z1, y0: y1, x0: x1] = ADJ_FILTER
+
         curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
-        xi, yi = curr[:, 0]
+        zi, yi, xi = curr[:, 0]
         i += 1
     if i > 0:
-        path[i, :] = [xi - 1, yi - 1]
+        path[i, :] = [xi - 1, yi - 1, zi - 1]
 
     return path
-
+# NEXT add mc_render path
 
 """
 Calculate the number of tiles that have certain values in the map

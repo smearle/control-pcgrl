@@ -29,6 +29,7 @@ class Minecraft3DmazeProblem(Problem):
             "path-length": 1
         }
         self.static_trgs = {"regions": 1, "path-length": np.inf}
+
         self.path_coords = []
         self.path_length = None
         self.render_path = False
@@ -60,6 +61,7 @@ class Minecraft3DmazeProblem(Problem):
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
         self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
+        
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:

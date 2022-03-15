@@ -86,7 +86,7 @@ class Minecraft2DmazeProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
-        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
+        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": self.path_length,

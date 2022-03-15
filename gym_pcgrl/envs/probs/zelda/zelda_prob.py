@@ -114,14 +114,19 @@ class ZeldaProblem(Problem):
             if map_stats["key"] == 1 and map_stats["door"] == 1:
                 k_x,k_y = map_locations["key"][0]
                 d_x,d_y = map_locations["door"][0]
+
+                # start point is people
                 dikjstra_k,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
                 map_stats["path-length"] += dikjstra_k[k_y][k_x]
+
+                # start point is key
                 dikjstra_d,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
                 map_stats["path-length"] += dikjstra_d[d_y][d_x]
                 if self.render_path:
+                                                                             # end point is key
                     self.path = np.hstack((get_path_coords(dikjstra_k, init_coords=(k_x, k_y)),
                                           get_path_coords(dikjstra_d, init_coords=(d_x, d_y))))
-
+                                                                             # end point is door
         self.path_length = map_stats["path-length"]
         return map_stats
 

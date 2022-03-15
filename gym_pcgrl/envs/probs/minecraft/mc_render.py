@@ -101,6 +101,7 @@ def spawn_2D_maze(map, border_tile, border_size=(1,1), base_pos=5, maze_height=3
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     #time.sleep(0.2)
+# NEXT : add mc zelda game's monster
 
 def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
                     boundary_size=3, backgroud_type=QUARTZ_BLOCK):
