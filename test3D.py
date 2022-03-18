@@ -6,7 +6,7 @@ import gym_pcgrl
 from utils import make_vec_envs
 
 if __name__=="__main__":
-    env = gym.make('minecraft_3D_maze-narrow3D-v0')
+    env = gym.make('minecraft_3D_zelda-narrow3D-v0')
     while True:
         observation = env.reset()
         for step in range(500):

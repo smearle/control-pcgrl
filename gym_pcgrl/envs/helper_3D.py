@@ -414,7 +414,7 @@ ADJ_FILTER = np.array([[[0,0,0],
                         [0,1,0],
                         [0,0,0]]])
 
-def get_path_coords(path_map, x=None, y=None, z=None):
+def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
     length, width, height = len(path_map[0][0]), len(path_map[0]), len(path_map)
     pad_path_map = np.zeros(shape=(height + 2, width + 2, length + 2), dtype=np.int32)
     pad_path_map.fill(0)
@@ -443,6 +443,15 @@ def get_path_coords(path_map, x=None, y=None, z=None):
     if i > 0:
         path[i, :] = [xi - 1, yi - 1, zi - 1]
 
+    # if the agent can't fly, delete the blocks with identical vertical coordinates in the path, only reserve the bottom one
+    if not can_fly:
+        for i in range(0, len(path)): 
+            if i == 0:
+                continue
+            else:
+                if path[i, 2] == path[i-1, 2]:
+                    path[i-1, :] = [-1, -1, -1]
+    path = np.delete(path, np.where(path < 0)[0], axis=0)
     return path
 
 """

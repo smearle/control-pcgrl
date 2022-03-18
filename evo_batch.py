@@ -34,18 +34,19 @@ exp_ids = [
 ]
 problems = [
       # "microstructure"
-    #   "binary_ctrl",
+       "binary_ctrl",
       # "zelda_ctrl",
       # "sokoban_ctrl",
       # "smb_ctrl"
       # "loderunner_ctrl",
       # "face_ctrl",
-    #   "minecraft_3D_maze",
-      "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_maze",
+    # "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_zelda_ctrl",
 ]
 representations = [
-    #   "cellular",  # change entire board at each step
-        "cellular3D",
+       "cellular",  # change entire board at each step
+    #   "cellular3D",
 #       "wide",  # agent "picks" one tile to change
 #       "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
@@ -54,8 +55,8 @@ representations = [
 #       "turtle3D"
 ]
 models = [
-    # "NCA",
-      "NCA3D",
+     "NCA",
+    # "NCA3D",
 #     "GenSinCPPN",
 #     "GenCPPN",
 #     "Decoder",
@@ -153,7 +154,10 @@ local_bcs = {
     ],
     "minecraft_3D_maze_ctrl": [
         ["emptiness", "path-length"]
-    ]
+    ],
+    "minecraft_3D_zelda_ctrl": [
+        ["emptiness", "path-length"]
+    ],
 }
 
 ###########################
