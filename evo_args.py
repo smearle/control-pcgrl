@@ -1,3 +1,4 @@
+"""Command-line arguments for the evolutionary algorithm launched by running `python evolve.py`."""
 from pdb import set_trace as TT
 import os
 import sys

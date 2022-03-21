@@ -1,3 +1,4 @@
+"""Command-line arguments for the reinforcement learning algorithm launched by running `python train_ctrl.py`."""
 import argparse
 import json
 import sys

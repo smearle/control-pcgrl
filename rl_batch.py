@@ -17,7 +17,7 @@ from rl_cross_eval import compile_results
 problems: List[str] = [
 #   "minecraft_3D_maze_ctrl",
     "minecraft_3D_zelda_ctrl",
-   #"binary_ctrl",
+    # "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
@@ -76,12 +76,14 @@ local_controls: Dict[str, List] = {
     ],
 }
 
-# Whether to use a funky curriculum (Absolute Learning Progress w/ Gaussian Mixture Models) for sampling controllable metric targets
+# Whether to use a funky curriculum (Absolute Learning Progress w/ Gaussian Mixture Models) for sampling controllable 
+# metric targets. (i.e., sample lower path-length targets at first, then higher ones as agent becomes more skilled.)
 alp_gmms = [
     False,
 #   True,
 ]
-#change_percentages = np.arange(2, 11, 4) / 10
+
+# How much of the original level the generator-agent is allowed to change before episode termination.
 change_percentages = [
 #   0.2,
 #   0.6,
@@ -155,14 +157,16 @@ def launch_batch(exp_name, collect_params=False):
                             with open(sbatch_name, "r") as f:
                                 content = f.read()
                                 new_content = re.sub(
-                                    "python .* -la \d+",
-                                    "python {} -la {}".format(py_script_name, i),
+                                    "python .* --load_arguments \d+",
+                                    "python {} --load_arguments {}".format(py_script_name, i),
                                     content,
                                 )
                             with open(sbatch_name, "w") as f:
                                 f.write(new_content)
                         # Write the config file with the desired settings
                         exp_config = copy.deepcopy(default_config)
+
+                        # Supply the command-line arguments in rl_args.py
                         exp_config.update(
                             {
                                 "n_cpu": opts.n_cpu,
@@ -198,7 +202,7 @@ def launch_batch(exp_name, collect_params=False):
                         if collect_params:
                             settings_list.append(exp_config)
                         elif LOCAL:
-                            os.system("python {} -la {}".format(py_script_name, i))
+                            os.system("python {} --load_arguments {}".format(py_script_name, i))
                         else:
                             os.system("sbatch {}".format(sbatch_name))
                         i += 1
@@ -276,8 +280,9 @@ if __name__ == "__main__":
         help="Load previous checkpoint of model to resume training or do inference or evaluation.",
     )
     opts.add_argument(
-        '--overwrite',
-        action='store_true',
+        "-ovr",
+        "--overwrite",
+        action="store_true",
         help="Overwrite previous experiment with same name."
     )
 

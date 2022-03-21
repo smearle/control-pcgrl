@@ -30,6 +30,7 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
         self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters
         self.fc_size = fc_size
 
+        # TODO: use more convolutions here? Change and check that we can still overfit on binary problem.
         self.conv_1 = nn.Conv2d(obs_space.shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
 
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
@@ -46,6 +47,64 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         input = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = nn.functional.relu(self.conv_1(input.float()))
+        x = x.reshape(x.size(0), -1)
+        x = nn.functional.relu(self.fc_1(x))
+        self._features = x
+        action_out = self.action_branch(self._features)
+
+        return action_out, []
+
+
+class CustomFeedForwardModel3D(TorchModelV2, nn.Module):
+    def __init__(self,
+                 obs_space,
+                 action_space,
+                 num_outputs,
+                 model_config,
+                 name,
+                #  conv_filters=64,
+                 fc_size=64,
+                 ):
+        nn.Module.__init__(self)
+        super().__init__(obs_space, action_space, num_outputs, model_config,
+                         name)
+
+        # self.obs_size = get_preprocessor(obs_space)(obs_space).size
+        obs_shape = obs_space.shape
+
+        # Determine size of activation after convolutional layers so that we can initialize the fully-connected layer 
+        # with the correct number of weights.
+        # TODO: figure this out properly, independent of map size. Here we just assume width/height/length of 
+        # (padded) observation is 14
+        # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * 32
+        self.pre_fc_size = 256
+        fc_size
+
+        # Convolutinal layers.
+        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=32, kernel_size=3, stride=2, padding=1)
+        self.conv_2 = nn.Conv3d(32, out_channels=64, kernel_size=3, stride=2, padding=1)
+        self.conv_3 = nn.Conv3d(64, out_channels=32, kernel_size=3, stride=2, padding=1)
+
+        # Fully connected layer.
+        self.fc_1 = SlimFC(self.pre_fc_size, fc_size)
+
+        # Fully connected action and value heads.
+        self.action_branch = SlimFC(fc_size, num_outputs)
+        self.value_branch = SlimFC(fc_size, 1)
+
+        # Holds the current "base" output (before logits layer).
+        self._features = None
+
+    @override(ModelV2)
+    def value_function(self):
+        assert self._features is not None, "must call forward() first"
+        return th.reshape(self.value_branch(self._features), [-1])
+
+    def forward(self, input_dict, state, seq_lens):
+        input = input_dict["obs"].permute(0, 4, 1, 2, 3)  # Because rllib order tensors the tensorflow way (channel last)
+        x = nn.functional.relu(self.conv_1(input.float()))
+        x = nn.functional.relu(self.conv_2(x.float()))
+        x = nn.functional.relu(self.conv_3(x.float()))
         x = x.reshape(x.size(0), -1)
         x = nn.functional.relu(self.fc_1(x))
         self._features = x

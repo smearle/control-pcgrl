@@ -10,7 +10,7 @@ import gym
 import numpy as np
 
 import gym_pcgrl
-from model import CustomFeedForwardModel  # noqa : F401
+from model import CustomFeedForwardModel, CustomFeedForwardModel3D  # noqa : F401
 from rl_args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -39,6 +39,12 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     if (game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and ("minecraft" not in game):
         raise Exception(
             "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
+
+    is_3D_env = False
+    if "3D" in game:
+        assert "3D" in representation
+        is_3D_env = True
+
     kwargs['n_cpu'] = n_cpu
     env_name = get_env_name(game, representation)
     print('env name: ', env_name)
@@ -79,8 +85,11 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     # Don't use any rllib remote workers if using 1 process (local worker only).
     num_workers = 0 if n_cpu == 1 else n_cpu
 
-    # Using this simple feedforward model for now by default
-    ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel)
+    if not is_3D_env:
+        # Using this simple feedforward model for now by default
+        ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel)
+    else:
+        ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel3D)
 
 #   # Define a few default rllib models for different square crop sizes. These are lists of conv layers, where each conv
 #   # layer is a list of [n_filters, kernel_size, stride]. Padding is automatic.
@@ -145,17 +154,19 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         # Quit the program before agent starts training.
         sys.exit()
 
+    log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean', 'info']
+    best_mean_reward = -np.inf
+
     # TODO: makes this controllable, i.e., by dividing the number of frames by the train_batch_size
     n_updates = 10000
 
     # The training loop.
     for i in range(n_updates):
         result = trainer.train()
+        log_result = {k: v for k, v in result.items() if k in log_keys}
 
         # TODO: make this prettier (include less information)
-        print(pretty_print(result))
-
-        trainer.train()
+        print(pretty_print(log_result))
 
         # Intermittently save model checkpoints.
         if i % 10 == 0:

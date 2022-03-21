@@ -126,7 +126,7 @@ class Minecraft3DZeldaProblem(Problem):
             enemies.extend(map_locations["PUMPKIN"])
             if len(enemies) > 0:
                 dijkstra, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
-                min_dist = self._width * self._height * self._depth
+                min_dist = self._width * self._height * self._length
                 for e_x, e_y, e_z in enemies:
                     if dijkstra[e_z][e_y][e_x] > 0 and dijkstra[e_z][e_y][e_x] < min_dist:
                         min_dist = dijkstra[e_z][e_y][e_x]
@@ -215,7 +215,10 @@ class Minecraft3DZeldaProblem(Problem):
         }
 
     def render(self, map):
+        # if self.n_step == 0:
         spawn_3D_border(map, self._border_tile)
         spawn_3D_maze(map, self._border_tile)
         spawn_3D_path(path=self.path_coords)
+        # else:
+            # edit_3D_maze(x, y, tile_type)
         return 
