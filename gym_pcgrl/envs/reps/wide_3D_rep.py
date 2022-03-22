@@ -2,7 +2,7 @@ from gym_pcgrl.envs.reps.representation3D import Representation3D
 from PIL import Image
 from gym import spaces
 import numpy as np
-from gym_pcgrl.envs.probs.minecraft.mc_render import reps_3D_render
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
 
 """
 The wide representation where the agent can pick the tile position and tile value at each update.
@@ -71,3 +71,6 @@ class Wide3DRepresentation(Representation3D):
         change = [0,1][self._map[action[2]][action[1]][action[0]] != action[3]]
         self._map[action[2]][action[1]][action[0]] = action[3]
         return change, [action[0], action[1], action[2]]
+
+    # def render(self, map):
+    #     return edit_3D_maze(map, self._x, self._y, self._z)

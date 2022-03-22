@@ -3,7 +3,7 @@ from PIL import Image
 from gym import spaces
 import numpy as np
 from collections import OrderedDict
-from gym_pcgrl.envs.probs.minecraft.mc_render import reps_3D_render
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
 
 """
 The turtle representation where the agent is trying to modify the position of the
@@ -148,7 +148,7 @@ class Turtle3DRepresentation(Representation3D):
 
         ###########################################################
     def render(self, map):
-        return reps_3D_render(map, self._x, self._y, self._z)
+        return edit_3D_maze(map, self._x, self._y, self._z)
     #
     # """
     # Modify the level image with a red rectangle around the tile that the turtle is on

@@ -19,6 +19,9 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         self.get_string_map = get_string_map
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
+
+        self._repr_name = rep
+
         self._rep_stats = None
         self._iteration = 0
         self._changes = 0
@@ -84,11 +87,10 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(
             self._prob._height, self._prob._width, self._prob._length))
 
-
     
     def render(self, mode='human'):
         self._prob.render(get_string_map(
-            self._rep._map, self._prob.get_tile_types()))
+            self._rep._map, self._prob.get_tile_types()), self._iteration, self._repr_name)
         self._rep.render(get_string_map(
             self._rep._map, self._prob.get_tile_types()))
         return

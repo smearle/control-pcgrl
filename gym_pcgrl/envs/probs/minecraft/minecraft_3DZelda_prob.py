@@ -1,12 +1,13 @@
 import os
 from pdb import set_trace as TT
+import time
 
 import numpy as np
 from PIL import Image
 
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, get_path_coords, calc_certain_tile, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border, spawn_3D_path
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -214,11 +215,18 @@ class Minecraft3DZeldaProblem(Problem):
             "nearest-enemy": new_stats["nearest-enemy"],
         }
 
-    def render(self, map):
-        # if self.n_step == 0:
-        spawn_3D_border(map, self._border_tile)
-        spawn_3D_maze(map, self._border_tile)
-        spawn_3D_path(path=self.path_coords)
-        # else:
-            # edit_3D_maze(x, y, tile_type)
+    def render(self, map, iteration_num, repr_name):
+        if iteration_num == 0:
+            spawn_3D_border(map, self._border_tile)
+        # if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
+        if repr_name == "narrow3D" or repr_name == "turtle3D":
+            if iteration_num == 0:
+                spawn_3D_maze(map, self._border_tile)
+        else:
+            spawn_3D_maze(map, self._border_tile)
+
+        if self.render_path:
+            spawn_3D_path(path=self.path_coords)
+            # time.sleep(0.2)
+            erase_3D_path(path=self.path_coords)
         return 

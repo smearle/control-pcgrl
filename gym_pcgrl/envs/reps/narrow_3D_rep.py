@@ -4,7 +4,7 @@ from gym import spaces
 import numpy as np
 from collections import OrderedDict
 from gym_pcgrl.envs.helper_3D import gen_random_map
-from gym_pcgrl.envs.probs.minecraft.mc_render import reps_3D_render
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
 
 """
 The narrow representation where the agent is trying to modify the tile value of a certain
@@ -129,4 +129,4 @@ class Narrow3DRepresentation(Representation3D):
         return change, [self._x, self._y, self._z]
 
     def render(self, map):
-        return reps_3D_render(map, self._x, self._y, self._z)
+        return edit_3D_maze(map, self._x, self._y, self._z)

@@ -449,8 +449,11 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
             if i == 0:
                 continue
             else:
-                if path[i, 2] == path[i-1, 2]:
-                    path[i-1, :] = [-1, -1, -1]
+                if path[i][0] == path[i-1][0] and path[i][1] == path[i-1][1]:
+                    if path[i-1][2] > path[i][2]:
+                        path[i-1, :] = [-1, -1, -1]
+                    else:
+                        path[i, :] = [-1, -1, -1]
     path = np.delete(path, np.where(path < 0)[0], axis=0)
     return path
 

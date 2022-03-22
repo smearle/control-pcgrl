@@ -210,9 +210,17 @@ def spawn_3D_path(path=None, base_pos=5, item=LEAVES):
                                     type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
-    # NEXT: optimize the path showing list to solve the stairing problems
 
-def reps_3D_render(map, i, j, k, base_pos=5):
+def erase_3D_path(path=None, base_pos=5, item=AIR):
+    blocks = []
+    if path:
+        for pos in path:
+            blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
+                                    type=item))
+    CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    return
+
+def edit_3D_maze(map, i, j, k, base_pos=5):
     '''
     Render function for high-lighting the action
 
@@ -225,12 +233,11 @@ def reps_3D_render(map, i, j, k, base_pos=5):
     '''
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
-    time.sleep(0.2)
+    # time.sleep(0.2)
     item = get_tile(map[k][j][i])
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=item, orientation=NORTH)]))
     return
-
 
 if __name__ == '__main__':
     clear(20,20)
