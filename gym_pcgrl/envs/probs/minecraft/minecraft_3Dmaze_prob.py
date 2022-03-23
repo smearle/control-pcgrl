@@ -1,9 +1,11 @@
 import os
+from pdb import set_trace as TT
+import time
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
-from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze, spawn_3D_border, spawn_3D_path
+from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, run_dijkstra
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -25,8 +27,8 @@ class Minecraft3DmazeProblem(Problem):
         self._random_probs = True
 
         self._rewards = {
-            "regions": 5,
-            "path-length": 1
+            "regions": 0,
+            "path-length": 5
         }
         self.static_trgs = {"regions": 1, "path-length": np.inf}
 
@@ -90,7 +92,26 @@ class Minecraft3DmazeProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
+        self.path_coords = []
+        # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
+        
+        # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
+        # p_x, p_y, p_z = 0, 0, 0
+        # dijkstra_p, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+        # # print("dijkstra map: ", dijkstra_p)
+        # d_x, d_y, d_z = len(map[0][0])-1, len(map[0])-1, len(map)-2
+        # self.path_length = dijkstra_p.max() if dijkstra_p[d_z][d_y][d_x] < 0 else dijkstra_p[d_z][d_y][d_x]
+        # # print("path length: ", self.path_length)
+
+        if self.render_path:
+            # TT()
+            if dijkstra_p[d_z][d_y][d_x] > 0:
+                self.path_coords = get_path_coords(dijkstra_p, d_x, d_y, d_z)
+            else:
+                self.path_coords = get_path_coords(dijkstra_p)
+            # print("path coords: ", self.path_coords)
+
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": self.path_length,
@@ -147,9 +168,20 @@ class Minecraft3DmazeProblem(Problem):
             "path-length": new_stats["path-length"],
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
+    
+    def render(self, map, iteration_num, repr_name):
+        if iteration_num == 0 or iteration_num == 1:
+            spawn_3D_border(map, self._border_tile)
 
-    def render(self, map):
-        spawn_3D_border(map, self._border_tile)
-        spawn_3D_maze(map, self._border_tile)
-        spawn_3D_path(path=self.path_coords)
+        # if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
+        if repr_name == "narrow3D" or repr_name == "turtle3D":
+            if iteration_num == 0 or iteration_num == 1:      
+                spawn_3D_maze(map, self._border_tile)
+        else:
+            spawn_3D_maze(map, self._border_tile)
+
+        if self.render_path:
+            spawn_3D_path(self.path_coords)
+            # time.sleep(0.2)
+            erase_3D_path(self.path_coords)
         return 

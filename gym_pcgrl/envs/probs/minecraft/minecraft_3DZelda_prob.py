@@ -45,9 +45,9 @@ class Minecraft3DZeldaProblem(Problem):
             "enemies": 1,
             "nearest-enemy":2
         }
-# NEXT: add platform game or use NCA repre / RL agent to train a Zelda
-# and add a easy render 3D pillow option
-# and add a jumping game
+# NEXT: add use NCA repre / RL agent to train a Zelda
+# NEXT: add a easy render 3D pillow option
+# NEXT: add a jumping game (for platform games)
 
     """
     Get a list of all the different tile names
@@ -110,7 +110,7 @@ class Minecraft3DZeldaProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
-        self.path = []
+        self.path_coords = []
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": 0,
@@ -226,7 +226,7 @@ class Minecraft3DZeldaProblem(Problem):
             spawn_3D_maze(map, self._border_tile)
 
         if self.render_path:
-            spawn_3D_path(path=self.path_coords)
+            spawn_3D_path(self.path_coords)
             # time.sleep(0.2)
-            erase_3D_path(path=self.path_coords)
+            erase_3D_path(self.path_coords)
         return 

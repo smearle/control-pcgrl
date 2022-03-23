@@ -21,8 +21,6 @@ from ray.rllib.agents import ppo
 from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env
 from ray.tune.logger import pretty_print
-#from stable_baselines3 import PPO
-# from stable_baselines import PPO2
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 # from stable_baselines.results_plotter import load_results, ts2xy
 # import tensorflow as tf
@@ -113,7 +111,13 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         'render_env': opts.render,
         'model': {
             'custom_model': 'feedforward',
-        }
+        },
+        "logger_config": {
+            "type": "ray.tune.logger.TBXLogger",
+            # Optional: Custom logdir (do not define this here
+            # for using ~/ray_results/...).
+            "logdir": log_dir,
+        },
     }
 
     register_env('pcgrl', make_env)
@@ -143,18 +147,20 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     # Do inference, i.e., observe agent behavior for many episodes.
     if opts.infer:
         env = make_env(kwargs)
-        for i in range(100):
+        for i in range(10000):
             obs = env.reset()
-            # TODO: get max steps or set this manually
-            for j in range(1000):
+            done = False
+            while not done:
                 action = trainer.compute_single_action(obs)
                 obs, reward, done, info = env.step(action)
+                print(env.unwrapped._rep_stats)
                 env.render()
+# NEXT: why the environment is automatically reset after a certain number of iterations?
 
         # Quit the program before agent starts training.
         sys.exit()
 
-    log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean', 'info']
+    log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
     best_mean_reward = -np.inf
 
     # TODO: makes this controllable, i.e., by dividing the number of frames by the train_batch_size
@@ -164,8 +170,10 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     for i in range(n_updates):
         result = trainer.train()
         log_result = {k: v for k, v in result.items() if k in log_keys}
+        log_result['info: learner:'] = result['info']['learner']
+        log_result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
 
-        # TODO: make this prettier (include less information)
+        print('-----------------------------------------')
         print(pretty_print(log_result))
 
         # Intermittently save model checkpoints.
@@ -185,6 +193,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 
             print("checkpoint saved at", checkpoint)
 
+# tune.run(trainable, num_samples=2, local_dir="./results", name="test_experiment")
 
 ################################## MAIN ########################################
 

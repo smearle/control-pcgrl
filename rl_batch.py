@@ -15,8 +15,8 @@ import numpy as np
 from rl_cross_eval import compile_results
 
 problems: List[str] = [
-#   "minecraft_3D_maze_ctrl",
-    "minecraft_3D_zelda_ctrl",
+    "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_zelda_ctrl",
     # "binary_ctrl",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
@@ -157,8 +157,8 @@ def launch_batch(exp_name, collect_params=False):
                             with open(sbatch_name, "r") as f:
                                 content = f.read()
                                 new_content = re.sub(
-                                    "python .* --load_arguments \d+",
-                                    "python {} --load_arguments {}".format(py_script_name, i),
+                                    "python .* --load_args \d+",
+                                    "python {} --load_args {}".format(py_script_name, i),
                                     content,
                                 )
                             with open(sbatch_name, "w") as f:
@@ -202,7 +202,7 @@ def launch_batch(exp_name, collect_params=False):
                         if collect_params:
                             settings_list.append(exp_config)
                         elif LOCAL:
-                            os.system("python {} --load_arguments {}".format(py_script_name, i))
+                            os.system("python {} --load_args {}".format(py_script_name, i))
                         else:
                             os.system("sbatch {}".format(sbatch_name))
                         i += 1

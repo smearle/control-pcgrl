@@ -23,7 +23,7 @@ source activate pcgrl
 conda activate pcgrl
 
 # start=$SECONDS
-python train_ctrl.py --load_arguments 0
+python train_ctrl.py --load_args 0
 # do
 #     duration=$((( SECONDS - start ) / 60))
 #     echo "Script returned error after $duration minutes"

@@ -91,6 +91,8 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
     def render(self, mode='human'):
         self._prob.render(get_string_map(
             self._rep._map, self._prob.get_tile_types()), self._iteration, self._repr_name)
+        # print(get_string_map(
+        #     self._rep._map, self._prob.get_tile_types()))
         self._rep.render(get_string_map(
             self._rep._map, self._prob.get_tile_types()))
         return

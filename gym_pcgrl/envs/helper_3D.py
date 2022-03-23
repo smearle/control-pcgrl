@@ -2,7 +2,7 @@
 A helper module that can be used by all problems in cubic 3D game
 """
 import numpy as np
-
+from pdb import set_trace as TT
 """
 Public function to get a dictionary of all location of all tiles
 
@@ -233,9 +233,9 @@ def _passable(map, x, y, z, passable_values):
             passable_tiles.append((nx, ny, nz))
         
         # Check whether can go up stairs
-        elif nz+2 < len(map) and (map[nz+2][y][x] in passable_values
+        elif (nz+2 < len(map) and (map[nz+2][y][x] in passable_values
                                  and map[nz+1][ny][nx] in passable_values
-                                 and map[nz+2][ny][nx] in passable_values):
+                                 and map[nz+2][ny][nx] in passable_values)):
             passable_tiles.append((nx, ny, nz+1))
 
         else:
@@ -266,7 +266,7 @@ def _flood_fill(x, y, z, color_map, map, color_index, passable_values):
         (cx, cy, cz) = queue.pop(0)
 
         # If tile has been visited, skip it.
-        if color_map[cz][cy][cx] != -1:  # or (not _passable(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)):
+        if color_map[cz][cy][cx] != -1:  # or (not _passablae(map, cx, cy, cz, passable_values) and not _standable(map, cx, cy, cz, passable_values)):
             continue
 
         num_tiles += 1
@@ -404,15 +404,15 @@ Returns:
     list: the longest path's coordinates (in x, y, z form)
 """
 
-ADJ_FILTER = np.array([[[0,0,0],
-                        [0,1,0],
-                        [0,0,0]],
+ADJ_FILTER = np.array([[[0,1,0],
+                        [1,0,1],
+                        [0,1,0]],
                        [[0,1,0],
                         [1,0,1],
                         [0,1,0]],
-                       [[0,0,0],
-                        [0,1,0],
-                        [0,0,0]]])
+                       [[0,1,0],
+                        [1,0,1],
+                        [0,1,0]]])
 
 def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
     length, width, height = len(path_map[0][0]), len(path_map[0]), len(path_map)
@@ -427,6 +427,11 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
         curr = np.array([(z, y, x)], dtype=np.int32).T + 1
         max_cell = pad_path_map[curr[0][0], curr[1][0], curr[2][0]]
     zi, yi, xi = curr[:, 0]
+    # print("curr: ", curr)
+    # print("zi, yi, xi is curr[:, 0]: ", zi, yi, xi)
+    # print("max_cell: ", max_cell)
+    # print("iterating:") 
+    # # TT()
     path = np.zeros(shape=(max_cell, 3), dtype=np.int32)
     i = 0
     while max_cell > 1:
@@ -436,8 +441,14 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
         x0, x1, y0, y1, z0, z1= xi - 1, xi + 2, yi - 1, yi + 2, zi-1, zi + 2
         adj_mask = np.zeros(shape=(height + 2, width + 2, length + 2), dtype=np.int32)
         adj_mask[z0: z1, y0: y1, x0: x1] = ADJ_FILTER
-
+        # print("curr: ", curr)
+        # print("zi, yi, xi is curr[:, 0]: ", zi, yi, xi)     
+        # print("max_cell: ", max_cell)
+        # TT()
         curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
+        
+        # print("curr is changed to: ", curr)
+        # print("pad_path_map is : ", pad_path_map)
         zi, yi, xi = curr[:, 0]
         i += 1
     if i > 0:

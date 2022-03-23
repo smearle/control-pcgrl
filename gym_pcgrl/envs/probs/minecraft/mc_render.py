@@ -202,21 +202,19 @@ def spawn_3D_maze(map, base_pos=5):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
-def spawn_3D_path(path=None, base_pos=5, item=LEAVES):
+def spawn_3D_path(path, base_pos=5, item=LEAVES):
     blocks = []
-    if path:
-        for pos in path:
-            blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
-                                    type=item))
+    for pos in path:
+        blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
+                                type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
-def erase_3D_path(path=None, base_pos=5, item=AIR):
+def erase_3D_path(path, base_pos=5, item=AIR):
     blocks = []
-    if path:
-        for pos in path:
-            blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
-                                    type=item))
+    for pos in path:
+        blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
+                                type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
