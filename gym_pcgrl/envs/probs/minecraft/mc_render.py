@@ -6,6 +6,7 @@ import grpc
 import gym_pcgrl.envs.probs.minecraft.minecraft_pb2_grpc as minecraft_pb2_grpc
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import *
 import time
+from pdb import set_trace as TT
 
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
@@ -202,6 +203,7 @@ def spawn_3D_maze(map, base_pos=5):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
+# NEXT: change these 2 funcs into 1
 def spawn_3D_path(path, base_pos=5, item=LEAVES):
     if len(path) == 0:
         return
@@ -222,7 +224,7 @@ def erase_3D_path(path, base_pos=5, item=AIR):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
-def highlightAction_3D_maze(map, i, j, k, base_pos=5):
+def edit_3D_maze(map, i, j, k, base_pos=5):
     '''
     Render function for high-lighting the action
 
@@ -233,13 +235,11 @@ def highlightAction_3D_maze(map, i, j, k, base_pos=5):
         j (int) : the y position that the action take place
         k (int) : the z position that the action take place
     '''
+    # TT()
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
     # time.sleep(0.2)
-
-def edit_3D_maze(map, i, j, k, base_pos=5):
     item = get_tile(map[k][j][i])
-    print(item.name)
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=item, orientation=NORTH)]))
     return

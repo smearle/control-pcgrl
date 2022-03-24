@@ -4,7 +4,8 @@ from gym import spaces
 import numpy as np
 from collections import OrderedDict
 from gym_pcgrl.envs.helper_3D import gen_random_map
-from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, highlightAction_3D_maze
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
+from pdb import set_trace as TT
 
 """
 The narrow representation where the agent is trying to modify the tile value of a certain
@@ -40,6 +41,8 @@ class Narrow3DRepresentation(Representation3D):
         self._x = 0
         self._y = 0
         self._z = 0 
+        self._new_coords = [self._x, self._y, self._z]
+        self._old_coords = [self._x, self._y, self._z]
 
     """
     Gets the action space used by the narrow representation
@@ -132,7 +135,9 @@ class Narrow3DRepresentation(Representation3D):
         return change, [self._x, self._y, self._z]
 
     def render(self, map):
-        highlightAction_3D_maze(map, self._x, self._y, self._z)
-        edit_3D_maze(map, self._x, self._y, self._z)
+        # TT()
+        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        edit_3D_maze(map, x, y, z)
+        self._old_coords = self._new_coords
+
         return
-        # return edit_3D_maze(map, self._x, self._y, self._z)

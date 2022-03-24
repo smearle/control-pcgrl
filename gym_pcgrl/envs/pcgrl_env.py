@@ -196,6 +196,9 @@ class PcgrlEnv(gym.Env):
         # update the current state to the new state based on the taken action
 
         change, map_coords = self._rep.update(action)
+        
+        # for rendering highlighted actions:
+        self._rep._new_coords = map_coords
 
         if change > 0:
             self._changes += change
