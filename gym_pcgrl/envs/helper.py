@@ -268,7 +268,7 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
             if get_path:
                 path_map = dikjstra_map
     # Return path for the purpose of rendering (binary problem)
-    path = None
+    path = None 
     if get_path and final_value > 0:
         path = get_path_coords(path_map)
     return final_value, path

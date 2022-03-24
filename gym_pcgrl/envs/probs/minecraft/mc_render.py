@@ -202,7 +202,9 @@ def spawn_3D_maze(map, base_pos=5):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
-def spawn_3D_path(path, base_pos=5, item=TORCH):
+def spawn_3D_path(path, base_pos=5, item=LEAVES):
+    if len(path) == 0:
+        return
     blocks = []
     for pos in path:
         blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
@@ -211,6 +213,8 @@ def spawn_3D_path(path, base_pos=5, item=TORCH):
     return
 
 def erase_3D_path(path, base_pos=5, item=AIR):
+    if len(path) == 0:
+        return
     blocks = []
     for pos in path:
         blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
@@ -218,7 +222,7 @@ def erase_3D_path(path, base_pos=5, item=AIR):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
-def edit_3D_maze(map, i, j, k, base_pos=5):
+def highlightAction_3D_maze(map, i, j, k, base_pos=5):
     '''
     Render function for high-lighting the action
 
@@ -232,7 +236,10 @@ def edit_3D_maze(map, i, j, k, base_pos=5):
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
     # time.sleep(0.2)
+
+def edit_3D_maze(map, i, j, k, base_pos=5):
     item = get_tile(map[k][j][i])
+    print(item.name)
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=item, orientation=NORTH)]))
     return

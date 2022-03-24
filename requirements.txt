@@ -23,6 +23,7 @@ pymks
 ./qdpy
 
 # git submodule update --init pytorch-neat/       # add submodule first before python -m pip install -r requirements.txt
+# python -m pip install neat-python
 ./pytorch-neat
 
 ray[rllib]     # ray[rllib]==1.9.2 in particle, but 1.11.0 should be fine here

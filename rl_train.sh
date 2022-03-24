@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=48
 
 ## We won't be asking for gpus, for now
-##SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:1
 
 #SBATCH --time=120:00:00
 #SBATCH --mem=30GB

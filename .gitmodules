@@ -1,6 +1,6 @@
 [submodule "teachDeepRL"]
 	path = teachDeepRL
-	url = git@github.com:flowersteam/teachDeepRL
+	url = https://github.com/flowersteam/teachDeepRL
 [submodule "pytorch-neat"]
 	path = pytorch-neat
 	url = https://github.com/smearle/pytorch-neat

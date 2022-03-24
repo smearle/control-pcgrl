@@ -77,12 +77,12 @@ class CustomFeedForwardModel3D(TorchModelV2, nn.Module):
         # TODO: figure this out properly, independent of map size. Here we just assume width/height/length of 
         # (padded) observation is 14
         # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * 32
-        self.pre_fc_size = 256 * 2 * 2 * 2
+        self.pre_fc_size = 128 * 2 * 2 * 2
 
         # Convolutinal layers.
         self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=64, kernel_size=3, stride=2, padding=1)  # 7 * 7 * 7
         self.conv_2 = nn.Conv3d(64, out_channels=128, kernel_size=3, stride=2, padding=1)  # 4 * 4 * 4
-        self.conv_3 = nn.Conv3d(128, out_channels=256, kernel_size=3, stride=2, padding=1)  # 2 * 2 * 2 
+        self.conv_3 = nn.Conv3d(128, out_channels=128, kernel_size=3, stride=2, padding=1)  # 2 * 2 * 2 
 
         # Fully connected layer.
         self.fc_1 = SlimFC(self.pre_fc_size, fc_size)

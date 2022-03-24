@@ -391,7 +391,7 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
             final_value = max_value
             if get_path:
                 path_map = dikjstra_map
-    path = None
+    path = []
     if get_path and final_value > 0:
         path = get_path_coords(path_map)
     return final_value, path
@@ -474,13 +474,12 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
     path = np.delete(path, np.where(path < 0)[0], axis=0)
     return path
 
-"""
-Path debugging function
-"""
-def path_debug(path, map, passable_values):
+def debug_path(path, map, passable_values):
+    """
+    Path debugging function
+    """
     for pos in path:
         x, y, z = pos[0], pos[1], pos[2]
-
         # checking if there is some issue with my head
         if z + 2 > len(map):
             print(f'My head is sticking out of range!!!!!!!!!!!!!!!! My foot is at the position {x}, {y}, {z}')

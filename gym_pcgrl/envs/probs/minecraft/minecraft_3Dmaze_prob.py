@@ -4,7 +4,8 @@ import time
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, path_debug, run_dijkstra
+from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
+    calc_longest_path, debug_path, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
 """
@@ -19,12 +20,12 @@ class Minecraft3DmazeProblem(Problem):
         self._length = 7
         self._width = 7
         self._height = 7
-        self._prob = {"AIR": 0.5, "DIRT":0.5}
+        self._prob = {"AIR": 0.0, "DIRT":1.0}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
 
         self._target_path = 10
-        self._random_probs = True
+        self._random_probs = False
 
         self._rewards = {
             "regions": 0,
@@ -97,9 +98,10 @@ class Minecraft3DmazeProblem(Problem):
         self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
-        # path_is_valid = path_debug(self.path_coords, map, ["AIR"])
-        # if not path_is_valid:
-        #     return None
+        if self.render:
+            path_is_valid = debug_path(self.path_coords, map, ["AIR"])
+            if not path_is_valid:
+                return None
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
         # p_x, p_y, p_z = 0, 0, 0
         # dijkstra_p, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
@@ -181,8 +183,8 @@ class Minecraft3DmazeProblem(Problem):
 
         # if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
         if repr_name == "narrow3D" or repr_name == "turtle3D":
-            if iteration_num == 0 or iteration_num == 1:      
-                spawn_3D_maze(map, self._border_tile)
+            # if iteration_num == 0 or iteration_num == 1:      
+            spawn_3D_maze(map, self._border_tile)
         else:
             spawn_3D_maze(map, self._border_tile)
 
