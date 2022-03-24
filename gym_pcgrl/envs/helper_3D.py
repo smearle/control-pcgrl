@@ -222,20 +222,26 @@ def _passable(map, x, y, z, passable_values):
             continue
         
         # Check whether can go down stairs
-        if (nz-1 >= 0 and nz+1 < len(map) and (map[nz-1][ny][nx] in passable_values
+        if ((nz-1 == 0 or nz-1 > 0 and map[nz-2][ny][nx] not in passable_values)  # make sure don't step into a cliff
+                        and nz+1 < len(map) and map[nz-1][ny][nx] in passable_values
                                             and map[nz][ny][nx] in passable_values
-                                            and map[nz+1][ny][nx] in passable_values)):
+                                            and map[nz+1][ny][nx] in passable_values):
+            if not map[nz][ny][nx] in passable_values:
+                TT()
             passable_tiles.append((nx, ny, nz-1))
 
         # Check whether can stay at the same level
-        elif (nz+1 < len(map) and (map[nz][ny][nx] in passable_values
-                                and map[nz+1][ny][nx] in passable_values)):
+        elif (nz+1 < len(map) 
+                and (nz == 0 or nz > 0 and map[nz-1][ny][nx] not in passable_values) # make sure don't step into a cliff
+                                and map[nz][ny][nx] in passable_values
+                                and map[nz+1][ny][nx] in passable_values):
             passable_tiles.append((nx, ny, nz))
         
         # Check whether can go up stairs
-        elif (nz+2 < len(map) and (map[nz+2][y][x] in passable_values
+        elif (nz+2 < len(map) and map[nz+1][ny][nx] not in passable_values  # do not step off a cliff
+                                and map[nz+2][y][x] in passable_values
                                  and map[nz+1][ny][nx] in passable_values
-                                 and map[nz+2][ny][nx] in passable_values)):
+                                 and map[nz+2][ny][nx] in passable_values):
             passable_tiles.append((nx, ny, nz+1))
 
         else:
@@ -394,7 +400,7 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
 Recover a shortest path (as list of coords) from a dikjstra map, 
 using either some initial coords, or else from the furthest point
 
-If you have trouble understand this func, you can refer to the 2D version of this in helper.py
+If you have trouble understanding this func, you can refer to the 2D version of this in helper.py
 
 Parameters:
     path_map: 3D dijkstra map
@@ -467,6 +473,31 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
                         path[i, :] = [-1, -1, -1]
     path = np.delete(path, np.where(path < 0)[0], axis=0)
     return path
+
+"""
+Path debugging function
+"""
+def path_debug(path, map, passable_values):
+    for pos in path:
+        x, y, z = pos[0], pos[1], pos[2]
+
+        # checking if there is some issue with my head
+        if z + 2 > len(map):
+            print(f'My head is sticking out of range!!!!!!!!!!!!!!!! My foot is at the position {x}, {y}, {z}')
+            return False
+        if map[z+1][y][x] not in passable_values: 
+            print(f'Something in position {x}, {y}, {z+1} blocks my head!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            return False 
+        # checking if I am floating
+        if z - 1 > 0 and map[z-1][y][x] in passable_values:
+            print(f"I am floating illegally!!!!!!!!! My position is {x}, {y}, {z}")
+            return False
+    return True
+
+
+
+
+
 
 """
 Calculate the number of tiles that have certain values in the map

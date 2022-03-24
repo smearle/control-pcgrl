@@ -227,6 +227,9 @@ class PcgrlEnv(gym.Env):
         # if done or self.compute_stats:
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types()))
 
+            if self._rep_stats is None:
+                TT()
+
             info = self._prob.get_debug_info(self._rep_stats, old_stats)
 
             # Log episode infos for sb2/tensorboard (in our callback) when done.

@@ -63,6 +63,10 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
                                                     self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(
             get_string_map(self._rep._map, self._prob.get_tile_types()))
+        # Check for invalid path
+        if self._rep_stats is None:
+            self.render()
+            TT()
         self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros(
             (self._prob._height, self._prob._width, self._prob._length))

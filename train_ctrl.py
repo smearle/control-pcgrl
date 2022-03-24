@@ -80,7 +80,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
                 encoding='utf-8') as f:
             json.dump(kwargs, f, ensure_ascii=False, indent=4)
 
-    # Don't use any rllib remote workers if using 1 process (local worker only).
+    # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
     num_workers = 0 if n_cpu == 1 else n_cpu
 
     if not is_3D_env:
@@ -107,7 +107,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         'num_workers': num_workers,
         'num_gpus': 1,
         'env_config': kwargs,
-        'num_envs_per_worker': 10,
+        'num_envs_per_worker': 10 if not opts.infer else 1,
         'render_env': opts.render,
         'model': {
             'custom_model': 'feedforward',
