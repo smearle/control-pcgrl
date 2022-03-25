@@ -1,3 +1,4 @@
+gym==0.19
 pandas
 deap
 pyglet

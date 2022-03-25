@@ -2,7 +2,7 @@ import os
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
+from gym_pcgrl.envs.helper import calc_tortuosity, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
 
 """
@@ -43,6 +43,7 @@ class MicroStructureProblem(Problem):
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
             "path-length": (0, self._max_path_length),
+            "tortuosity": (0, self._max_path_length / 2),
         }
 
 
@@ -103,14 +104,16 @@ class MicroStructureProblem(Problem):
     """
     def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
-        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
+        # self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
+        self.tortuosity, self.path_length, self.path_coords = calc_tortuosity(map, map_locations, ["empty"], get_path=self.render_path)
         m=np.array(map)
         emptiness= (m=='empty').sum()/m.size
-        emptiness+= 01e-04
+        emptiness+= 1e-04
         return {
-            "regions": calc_num_regions(map, map_locations, ["empty"]),
-            "path-length": self.path_length/emptiness,
-            "tortuosity": self.path_length,
+            # "regions": calc_num_regions(map, map_locations, ["empty"]),
+            "path-length": self.path_length,
+            # "tortuosity": self.path_length/emptiness,
+            "tortuosity": self.tortuosity,
         }
 
     """

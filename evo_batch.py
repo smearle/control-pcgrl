@@ -14,7 +14,6 @@ from typing import List
 from evo_cross_eval import compile_results
 from render_gifs import render_gifs
 
-RENDER_LEVELS = True
 
 ##### HYPERPARAMETERS #####
 
@@ -133,7 +132,8 @@ local_bcs = {
 #       ['rand_sol', 'rand_sol']
     ],
     "microstructure_ctrl": [
-        ["emptiness", "path-length"],
+        # ["emptiness", "path-length"],
+        ["path-length", "tortuosity"],
     ]
 }
 
@@ -241,7 +241,7 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_steps": n_steps,
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
-                                                "multi_thread": True,
+                                                "multi_thread": not args.sequential,
                                             }
                                         )
                                         if args.render:
@@ -340,10 +340,22 @@ if __name__ == "__main__":
         help="Make gifs from previously-rendered level-generation episodes.",
         action="store_true",
     )
+    opts.add_argument(
+        "--render_levels",
+        help="Save images from level-generation (to be subsequently used to render gifs with --gif).",
+        action="store_true",
+    )
+    opts.add_argument(
+        "-seq",
+        "--sequential",
+        help="Run experiment sequentially, instead of using ray to parallelise evaluation.",
+        action="store_true",
+    )
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
     EVALUATE = args.evaluate
     LOCAL = args.local
+    RENDER_LEVELS = args.render_levels
 
     if args.cross_eval or args.gif:
         settings_list = launch_batch(EXP_NAME, collect_params=True)

@@ -274,8 +274,45 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
     return final_value, path
 
 def calc_tortuosity(map,map_locations,passable_values,get_path=False):
-    #TODO
-    pass
+    """
+    To calculate tortuosity, we follow the logic of calc_longest_path above, but instead of tracking the longest
+    shortest path, we track the longest shortest path divided by the euclidean distance between the correspoding 
+    start/end points.
+    """
+    width, height = len(map), len(map[0])
+    empty_tiles = _get_certain_tiles(map_locations, passable_values)
+    final_visited_map = np.zeros((width, height))
+    max_path_length = 0
+    torts = []
+
+    for (x,y) in empty_tiles:
+        if final_visited_map[y][x] > 0:
+            continue
+        dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
+        final_visited_map += visited_map
+        (my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
+        dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
+        max_path_xy = np.max(dikjstra_map)
+
+        if max_path_xy > max_path_length:
+            max_path_length = max_path_xy
+            if get_path:
+                path_map = dikjstra_map
+        
+        l2_dist = np.sqrt((x-mx)**2 + (y-my)**2)
+        l2_dist = l2_dist if l2_dist > 0 else 1
+        tort_xy = max_path_xy / l2_dist
+        torts.append(tort_xy)
+
+    mean_tortuosity = np.mean(torts) if torts else 0
+
+    # Return path for the purpose of rendering (binary problem)
+    path = None
+    if get_path and max_path_length > 0:
+        path = get_path_coords(path_map)
+
+    return mean_tortuosity, max_path_length, path
+
 
 def get_path_coords(path_map, init_coords=None):
     '''Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, or else from the furthest point.'''

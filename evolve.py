@@ -104,7 +104,6 @@ https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
 TARGETS_PENALTY_WEIGHT = 10
 
-D=
 
 def draw_net(config: object, genome: object, view: object = False, filename: object = None, node_names: object = None, show_disabled: object = True,
              prune_unused: object = False,
@@ -2418,6 +2417,12 @@ class EvoPCGRL:
                     [1, 1], [(0, 1), (0, 1)], *init_level_archive_args
                 )
             else:
+
+                for bc_name in self.bc_names:
+                    if bc_name not in self.bc_bounds:
+                        raise Exception(f"Behavior characteristic / measure `{bc_name}` not found in self.bc_bounds."
+                        "You probably need to specify the lower/upper bounds of this measure in prob.cond_bounds.")
+
                 self.gen_archive = gen_archive_cls(
                     # minimum of 100 for each behavioral characteristic, or as many different values as the BC can take on, if it is less
                     # [min(100, int(np.ceil(self.bc_bounds[bc_name][1] - self.bc_bounds[bc_name][0]))) for bc_name in self.bc_names],
