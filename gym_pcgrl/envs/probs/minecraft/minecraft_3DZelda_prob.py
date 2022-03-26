@@ -49,6 +49,7 @@ class Minecraft3DZeldaProblem(Problem):
 # NEXT: add use NCA repre / RL agent to train a Zelda
 # NEXT: add a easy render 3D pillow option
 # NEXT: add a jumping game (for platform games)
+# NEXT: try 3 things to solve the plateau problem
 
     """
     Get a list of all the different tile names

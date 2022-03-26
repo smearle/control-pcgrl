@@ -197,7 +197,7 @@ class PcgrlEnv(gym.Env):
 
         change, map_coords = self._rep.update(action)
         
-        # for rendering highlighted actions:
+        # for rendering highlighted actions in Evocraft:
         self._rep._new_coords = map_coords
 
         if change > 0:
@@ -231,6 +231,8 @@ class PcgrlEnv(gym.Env):
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types()))
 
             if self._rep_stats is None:
+                print("self._rep_stats in pcgrl_env.py is None, what happened? Maybe you should check your path finding"
+                "function in your problem class.")
                 TT()
 
             info = self._prob.get_debug_info(self._rep_stats, old_stats)
