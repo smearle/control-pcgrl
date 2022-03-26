@@ -94,7 +94,11 @@ class Minecraft3DmazeProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
+
+        # for earsing the path of the previous iteration in Minecraft
+        # new path coords are updated in the render function
         self.old_path_coords = self.path_coords
+
         self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)

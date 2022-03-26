@@ -349,7 +349,8 @@ def run_dijkstra(x, y, z, map, passable_values):
         dijkstra_map[cz][cy][cx] = cd
 
         # Call passable, which will return, (x, y, z) coordinates of tiles to which the player can travel from here
-        # for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
+        # not for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
+        # but for (nx,ny,nz) in stairring logic:
         for (nx, ny, nz) in _passable(map, cx, cy, cz, passable_values):
 
 #           # Check that the new tiles are in the bounds of the level
@@ -478,6 +479,8 @@ def debug_path(path, map, passable_values):
     """
     Path debugging function
     """
+    if len(path) == 0:
+        return True
     for pos in path:
         x, y, z = pos[0], pos[1], pos[2]
         # checking if there is some issue with my head
@@ -492,11 +495,6 @@ def debug_path(path, map, passable_values):
             print(f"I am floating illegally!!!!!!!!! My position is {x}, {y}, {z}")
             return False
     return True
-
-
-
-
-
 
 """
 Calculate the number of tiles that have certain values in the map
@@ -551,11 +549,11 @@ def gen_random_map(random, length, width, height, prob):
 A method to convert the map to use the tile names instead of tile numbers
 
 Parameters:
-    map (numpy.int[][][]): a numpy 2D array of the current map
+    map (numpy.int[][][]): a numpy 3D array of the current map
     tiles (string[]): a list of all the tiles in order
 
 Returns:
-    string[][][]: a 2D map of tile strings instead of numbers
+    string[][][]: a 3D map of tile strings instead of numbers
 """
 def get_string_map(map, tiles):
     int_to_string = dict((i,s) for i, s in enumerate(tiles))
