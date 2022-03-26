@@ -54,6 +54,11 @@ evalevopcgrl*.out
 # Ignore PNG files
 *.png
 
+# Ignore Mac OS finder cache
 *.DS_Store
 
 discriminator.pt
+
+# Ignore LaTex build files
+*.log
+*.aux

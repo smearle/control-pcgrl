@@ -6,6 +6,7 @@ import os
 import numpy as np
 import matplotlib
 import pandas as pd
+import pingouin as pg
 import scipy.stats
 
 from evo_args import get_args, get_exp_name
@@ -54,7 +55,15 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
 
     if "QD score" in col_name:
         # FIXME ad hoc
-        data, err = int(data / 10000), int(err / 10000)
+        if np.isnan(data):
+            data = np.nan
+        else:
+            data = int(data / 10000)
+        if np.isnan(err):
+            err = np.nan
+        else:
+            err = err / 10000
+        # data, err = int(data / 10000), int(err / 10000)
     if any(c in col_name for c in ["archive size",  "QD score"]):
         data = "{:,.0f}".format(data)
     elif "diversity" in col_name[1]:
@@ -62,19 +71,19 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
     else:
         data = "{:.1f}".format(data)
 
-    if bold:
-#       data = "\\cellcolor{blue!25} "
-        data = "\\bfseries {}".format(data)
-
     print(col_name)
     if "maintained" in col_name[1]:
         data = "{} \%".format(data)
 
-    if np.any(['diversity' in c for c in col_name]):
+    if False and np.any(['diversity' in c for c in col_name]):
         err = "{:.1e}".format(err)
     else:
         err = "{:.1f}".format(err)
-    data = f'{data} ± {err}'
+
+    if bold:
+        data = '\\textbf{' + str(data) + '} ± ' + str(err)
+    else:
+        data = f'{data} ± {err}'
     return data
 
 
@@ -118,6 +127,7 @@ def flatten_stats(stats, tex, evaluation=False):
 def compile_results(settings_list, tex=False):
 #   batch_exp_name = settings_list[0]["exp_name"]
     EVO_DIR = "evo_runs"
+    EVAL_DIR = "eval_experiment"
 #   if batch_exp_name == "0":
 #       EVO_DIR = "evo_runs_06-12"
 #   else:
@@ -153,16 +163,17 @@ def compile_results(settings_list, tex=False):
 #       "representation",
         "n_init_states",
         "fix_level_seeds",
-#       "fix_elites",
+        "fix_elites",
         "n_steps",
         "exp_name",
     ]
 
     hyperparam_rename = {
         "model" : {
-            "CPPN": "Vanilla CPPN",
-            "GenSinCPPN": " "+newline("Fixed", "CPPN"),
-            "GenCPPN": "CPPN",
+            # "CPPN": "Vanilla CPPN",
+            # "GenSinCPPN": " "+newline("Fixed", "CPPN"),
+            # "GenSinCPPN": " Fixed CPPN",
+            # "GenCPPN": "CPPN",
         },
         "fix_level_seeds": {
             True: "Fix",
@@ -215,6 +226,24 @@ def compile_results(settings_list, tex=False):
                 data[-1].append("N/A")
             else:
                 data[-1].append(flat_stats[c])
+
+    def analyze_metric(metric):
+        """Run statistical significance tests for come metric (i.e. column header) of interest."""
+        # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
+        # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
+        qd_score_idx = col_indices.index(metric)
+        oneway_anova_data = {'model': [v[0] for v in vals], metric: [d[qd_score_idx] for d in data]}
+        oneway_anova_df = pd.DataFrame(oneway_anova_data)
+        oneway_anova = pg.anova(data=oneway_anova_df, dv=metric, between='model', detailed=True)
+        oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
+        oneway_anova.to_html(os.path.join('eval_experiment', f'oneway_anova_{metric}.html'))
+
+        pairwise_tukey = pg.pairwise_tukey(data=oneway_anova_df, dv=metric, between='model')
+        pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
+        pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
+
+    for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
+        analyze_metric(metric)
 
     tuples = vals
     for i, tpl in enumerate(tuples):
@@ -280,6 +309,7 @@ def compile_results(settings_list, tex=False):
         z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
                            i in range(len(hier_col))])
     col_tuples = []
+
     for col in col_indices:
         hier_col = hierarchicalize_col(col)
         col_tuples.append(tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
@@ -289,8 +319,8 @@ def compile_results(settings_list, tex=False):
     # columns = pd.MultiIndex.from_tuples(col_tuples)
     df = pd.DataFrame(data=data, index=row_indices, columns=col_indices).sort_values(by=new_keys)
 
-    csv_name = r"{}/cross_eval_multi.csv".format(EVO_DIR)
-    html_name = r"{}/cross_eval_multi.html".format(EVO_DIR)
+    csv_name = r"{}/cross_eval_multi.csv".format(EVAL_DIR)
+    html_name = r"{}/cross_eval_multi.html".format(EVAL_DIR)
     print(df)
     for i, k in enumerate(new_keys):
         if k in row_idx_names:
@@ -315,17 +345,21 @@ def compile_results(settings_list, tex=False):
         mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
         new_rows.append(mean_exp)
     pvals = np.zeros(shape=(len(new_row_names), len(new_row_names)))
+
     for i, vi in enumerate(eval_qd_scores):
         for j, vj in enumerate(eval_qd_scores):
             pvals[i,j] = scipy.stats.mannwhitneyu(vi, vj)[1]
+
     im = plt.figure()
 
     cross_eval_heatmap(pvals, row_labels=new_row_names, col_labels=new_row_names, title='Eval QD score p-values', pvals=True, swap_xticks=False)
 #   plt.xticks(range(len(new_row_names)), labels=[str(i) for i in new_row_names], rotation='vertical')
     df.to_csv(csv_name)
     df.to_html(html_name)
-    csv_name = r"{}/cross_eval.csv".format(EVO_DIR)
-    html_name = r"{}/cross_eval.html".format(EVO_DIR)
+
+    # Create new data-frame that squashes different iterations of the same experiment
+    csv_name = r"{}/cross_eval.csv".format(EVAL_DIR)
+    html_name = r"{}/cross_eval.html".format(EVAL_DIR)
     ndf = pd.DataFrame()
     ndf = ndf.append(new_rows)
     new_col_indices = pd.MultiIndex.from_tuples(df.columns)
@@ -337,12 +371,13 @@ def compile_results(settings_list, tex=False):
     ndf.to_csv(csv_name)
     ndf.to_html(html_name)
 #   df.rename(col_keys, axis=1)
+
     df = ndf
 
     if not tex:
         return
 
-    tex_name = r"{}/cross_eval.tex".format(EVO_DIR)
+    tex_name = r"{}/cross_eval.tex".format(EVAL_DIR)
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"]
     df_tex = df
 #   df_tex = df.loc["binary_ctrl", "symmetry-path-length", :, "cellular"].round(1)

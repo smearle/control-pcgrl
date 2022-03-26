@@ -10,8 +10,8 @@ from gym_pcgrl.envs.probs.smb.engine import State,BFSAgent,AStarAgent
 class SMBProblem(Problem):
     def __init__(self):
         super().__init__()
-        self._width = 114
-        self._height = 14
+        self._width = 116
+        self._height = 16
         self._prob = {"empty":0.75, "solid":0.1, "enemy":0.01, "brick":0.04, "question":0.01, "coin":0.02, "tube": 0.02}
         self._border_size = (3, 0)
 

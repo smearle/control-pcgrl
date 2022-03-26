@@ -536,6 +536,7 @@ class MEOptimizer():
             self.start_time = timer()
         self.logbook = deap.tools.Logbook()
         self.logbook.header = ["iteration", "containerSize", "evals", "nbUpdated"] + (stats.fields if stats else []) + ["elapsed"]
+        print(self.logbook.header)
         self.i = 0
 
 
@@ -572,7 +573,7 @@ class MEOptimizer():
         batch = [self.toolbox.select(breedable) for i in range(self.batch_size)]
 
         ## Vary the pool of individuals
-        self.inds = deap.algorithms.varAnd(batch, self.toolbox, self.cxpb, self.mutpb)
+        self.inds = deap.algorithms.varAnd(batch, self.toolbox, self.cxpb, self.mutpb) if self.i > 1 else batch
 
         return self.inds
 
@@ -656,7 +657,6 @@ class MEInitStatesArchive(MEGrid):
             archive_init_states(self.init_states_archive, self.init_states, idx)
 
         return index
-
 
 
 class FlexArchive(InitStatesArchive):
@@ -885,7 +885,7 @@ class DoneAuxNCA(AuxNCA):
 
 from models.cbam import CBAM
 
-class Attention(ResettableNN):
+class AttentionNCA(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_aux=3):
         self.n_aux = n_aux
         super().__init__()
@@ -950,6 +950,76 @@ class GeneratorNN(ResettableNN):
         # axis 0,2 is the y value
 
         return x, False
+
+
+class Decoder(ResettableNN):
+    """
+    Decoder-like architecture (e.g. as in VAEs and GANs).
+    """
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__()
+        n_hid_1 = 16
+        self.l1 = nn.ConvTranspose2d(n_in_chans + 2, n_hid_1, 3, 2, 1, 1, bias=True)
+        self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 2, 1, 1, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            # Observe the coordinates
+            coords = get_coord_grid(x, normalize=True)
+            x = th.hstack((coords, x))
+            x = self.l1(x)
+            x = th.relu(x)
+            x = self.l2(x)
+            x = th.relu(x)
+            x = self.l3(x)
+            # TODO: try softmax
+            x = th.sigmoid(x)
+
+        return x, False
+
+
+class DeepDecoder(ResettableNN):
+    """
+    Decoder-like architecture (e.g. as in VAEs and GANs). But deeper.
+    """
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__()
+        n_hid_1 = 10
+        self.l1 = nn.ConvTranspose2d(n_in_chans + 2, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l3 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l4 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l5 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l6 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
+        self.l7 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
+        self.layers = [self.l1, self.l2, self.l3, self.l4, self.l5, self.l6, self.l7]
+        self.apply(init_weights)
+
+    def forward(self, x):
+        with th.no_grad():
+            # Observe the coordinates
+            coords = get_coord_grid(x, normalize=True)
+            x = th.hstack((coords, x))
+            x = self.l1(x)
+            x = th.relu(x)
+            x = self.l2(x)
+            x = th.relu(x)
+            x = self.l3(x)
+            x = th.relu(x)
+            x = self.l4(x)
+            x = th.relu(x)
+            x = self.l5(x)
+            x = th.relu(x)
+            x = self.l6(x)
+            x = th.relu(x)
+            x = self.l7(x)
+            x = th.sigmoid(x)
+
+        return x, False
+
 
 class MixNCA(ResettableNN):
     def __init__(self, *args, **kwargs):
@@ -1064,6 +1134,7 @@ class GenReluCPPN(ResettableNN):
 
 
 class SinCPPN(ResettableNN):
+    """A vanilla CPPN that only takes (x, y) coordinates. #TODO: merge with GenSinCPPN"""
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
         n_hid = 64
@@ -1071,7 +1142,12 @@ class SinCPPN(ResettableNN):
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
+        if "Sin2" in MODEL:
+            # print('init_siren')
+            init_siren_weights(self.layers[0], first_layer=True)
+            [init_siren_weights(li, first_layer=False) for li in self.layers[1:]]
+        else:
+            self.apply(init_weights)
 
     def forward(self, x):
         x = get_coord_grid(x, normalize=True) * 2
@@ -1091,7 +1167,11 @@ class GenSinCPPN(ResettableNN):
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
+        if "Sin2" in MODEL:
+            init_siren_weights(self.layers[0], first_layer=True)
+            [init_siren_weights(li, first_layer=False) for li in self.layers[1:]]
+        else:
+            self.apply(init_weights)
 
     def forward(self, x):
         coord_x = get_coord_grid(x, normalize=True) * 2
@@ -1171,6 +1251,34 @@ class FixedGenCPPN(ResettableNN):
             x = th.sigmoid(self.l3(x))
 
         return x, True
+
+
+class DirectBinaryEncoding():
+    def __init__(self, n_in_chans, n_actions):
+        self.discrete = None
+        self.layers = np.array([])  # dummy
+        
+
+    def __call__(self, x):
+        if self.discrete is None:
+            self.discrete = x[0].argmax(0)
+
+        onehot = th.zeros(1, x.shape[1], x.shape[2], x.shape[3])
+        onehot[0,0,self.discrete==0]=1
+        onehot[0,1,self.discrete==1]=1
+        # onehot.scatter_(1, self.discrete.unsqueeze(0), 1)
+
+        return onehot, True
+
+    def mutate(self):
+        # flip some tiles
+        mut_act = (th.rand(self.discrete.shape) < 0.01).long()  # binary mutation actions
+        self.discrete = (self.discrete + mut_act) % 2
+
+    def reset(self):
+        return
+
+
 
 
 class CPPN(ResettableNN):
@@ -1281,6 +1389,14 @@ class GenCPPN(CPPN):
         multi_hot = multi_hot.unsqueeze(0)
         multi_hot = (multi_hot + 1) / 2
         return multi_hot, True
+
+# Sin2 is siren-type net (i.e. sinusoidal, fixed-topology CPPN), with proper activation as per paper
+Sin2CPPN = SinCPPN
+
+# CPPN2 takes latent seeds not onehot levels
+GenSinCPPN2 = GenSinCPPN
+GenSin2CPPN2 = GenSinCPPN
+GenCPPN2 = GenCPPN
 
 
 class Individual(qdpy.phenotype.Individual):
@@ -1429,6 +1545,20 @@ class PlayerNN(ResettableNN):
         return mean_rew
 
 
+def init_siren_weights(m, first_layer=False):
+    if first_layer:
+        th.nn.init.constant_(m.weight, 30)
+        return
+    if type(m) == th.nn.Conv2d:
+        ws = m.weight.shape
+        # number of _inputs
+        n = ws[0] * ws[1] * ws[2]
+        th.nn.init.uniform_(m.weight, -np.sqrt(6/n), np.sqrt(6/n))
+        m.bias.data.fill_(0.01)
+    else:
+        raise Exception
+
+
 def init_weights(m):
     if type(m) == th.nn.Linear:
         th.nn.init.xavier_uniform_(m.weight)
@@ -1449,6 +1579,8 @@ def init_play_weights(m):
 
 
 def set_nograd(nn):
+    if not hasattr(nn, "parameters"):
+        return
     for param in nn.parameters():
         param.requires_grad = False
 
@@ -1470,6 +1602,10 @@ def get_init_weights(nn):
             init_params.append(lyr.weight.view(-1).numpy())
             if lyr.bias is not None:
                 init_params.append(lyr.bias.view(-1).numpy())
+
+    if not init_params:
+        return np.array([])
+
     init_params = np.hstack(init_params)
     print("number of initial NN parameters: {}".format(init_params.shape))
 
@@ -1894,8 +2030,8 @@ def multi_evo(
     if init_states is None:
         init_states = get_init_states(init_states_archive, tuple(index))
 
-    if proc_id is not None:
-        print("simulating id: {}".format(proc_id))
+    # if proc_id is not None:
+    #     print("simulating id: {}".format(proc_id))
     model = set_weights(model, model_w)
     result = simulate(
         env=env,
@@ -2095,7 +2231,9 @@ def simulate(
     bcs = np.empty(shape=(len(bc_names), n_init_states))
     # if SAVE_LEVELS:
     trg = np.empty(shape=(n_init_states))
-    final_levels = np.empty(shape=init_states.shape, dtype=np.uint8)
+
+    # init_states has shape (n_episodes, n_chan, height, width)
+    final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width), dtype=np.uint8)
     batch_reward = 0
     batch_time_penalty = 0
     batch_targets_penalty = 0
@@ -2105,18 +2243,22 @@ def simulate(
         level_frames = []
 
     for (n_episode, init_state) in enumerate(init_states):
-        # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
-        # Set the representation to begin in the upper left corner
-        env._rep._map = init_state.copy()
-        env._prob.path_coords = []
-        env._prob.path_length = None
-        # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
         # TODO: wrap the env instead
         env._rep._x = env._rep._y = 0
-        # env._rep._x = np.random.randint(env._prob._width)
-        # env._rep._y = np.random.randint(env._prob._height)
-        int_map = init_state
-        obs = get_one_hot_map(int_map, n_tile_types)
+        # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
+        if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
+            obs = init_state
+        else:
+            # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
+            # Set the representation to begin in the upper left corner
+            env._rep._map = init_state.copy()
+            env._prob.path_coords = []
+            env._prob.path_length = None
+            # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
+            # env._rep._x = np.random.randint(env._prob._width)
+            # env._rep._y = np.random.randint(env._prob._height)
+            int_map = init_state
+            obs = get_one_hot_map(int_map, n_tile_types)
 
         if RENDER:
             env.render()
@@ -2130,8 +2272,9 @@ def simulate(
         n_step = 0
 
         while not done:
-            if render_levels:
-                level_frames.append(env.render(mode="rgb_array"))
+            if env._rep._map is not None:
+                if render_levels:
+                    level_frames.append(env.render(mode="rgb_array"))
             #           in_tensor = th.unsqueeze(
             #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = th.unsqueeze(th.Tensor(obs), 0)
@@ -2153,7 +2296,7 @@ def simulate(
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
             #           env._rep._map = int_map
-            done = done or not (change or skip) or n_step >= N_STEPS
+            done = done or not (change or skip) or n_step >= N_STEPS - 1
             # done = n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
@@ -2486,8 +2629,9 @@ class EvoPCGRL:
                 n_in_chans=self.n_tile_types, n_actions=n_out_chans
             )
         else:
+            n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN2" in MODEL else self.n_tile_types
             self.gen_model = globals()[MODEL](
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
+                n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans
             )
         set_nograd(self.gen_model)
         initial_w = get_init_weights(self.gen_model)
@@ -2592,7 +2736,7 @@ class EvoPCGRL:
             #           self.init_states = np.random.randint(
             #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)
             #           )
-            self.init_states = gen_random_levels(N_INIT_STATES, self.env)
+            self.init_states = gen_latent_seeds(N_INIT_STATES, self.env)
 
         self.start_time = time.time()
         self.total_itrs = N_GENERATIONS
@@ -2637,7 +2781,7 @@ class EvoPCGRL:
             }
 
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
-                init_states = gen_random_levels(N_INIT_STATES, self.env)
+                init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             else:
                 init_states = self.init_states
 
@@ -3156,7 +3300,7 @@ class EvoPCGRL:
                         # parallelization would be kind of pointelss here
                         init_nn = set_weights(self.gen_model, model)
                         # run simulation, but only on a single level-seed
-#                       init_state = gen_random_levels(1, self.env)
+#                       init_state = (1, self.env)
                         #                       init_state = np.random.randint(
                         #                           0, self.n_tile_types, size=(1, *self.init_states.shape[1:])
                         #                       )
@@ -3432,7 +3576,7 @@ class EvoPCGRL:
                 else:
                     N_EVAL_STATES = N_INIT_STATES = 20  #= 100  # e.g. 10
 
-                init_states = gen_random_levels(N_INIT_STATES, self.env)
+                init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             #               init_states = np.random.randint(
             #                   0,
             #                   self.n_tile_types,
@@ -3715,7 +3859,7 @@ class EvoPCGRL:
             #           RANDOM_INIT_LEVELS = not opts.fix_level_seeds
 
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
-                init_states = gen_random_levels(N_INIT_STATES, self.env)
+                init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             elif not args.fix_level_seeds and args.n_init_states != 0:
                 init_states_archive = archive.init_states_archive
                 init_states = get_init_states(init_states_archive, tuple(idxs[i]))
@@ -3747,9 +3891,16 @@ class EvoPCGRL:
 #               i=0
 
 
-def gen_random_levels(n_init_states, env):
+def gen_latent_seeds(n_init_states, env):
     if env._prob.is_continuous():  # AD HOC continous representation
         init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, env._prob._height, env._prob._width))
+    elif "CPPN2" in MODEL or "Decoder" in MODEL:
+        init_states = np.random.normal(0, 1, (N_INIT_STATES, N_LATENTS))
+        if "CPPN2" in MODEL:
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height, env._prob._width))
+        if "Decoder" in MODEL:
+            assert env._prob._width % 4 == env._prob._height % 4 == 0
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, env._prob._height // 4, env._prob._width // 4))
     else:
         init_states = np.random.randint(
             0, len(env._prob.get_tile_types()), (N_INIT_STATES, env._prob._height, env._prob._width)
@@ -3825,7 +3976,7 @@ if __name__ == "__main__":
     ALGO = arg_dict["algo"]
     if ALGO == "ME":
         # TODO: implement wrapper around other models generically
-        assert MODEL in ["CPPN", "GenCPPN", "CPPNCA"]
+        assert MODEL in ["CPPN", "GenCPPN", "CPPNCA", "DirectBinaryEncoding"]
     else:
         assert ALGO == "CMAME"
     REPRESENTATION = arg_dict["representation"]
@@ -3845,7 +3996,13 @@ if __name__ == "__main__":
     PLAY_LEVEL = arg_dict["play_level"]
     BCS = arg_dict["behavior_characteristics"]
     N_GENERATIONS = arg_dict["n_generations"]
+
+    # Number of generation episodes (i.e. number of latent seeds or initial states in the case of NCA)
     N_INIT_STATES = arg_dict["n_init_states"]
+
+    # How many latents for Decoder and CPPN architectures
+    # TODO: Try making this nonzero for NCA?
+    N_LATENTS = 0 if "NCA" in MODEL else 16
     N_STEPS = arg_dict["n_steps"]
 
     SHOW_VIS = arg_dict["show_vis"]
@@ -3864,6 +4021,8 @@ if __name__ == "__main__":
             assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES
         if MODEL != "CPPNCA":
             assert N_STEPS == 1
+    if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
+        assert N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
@@ -3871,7 +4030,7 @@ if __name__ == "__main__":
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = ''
+    exp_name = 'EvoPCGRL_'
     if ALGO == "ME":
         exp_name += "ME_"
     exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
