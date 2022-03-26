@@ -35,7 +35,7 @@ class Minecraft3DmazeProblem(Problem):
         self._random_probs = False
 
         self._rewards = {
-            "regions": 0,
+            "regions": 1,
             "path-length": 5
         }
         self.static_trgs = {"regions": 1, "path-length": np.inf}

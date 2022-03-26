@@ -8,6 +8,8 @@ GVGAI_SPRITES = False
 
 """
 The base class for all the problems that can be handled by the interface
+
+map in prob are list of strings
 """
 class Problem:
     """

@@ -3,6 +3,8 @@ from gym.utils import seeding
 from gym_pcgrl.envs.helper_3D import gen_random_map
 """
 The base class of all the 3D representations
+
+map in repr are np.array of numbers
 """
 class Representation3D:
     """
