@@ -370,6 +370,10 @@ def run_dijkstra(x, y, z, map, passable_values):
 
             # Add the new tile to the frontier
             queue.append((nx, ny, nz, cd + 1))
+            if cz == 3:
+                print(f"**********current place: {cx},{cy},{cz}**********")
+                print("queue in run_dijkstra: ", queue)
+                print("dijkstra_map in run_dijkstra: ", dijkstra_map)
 
     return dijkstra_map, visited_map
 
