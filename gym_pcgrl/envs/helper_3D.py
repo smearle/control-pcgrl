@@ -222,17 +222,15 @@ def _passable(map, x, y, z, passable_values):
             continue
         
         # Check whether can go down stairs
-        if ((nz-1 == 0 or nz-1 > 0 and map[nz-2][ny][nx] not in passable_values)  # make sure don't step into a cliff
+        if ((nz-1 == 0 or (nz-1 > 0 and map[nz-2][ny][nx] not in passable_values))  # make sure don't step into a cliff
                         and nz+1 < len(map) and map[nz-1][ny][nx] in passable_values
                                             and map[nz][ny][nx] in passable_values
                                             and map[nz+1][ny][nx] in passable_values):
-            if not map[nz][ny][nx] in passable_values:
-                TT()
             passable_tiles.append((nx, ny, nz-1))
 
         # Check whether can stay at the same level
         elif (nz+1 < len(map) 
-                and (nz == 0 or nz > 0 and map[nz-1][ny][nx] not in passable_values) # make sure don't step into a cliff
+                and (nz == 0 or (nz > 0 and map[nz-1][ny][nx] not in passable_values)) # make sure don't step into a cliff
                                 and map[nz][ny][nx] in passable_values
                                 and map[nz+1][ny][nx] in passable_values):
             passable_tiles.append((nx, ny, nz))
@@ -362,6 +360,10 @@ def run_dijkstra(x, y, z, map, passable_values):
 
             # Add the new tile to the frontier
             queue.append((nx, ny, nz, cd + 1))
+            if cz == 3:
+                print(f"**********current place: {cx},{cy},{cz}**********")
+                print("queue in run_dijkstra: ", queue)
+                print("dijkstra_map in run_dijkstra: ", dijkstra_map)
 
     return dijkstra_map, visited_map
 

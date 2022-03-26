@@ -2,37 +2,36 @@
 
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=48
+#SBATCH --cpus-per-task=12
 
-## We won't be asking for gpus, for now
 #SBATCH --gres=gpu:1
 
 #SBATCH --time=120:00:00
 #SBATCH --mem=30GB
-#SBATCH --job-name=pcgrl
+#SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=pcgrl-narrow3D_%j.out
+#SBATCH --output=pcgrl-digger_%j.out
 
-cd /scratch/zj2086/gym-pcgrl
+cd /scratch/zj2086/control-pcgrl3D
 
 ## Is this actually necessary?
-source activate pcgrl
+source activate pcgrl-rllib
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate pcgrl
+conda activate pcgrl-rllib
 
 # start=$SECONDS
 python train_ctrl.py --load_args 0
-# do
-#     duration=$((( SECONDS - start ) / 60))
-#     echo "Script returned error after $duration minutes"
-#     if [ $minutes -lt 60 ]
-#     then
-#       echo "Too soon. Something is wrong. Terminating node."
-#       exit
-#     else
-#       echo "Re-launching script."
-#       start=$SECONDS
-#     fi
-# done
+do
+    duration=$((( SECONDS - start ) / 60))
+    echo "Script returned error after $duration minutes"
+    if [ $minutes -lt 60 ]
+    then
+      echo "Too soon. Something is wrong. Terminating node."
+      exit
+    else
+      echo "Re-launching script."
+      start=$SECONDS
+    fi
+done
