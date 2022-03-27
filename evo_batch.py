@@ -95,14 +95,14 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
+    0,
 #   1,
-    10,
+#   10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
- #   1,
+#   1,
 #   10,
     50,
 #   100,

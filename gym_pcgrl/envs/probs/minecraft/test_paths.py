@@ -1,6 +1,7 @@
 """ 
-This file is for debugging path-finding in Minecraft problems, using hand-crafted levels. We need to hackishly set 
-the entire level to be equal to the hand-crafted array, then run the path-finding algorithm by calling get_stats().
+This file is for debugging path-finding in Minecraft problems, using hand-crafted levels. 
+
+We need to hackishly set the entire level to be equal to the hand-crafted array, then run the path-finding algorithm by calling get_stats().
 """
 import gym
 import numpy as np

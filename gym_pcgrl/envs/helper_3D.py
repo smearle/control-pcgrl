@@ -212,7 +212,7 @@ def _passable(map, x, y, z, passable_values):
 
     passable_tiles = []
 
-    # Check 4 adjcent directions: forward, back, left, right. For each, it is passable if we can move to it while
+    # Check 4 adjacent directions: forward, back, left, right. For each, it is passable if we can move to it while
     # moving up/down-stairs or staying level.
     for dir in [(1,0), (0,1), (-1,0), (0,-1)]:   
         nx, ny, nz= x+dir[0], y+dir[1], z
@@ -221,27 +221,34 @@ def _passable(map, x, y, z, passable_values):
         if (nx < 0 or ny < 0 or nx >= len(map[z][y]) or ny >= len(map[z])):
             continue
         
-        # Check whether can go down stairs
-        if ((nz-1 == 0 or nz-1 > 0 and map[nz-2][ny][nx] not in passable_values)  # make sure don't step into a cliff
-                        and nz+1 < len(map) and map[nz-1][ny][nx] in passable_values
-                                            and map[nz][ny][nx] in passable_values
-                                            and map[nz+1][ny][nx] in passable_values):
-            if not map[nz][ny][nx] in passable_values:
-                TT()
+        # Check whether we can go down a step.
+        if (
+            # and nz+1 < len(map)  # Head-room is guaranteed if our current position is valid.
+            (nz-1 == 0  # Either we are moving either onto the bottom of the map...
+                or nz-1 > 0 and map[nz-2][ny][nx] not in passable_values)  # ... or onto am impassable (solid) tile. 
+            and map[nz-1][ny][nx] in passable_values  # Foot-room at the lower stair.
+            and map[nz][ny][nx] in passable_values  # Head-room at the lower stair.
+            and map[nz+1][ny][nx] in passable_values  # Extra head-room at the lower (next) stair.
+        ):
             passable_tiles.append((nx, ny, nz-1))
 
-        # Check whether can stay at the same level
-        elif (nz+1 < len(map) 
-                and (nz == 0 or nz > 0 and map[nz-1][ny][nx] not in passable_values) # make sure don't step into a cliff
-                                and map[nz][ny][nx] in passable_values
-                                and map[nz+1][ny][nx] in passable_values):
+        # Check whether can stay at the same level.
+        elif (
+            #nz+1 < len(map) and  # Head-room at our next position is guaranteed if our current position is valid.
+            (nz == 0 or  # Either we are on the bottom of the map...
+                nz > 0 and map[nz-1][ny][nx] not in passable_values)  # ...or moving onto an impassable (solid) tile.
+            and map[nz][ny][nx] in passable_values  # Foot-room at our next position.
+            and map[nz+1][ny][nx] in passable_values  # Head-room at our next position.
+        ):  
             passable_tiles.append((nx, ny, nz))
         
-        # Check whether can go up stairs
-        elif (nz+2 < len(map) and map[nz+1][ny][nx] not in passable_values  # do not step off a cliff
-                                and map[nz+2][y][x] in passable_values
-                                 and map[nz+1][ny][nx] in passable_values
-                                 and map[nz+2][ny][nx] in passable_values):
+        # Check whether can go up a step.
+        elif (nz+2 < len(map)  # Our head must remain inside the map.
+            and map[nz][ny][nx] not in passable_values  # There must be a (higher) stair to climb onto.
+            and map[nz+1][ny][nx] in passable_values  # Foot-room at the higher stair.
+            and map[nz+2][ny][nx] in passable_values  # Head-room at the higher stair.
+            and map[nz+2][y][x] in passable_values  # Extra head-room at the lower (current) stair.
+        ):
             passable_tiles.append((nx, ny, nz+1))
 
         else:
@@ -336,6 +343,7 @@ def run_dijkstra(x, y, z, map, passable_values):
     dijkstra_map = np.full((len(map), len(map[0]), len(map[0][0])), -1)
     visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
     queue = [(x, y, z, 0)]
+
     while len(queue) > 0:
         # Looking at a new tile
         (cx,cy,cz,cd) = queue.pop(0)
@@ -379,21 +387,44 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
     final_value = 0
+
+    # We'll iterate over all empty tiles. But checking against the visited_map means we only perform path-finding 
+    # algorithms once per connected component. 
     for (x,y,z) in empty_tiles:
+
         if final_visited_map[z][y][x] > 0:
             continue
+
+        # We never start path-finding from a position at which the player cannot stand. Foot-room is guaranteed, so we
+        # check for headroom.
+        if z+1 == len(map) or map[z+1][y][x] not in passable_values:
+            final_visited_map[z][y][x] = 1
+            continue
+
+        # Calculate the distance from the current tile to all other (reachable) tiles.
         dikjstra_map, visited_map = run_dijkstra(x, y, z, map, passable_values)
         final_visited_map += visited_map
+
+        # Get furthest tile from current tile.
         (mz,my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
+
+        # Search again from this furthest tile. This tile must belong to a longest shortest path within this connected 
+        # component. Search again to find this path.
         dikjstra_map, _ = run_dijkstra(mx, my, mz, map, passable_values)
         max_value = np.max(dikjstra_map)
+
+        # Store this path/length if it is the longest of all connected components visited thus far.
         if max_value > final_value:
             final_value = max_value
+
             if get_path:
                 path_map = dikjstra_map
+
     path = []
+
     if get_path and final_value > 0:
         path = get_path_coords(path_map)
+
     return final_value, path
 
 """

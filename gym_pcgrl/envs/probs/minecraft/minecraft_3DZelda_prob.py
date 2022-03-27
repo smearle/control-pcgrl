@@ -6,7 +6,8 @@ import numpy as np
 from PIL import Image
 
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper_3D import get_range_reward, get_tile_locations, calc_num_regions, get_path_coords, calc_certain_tile, run_dijkstra
+from gym_pcgrl.envs.helper_3D import (get_range_reward, get_tile_locations, calc_num_regions, get_path_coords,
+    calc_certain_tile, run_dijkstra)
 from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
 """

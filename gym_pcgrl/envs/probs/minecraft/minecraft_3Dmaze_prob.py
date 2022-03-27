@@ -103,9 +103,9 @@ class Minecraft3DmazeProblem(Problem):
         self.old_path_coords = self.path_coords
         self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
-        start_time = timer()
+        # start_time = timer()
         self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
-        print(f"minecraft path-finding time: {timer() - start_time}")
+        # print(f"minecraft path-finding time: {timer() - start_time}")
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             if not path_is_valid:
