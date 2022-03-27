@@ -9,10 +9,10 @@ class Minecraft3DmazeCtrlProblem(Minecraft3DmazeProblem):
     def __init__(self):
         super().__init__()
         n_floors = self._height // 3
+
+        # Max path length involves having a zig-zag pattern on each floor, connected by a set of stairs.
         max_path_per_floor = np.ceil(self._width / 2) * (self._length) + np.floor(self._length/2)
         self._max_path_length = n_floors * max_path_per_floor
-
-#       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
 
         # default conditional targets
         self.static_trgs = {"regions": 1, "path-length": self._max_path_length}
@@ -30,11 +30,6 @@ class Minecraft3DmazeCtrlProblem(Minecraft3DmazeProblem):
             # and "snake" along that one
             # Upper bound: zig-zag
             "path-length": (0, self._max_path_length),
-            #   11111111
-            #   00000001
-            #   11111111
-            #   10000000
-            #   11111111
         }
 
         self.weights = {"regions": 1, "path-length": 1}

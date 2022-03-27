@@ -13,8 +13,8 @@ from gym_pcgrl.envs.helper import get_range_reward
 
 #FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
-class ParamRew(gym.Wrapper):
-    def __init__(self, env, ctrl_metrics, rand_params=False, **kwargs):
+class ConditionalWrapper(gym.Wrapper):
+    def __init__(self, env, ctrl_metrics=[], rand_params=False, **kwargs):
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
         self.conditional = kwargs.get("conditional")
@@ -38,8 +38,6 @@ class ParamRew(gym.Wrapper):
         super().__init__(self.env)
         #       cond_trgs = self.unwrapped.cond_trgs
 
-        if ctrl_metrics is None:
-            ctrl_metrics = []
         self.ctrl_metrics = ctrl_metrics  # controllable metrics
 #       self.ctrl_metrics = ctrl_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
         # fixed metrics (i.e. playability constraints)

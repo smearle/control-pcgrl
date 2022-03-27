@@ -1,4 +1,3 @@
-import imp
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.narrow_cast_rep import NarrowCastRepresentation
 from gym_pcgrl.envs.reps.narrow_multi_rep import NarrowMultiRepresentation

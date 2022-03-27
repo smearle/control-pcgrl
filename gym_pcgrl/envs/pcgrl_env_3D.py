@@ -1,15 +1,10 @@
-import copy
 from pdb import set_trace as TT
-import imp
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper_3D import get_int_prob, get_string_map
-from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
 import numpy as np
-import gym
 from gym import spaces
-import PIL
 
 """
 The 3D PCGRL GYM Environment

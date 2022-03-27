@@ -3,7 +3,7 @@
 	url = https://github.com/flowersteam/teachDeepRL
 [submodule "pytorch-neat"]
 	path = pytorch-neat
-	url = https://github.com/smearle/pytorch-neat
+	url = git@github.com:smearle/pytorch-neat
 [submodule "dqd"]
 	path = dqd
 	url = git@github.com:icaros-usc/dqd

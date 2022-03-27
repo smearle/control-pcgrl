@@ -59,6 +59,7 @@ from tqdm import tqdm
 
 import gym_pcgrl
 from evo_args import get_args
+from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 from gym_pcgrl.envs.helper_3D import get_string_map as get_string_map_3d
 
@@ -272,10 +273,11 @@ def save_grid(csv_name="levels", d=4):
     env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
     # create env
     env = gym.make(env_name)
-    map_width = env._prob._width
-    map_height = env._prob._height
+    env = ConditionalWrapper(env)
+    map_width = env.unwrapped._prob._width
+    map_height = env.unwrapped._prob._height
     if ENV3D:
-        map_length = env._prob._length
+        map_length = env.unwrapped._prob._length
 
     df = pd.read_csv(levels_path, header=0, skipinitialspace=True)
     #   .rename(
@@ -338,8 +340,8 @@ def save_grid(csv_name="levels", d=4):
                     )
 
             # Set map
-            env._rep._x = env._rep._y = 0
-            env._rep._map = level
+            env.unwrapped._rep._x = env.unwrapped._rep._y = 0
+            env.unwrapped._rep._map = level
             img = env.render(mode="rgb_array")
 #           axs[row_num, col_num].imshow(img, aspect="auto")
             axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
@@ -1704,7 +1706,7 @@ def get_entropy(int_map, env):
         b = 15
         return (measure.shannon_entropy(int_map) - a) / (b - a)
     # FIXME: make this robust to different action spaces
-    n_classes = len(env._prob._prob)
+    n_classes = len(env.unwrapped._prob._prob)
     max_val = -(1 / n_classes) * np.log(1 / n_classes) * n_classes
     total = len(int_map.flatten())
     entropy = 0.0
@@ -1726,13 +1728,13 @@ def get_counts(int_map, env):
     returns a python list with tile counts for each tile normalized to a range of 0.0 to 1.0
     """
     if not ENV3D:
-        max_val = env._prob._width * env._prob._height  # for example 14*14=196
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._height  # for example 14*14=196
     else:
-        max_val = env._prob._width * env._prob._height * env._prob.length
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._height * env.unwrapped._prob.length
 
     return [
         np.sum(int_map.flatten() == tile) / max_val
-        for tile in range(len(env._prob._prob))
+        for tile in range(len(env.unwrapped._prob._prob))
     ]
 
 def get_brightness(float_map, env):
@@ -1756,9 +1758,9 @@ def get_emptiness(int_map, env):
     """
     # TODO: double check that the "0th" tile-type actually corresponds to empty tiles
     if not ENV3D:
-        max_val = env._prob._width * env._prob._height  # for example 14*14=196
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._height  # for example 14*14=196
     else:
-        max_val = env._prob._width * env._prob._height * env._prob._length
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._height * env.unwrapped._prob._length
 
     return np.sum(int_map.flatten() == 0) / max_val
 
@@ -1794,9 +1796,9 @@ def get_hor_sym(int_map, env):
     returns a symmetry float value normalized to a range of 0.0 to 1.0
     """
     if not ENV3D:
-        max_val = env._prob._width * env._prob._height / 2  # for example 14*14/2=98
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._height / 2  # for example 14*14/2=98
     else:
-        max_val = env._prob._width * env._prob._length / 2 * env._prob._height  
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._length / 2 * env.unwrapped._prob._height  
     m = 0
 
     if int(int_map.shape[0]) % 2 == 0:
@@ -1827,9 +1829,9 @@ def get_ver_sym(int_map, env):
     returns a symmetry float value normalized to a range of 0.0 to 1.0
     """
     if not ENV3D:
-        max_val = env._prob._width * env._prob._height / 2  # for example 14*14/2=98
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._height / 2  # for example 14*14/2=98
     else:
-        max_val = env._prob._width * env._prob._length / 2 * env._prob._height  
+        max_val = env.unwrapped._prob._width * env.unwrapped._prob._length / 2 * env.unwrapped._prob._height  
     m = 0
 
     if int(int_map.shape[1]) % 2 == 0:
@@ -1871,7 +1873,7 @@ def get_sym(int_map, env):
 
 
 def get_co(int_map, env):
-    max_val = env._prob._width * env._prob._height * 4
+    max_val = env.unwrapped._prob._width * env.unwrapped._prob._height * 4
     result = (
         np.sum((np.roll(int_map, 1, axis=0) == int_map).astype(int))
         + np.sum((np.roll(int_map, -1, axis=0) == int_map).astype(int))
@@ -1999,8 +2001,8 @@ N_PLAYER_STEPS = 100
 
 
 def play_level(env, level, player):
-    env._rep._old_map = level
-    env._rep._random_start = False
+    env.unwrapped._rep._old_map = level
+    env.unwrapped._rep._random_start = False
     p_obs = env.reset()
 
     if not env.is_playable():
@@ -2018,7 +2020,7 @@ def play_level(env, level, player):
 
         if isinstance(action, th.Tensor):
             # TODO: this logic belongs with the model
-            player_coords = env._prob.player.coords
+            player_coords = env.unwrapped._prob.player.coords
             action = np.array(action)[player_coords[0], player_coords[1]]
         elif isinstance(action, list) or isinstance(action, np.ndarray):
             assert len(action) == 1
@@ -2140,7 +2142,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
             action, done = gen_model(int_tensor)[0].numpy()
 #           obs = action
             int_map = done or action.argmax(axis=0)
-            env._rep._map = int_map
+            env.unwrapped._rep._map = int_map
             done = done or (int_map == last_int_map).all() or n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
@@ -2148,8 +2150,8 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
 
             if done:
                 gen_model.reset()
-                env._rep._old_map = int_map
-                env._rep._random_start = False
+                env.unwrapped._rep._old_map = int_map
+                env.unwrapped._rep._random_start = False
                 _ = env.reset()
 
                 if env.is_playable():
@@ -2262,9 +2264,9 @@ def simulate(
     # Allow us to manually set the level-map on reset (using the "_old_map" attribute)
     # Actually we have found a more efficient workaround for now.
 
-    #   env._rep._random_start = False
+    #   env.unwrapped._rep._random_start = False
     #   if n_episode == 0 and False:
-    #       env._rep._old_map = init_state
+    #       env.unwrapped._rep._old_map = init_state
     #       obs = env.reset()
     #       int_map = obs['map']
     n_init_states = init_states.shape[0]
@@ -2276,9 +2278,9 @@ def simulate(
 
     # init_states has shape (n_episodes, n_chan, height, width)
     if not ENV3D:
-        final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width), dtype=np.uint8)
+        final_levels = np.empty(shape=(init_states.shape[0], env.unwrapped._prob._height, env.unwrapped._prob._width), dtype=np.uint8)
     else:
-        final_levels = np.empty(shape=(init_states.shape[0], env._prob._height, env._prob._width, env._prob._length), dtype=np.uint8)
+        final_levels = np.empty(shape=(init_states.shape[0], env.unwrapped._prob._height, env.unwrapped._prob._width, env.unwrapped._prob._length), dtype=np.uint8)
     batch_reward = 0
     batch_time_penalty = 0
     batch_targets_penalty = 0
@@ -2287,21 +2289,21 @@ def simulate(
     if render_levels:
         level_frames = []
 
-    for (n_episode, init_state) in enumerate(init_states):
+    for (n_episode, init_state) in enumerate(init_states[:1]):
         # TODO: wrap the env instead
-        env._rep._x = env._rep._y = 0
+        env.unwrapped._rep._x = env.unwrapped._rep._y = 0
         # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
         if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
             obs = init_state
         else:
             # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
             # Set the representation to begin in the upper left corner
-            env._rep._map = init_state.copy()
-            env._prob.path_coords = []
-            env._prob.path_length = None
+            env.unwrapped._rep._map = init_state.copy()
+            env.unwrapped._prob.path_coords = []
+            env.unwrapped._prob.path_length = None
             # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
-            # env._rep._x = np.random.randint(env._prob._width)
-            # env._rep._y = np.random.randint(env._prob._height)
+            # env.unwrapped._rep._x = np.random.randint(env.unwrapped._prob._width)
+            # env.unwrapped._rep._y = np.random.randint(env.unwrapped._prob._height)
             int_map = init_state
             obs = get_one_hot_map(int_map, n_tile_types)
 
@@ -2317,7 +2319,7 @@ def simulate(
         n_step = 0
 
         while not done:
-            if env._rep._map is not None:
+            if env.unwrapped._rep._map is not None:
                 if render_levels:
                     level_frames.append(env.render(mode="rgb_array"))
             #           in_tensor = th.unsqueeze(
@@ -2328,22 +2330,22 @@ def simulate(
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
             action, skip = preprocess_action(
                 action,
-                int_map=env._rep._map,
-                x=env._rep._x,
-                y=env._rep._y,
+                int_map=env.unwrapped._rep._map,
+                x=env.unwrapped._rep._x,
+                y=env.unwrapped._rep._y,
                 n_dirs=N_DIRS,
                 n_tiles=n_tile_types,
             )
             if not ENV3D:
-                change, x, y = env._rep.update(action, continuous=CONTINUOUS)
+                change, [x, y] = env.unwrapped._rep.update(action, continuous=CONTINUOUS)
             else:
-                change, x, y, z = env._rep.update(action, continuous=CONTINUOUS)
-            int_map = env._rep._map
-            obs = get_one_hot_map(env._rep.get_observation()["map"], n_tile_types)
-            preprocess_observation(obs, x=env._rep._x, y=env._rep._y)
+                change, [x, y, z] = env.unwrapped._rep.update(action, continuous=CONTINUOUS)
+            int_map = env.unwrapped._rep._map
+            obs = get_one_hot_map(env.unwrapped._rep.get_observation()["map"], n_tile_types)
+            preprocess_observation(obs, x=env.unwrapped._rep._x, y=env.unwrapped._rep._y)
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
-            #           env._rep._map = int_map
+            #           env.unwrapped._rep._map = int_map
             done = done or not (change or skip) or n_step >= N_STEPS - 1
             # done = n_step >= N_STEPS
 
@@ -2358,13 +2360,13 @@ def simulate(
                 # we'll need this to compute Hamming diversity
                 final_levels[n_episode] = int_map
                 if not ENV3D:
-                    stats = env._prob.get_stats(
-                        get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
+                    stats = env.unwrapped._prob.get_stats(
+                        get_string_map(int_map, env.unwrapped._prob.get_tile_types(), continuous=CONTINUOUS),
                         # lenient_paths = True,
                     )
                 else:
-                    stats = env._prob.get_stats(
-                        get_string_map_3d(int_map, env._prob.get_tile_types()),
+                    stats = env.unwrapped._prob.get_stats(
+                        get_string_map_3d(int_map, env.unwrapped._prob.get_tile_types()),
                         # lenient_paths = True,
                     )
 
@@ -2417,20 +2419,20 @@ def simulate(
                     if INFER:
                         print("p_2 reward: ", p_2_rew)
 
-                    max_regret = env._prob.max_reward - env._prob.min_reward
+                    max_regret = env.unwrapped._prob.max_reward - env.unwrapped._prob.min_reward
                     # add this in case we get worst possible regret (don't want to punish a playable map)
                     batch_play_bonus += max_regret + p_1_rew - p_2_rew
 
             if RENDER:
                 if INFER:
                     if ENV3D:
-                        stats = env._prob.get_stats(
-                            get_string_map_3d(int_map, env._prob.get_tile_types()),
+                        stats = env.unwrapped._prob.get_stats(
+                            get_string_map_3d(int_map, env.unwrapped._prob.get_tile_types()),
                             # lenient_paths=True,
                         )
                     else:
-                        stats = env._prob.get_stats(
-                            get_string_map(int_map, env._prob.get_tile_types(), continuous=CONTINUOUS),
+                        stats = env.unwrapped._prob.get_stats(
+                            get_string_map(int_map, env.unwrapped._prob.get_tile_types(), continuous=CONTINUOUS),
                             # lenient_paths=True,
                         )
                 env.render()
@@ -2541,12 +2543,12 @@ class EvoPCGRL:
         else:
             assert self.env.observation_space["map"].low[0,0,0] == 0
             self.n_tile_types = self.env.observation_space["map"].high[0, 0, 0] + 1
-            self.length = self.env._prob._length
-        self.width = self.env._prob._width
-        self.height = self.env._prob._height
+            self.length = self.env.unwrapped._prob._length
+        self.width = self.env.unwrapped._prob._width
+        self.height = self.env.unwrapped._prob._height
 
         # FIXME why not?
-        # self.width = self.env._prob._width
+        # self.width = self.env.unwrapped._prob._width
 
         # TODO: make reward a command line argument?
         # TODO: multi-objective compatibility?
@@ -2555,7 +2557,7 @@ class EvoPCGRL:
         # calculate the bounds of our behavioral characteristics
         # NOTE: We assume a square map for some of these (not ideal).
         # regions and path-length are applicable to all PCGRL problems
-        self.bc_bounds = self.env._prob.cond_bounds
+        self.bc_bounds = self.env.unwrapped._prob.cond_bounds
         self.bc_bounds.update(
             {
                 "co-occurance": (0.0, 1.0),
@@ -2571,7 +2573,7 @@ class EvoPCGRL:
             }
         )
 
-        self.static_targets = self.env._prob.static_trgs
+        self.static_targets = self.env.unwrapped._prob.static_trgs
 
         if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and (not ENV3D):
             init_level_archive_args = (N_INIT_STATES, self.height, self.width)
@@ -3145,7 +3147,7 @@ class EvoPCGRL:
                         high_performing = df.sort_values("objective", ascending=False)
                         elite_scores = np.array(high_performing.loc[:, "objective"])
 
-                        if np.array(elite_scores).max() >= self.env._prob.max_reward:
+                        if np.array(elite_scores).max() >= self.env.unwrapped._prob.max_reward:
                             break
 
                     # TODO: assuming an archive of one here! Make it more general, like above for generators
@@ -3194,24 +3196,25 @@ class EvoPCGRL:
 
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
+        self.env = ConditionalWrapper(self.env)
         self.env.adjust_param(render=RENDER)
 
         if CMAES:
             # Give a little wiggle room from targets, to allow for some diversity
 
             if "binary" in PROBLEM:
-                path_trg = self.env._prob.static_trgs["path-length"]
-                self.env._prob.static_trgs.update(
+                path_trg = self.env.unwrapped._prob.static_trgs["path-length"]
+                self.env.unwrapped._prob.static_trgs.update(
                     {"path-length": (path_trg - 20, path_trg)}
                 )
             elif "zelda" in PROBLEM:
-                path_trg = self.env._prob.static_trgs["path-length"]
-                self.env._prob.static_trgs.update(
+                path_trg = self.env.unwrapped._prob.static_trgs["path-length"]
+                self.env.unwrapped._prob.static_trgs.update(
                     {"path-length": (path_trg - 40, path_trg)}
                 )
             elif "sokoban" in PROBLEM:
-                sol_trg = self.env._prob.static_trgs["sol-length"]
-                self.env._prob.static_trgs.update(
+                sol_trg = self.env.unwrapped._prob.static_trgs["sol-length"]
+                self.env.unwrapped._prob.static_trgs.update(
                     {"sol-length": (sol_trg - 10, sol_trg)}
                 )
             elif "smb" in PROBLEM:
@@ -3221,9 +3224,9 @@ class EvoPCGRL:
 
         global N_DIRS
 
+        if hasattr(self.env.unwrapped._rep, "_dirs"):
         # if hasattr(self.env.unwrapped._rep, "_dirs"):
-        if hasattr(self.env._rep, "_dirs"):
-            N_DIRS = len(self.env._rep._dirs)
+            N_DIRS = len(self.env.unwrapped._rep._dirs)
         else:
             N_DIRS = 0
 
@@ -3235,9 +3238,9 @@ class EvoPCGRL:
         #       if REPRESENTATION != "cellular":
         max_ca_steps = args.n_steps
         
-        max_changes = self.env._prob._height * self.env._prob._width
+        max_changes = self.env.unwrapped._prob._height * self.env.unwrapped._prob._width
         if ENV3D:
-            max_changes *= self.env._prob._length
+            max_changes *= self.env.unwrapped._prob._length
 
         reps_to_steps = {
             "cellular": max_ca_steps,
@@ -3345,10 +3348,10 @@ class EvoPCGRL:
                 figw, figh = 32, 4
             elif "zelda" in PROBLEM:
                 d = 3
-                figw, figh = self.env._prob._width, self.env._prob._height
+                figw, figh = self.env.unwrapped._prob._width, self.env.unwrapped._prob._height
             else:
                 d = 6  # number of rows and columns
-                figw, figh = self.env._prob._width, self.env._prob._height
+                figw, figh = self.env.unwrapped._prob._width, self.env.unwrapped._prob._height
 
             if CMAES:
                 n_rows = 2
@@ -3492,6 +3495,8 @@ class EvoPCGRL:
             # aggregate scores of individuals currently in the grid
             save_train_stats(objs, archive, self.env, self.bc_names)
 
+            # Basically deprecated, not really fuckin' with this.
+            # Toss our elites into an archive with different BCs. For fun!
             # The level spaces which we will attempt to map to
             problem_eval_bc_names = {
                 "binary": [
@@ -3523,12 +3528,12 @@ class EvoPCGRL:
 #                   ("emptiness", "symmetry")
 #               ]
 
+            eval_bc_names = []
             for (k, v) in problem_eval_bc_names.items():
                 if k in PROBLEM:
                     eval_bc_names = v
-
                     break
-            # toss our elites into an archive with different BCs. For fun!
+
             eval_bc_names = list(set([tuple(self.bc_names)] + eval_bc_names))
 
             if not CMAES:
@@ -3964,35 +3969,35 @@ class EvoPCGRL:
 
 def gen_latent_seeds(n_init_states, env):
     if ENV3D:
-        im_dims = (env._prob._height, env._prob._width, env._prob._length)
+        im_dims = (env.unwrapped._prob._height, env.unwrapped._prob._width, env.unwrapped._prob._length)
     else:
-        im_dims = (env._prob._height, env._prob._width)
-    if env._prob.is_continuous():  # AD HOC continous representation
+        im_dims = (env.unwrapped._prob._height, env.unwrapped._prob._width)
+    if env.unwrapped._prob.is_continuous():  # AD HOC continous representation
         init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, *im_dims))
     elif "CPPN2" in MODEL or "Decoder" in MODEL:
         init_states = np.random.normal(0, 1, (N_INIT_STATES, N_LATENTS))
         if "CPPN2" in MODEL:
             init_states = np.tile(init_states[:, :, None, None], (1, 1, *im_dims))
         if "Decoder" in MODEL:
-            assert env._prob._width % 4 == env._prob._height % 4 == 0
+            assert env.unwrapped._prob._width % 4 == env.unwrapped._prob._height % 4 == 0
             init_states = np.tile(init_states[:, :, None, None], (1, 1, *tuple(np.array(im_dims // 4))))
     else:
         init_states = np.random.randint(
-            0, len(env._prob.get_tile_types()), (N_INIT_STATES, *im_dims)
+            0, len(env.unwrapped._prob.get_tile_types()), (N_INIT_STATES, *im_dims)
         )
     return init_states
 
-#   init_states = np.zeros(shape=(n_init_states, env._prob._height, env._prob._width))
+#   init_states = np.zeros(shape=(n_init_states, env.unwrapped._prob._height, env.unwrapped._prob._width))
 #   init_state_maps = []
 
 #   for i in range(N_INIT_STATES):
-#       env._rep.reset(
-#           env._prob._width,
-#           env._prob._height,
-#           get_int_prob(env._prob._prob, env._prob.get_tile_types()),
+#       env.unwrapped._rep.reset(
+#           env.unwrapped._prob._width,
+#           env.unwrapped._prob._height,
+#           get_int_prob(env.unwrapped._prob._prob, env.unwrapped._prob.get_tile_types()),
 #       )
-#       #                   init_state_maps.append(np.expand_dims(get_one_hot_map(self.env._rep._map, self.n_tile_types), axis=0))
-#       init_state_maps.append(np.expand_dims(env._rep._map, axis=0))
+#       #                   init_state_maps.append(np.expand_dims(get_one_hot_map(self.env.unwrapped._rep._map, self.n_tile_types), axis=0))
+#       init_state_maps.append(np.expand_dims(env.unwrapped._rep._map, axis=0))
 
 #   init_states[:] = np.vstack(init_state_maps)
 #   # init_states = np.zeros(

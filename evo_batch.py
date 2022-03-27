@@ -1,5 +1,6 @@
 """
-Launch a batch of experiments on a SLURM cluster.
+Launch a batch of experiments on a SLURM cluster (or sequentially, if running with --local). Uncomment hyperparameters 
+below, and this script will launch all valid combinations of uncommented hyperparameters.
 
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
 dead processes.  """
@@ -14,7 +15,7 @@ from typing import List
 from evo_cross_eval import compile_results
 from render_gifs import render_gifs
 
-RENDER_LEVELS = True
+RENDER_LEVELS = False
 
 ##### HYPERPARAMETERS #####
 
@@ -34,19 +35,18 @@ exp_ids = [
 ]
 problems = [
       # "microstructure"
-       "binary_ctrl",
+    #    "binary_ctrl",
       # "zelda_ctrl",
       # "sokoban_ctrl",
       # "smb_ctrl"
       # "loderunner_ctrl",
       # "face_ctrl",
-    # "minecraft_3D_maze",
-    # "minecraft_3D_maze_ctrl",
+    "minecraft_3D_maze_ctrl",
     # "minecraft_3D_zelda_ctrl",
 ]
 representations = [
-       "cellular",  # change entire board at each step
-    #   "cellular3D",
+    #    "cellular",  # change entire board at each step
+      "cellular3D",
 #       "wide",  # agent "picks" one tile to change
 #       "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
@@ -55,8 +55,8 @@ representations = [
 #       "turtle3D"
 ]
 models = [
-     "NCA",
-    # "NCA3D",
+    #  "NCA",
+    "NCA3D",
 #     "GenSinCPPN",
 #     "GenCPPN",
 #     "Decoder",

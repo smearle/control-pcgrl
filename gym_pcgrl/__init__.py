@@ -15,8 +15,9 @@ for prob in PROBLEMS.keys():
         entry_point='gym_pcgrl.envs:PcgrlEnv'
     for rep in REPRESENTATIONS.keys():
         if (("3D" not in prob) and ("3D" not in rep)) or (("3D" in prob) and ("3D" in rep)):
+            id = '{}-{}-v0'.format(prob, rep)
             register(
-                id='{}-{}-v0'.format(prob, rep),
+                id=id,
                 entry_point=entry_point,
                 kwargs={"prob": prob, "rep": rep},
             #   order_enforce=False,

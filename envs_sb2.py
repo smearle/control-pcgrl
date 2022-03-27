@@ -55,7 +55,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         if log_dir is not None and kwargs.get('add_bootstrap', False):
             env = wrappers.EliteBootStrapping(env,
                                               os.path.join(log_dir, "bootstrap{}/".format(rank)))
-        env = conditional_wrappers.ParamRew(env, ctrl_metrics=kwargs.pop('cond_metrics', []), **kwargs)
+        env = conditional_wrappers.ConditionalWrapper(env, ctrl_metrics=kwargs.pop('cond_metrics', []), **kwargs)
         if not evaluate:
             if not ALP_GMM:
                 env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)

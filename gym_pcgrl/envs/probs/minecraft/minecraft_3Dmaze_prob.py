@@ -1,16 +1,22 @@
-import os
+"""
+Generate a fully connected top 3D layout where the longest path is greater than a certain threshold.
+
+Paths are measured in terms of the approximate physics of a minecraft player character. The player can move in any of the
+four cardinal directions, provided there are two blocks available vertically (for feet and head, let's say). The player
+can also move up and down stairs in any of these directions, if the stairs are one block high, and there are three 
+vertical blocks available on the lower step (and two vertical blocks available on the taller step).
+"""
 from pdb import set_trace as TT
-import time
+
 import numpy as np
-from PIL import Image
+from timeit import default_timer as timer
+
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
-"""
-Generate a fully connected top down layout where the longest path is greater than a certain threshold
-"""
+
 class Minecraft3DmazeProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
@@ -97,7 +103,9 @@ class Minecraft3DmazeProblem(Problem):
         self.old_path_coords = self.path_coords
         self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
+        start_time = timer()
         self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
+        print(f"minecraft path-finding time: {timer() - start_time}")
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             if not path_is_valid:
