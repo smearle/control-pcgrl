@@ -170,6 +170,61 @@ test_map_3 = [
 ]
 
 
+# test_map_4:
+# size: 3 * 6 * 6
+# longest path length: 2 + 1 + 1 + 1 = 5
+# info: small map for testing climbing stairs
+test_map_4 = [
+    [
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1], 
+        [1, 1, 1]
+    ],
+    [
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]
+    ],
+    [
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [1, 1, 1]
+    ],
+    [
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1]
+    ],
+    [
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1]
+    ],
+    [
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1],
+        [1, 1, 1]
+    ]
+]
+
 """
 get the state of the test maps
 """
@@ -203,12 +258,13 @@ if __name__=="__main__":
 
     ################################################################################
   
-    path_length_1, path_coords_1, num_regions_1 = get_test_state(test_map_1, tile_types)
-    path_length_2, path_coords_2, num_regions_2 = get_test_state(test_map_2, tile_types)
-    path_length_3, path_coords_3, num_regions_3 = get_test_state(test_map_3, tile_types)
+    # path_length_1, path_coords_1, num_regions_1 = get_test_state(test_map_1, tile_types)
+    # path_length_2, path_coords_2, num_regions_2 = get_test_state(test_map_2, tile_types)
+    # path_length_3, path_coords_3, num_regions_3 = get_test_state(test_map_3, tile_types)
+    path_length_4, path_coords_4, num_regions_4 = get_test_state(test_map_4, tile_types)
     
-    dijkstra_map_1, _ = run_dijkstra(0, 0, 0, get_string_map(np.array(test_map_1), tile_types), ["AIR"])
-    print("dijkstra_map_1 is \n", dijkstra_map_1)
+    dijkstra_map_4, _ = run_dijkstra(1, 0, 0, get_string_map(np.array(test_map_4), tile_types), ["AIR"])
+    print("dijkstra_map_4 is \n", dijkstra_map_4)
     """
     dijkstra_map_1
     array([[[ 0,  1,  2,  3,  4,  5,  6],
@@ -253,4 +309,4 @@ if __name__=="__main__":
 
         still some issues with the passable function
 """
-    print(path_coords_1)
+    print(path_coords_4)
