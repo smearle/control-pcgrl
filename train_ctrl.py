@@ -69,7 +69,8 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
 
         if not opts.overwrite:
             if os.path.isdir(log_dir):
-                raise Exception("Log directory exists. Delete it first (or use command line argument `--load`).")
+                raise Exception("Log directory exists. Delete it first (or use command line argument `--load` to load "
+                "experiment, or `--overwrite` to overwrite it).")
 
             # Create the log directory if training from scratch.
             os.mkdir(log_dir)
@@ -171,6 +172,8 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         result = trainer.train()
         log_result = {k: v for k, v in result.items() if k in log_keys}
         log_result['info: learner:'] = result['info']['learner']
+
+        # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
         log_result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
 
         print('-----------------------------------------')
