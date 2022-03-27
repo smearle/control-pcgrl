@@ -14,7 +14,8 @@ from timeit import default_timer as timer
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
+from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
+    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
 
 
 class Minecraft3DmazeProblem(Problem):
@@ -43,6 +44,7 @@ class Minecraft3DmazeProblem(Problem):
         self.old_path_coords = []
         self.path_length = None
         self.render_path = False
+        self._rendered_border = False
 
     """
     Get a list of all the different tile names
@@ -86,6 +88,7 @@ class Minecraft3DmazeProblem(Problem):
         start_stats (dict(string,any)): the first stats of the map
     """
     def reset(self, start_stats):
+        self._rendered_border = False
         super().reset(start_stats)
         if self._random_probs:
             self._prob["AIR"] = self._random.random()
@@ -186,18 +189,24 @@ class Minecraft3DmazeProblem(Problem):
         }
     
     def render(self, map, iteration_num, repr_name):
-        if iteration_num == 0 or iteration_num == 1:
+        block_dict = {}
+
+        # Render the border if we haven't yet already.
+        if not self._rendered_border:
             spawn_3D_border(map, self._border_tile)
 
-        # if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
+        # FIXME: if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
         if repr_name == "narrow3D" or repr_name == "turtle3D":
             # if iteration_num == 0 or iteration_num == 1:      
-            spawn_3D_maze(map, self._border_tile)
+            block_dict.update(get_3D_maze_blocks(map))
         else:
-            spawn_3D_maze(map, self._border_tile)
+            block_dict.update(get_3D_maze_blocks(map))
 
         if self.render_path:
-            erase_3D_path(self.old_path_coords)
-            spawn_3D_path(self.path_coords)
+            block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
+            block_dict.update(get_3D_path_blocks(self.path_coords))
             # time.sleep(0.2)
+
+        render_blocks(block_dict)
+
         return 

@@ -23,6 +23,18 @@ inv_block_map = dict(zip(b_map, string_map))
 N_BLOCK_TYPE = 3
 
 
+def render_blocks(blocks, base_pos=5):
+    """ Render blocks through the gRPC interface.
+
+    Args:
+        blocks (dict): A dictionary mapping block coordinates to block type.
+    """
+    # FIXME: we're not using this base_pos argument directly??
+    block_lst = [Block(position=Point(x=i, y=k+5, z=j), type=block_type, orientation=NORTH) 
+                    for (i, j, k), block_type in blocks.items()]
+    CLIENT.spawnBlocks(Blocks(blocks=block_lst))
+
+
 def clear(n, e, boundary_size=3, backgroud_type=QUARTZ_BLOCK):
     '''
     Clear a background of the map whose size is (n e) in position (0 0 0) for rendering in Minecraft
@@ -180,6 +192,7 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
 
     return
 
+
 def spawn_3D_maze(map, base_pos=5):
     '''
     Note that: in Minecraft, the vertical direction is y (map[z][][])
@@ -197,11 +210,18 @@ def spawn_3D_maze(map, base_pos=5):
         for j in range(len(map[k])):
             for i in range(len(map[k][j])):
                 item = get_tile(map[k][j][i])
-                # TODO: why base_pos is str
+                # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
+                #  second arguement from inside the problem.
                 blocks.append(Block(position=Point(x=i, y=k+5,  z=j),   
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
+
+
+def get_3D_maze_blocks(map):
+    return {(k, j, i): get_tile(map[k][j][i]) 
+                for k in range(len(map)) for j in range(len(map[k])) for i in range(len(map[k][j]))}
+
 
 # NEXT: change these 2 funcs into 1
 def spawn_3D_path(path, base_pos=5, item=LEAVES):
@@ -214,6 +234,7 @@ def spawn_3D_path(path, base_pos=5, item=LEAVES):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
+
 def erase_3D_path(path, base_pos=5, item=AIR):
     if len(path) == 0:
         return
@@ -223,6 +244,15 @@ def erase_3D_path(path, base_pos=5, item=AIR):
                                 type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
+
+
+def get_3D_path_blocks(path, item=LEAVES):
+    return {(pos[0], pos[2], pos[1]): item for pos in path}
+
+
+def get_erased_3D_path_blocks(path, item=AIR):
+    return {(pos[0], pos[2], pos[1]): item for pos in path}
+
 
 def edit_3D_maze(map, i, j, k, base_pos=5):
     '''

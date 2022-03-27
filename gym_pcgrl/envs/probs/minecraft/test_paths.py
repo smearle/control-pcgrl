@@ -17,13 +17,14 @@ staircase[2:5, 3, 0] = 0
 
 int_map = staircase
 
+# FIXME: why does this seem to take so god damn long? Path-finding is fast. Just creating the environment itself?
+
 env_name = "minecraft_3D_maze_ctrl-cellular3D-v0"
 env = gym.make(env_name)
 env.adjust_param(render=True)
 env.unwrapped._rep._x = env.unwrapped._rep._y = 0
 env._rep._map = staircase
 env.render()
-# FIXME: why does this seem to take so god damn long? Because of debug_path()?
 stats = env.unwrapped._prob.get_stats(
     get_string_map(int_map, env.unwrapped._prob.get_tile_types()),
 )
