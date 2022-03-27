@@ -223,7 +223,7 @@ def _passable(map, x, y, z, passable_values):
         
         # Check whether we can go down a step.
         if (
-            # and nz+1 < len(map)  # Head-room is guaranteed if our current position is valid.
+            # nz+1 < len(map) and  # Head-room is guaranteed if our current position is valid.
             (nz-1 == 0  # Either we are moving either onto the bottom of the map...
                 or nz-1 > 0 and map[nz-2][ny][nx] not in passable_values)  # ... or onto am impassable (solid) tile. 
             and map[nz-1][ny][nx] in passable_values  # Foot-room at the lower stair.
@@ -234,7 +234,7 @@ def _passable(map, x, y, z, passable_values):
 
         # Check whether can stay at the same level.
         elif (
-            #nz+1 < len(map) and  # Head-room at our next position is guaranteed if our current position is valid.
+            # nz+1 < len(map) and  # Head-room at our next position is guaranteed if our current position is valid.
             (nz == 0 or  # Either we are on the bottom of the map...
                 nz > 0 and map[nz-1][ny][nx] not in passable_values)  # ...or moving onto an impassable (solid) tile.
             and map[nz][ny][nx] in passable_values  # Foot-room at our next position.

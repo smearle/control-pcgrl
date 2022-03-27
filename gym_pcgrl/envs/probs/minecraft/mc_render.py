@@ -219,7 +219,7 @@ def spawn_3D_maze(map, base_pos=5):
 
 
 def get_3D_maze_blocks(map):
-    return {(k, j, i): get_tile(map[k][j][i]) 
+    return {(i, k, j): get_tile(map[k][j][i]) 
                 for k in range(len(map)) for j in range(len(map[k])) for i in range(len(map[k][j]))}
 
 

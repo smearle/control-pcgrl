@@ -198,15 +198,29 @@ class Minecraft3DmazeProblem(Problem):
         # FIXME: if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
         if repr_name == "narrow3D" or repr_name == "turtle3D":
             # if iteration_num == 0 or iteration_num == 1:      
-            block_dict.update(get_3D_maze_blocks(map))
+
+            # FIXME: these functions which returns dictionaries of blocks to be rendered are broken somehow
+            # block_dict.update(get_3D_maze_blocks(map))
+
+            spawn_3D_maze(map)
+
         else:
-            block_dict.update(get_3D_maze_blocks(map))
+            # block_dict.update(get_3D_maze_blocks(map))
+            spawn_3D_maze(map)
+
+#       # Rendering maze without path to debug path rendering.
+#       render_blocks(block_dict)
+        block_dict = {}
 
         if self.render_path:
-            block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
-            block_dict.update(get_3D_path_blocks(self.path_coords))
+            # FIXME: deleting the old path could delete solid blocks!
+            # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
+            # erase_3D_path(self.path_coords)
+
+            # block_dict.update(get_3D_path_blocks(self.path_coords))
+            spawn_3D_path(self.path_coords)
             # time.sleep(0.2)
 
-        render_blocks(block_dict)
+        # render_blocks(block_dict)
 
         return 
