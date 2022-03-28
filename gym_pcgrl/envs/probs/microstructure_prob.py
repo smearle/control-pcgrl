@@ -25,7 +25,8 @@ class MicroStructureProblem(Problem):
             # nth moment?
 #           "short_circuit_current",  # max amount of current-per-unit-area when applied voltage is zero
 #           "fill_factor",  # max amount of power
-            "F_abs": 1,
+#           "F_abs": 1,
+            "tortuosity": 1,
         }
 
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)

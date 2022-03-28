@@ -136,7 +136,7 @@ def launch_batch(exp_name, collect_params=False):
                                   'experiment.')
                             continue
 
-                        if alp_gmm and controls == ["NONE"]:
+                        if alp_gmm and controls == ["NONE", "NONE"]:
                             continue
 
 #                       if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:

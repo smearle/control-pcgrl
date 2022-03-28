@@ -34,19 +34,19 @@ exp_ids = [
         # 10,
 ]
 problems = [
-      # "microstructure"
-    #    "binary_ctrl",
+    #   "microstructure"
+       "binary_ctrl",
       # "zelda_ctrl",
       # "sokoban_ctrl",
       # "smb_ctrl"
       # "loderunner_ctrl",
       # "face_ctrl",
-    "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_maze_ctrl",
     # "minecraft_3D_zelda_ctrl",
 ]
 representations = [
-    #    "cellular",  # change entire board at each step
-      "cellular3D",
+        "cellular",  # change entire board at each step
+#       "cellular3D",
 #       "wide",  # agent "picks" one tile to change
 #       "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
@@ -55,8 +55,9 @@ representations = [
 #       "turtle3D"
 ]
 models = [
-    #  "NCA",
-    "NCA3D",
+#     "DirectBinaryEncoding",
+#     "NCA",
+#     "NCA3D",
 #     "GenSinCPPN",
 #     "GenCPPN",
 #     "Decoder",
@@ -64,7 +65,7 @@ models = [
 #     "GenCPPN2",
 #     "GenSinCPPN2",
 #     "GenSin2CPPN2",
-#     "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+      "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
 #     "AttentionNCA",
 #     "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
 #     "Sin2CPPN",
@@ -87,7 +88,7 @@ models = [
 fix_elites = [
         True,
        ]
-# Fix a set of random levels with which to seed the generator, or use new ones each generation?
+# Fix a set of random levels with which to seed the generator (otherwise generate new ones each generation).
 fix_seeds = [
         True,
 #       False
@@ -108,14 +109,14 @@ n_steps_lst = [
 #   100,
 ]
 global_bcs: List[List] = [
-#       ["NONE"],
+      ["NONE", "NONE"], 
 #       ["emptiness", "symmetry"],
 ]
 local_bcs = {
     "binary_ctrl": [
 #       ["regions", "path-length"],
 #       ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
+#       ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
 #       ["nearest-enemy", "path-length"],
@@ -146,9 +147,6 @@ local_bcs = {
         ['brightness', 'entropy'],
 #       ['rand_sol', 'rand_sol']
     ],
-    "microstructure": [
-        ["emptiness", "two_spatial"],
-    ],
     "minecraft_3D_maze":[
         ["emptiness", "path-length"]
     ],
@@ -158,6 +156,10 @@ local_bcs = {
     "minecraft_3D_zelda_ctrl": [
         ["emptiness", "path-length"]
     ],
+    "microstructure_ctrl": [
+        # ["emptiness", "path-length"],
+        # ["path-length", "tortuosity"],
+    ]
 }
 
 ###########################
@@ -190,7 +192,8 @@ def launch_batch(exp_name, collect_params=False):
                 for model in models:
 
                     if model == "CNN" and rep == "cellular":
-                        # This would necessitate an explosive number of model params so we'll not run it
+                        print("Skipping experiments with CNN model and cellular representation, as this would necessitate "
+                              "an explosion of model parameters.")
 
                         continue
 
@@ -202,6 +205,8 @@ def launch_batch(exp_name, collect_params=False):
                                 # No reason to re-evaluate other than random seeds so this would cause an error
 
                                 if fix_seed and not fix_el:
+                                    print("Skipping experiment with fix_seed=True and fix_elites=False. There is no "
+                                          "point re-evaluating generators (which are deterministic) on the same seeds.")
                                     continue
 
                                 for n_steps in n_steps_lst:
@@ -213,8 +218,9 @@ def launch_batch(exp_name, collect_params=False):
                                         continue
 
                                     for n_init_states in n_init_states_lst:
-                                        # The hand-made seed cannot be randomized
                                         if n_init_states == 0 and not (fix_seed and fix_el):
+                                            print("Skipping experiments with n_init_states=0 and fix_seed=False. The "
+                                                  "hand-made seed cannot be randomized.")
                                             continue
 
                                         # The hand-made seed is not valid for Decoders (or CPPNs, handled below)

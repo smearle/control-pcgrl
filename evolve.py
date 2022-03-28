@@ -630,7 +630,8 @@ class InitStatesArchive(GridArchive):
 
 class MEGrid(containers.Grid):
     def __init__(self, bin_sizes, bin_bounds):
-        super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=1,
+        max_items_per_bin = int(200) if np.all(np.array(bin_sizes) == 1) else 1
+        super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=max_items_per_bin,
                                      features_domain=bin_bounds,
                                      fitness_domain=((-np.inf, np.inf),),
                                      )
@@ -832,7 +833,7 @@ class MixActiv(nn.Module):
 
 
 class AuxNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions, n_aux=3):
+    def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
         super().__init__()
         self.n_hid_1 = n_hid_1 = 32
         self.n_aux = n_aux
@@ -968,8 +969,8 @@ class NCA3D(ResettableNN):
 
 
 
-class GeneratorNN(ResettableNN):
-#class NCA(ResettableNN):
+# class GeneratorNN(ResettableNN):
+class NCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions, **kwargs):
@@ -1316,6 +1317,33 @@ class FixedGenCPPN(ResettableNN):
         return x, True
 
 
+class DirectBinaryEncoding():
+    def __init__(self, n_in_chans, n_actions, map_width):
+        self.discrete = None
+        self.layers = np.array([])  # dummy
+        self.discrete = th.randint(0, n_in_chans, (map_width, map_width))
+
+    def __call__(self, x):
+        # if self.discrete is None:
+            # self.discrete = x[0].argmax(0)
+
+        onehot = th.zeros(1, x.shape[1], x.shape[2], x.shape[3])
+        onehot[0,0,self.discrete==0]=1
+        onehot[0,1,self.discrete==1]=1
+        # onehot.scatter_(1, self.discrete.unsqueeze(0), 1)
+
+        return onehot, True
+
+    def mutate(self):
+        # flip some tiles
+        mut_act = (th.rand(self.discrete.shape) < 0.01).long()  # binary mutation actions
+        new_discrete = (self.discrete + mut_act) % 2
+        self.discrete = new_discrete
+
+    def reset(self):
+        return
+
+
 class CPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
@@ -1436,9 +1464,9 @@ GenCPPN2 = GenCPPN
 
 class Individual(qdpy.phenotype.Individual):
     "An individual for mutating with operators. Assuming we're using vanilla MAP-Elites here."
-    def __init__(self, model_cls, n_in_chans, n_actions):
+    def __init__(self, model_cls, n_in_chans, n_actions, **model_kwargs):
         super(Individual, self).__init__()
-        self.model = model_cls(n_in_chans, n_actions)
+        self.model = model_cls(n_in_chans, n_actions, **model_kwargs)
         self.fitness = Fitness([0])
         self.fitness.delValues()
 
@@ -2289,7 +2317,7 @@ def simulate(
     if render_levels:
         level_frames = []
 
-    for (n_episode, init_state) in enumerate(init_states[:1]):
+    for (n_episode, init_state) in enumerate(init_states):
         # TODO: wrap the env instead
         env.unwrapped._rep._x = env.unwrapped._rep._y = 0
         # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
@@ -2581,6 +2609,7 @@ class EvoPCGRL:
             init_level_archive_args = (N_INIT_STATES, self.height, self.width, self.length)
         else:
             init_level_archive_args = ()
+        self.init_level_archive_args = init_level_archive_args
 
         if ALGO == "ME":
             if RANDOM_INIT_LEVELS and args.n_init_states != 0:
@@ -2600,6 +2629,7 @@ class EvoPCGRL:
         else:
             gen_archive_cls = GridArchive
             init_level_archive_args = ()
+        self.gen_archive_cls = gen_archive_cls
 
         if PLAY_LEVEL:
             self.play_bc_names = ["action_entropy", "local_action_entropy"]
@@ -2687,16 +2717,16 @@ class EvoPCGRL:
                 n_flat_actions=n_flat_actions,
             )
         # TODO: remove this, just call model "NCA"
-        elif MODEL == "NCA":
-            self.gen_model = globals()["GeneratorNN"](
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        else:
-            n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN2" in MODEL else self.n_tile_types
-            self.gen_model = globals()[MODEL](
-                n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans
-            )
-        # TODO: make it controllable
+#       elif MODEL == "NCA":
+#           self.gen_model = globals()["GeneratorNN"](
+#               n_in_chans=self.n_tile_types, n_actions=n_out_chans
+#           )
+#       else:
+        n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN2" in MODEL else self.n_tile_types
+        self.gen_model = globals()[MODEL](
+            n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env.unwrapped._prob._width
+        )
+        # TODO: toggle CUDA/GPU use with command line argument.
         if CUDA:
             self.gen_model.cuda()
         set_nograd(self.gen_model)
@@ -2777,10 +2807,12 @@ class EvoPCGRL:
                    'n_in_chans': self.n_tile_types,
                    'n_actions': self.n_tile_types,
             }
+            if MODEL == "DirectBinaryEncoding":
+                ind_cls_args.update({'map_width': self.env._prob._width})
 
             self.gen_optimizer = MEOptimizer(self.gen_archive,
                                              ind_cls=Individual,
-                                             batch_size=n_emitters*batch_size,
+                                             batch_size=batch_size,
                                              ind_cls_args=ind_cls_args,
                                              )
         else:
@@ -2792,23 +2824,17 @@ class EvoPCGRL:
             # special square patch with all 1s in a box in the middle
             sw = self.width // 3
             sh = self.height // 3
-            if CONTINUOUS and (not ENV3D):
-                self.init_states = np.zeros(shape=(1, 3, self.height, self.width))
-                self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
-            elif CONTINUOUS:
-                self.init_states = np.zeros(shape=(1, 3, self.height, self.width, self.length))
-                self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width //
-                                 2-sw//2: self.width//2+sw//2, self.length//2-sh//2:self.length//2+sh//2, ] = 1
-            
-            elif ENV3D:
+            if not ENV3D:
+                if CONTINUOUS:
+                    self.init_states = np.zeros(shape=(1, 3, self.height, self.width))
+                    self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
+                else:
+                    self.init_states = np.zeros(shape=(1, self.height, self.width))
+                    self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
+            else:
                 self.init_states = np.zeros(shape=(1, self.height, self.width, self.length))
                 self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
-            else:
-                raise Exception
         else:
-            #           self.init_states = np.random.randint(
-            #               0, self.n_tile_types, (N_INIT_STATES, self.width, self.height)
-            #           )
             self.init_states = gen_latent_seeds(N_INIT_STATES, self.env)
 
         self.start_time = time.time()
@@ -3199,28 +3225,29 @@ class EvoPCGRL:
         self.env = ConditionalWrapper(self.env)
         self.env.adjust_param(render=RENDER)
 
-        if CMAES:
-            # Give a little wiggle room from targets, to allow for some diversity
-
-            if "binary" in PROBLEM:
-                path_trg = self.env.unwrapped._prob.static_trgs["path-length"]
-                self.env.unwrapped._prob.static_trgs.update(
-                    {"path-length": (path_trg - 20, path_trg)}
-                )
-            elif "zelda" in PROBLEM:
-                path_trg = self.env.unwrapped._prob.static_trgs["path-length"]
-                self.env.unwrapped._prob.static_trgs.update(
-                    {"path-length": (path_trg - 40, path_trg)}
-                )
-            elif "sokoban" in PROBLEM:
-                sol_trg = self.env.unwrapped._prob.static_trgs["sol-length"]
-                self.env.unwrapped._prob.static_trgs.update(
-                    {"sol-length": (sol_trg - 10, sol_trg)}
-                )
-            elif "smb" in PROBLEM:
-                pass
-            else:
-                raise NotImplemented
+#       if CMAES:
+#           # Give a little wiggle room from targets, to allow for some diversity (or not)
+#           if "binary" in PROBLEM:
+#               path_trg = self.env._prob.static_trgs["path-length"]
+#               self.env._prob.static_trgs.update(
+#                   {"path-length": (path_trg - 20, path_trg)}
+#               )
+#           elif "zelda" in PROBLEM:
+#               path_trg = self.env._prob.static_trgs["path-length"]
+#               self.env._prob.static_trgs.update(
+#                   {"path-length": (path_trg - 40, path_trg)}
+#               )
+#           elif "sokoban" in PROBLEM:
+#               sol_trg = self.env._prob.static_trgs["sol-length"]
+#               self.env._prob.static_trgs.update(
+#                   {"sol-length": (sol_trg - 10, sol_trg)}
+#               )
+#           elif "smb" in PROBLEM:
+#               pass
+#           elif "microstructure" in PROBLEM:
+#               pass
+#           else:
+#               raise NotImplementedError
 
         global N_DIRS
 
@@ -3560,6 +3587,10 @@ class EvoPCGRL:
                         eval_archive.initialize(solution_dim=len(models[0]))
                         for eval_archive in eval_archives
                     ]
+            else:
+                TT()
+                eval_archive = gen_archive_cls(
+                    [1, 1], [(0, 1), (0, 1)], *self.init_level_archive_args
 
             RENDER = False
             # Iterate through our archive of trained elites, evaluating them and storing stats about them.
@@ -3767,10 +3798,12 @@ class EvoPCGRL:
                                     eval_reliability_scores[j],
                                 )
                     i += 1
+                    TT()
+
                 auto_garbage_collect()
 
             else:
-                # NOTE: Note maintaining this single-threaded code at the moment, can refactor and bring it up to date later
+                # NOTE: Not maintaining this single-threaded code at the moment, can refactor and bring it up to date later
 
                 while i < len(models):
                     # iterate through all models and record stats, on either training seeds or new ones (to test evaluation)
@@ -4072,7 +4105,7 @@ if __name__ == "__main__":
     if REEVALUATE_ELITES:
         # Otherwise there is no point in re-evaluating them
         assert RANDOM_INIT_LEVELS
-    CMAES = arg_dict["behavior_characteristics"] == ["NONE"]
+    CMAES = arg_dict["behavior_characteristics"] == ["NONE", "NONE"]
     EVALUATE = arg_dict["evaluate"]
     PLAY_LEVEL = arg_dict["play_level"]
     BCS = arg_dict["behavior_characteristics"]
