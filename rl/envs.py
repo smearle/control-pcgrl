@@ -28,7 +28,9 @@ def make_env(cfg):
 
     if representation == 'wide':
         env = wrappers.ActionMapImagePCGRLWrapper(env_name, **cfg)
-
+    elif representation == 'wide3D':
+        raise NotImplementedError("3D wide representation not implemented")
+        # env = wrappers.ActionMapImage3DPCGRLWrapper(env_name, **cfg)
     elif representation == 'cellular':
         # env = wrappers.CAWrapper(env_name, **kwargs)
         env = wrappers.CAactionWrapper(env_name, **cfg)
