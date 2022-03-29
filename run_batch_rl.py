@@ -24,9 +24,9 @@ problems: List[str] = [
     # 'smb_ctrl',
 ]
 representations: List[str] = [
-    "narrow3D",
+    # "narrow3D",
     # "turtle3D",
-    # "wide3D",
+    "wide3D",
     # "cellular3D",
     # "narrow",
     # 'cellular',
