@@ -67,4 +67,4 @@ class WideRepresentation(Representation):
     def update(self, action):
         change = [0,1][self._map[action[1]][action[0]] != action[2]]
         self._map[action[1]][action[0]] = action[2]
-        return change, action[0], action[1]
+        return change, [action[0], action[1]]

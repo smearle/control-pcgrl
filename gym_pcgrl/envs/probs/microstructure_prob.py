@@ -25,6 +25,8 @@ class MicroStructureProblem(Problem):
             # nth moment?
 #           "short_circuit_current",  # max amount of current-per-unit-area when applied voltage is zero
 #           "fill_factor",  # max amount of power
+#           "F_abs": 1,
+            "tortuosity": 1,
         }
         
 

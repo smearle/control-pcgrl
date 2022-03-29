@@ -13,8 +13,8 @@ from gym_pcgrl.envs.helper import get_range_reward
 
 #FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
-class ParamRew(gym.Wrapper):
-    def __init__(self, env, ctrl_metrics, rand_params=False, **kwargs):
+class ConditionalWrapper(gym.Wrapper):
+    def __init__(self, env, ctrl_metrics=[], rand_params=False, **kwargs):
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
         self.conditional = kwargs.get("conditional")
@@ -30,7 +30,7 @@ class ParamRew(gym.Wrapper):
                 print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
         self.CA_action = kwargs.get("ca_action")
 
-        self.render_gui = kwargs.get("render")
+        self.render_gui = kwargs.get("render") and self.conditional
         # Whether to always select random parameters, to stabilize learning multiple objectives
         # (i.e. prevent overfitting to some subset of objectives)
         #       self.rand_params = rand_params
@@ -38,8 +38,6 @@ class ParamRew(gym.Wrapper):
         super().__init__(self.env)
         #       cond_trgs = self.unwrapped.cond_trgs
 
-        if ctrl_metrics is None:
-            ctrl_metrics = []
         self.ctrl_metrics = ctrl_metrics  # controllable metrics
 #       self.ctrl_metrics = ctrl_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
         # fixed metrics (i.e. playability constraints)
@@ -53,7 +51,10 @@ class ParamRew(gym.Wrapper):
         self.weights = {}
 
         #       self.unwrapped.configure(**kwargs)
+
+        # NOTE: assign self.metrics after having the underlying env get its _rep_stats, or they will be behind.
         self.metrics = self.unwrapped.metrics
+
         # NB: self.metrics needs to be an OrderedDict
         print("usable metrics for conditional wrapper:", self.ctrl_metrics)
         print("unwrapped env's current metrics: {}".format(self.unwrapped.metrics))
@@ -100,13 +101,15 @@ class ParamRew(gym.Wrapper):
         self.width = self.unwrapped.width
         self.observation_space = self.env.observation_space
         # FIXME: hack for gym-pcgrl
-        print("conditional wrapper, original observation space", self.observation_space)
+        print("conditional wrapper, original observation space shape", self.observation_space.shape)
         self.action_space = self.env.action_space
 
+        # TODO: generalize this for 3D environments.
         if self.conditional:
             orig_obs_shape = self.observation_space.shape
             # TODO: adapt to (c, w, h) vs (w, h, c)
 
+            # We will add channels to the observation space for each controllable metric.
             if self.CA_action:
                 #       if self.CA_action and False:
                 n_new_obs = 2 * len(self.ctrl_metrics)
@@ -141,10 +144,10 @@ class ParamRew(gym.Wrapper):
             self.observation_space = gym.spaces.Box(low=low, high=high)
             # Yikes lol (this is to appease SB3)
             #       self.unwrapped.observation_space = self.observation_space
-        print("conditional observation space: {}".format(self.observation_space))
+        print("conditional observation space shape: {}".format(self.observation_space.shape))
         self.next_trgs = None
 
-        if self.render_gui and True:
+        if self.render_gui and self.conditional:
             screen_width = 200
             screen_height = 100 * self.num_params
             from gym_pcgrl.conditional_window import ParamRewWindow
@@ -156,6 +159,7 @@ class ParamRew(gym.Wrapper):
         self.infer = kwargs.get("infer", False)
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
+        self.max_loss = self.get_max_loss()
 
 
     def get_control_bounds(self):
@@ -204,9 +208,9 @@ class ParamRew(gym.Wrapper):
         if self.next_trgs:
             self.do_set_trgs()
         ob = super().reset()
+        self.metrics = self.unwrapped._rep_stats
         if self.conditional:
             ob = self.observe_metric_trgs(ob)
-        self.metrics = self.unwrapped.metrics
         self.last_metrics = copy.deepcopy(self.metrics)
         self.last_loss = self.get_loss()
         self.n_step = 0
@@ -229,12 +233,19 @@ class ParamRew(gym.Wrapper):
             if isinstance(trg, tuple):
                 trg = (trg[0] + trg[1]) / 2
 
+            # CA actions for RL agent are not implemented
             if self.CA_action:
                 #               metrics_ob[:, :, i] = (trg - metric) / trg_range
                 metrics_ob[:, :, i * 2] = trg / self.param_ranges[k]
                 metrics_ob[:, :, i * 2 + 1] = metric / self.param_ranges[k]
+
             else:
-                metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
+                # Add channel layers filled with scalar values corresponding to the target values of metrics of interest.
+                metrics_ob[..., i] = trg / trg_range
+
+                # Formerly was showing the direction of desired change with current values updated at each step.
+                # metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
+
             #           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
             #           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
@@ -246,27 +257,38 @@ class ParamRew(gym.Wrapper):
 
         return obs
 
-    def step(self, action):
-        if self.render_gui and True:
+    def step(self, action, **kwargs):
+        if self.render_gui:
             self.win.step()
 
-        ob, rew, done, info = super().step(action)
+        ob, rew, done, info = super().step(action, **kwargs)
+        self.metrics = self.unwrapped._rep_stats
+
+        # Add target values of metrics of interest to the agent's obervation, so that it can learn to reproduce them 
+        # while editing the level. 
         if self.conditional:
             ob = self.observe_metric_trgs(ob)
-        self.metrics = self.unwrapped.metrics
-        rew = self.get_reward()
+
+        # Provide reward only at the last step
+        reward = self.get_reward()  # if done else 0
+
         self.last_metrics = self.metrics
         self.last_metrics = copy.deepcopy(self.metrics)
         self.n_step += 1
 
         if self.auto_reset:
             # either exceeded number of changes, steps, or reached target
-            done = done or self.get_done()
+
+            # I have no idea wtf `get_done()` is for. Maybe early termination during evaluation, where we give the agent
+            # a ton of steps to reach its goals? Omitting for now.
+            # done = done or self.get_done()
+            done = done
         else:
 #           assert self.infer
             done = False
 
-        return ob, rew, done, info
+
+        return ob, reward, done, info
 
     def get_cond_trgs(self):
         return self.metric_trgs
@@ -283,6 +305,8 @@ class ParamRew(gym.Wrapper):
             self.win.display_metric_trgs()
 
     def get_loss(self):
+        """Get the distance between the current values of the metrics and their targets. Note that this means we need
+        to fix finite bounds on the values of all metrics."""
         loss = 0
 
         for metric in self.all_metrics:
@@ -304,6 +328,19 @@ class ParamRew(gym.Wrapper):
             loss += loss_m
 
         return loss
+
+
+    def get_max_loss(self, ctrl_metrics=[]):
+        '''Upper bound on distance of level from static targets.'''
+        net_max_loss = 0
+        for k, v in self.static_trgs.items():
+            if k in ctrl_metrics:
+                continue
+            if isinstance(v, tuple):
+                max_loss = max(abs(v[0] - self.cond_bounds[k][0]), abs(v[1] - self.cond_bounds[k][1])) * self.weights[k]
+            else: max_loss = max(abs(v - self.cond_bounds[k][0]), abs(v - self.cond_bounds[k][1])) * self.weights[k]
+            net_max_loss += max_loss
+        return net_max_loss
 
     def get_ctrl_loss(self):
         loss = 0
@@ -365,7 +402,11 @@ class ParamRew(gym.Wrapper):
             # FIXME: why do we do this?
             loss = self.get_ctrl_loss()
 
-        # return loss
+        # max_loss is positive, loss is negative. Normalize reward between 0 and 1.
+        # reward = (self.max_loss + loss) / (self.max_loss)
+
+        # return reward
+
         reward = loss - self.last_loss
         self.last_loss = loss
 
@@ -391,7 +432,7 @@ class ParamRew(gym.Wrapper):
         return done
 
     def close(self):
-        if self.render_gui:
+        if self.render_gui and self.conditional:
             self.win.destroy()
 
 # TODO: What by jove this actually doing and why does it kind of work?
@@ -449,13 +490,13 @@ class UniformNoiseyTargets(gym.Wrapper):
             trgs[k] = np.random.random() * (ub - lb) + lb
         self.env.set_trgs(trgs)
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         if self.midep_trgs:
             if np.random.random() < 0.005:
                 self.set_rand_trgs()
                 self.do_set_trgs()
 
-        return self.env.step(action)
+        return self.env.step(action, **kwargs)
 
     def reset(self):
         self.set_rand_trgs()
@@ -496,8 +537,8 @@ class ALPGMMTeacher(gym.Wrapper):
 
         return self.env.reset()
 
-    def step(self, action):
-        obs, rew, done, info = self.env.step(action)
+    def step(self, action, **kwargs):
+        obs, rew, done, info = self.env.step(action, **kwargs)
         self.trial_reward += rew
         self.n_trial_steps += 1
 

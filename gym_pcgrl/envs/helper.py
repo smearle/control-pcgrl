@@ -209,33 +209,33 @@ def calc_num_regions(map, map_locations, passable_values):
 
 
 """
-Public function that runs dikjstra algorithm and return the map
+Public function that runs dijkstra algorithm and return the map
 
 Parameters:
-    x (int): the starting x position for dikjstra algorithm
-    y (int): the starting y position for dikjstra algorithm
+    x (int): the starting x position for dijkstra algorithm
+    y (int): the starting y position for dijkstra algorithm
     map (any[][]): the current map being tested
     passable_values (any[]): an array of all the passable tile values
 
 Returns:
-    int[][]: returns the dikjstra map after running the dijkstra algorithm
+    int[][]: returns the dijkstra map after running the dijkstra algorithm
 """
-def run_dikjstra(x, y, map, passable_values):
-    dikjstra_map = np.full((len(map), len(map[0])),-1)
+def run_dijkstra(x, y, map, passable_values):
+    dijkstra_map = np.full((len(map), len(map[0])),-1)
     visited_map = np.zeros((len(map), len(map[0])))
     queue = [(x, y, 0)]
     while len(queue) > 0:
         (cx,cy,cd) = queue.pop(0)
-        if map[cy][cx] not in passable_values or (dikjstra_map[cy][cx] >= 0 and dikjstra_map[cy][cx] <= cd):
+        if map[cy][cx] not in passable_values or (dijkstra_map[cy][cx] >= 0 and dijkstra_map[cy][cx] <= cd):
             continue
         visited_map[cy][cx] = 1
-        dikjstra_map[cy][cx] = cd
+        dijkstra_map[cy][cx] = cd
         for (dx,dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx,ny=cx+dx,cy+dy
             if nx < 0 or ny < 0 or nx >= len(map[0]) or ny >= len(map):
                 continue
             queue.append((nx, ny, cd + 1))
-    return dikjstra_map, visited_map
+    return dijkstra_map, visited_map
 
 ADJ_FILTER = np.array([[0,1,0],[1,0,1],[0,1,0]])
 
@@ -258,17 +258,17 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
     for (x,y) in empty_tiles:
         if final_visited_map[y][x] > 0:
             continue
-        dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
+        dijkstra_map, visited_map = run_dijkstra(x, y, map, passable_values)
         final_visited_map += visited_map
-        (my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
-        dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
-        max_value = np.max(dikjstra_map)
+        (my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
+        dijkstra_map, _ = run_dijkstra(mx, my, map, passable_values)
+        max_value = np.max(dijkstra_map)
         if max_value > final_value:
             final_value = max_value
             if get_path:
-                path_map = dikjstra_map
+                path_map = dijkstra_map
     # Return path for the purpose of rendering (binary problem)
-    path = None
+    path = None 
     if get_path and final_value > 0:
         path = get_path_coords(path_map)
     return final_value, path
@@ -315,7 +315,73 @@ def calc_tortuosity(map,map_locations,passable_values,get_path=False):
 
 
 def get_path_coords(path_map, init_coords=None):
-    '''Recover a shortest path (as list of coords) from a dikjstra map, using either some initial coords, or else from the furthest point.'''
+    '''
+    Recover a shortest path (as list of coords) from a dijkstra map, using either some initial coords, 
+    or else from the furthest point.
+
+    When width = heigth = 3
+
+    map
+    array([[0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.],
+           [0., 0., 0., 0., 0.]])
+
+    The dijkstra map starts from 1 to max
+    pad_path_map
+    array([[0., 0., 0., 0., 0.],
+           [0., 1., 1., 1., 0.],
+           [0., 1., 5., 2., 0.],
+           [0., 10., 1., 3., 0.],
+           [0., 0., 0., 0., 0.]])
+    
+    max_cell
+    10.0
+
+    np.where(pad_path_map == max_cell)
+    (array([3]), array([1])) 
+
+    np.where(any_other_map == max_cell)
+    (array([], dtype=int64), array([], dtype=int64))
+
+    curr = np.array(np.where(pad_path_map == max_cell))
+    array([[3],
+           [1]])
+
+    a = (1, 2)
+
+    b = np.array([a])
+    array([[1, 2]])
+
+    b = np.array([a]).T
+    array([[1],
+           [2]])
+
+    xi, yi = b[:, 0]
+    xi
+    1
+    yi
+    2
+
+    adj_mask
+    array([[0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0]], dtype=int32)
+    xi, yi = 3, 3
+    x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
+    2,  5,  2,  5
+    adj_mask[x0: x1, y0: y1] = ADJ_FILTER   # ADJ_FILTER = np.array([[0,1,0],[1,0,1],[0,1,0]])
+    adj_mask
+    array([[0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0],
+        [0, 0, 1, 0, 1],
+        [0, 0, 0, 1, 0]], dtype=int32)
+    
+    '''
     width, height = len(path_map), len(path_map[0])
     pad_path_map = np.zeros(shape=(width + 2, height + 2), dtype=np.int32)
     pad_path_map.fill(0)
@@ -325,18 +391,28 @@ def get_path_coords(path_map, init_coords=None):
         max_cell = pad_path_map.max()
         curr = np.array(np.where(pad_path_map == max_cell))
     else:
+        # add 1 because there are 0s padding around the dijkstra map
         curr = np.array([init_coords], dtype=np.int32).T + 1
         max_cell = pad_path_map[curr[0][0], curr[1][0]]
+    
+    # current position in pad_path_map
     xi, yi = curr[:, 0]
     path = np.zeros(shape=(max_cell, 2), dtype=np.int32)
     i = 0
     while max_cell > 1:
+        # turn xi, yi into real dijstra map entry coordinates
         path[i, :] = [xi - 1, yi - 1]
+
+        # delete the current position's value
         pad_path_map[xi, yi] = -1
+
+        # path length - 1
         max_cell -= 1
+        
         x0, x1, y0, y1 = xi - 1, xi + 2, yi - 1, yi + 2
         adj_mask = np.zeros((width + 2, height + 2), dtype=np.int32)
         adj_mask[x0: x1, y0: y1] = ADJ_FILTER
+
         curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
         xi, yi = curr[:, 0]
         i += 1
@@ -344,7 +420,7 @@ def get_path_coords(path_map, init_coords=None):
         path[i, :] = [xi - 1, yi - 1]
 
     return path
-
+    # This func is too hard to understand. Do we have a better way?
 
 def calc_longest_path_old(map, map_locations, passable_values):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
@@ -353,11 +429,11 @@ def calc_longest_path_old(map, map_locations, passable_values):
     for (x,y) in empty_tiles:
         if final_visited_map[y][x] > 0:
             continue
-        dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
+        dijkstra_map, visited_map = run_dijkstra(x, y, map, passable_values)
         final_visited_map += visited_map
-        (my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
-        dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
-        max_value = np.max(dikjstra_map)
+        (my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
+        dijkstra_map, _ = run_dijkstra(mx, my, map, passable_values)
+        max_value = np.max(dijkstra_map)
         if max_value > final_value:
             final_value = max_value
     return final_value
@@ -388,11 +464,11 @@ Returns:
 """
 def calc_num_reachable_tile(map, map_locations, start_value, passable_values, reachable_values):
     (sx,sy) = _get_certain_tiles(map_locations, [start_value])[0]
-    dikjstra_map, _ = run_dikjstra(sx, sy, map, passable_values)
+    dijkstra_map, _ = run_dijkstra(sx, sy, map, passable_values)
     tiles = _get_certain_tiles(map_locations, reachable_values)
     total = 0
     for (tx,ty) in tiles:
-        if dikjstra_map[ty][tx] >= 0:
+        if dijkstra_map[ty][tx] >= 0:
             total += 1
     return total
 
@@ -409,7 +485,6 @@ Returns:
     int[][]: the random generated map
 """
 def gen_random_map(random, width, height, prob):
-    TT()
     map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
     return map
 
@@ -464,7 +539,7 @@ Parameters:
     low (float): low bound for the optimal region
     high (float): high bound for the optimal region
 
-Retruns:
+Returns:
     float: the reward value for the change between new_value and old_value
 """
 def get_range_reward(new_value, old_value, low, high):

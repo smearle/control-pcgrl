@@ -56,4 +56,4 @@ class NarrowMultiRepresentation(NarrowRepresentation):
                 self._y += 1
                 if self._y >= self._map.shape[0]:
                     self._y = 0
-        return change, self._x, self._y
+        return change, [self._x, self._y]

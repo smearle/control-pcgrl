@@ -1,23 +1,30 @@
-# pip install tensorflow==1.15
-# Install stable-baselines as described in the documentation
+
 import json
 import os
+from pathlib import Path
 from pdb import set_trace as TT
+import shutil
+import sys
+import gym
 
 import numpy as np
 
-import gym_pcgrl  # noqa : F401
+import gym_pcgrl
+from model import CustomFeedForwardModel, CustomFeedForwardModel3D  # noqa : F401
 from rl_args import parse_args
-from envs import make_vec_envs
+from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
-from model import (CustomPolicyBigMap, CustomPolicySmallMap,
-                   FullyConvPolicyBigMap, FullyConvPolicySmallMap, CAPolicy)
-#from stable_baselines3 import PPO
-from stable_baselines import PPO2
+#from model import (CustomPolicyBigMap, CustomPolicySmallMap,
+#                   FullyConvPolicyBigMap, FullyConvPolicySmallMap, CAPolicy)
+from ray.rllib.agents import ppo
+from ray.rllib.models import ModelCatalog
+from ray.tune.registry import register_env
+from ray.tune.logger import pretty_print
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
-from stable_baselines.results_plotter import load_results, ts2xy
-from utils import (get_crop_size, get_env_name, get_exp_name, load_model,
+# from stable_baselines.results_plotter import load_results, ts2xy
+# import tensorflow as tf
+from utils import (get_crop_size, get_env_name, get_exp_name, get_map_width,
 #                  max_exp_idx
                    )
 
@@ -26,176 +33,174 @@ log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
 
 
-def callback(_locals, _globals):
-    """
-    Callback called at each step (for DQN an others) or after n steps (see ACER or PPO)
-    :param _locals: (dict)
-    :param _globals: (dict)
-    """
-    global n_steps, best_mean_reward
-    # Print stats every 1000 calls
-
-    if (n_steps + 1) % 10 == 0:
-        x, y = ts2xy(load_results(log_dir), 'timesteps')
-
-        if len(x) > 100:
-            # pdb.set_trace()
-            mean_reward = np.mean(y[-100:])
-            print(x[-1], 'timesteps')
-            print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(
-                best_mean_reward, mean_reward))
-
-            # New best model, we save the agent here
-
-            if mean_reward > best_mean_reward:
-                best_mean_reward = mean_reward
-                # Example for saving best model
-                print("Saving new best model")
-                _locals['self'].save(os.path.join(log_dir, 'best_model.zip'))
-            else:
-                print("Saving latest model")
-                _locals['self'].save(os.path.join(log_dir, 'latest_model.zip'))
-
-            if alp_gmm:
-                pass
-        else:
-            #           print('{} monitor entries'.format(len(x)))
-            pass
-    n_steps += 1
-    # Returning False will stop training early
-
-    return True
-
-
 def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
-    if game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]:
+    if (game not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and ("minecraft" not in game):
         raise Exception(
             "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
+
+    is_3D_env = False
+    if "3D" in game:
+        assert "3D" in representation
+        is_3D_env = True
+
     kwargs['n_cpu'] = n_cpu
     env_name = get_env_name(game, representation)
     print('env name: ', env_name)
     exp_name = get_exp_name(game, representation, **kwargs)
 
 
-    resume = kwargs.get('resume', False)
+    load = kwargs.get('load', True)
     ca_action = kwargs.get('ca_action')
-
-    if representation == 'wide' and not ('RCT' in game or 'Micropolis' in game):
-        policy = FullyConvPolicyBigMap
-
-        if game == "sokoban" or game == "sokoban_ctrl":
-            #           T()
-            policy = FullyConvPolicySmallMap
-    elif representation == 'cellular':
-        policy = CAPolicy
-    else:
-        #       policy = ActorCriticCnnPolicy
-        policy = CustomPolicyBigMap
-
-        if game == "sokoban" or game == "sokoban_ctrl":
-            #           T()
-            policy = CustomPolicySmallMap
     crop_size = kwargs.get('cropped_size')
-
-    if crop_size == -1:
-        kwargs['cropped_size'] = get_crop_size(game)
-
     exp_id = kwargs.get('experiment_id')
-#   n = kwargs.get('experiment_id')
-
-#   if n is None:
-#       n = max_exp_idx(exp_name)
-#       if not resume:
-#           n += 1
     global log_dir
-
-    exp_name_id = '{}_{}'.format(exp_name, exp_id)
-#   log_dir = 'rl_runs/{}_{}_log'.format(exp_name, n)
-    log_dir = 'rl_runs/{}_log'.format(exp_name_id)
+    exp_name_id = f'{exp_name}_{exp_id}'
+    log_dir = f'rl_runs/{exp_name_id}_log'
 
     kwargs = {
         **kwargs,
         'render_rank': 0,
         'render': render,
+        'representation': representation,
+        'env_name': env_name,
     }
 
-#   if not resume:
-    try:
-        os.mkdir(log_dir)
-        print("Log directory does not exist, starting anew, bb.")
-        resume = False
-    except Exception:
-        print("Log directory exists, fumbling on. Will try to load model.")
-    try:
-        env, dummy_action_space, n_tools = make_vec_envs(
-            env_name, representation, log_dir, **kwargs)
-    except Exception as e:
-        # if this is a new experiment, clean up the logging directory if we fail to start up
+    if not load:
 
-#       if not resume:
-#           os.rmdir(log_dir)
-        raise e
+        if not opts.overwrite:
+            if os.path.isdir(log_dir):
+                raise Exception("Log directory exists. Delete it first (or use command line argument `--load` to load "
+                "experiment, or `--overwrite` to overwrite it).")
 
-    with open(os.path.join(log_dir, 'settings.json'),
-              'w',
-              encoding='utf-8') as f:
-        json.dump(kwargs, f, ensure_ascii=False, indent=4)
+            # Create the log directory if training from scratch.
+            os.mkdir(log_dir)
 
-#       pass
-    if resume:
-        model = load_model(log_dir, n_tools=n_tools)
+        # Save the experiment settings for future reference.
+        with open(os.path.join(log_dir, 'settings.json'),
+                'w',
+                encoding='utf-8') as f:
+            json.dump(kwargs, f, ensure_ascii=False, indent=4)
 
-    if representation == 'wide':
-        #       policy_kwargs = {'n_tools': n_tools}
-        policy_kwargs = {}
+    # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
+    num_workers = 0 if n_cpu == 1 else n_cpu
 
-        if ca_action:
-            # FIXME: there should be a better way hahahaha
-            env.action_space = dummy_action_space
-            # more frequent updates, for debugging... or because our action space is huge?
-#           n_steps = 512
-        else:
-            pass
-#           n_steps = 2048
+    if not is_3D_env:
+        # Using this simple feedforward model for now by default
+        ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel)
     else:
-        policy_kwargs = {}
-        # the default for SB3 PPO
-#       n_steps = 2048
+        ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel3D)
 
-    if not resume or model is None:
-        if representation == 'cellular':
-            learning_rate = 1e-7
-#           learning_rate = 0.00001
-#           learning_rate = 0.00025
-        else:
-            learning_rate = 0.00025
-        # model = PPO(policy, env, verbose=1, n_steps=n_steps,
-        #             tensorboard_log="./runs", policy_kwargs=policy_kwargs)
-        model = PPO2(policy, env, verbose=1,
-                     tensorboard_log="./rl_runs", policy_kwargs=policy_kwargs, learning_rate=learning_rate)
+#   # Define a few default rllib models for different square crop sizes. These are lists of conv layers, where each conv
+#   # layer is a list of [n_filters, kernel_size, stride]. Padding is automatic.
+#   if crop_size == 32:
+#       conv_filters = [
+#               [32, [3, 3], 2],
+#               [64, [3, 3], 2],
+#               [64, [3, 3], 1],
+#               [128, [6, 6], 1],  # Effectively a dense layer. stride of 3 only serves to prevent padding (?)
+#           ]
 #   else:
-    model.set_env(env)
+#       raise NotImplementedError(f"Have not defined conv_filters for a crop width of {crop_size}.") 
 
-    #model.policy = model.policy.to('cuda:0')
-#   if torch.cuda.is_available():
-#       model.policy = model.policy.cuda()
-    tb_log_name = '{}_tb'.format(exp_name_id)
-    if not logging:
-        model.learn(total_timesteps=n_frames, 
-                    reset_num_timesteps=False,
-                    tb_log_name=tb_log_name
-                    )
-    else:
-        model.learn(total_timesteps=n_frames,
-                    tb_log_name=tb_log_name, 
-                    reset_num_timesteps=False,
-                    callback=callback
-                    )
+    # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
+    trainer_config = {
+        'framework': 'torch',
+        'num_workers': num_workers,
+        'num_gpus': 1,
+        'env_config': kwargs,
+        'num_envs_per_worker': 10 if not opts.infer else 1,
+        'render_env': opts.render,
+        'model': {
+            'custom_model': 'feedforward',
+        },
+        "logger_config": {
+            "type": "ray.tune.logger.TBXLogger",
+            # Optional: Custom logdir (do not define this here
+            # for using ~/ray_results/...).
+            "logdir": log_dir,
+        },
+    }
 
+    register_env('pcgrl', make_env)
 
-opts = parse_args()
+    trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
+
+    checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
+
+    # Super ad-hoc re-loading. Note that we reset the number of training steps to be executed. Need to clearn this up if
+    # we were to use it in actual publication-worthy experiments. Good for debugging though, maybe.
+    if load:
+        with open(checkpoint_path_file, 'r') as f:
+            checkpoint_path = f.read()
+
+        # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
+        #  back up when reloading (see tensorboard logs).
+        trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+        print(f"Loaded checkpoint from {checkpoint_path}.")
+
+    n_params = 0
+    param_dict = trainer.get_weights()['default_policy']
+    for v in param_dict.values():
+        n_params += np.prod(v.shape)
+    print(f'default_policy has {n_params} parameters.')
+    print('model overview: \n', trainer.get_policy('default_policy').model)
+
+    # Do inference, i.e., observe agent behavior for many episodes.
+    if opts.infer:
+        env = make_env(kwargs)
+        for i in range(10000):
+            obs = env.reset()
+            done = False
+            while not done:
+                action = trainer.compute_single_action(obs)
+                obs, reward, done, info = env.step(action)
+                print(env.unwrapped._rep_stats)
+                env.render()
+# NEXT: why the environment is automatically reset after a certain number of iterations?
+
+        # Quit the program before agent starts training.
+        sys.exit()
+
+    log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
+    best_mean_reward = -np.inf
+
+    # TODO: makes this controllable, i.e., by dividing the number of frames by the train_batch_size
+    n_updates = 10000
+
+    # The training loop.
+    for i in range(n_updates):
+        result = trainer.train()
+        log_result = {k: v for k, v in result.items() if k in log_keys}
+        log_result['info: learner:'] = result['info']['learner']
+
+        # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
+        log_result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
+
+        print('-----------------------------------------')
+        print(pretty_print(log_result))
+
+        # Intermittently save model checkpoints.
+        if i % 10 == 0:
+            checkpoint = trainer.save(checkpoint_dir=log_dir)
+
+            # Remove the old checkpoint file if it exists.
+            if os.path.isfile(checkpoint_path_file):
+                with open(checkpoint_path_file, 'r') as f:
+                    old_checkpoint_path = f.read()
+
+                shutil.rmtree(Path(old_checkpoint_path).parent)
+            
+            # Record the path of the new checkpoint.
+            with open(checkpoint_path_file, 'w') as f:
+                f.write(checkpoint)
+
+            print("checkpoint saved at", checkpoint)
+
+# tune.run(trainable, num_samples=2, local_dir="./results", name="test_experiment")
 
 ################################## MAIN ########################################
+
+opts = parse_args()
 
 # User settings
 conditional = len(opts.conditionals) > 0
@@ -205,22 +210,12 @@ n_frames = opts.n_frames
 render = opts.render
 logging = True
 n_cpu = opts.n_cpu
-#resume = opts.resume
-resume = True
+load = opts.load
+# load = True
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
 #################
-
-if 'sokoban' in problem:
-    map_width = 5
-elif 'zelda' in problem:
-    map_width = 14
-elif 'binary' in problem:
-    map_width = 16
-else:
-    raise NotImplementedError(
-        "Not sure how to deal with 'map_width' variable when dealing with problem: {}".format(problem))
 
 
 max_step = opts.max_step
@@ -234,16 +229,20 @@ if conditional:
 else:
     COND_METRICS = []
 #   change_percentage = opts.change_percentage
+map_width = get_map_width(problem)
+cropped_size = opts.crop_size
+cropped_size = map_width * 2 if cropped_size == -1 else cropped_size
+
 kwargs = {
-    'map_width': map_width,
+    'map_width': get_map_width(problem),
     'change_percentage': change_percentage,
     'conditional': conditional,
     'cond_metrics': COND_METRICS,
-    'resume': resume,
+    'load': load,
     'max_step': max_step,
     'midep_trgs': midep_trgs,
     'ca_action': ca_action,
-    'cropped_size': opts.crop_size,
+    'cropped_size': cropped_size,
     'alp_gmm': alp_gmm,
     'experiment_id': opts.experiment_id,
 }

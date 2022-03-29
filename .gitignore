@@ -27,6 +27,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.java-version
 
 # Tensorboard Logs
 runs/

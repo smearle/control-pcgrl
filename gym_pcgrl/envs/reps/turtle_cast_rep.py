@@ -73,4 +73,4 @@ class TurtleCastRepresentation(TurtleRepresentation):
                     for x in range(low_x,high_x):
                         change += [0,1][self._map[y][x] != value]
                         self._map[y][x] = value
-        return change, self._x, self._y
+        return change, [self._x, self._y]

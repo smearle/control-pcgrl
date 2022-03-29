@@ -6,7 +6,7 @@ from gym_pcgrl.envs.helper import (
     calc_num_regions,
     get_range_reward,
     get_tile_locations,
-    run_dikjstra,
+    run_dijkstra,
     get_path_coords,
 )
 from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem

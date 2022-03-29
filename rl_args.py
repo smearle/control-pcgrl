@@ -1,3 +1,4 @@
+"""Command-line arguments for the reinforcement learning algorithm launched by running `python train_ctrl.py`."""
 import argparse
 import json
 import sys
@@ -166,12 +167,17 @@ def get_args():
         default=5e8,
     )
     args.add_argument(
-        '-la',
-        '--load_args',
+        "-la",
+        "--load_args",
         help='Rather than having the above opts supplied by the command-line, load them from a settings.json file. (Of '
         'course, the value of this arg in the json will have no effect.)',
         type=int,
         default=None,
+    )
+    args.add_argument(
+        "--overwrite",
+        action='store_true',
+        help="Overwrite previous experiment with same name."
     )
 
     return args

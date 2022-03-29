@@ -36,6 +36,8 @@ If the above causes errors, the offending lines can be commented out, and any mi
 
 ```conda install -c conda-forge pygobject gtk3```
 
+Using [Evocraft](https://github.com/real-itu/Evocraft-py) to render in Minecraft
+
 # Readme: Learning Controllable Content Generators
 
 This repo also contains the code for the [paper](https://ieee-cog.org/2021/assets/papers/paper_162.pdf) presented at CoG 2021.

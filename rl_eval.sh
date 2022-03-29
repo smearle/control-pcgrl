@@ -10,13 +10,13 @@
 #SBATCH --mem=30GB
 #SBATCH --job-name=evalpcgrl
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=sam.earle@nyu.edu
+#SBATCH --mail-user=zj2086@nyu.edu
 #SBATCH --output=evalpcgrl_%j.out
 
-cd /scratch/se2161/evo-pcgrl || exit
+cd /scratch/zj2086/evo-pcgrl || exit
 
-source activate vanilla_pcgrl
+source activate pcgrl-rllib
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate vanilla_pcgrl
+conda activate pcgrl-rllib
 
-python evaluate_ctrl.py -la 14
+python evaluate_ctrl.py --load_args 0

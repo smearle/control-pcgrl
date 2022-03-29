@@ -1,5 +1,6 @@
 """
-Launch a batch of experiments on a SLURM cluster.
+Launch a batch of experiments on a SLURM cluster (or sequentially, if running with --local). Uncomment hyperparameters 
+below, and this script will launch all valid combinations of uncommented hyperparameters.
 
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
 dead processes.  """
@@ -20,68 +21,73 @@ from render_gifs import render_gifs
 GENERATIVE_ONLY_CROSS_EVAL = True
 exp_ids = [
         0,
-#       1,
-#       2,
-#       3,
-#       4,
-#       5,
-#       6,
-#       7,
-#       8,
-#       9,
-#       10,
+        # 1,
+        # 2,
+        # 3,
+        # 4,
+        # 5,
+        # 6,
+        # 7,
+        # 8,
+        # 9,
+        # 10,
 ]
 problems = [
-        "microstructure_ctrl"
-#       "face_ctrl",
-#       "loderunner_ctrl",
-#       "binary_ctrl",
-#       "zelda_ctrl",
-#       "sokoban_ctrl",
-#       "smb_ctrl"
-#       "loderunner_ctrl",
-#       "face_ctrl",
+    #   "microstructure"
+       "binary_ctrl",
+      # "zelda_ctrl",
+      # "sokoban_ctrl",
+      # "smb_ctrl"
+      # "loderunner_ctrl",
+      # "face_ctrl",
+    # "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_zelda_ctrl",
 ]
 representations = [
         "cellular",  # change entire board at each step
+#       "cellular3D",
 #       "wide",  # agent "picks" one tile to change
+#       "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
-#       "turtle"  # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
+#       "narrow3D",
+#       "turtle", # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
+#       "turtle3D"
 ]
 models = [
-#   "NCA",
-    "DirectBinaryEncoding",
-    # "GenSinCPPN",
-    # "GenCPPN",
-#   "Decoder",
-    # "DeepDecoder",
-    # "GenCPPN2",
-    # "GenSinCPPN2",
-#   "GenSin2CPPN2",
-#   "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-#   "AttentionNCA",
-#   "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
-#   "Sin2CPPN",
+#     "DirectBinaryEncoding",
+#     "NCA",
+#     "NCA3D",
+#     "GenSinCPPN",
+#     "GenCPPN",
+#     "Decoder",
+#     "DeepDecoder",
+#     "GenCPPN2",
+#     "GenSinCPPN2",
+#     "GenSin2CPPN2",
+      "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+#     "AttentionNCA",
+#     "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
+#     "Sin2CPPN",
 
-    #   "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
-#   "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
-#   "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
+#     "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
+#     "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
+#     "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
 
-#   "MixCPPN",
-#   "MixNCA",
+#     "MixCPPN",
+#     "MixNCA",
 
-#   "GenReluCPPN",
-#   "GenMixCPPN",
+#     "GenReluCPPN",
+#     "GenMixCPPN",
 
-#   "FeedForwardCPPN",
-#   "SinCPPN",
-    # "CNN"  # Doesn't learn atm
+#     "FeedForwardCPPN",
+#     "SinCPPN",
+#     "CNN"  # Doesn't learn atm
 ]
 # Reevaluate elites on new random seeds after inserting into the archive?
 fix_elites = [
-        True, 
+        True,
        ]
-# Fix a set of random levels with which to seed the generator, or use new ones each generation?
+# Fix a set of random levels with which to seed the generator (otherwise generate new ones each generation).
 fix_seeds = [
         True,
 #       False
@@ -89,27 +95,27 @@ fix_seeds = [
 # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
 # in the center)
 n_init_states_lst = [
-#   0,
-  1,
-    # 10,
+    0,
+#   1,
+#   10,
 #   20,
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-    1,
+#   1,
 #   10,
     # 50,
 #   100,
 ]
 global_bcs: List[List] = [
-#       ["NONE"], 
+      ["NONE", "NONE"], 
 #       ["emptiness", "symmetry"],
 ]
 local_bcs = {
     "binary_ctrl": [
 #       ["regions", "path-length"],
 #       ["emptiness", "path-length"],
-        ["emptiness", "path-length"],
+#       ["symmetry", "path-length"],
     ],
     "zelda_ctrl": [
 #       ["nearest-enemy", "path-length"],
@@ -140,9 +146,18 @@ local_bcs = {
         ['brightness', 'entropy'],
 #       ['rand_sol', 'rand_sol']
     ],
+    "minecraft_3D_maze":[
+        ["emptiness", "path-length"]
+    ],
+    "minecraft_3D_maze_ctrl": [
+        ["emptiness", "path-length"]
+    ],
+    "minecraft_3D_zelda_ctrl": [
+        ["emptiness", "path-length"]
+    ],
     "microstructure_ctrl": [
         # ["emptiness", "path-length"],
-        ["path-length", "tortuosity"],
+        # ["path-length", "tortuosity"],
     ]
 }
 
@@ -176,7 +191,8 @@ def launch_batch(exp_name, collect_params=False):
                 for model in models:
 
                     if model == "CNN" and rep == "cellular":
-                        # This would necessitate an explosive number of model params so we'll not run it
+                        print("Skipping experiments with CNN model and cellular representation, as this would necessitate "
+                              "an explosion of model parameters.")
 
                         continue
 
@@ -188,6 +204,8 @@ def launch_batch(exp_name, collect_params=False):
                                 # No reason to re-evaluate other than random seeds so this would cause an error
 
                                 if fix_seed and not fix_el:
+                                    print("Skipping experiment with fix_seed=True and fix_elites=False. There is no "
+                                          "point re-evaluating generators (which are deterministic) on the same seeds.")
                                     continue
 
                                 for n_steps in n_steps_lst:
@@ -199,8 +217,9 @@ def launch_batch(exp_name, collect_params=False):
                                         continue
 
                                     for n_init_states in n_init_states_lst:
-                                        # The hand-made seed cannot be randomized
                                         if n_init_states == 0 and not (fix_seed and fix_el):
+                                            print("Skipping experiments with n_init_states=0 and fix_seed=False. The "
+                                                  "hand-made seed cannot be randomized.")
                                             continue
 
                                         # The hand-made seed is not valid for Decoders (or CPPNs, handled below)
@@ -263,6 +282,7 @@ def launch_batch(exp_name, collect_params=False):
                                                 "n_init_states": n_init_states,
                                                 "n_generations": 50000,
                                                 "multi_thread": not args.single_thread,
+                                                # "save_interval": 1,
                                             }
                                         )
                                         if args.render:

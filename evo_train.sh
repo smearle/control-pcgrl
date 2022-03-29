@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=48
@@ -10,16 +10,16 @@
 #SBATCH --mem=64GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=sam.earle@nyu.edu
+#SBATCH --mail-user=zj2086@nyu.edu
 #SBATCH --output=evopcgrl_%j.out
 
-cd /scratch/se2161/control-pcgrl
+cd /scratch/zj2086/control-pcgrl3D
 
 ## Is this actually necessary?
 source activate
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate evo-pcgrl
+conda activate pcgrl
 
 start=$SECONDS
 while ! python evolve.py -la 0

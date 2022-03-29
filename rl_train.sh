@@ -1,28 +1,28 @@
 #!/bin/bash 
+
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=48
+#SBATCH --cpus-per-task=12
 
-## We won't be asking for gpus, for now
-##SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:1
 
 #SBATCH --time=120:00:00
 #SBATCH --mem=30GB
-#SBATCH --job-name=pcgrl
+#SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=sam.earle@nyu.edu
-#SBATCH --output=pcgrl_%j.out
+#SBATCH --mail-user=zj2086@nyu.edu
+#SBATCH --output=pcgrl-digger_%j.out
 
-cd /scratch/se2161/evo-pcgrl
+cd /scratch/zj2086/control-pcgrl3D
 
 ## Is this actually necessary?
-source activate vanilla_pcgrl
+source activate pcgrl-rllib
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate vanilla_pcgrl
+conda activate pcgrl-rllib
 
-start=$SECONDS
-while ! python train_ctrl.py -la 0
+# start=$SECONDS
+python train_ctrl.py --load_args 0
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
@@ -35,4 +35,3 @@ do
       start=$SECONDS
     fi
 done
-

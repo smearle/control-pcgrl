@@ -1,3 +1,4 @@
+"""Command-line arguments for the evolutionary algorithm launched by running `python evolve.py`."""
 from pdb import set_trace as TT
 import os
 import sys
@@ -209,7 +210,7 @@ def get_exp_name(args, arg_dict):
     if REEVALUATE_ELITES:
         # Otherwise there is no point in re-evaluating them
         assert RANDOM_INIT_LEVELS
-    CMAES = arg_dict["behavior_characteristics"] == ["NONE"]
+    CMAES = arg_dict["behavior_characteristics"] == ["NONE", "NONE"]
     EVALUATE = arg_dict["evaluate"]
     PLAY_LEVEL = arg_dict["play_level"]
     BCS = arg_dict["behavior_characteristics"]
