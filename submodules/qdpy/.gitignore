@@ -1,0 +1,40 @@
+# python folders to ignore
+build/
+dist/
+docs/_build/
+__pycache__/
+
+
+# Python temporary files
+MANIFEST
+*.pyc
+*.pyo
+*.orig
+*.cprof
+
+# Temporary files
+*~
+
+# System files
+.DS_Store
+
+# C extensions
+*.so
+
+# Example result files
+final.p
+*.pdf
+results.*/
+
+# Distribution
+env/
+*.egg-info/
+build/
+dist/
+sdist/
+wheels/
+*.egg
+
+# Mypy
+.mypy_cache/
+

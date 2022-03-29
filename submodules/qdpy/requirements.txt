@@ -1,0 +1,8 @@
+psutil>=5.7.0
+numpy>=1.15.0
+scipy>=1.2.0
+pandas>=0.23.0
+sklearn>=0.0
+matplotlib>=3.0.0
+typing_extensions>=3.6.6
+PyYAML>=3.13

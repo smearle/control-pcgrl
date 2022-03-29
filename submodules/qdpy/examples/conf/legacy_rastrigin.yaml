@@ -1,0 +1,84 @@
+---
+
+randomSeed: 42
+
+## Map-Elites config {{{1
+#algorithm:
+#    nbDim: 3
+#    indBounds: [0., 1.]
+#    featuresBounds: [[0., 1.], [0., 1.]]
+#    fitnessBounds: [0., 1.]
+#    algoType: map-elites
+#    nbBins: [64, 64]
+#    eta: 20.0
+#    initBatchSize: 12000
+#    batchSize: 4000
+#    nbIterations: 10
+#    mutationPb: 0.2
+#    completelyNewGenomePb: 0.1
+#    savePeriod: 0
+
+
+## CVT-Map-Elites config {{{1
+#algorithm:
+#    nbDim: 3
+#    indBounds: [0., 1.]
+#    featuresBounds: [[0., 1.], [0., 1.]]
+#    fitnessBounds: [0., 1.]
+#    algoType: cvt-map-elites
+#    nbBins: [64, 64]
+#    nbClusters: 100
+#    nbSampledPoints: 50000
+#    eta: 20.0
+#    initBatchSize: 12000
+#    batchSize: 4000
+#    nbIterations: 10
+#    mutationPb: 0.2
+#    completelyNewGenomePb: 0.1
+#    savePeriod: 0
+
+
+# SAIL config {{{1
+algorithm:
+    nbDim: 3
+    indBounds: [0., 1.]
+    featuresBounds: [[0., 1.], [0., 1.]]
+    fitnessBounds: [0., 1.]
+    algoType: sail
+    nbBins: [32, 32]
+    eta: 20.0
+    initBatchSize: 12000
+    batchSize: 4000
+    mutationPb: 0.2
+    completelyNewGenomePb: 0.1
+    savePeriod: 0
+
+    nbAcquisitionRounds: 10
+    ucbStdDevFactor: 0.3
+    nbPreciseEvalsPerAcquisitionRound: 1000
+    preciseEvalsSelectionType: sobol # sobol, uniform
+    maintainBatchSizeWithMutatedInd: True
+
+    illuminationAlgo:
+        algoType: map-elites
+        batchSize: 1000
+        nbIterations: 10
+        savePeriod: 0
+
+    acquisitionMapAlgo:
+        algoType: map-elites
+        batchSize: 100
+        nbIterations: 10
+        savePeriod: 0
+
+    predictionMapAlgo:
+        algoType: map-elites
+        batchSize: 100
+        nbIterations: 10
+        savePeriod: 0
+
+
+
+# MODELINE "{{{1
+# vim:expandtab:softtabstop=4:shiftwidth=4:fileencoding=utf-8
+# vim:foldmethod=marker

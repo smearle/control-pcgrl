@@ -13,6 +13,8 @@ class Wide3DRepresentation(Representation3D):
     """
     def __init__(self):
         super().__init__()
+        self._new_coords = [0, 0, 0]
+        self._old_coords = [0, 0, 0]
 
     """
     Gets the action space used by the wide representation
@@ -72,5 +74,9 @@ class Wide3DRepresentation(Representation3D):
         self._map[action[2]][action[1]][action[0]] = action[3]
         return change, [action[0], action[1], action[2]]
 
-    # def render(self, map):
-    #     return edit_3D_maze(map, self._x, self._y, self._z)
+    def render(self, map):
+        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        edit_3D_maze(map, x, y, z)
+        self._old_coords = self._new_coords
+
+        return 

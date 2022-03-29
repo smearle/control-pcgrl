@@ -251,6 +251,10 @@ def _passable(map, x, y, z, passable_values):
         ):
             passable_tiles.append((nx, ny, nz+1))
 
+        # TODO: check for ladder:  (ladder tiles are passable)
+            # if current tile is ladder, then check if extra head-room above. If so, can move up.
+            # if tile below is ladder, can move down.
+
         else:
             continue
 

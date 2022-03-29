@@ -1,0 +1,58 @@
+debug_features: False # set to True to determine feature domain bounds
+indv_eps: 5       # episodes per individual
+
+fitness_type: "meanAvgReward"
+meanAvgRewardDomain: [-200., 350.]
+
+features_list: ["meanLeg0KneeSpeed", "meanLeg1KneeSpeed"]
+meanDistanceDomain: [0., 50.]
+meanHeadStabilityDomain: [0., 2.5]
+meanTorquePerStepDomain: [0., 25.]
+meanJumpDomain: [0., 0.75]
+meanLeg0HipAngleDomain: [0., 2.5]
+meanLeg0HipSpeedDomain: [0., 10.]
+meanLeg0KneeAngleDomain: [0., 2.5]
+meanLeg0KneeSpeedDomain: [0., 10.]
+meanLeg1HipAngleDomain: [0., 2.5]
+meanLeg1HipSpeedDomain: [0., 10.]
+meanLeg1KneeAngleDomain: [0., 2.5]
+meanLeg1KneeSpeedDomain: [0., 10.]
+
+game: 
+  env_name: 'BipedalWalker-v2'
+  input_size: 24
+  output_size: 4
+  time_factor: 0
+  layers: [40, 40]
+  activation: 'tanh'
+  noise_bias: 0.0
+  output_noise: [False, False, False]
+  rnn_mode: False
+
+main_algorithm_name: algoQD
+
+containers:
+    cont0:
+        type: Grid                               # The type of the container (e.g. Grid, CVTGrid, Container, NoveltyArchive, ...)
+        name: cont0                              # The name of the container. Optional. Default to the parent key (here also 'cont0')
+        shape: [25, 25]                          # The number of bins for each feature
+        max_items_per_bin: 1                     # The number of items in each bin of the grid
+#        fitness_domain: [[-200., 350.]]           # The domain of each fitness objective (here we only have one objective)
+#        features_domain: [[0., 50.], [0., 2.5]]  # The domain of each feature
+
+algorithms:
+    # Default parameter values for each algorithm
+    optimisation_task: max 
+    dimension: 2804
+    ind_domain: [-1., 1.]   # == activation domain
+    container: cont0        # The container to use to store individuals told to the optimisers
+
+    algoQD:
+        type: RandomSearchMutPolyBounded
+        budget: 1000000       # The total number of allowed evaluations for this algorithm
+        batch_size: 50      # The number of evaluations in each subsequent batch
+        sel_pb: 0.7         # The probability of performing selection+variation instead of initialising a new genome
+        init_pb: 0.3        # The probability of initiating a new genome instead of performing selection
+        mut_pb: 0.1         # The probability of mutating each value of the genome of a selected individual
+        eta: 20.            # The ETA parameter of the polynomial mutation (as defined in the origin NSGA-II paper by Deb.). It corresponds to the crowding degree of the mutation. A high ETA will produce mutants close to its parent, a small ETA will produce offspring with more changes.
+

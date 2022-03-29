@@ -1,12 +1,11 @@
 import os
 import numpy as np
-from pdb import set_trace as TT
 import re
 
 import imageio
 from PIL import Image
 
-from evo_args import get_args, get_exp_name
+from evo.args import get_args, get_exp_name
 
 RENDER_GRID = True
 

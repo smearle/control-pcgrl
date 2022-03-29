@@ -1,0 +1,64 @@
+---
+
+
+# The random seed
+seed: 42
+
+# The name of the main algorithm (see below the description of 'algoTotal')
+main_algorithm_name: algoTotal
+
+# The list of all container.
+containers:
+    cont0:
+        type: Grid                               # The type of the container (e.g. Grid, CVTGrid, Container, NoveltyArchive, ...)
+        name: cont0                              # The name of the container. Optional. Default to the parent key (here also 'cont0')
+        shape: [64, 64]                          # The number of bins for each feature
+        max_items_per_bin: 1                     # The number of items in each bin of the grid
+        fitness_domain: [[0., 1.]]               # The domain of each fitness objective (here we only have one objective)
+        features_domain: [[0., 1.], [0., 1.]]    # The domain of each feature
+
+
+# The list of all algorithms
+algorithms:
+    # Default parameter values for each algorithm
+    optimisation_task: minimisation   # We perform maximisation of all fitness objectives
+    dimension: 5                      # The number of dimensions of the problem. For rastrigin, any dimension >= 2 can be chosen
+    ind_domain: [0., 1.]              # The domain of each value of the genome (optional)
+    container: cont0                  # The container to use to store individuals told to the optimisers
+
+    # We first explore the feature landscape by random search over 2000 evaluations
+    algoInit:
+        type: RandomUniform # The type of algorithm. Here, just perform a random search
+        budget: 1000        # The total number of allowed evaluations for this algorithm
+
+    # Then, we use an evolutionary algorithm that perform random search and polynomial mutations. This algorithm makes a trade-off between quality (finding good performing solutions) and diversity (find solutions corresponding to each bin of the grid)
+    algoQD:
+        type: RandomSearchMutPolyBounded
+        budget: 40000       # The total number of allowed evaluations for this algorithm
+        batch_size: 400     # The number of evaluations in each subsequent batch 
+        sel_pb: 0.9         # The probability of performing selection+variation instead of initialising a new genome
+        init_pb: 0.1        # The probability of initiating a new genome instead of performing selection
+        mut_pb: 0.4         # The probability of mutating each value of the genome of a selected individual
+        eta: 20.            # The ETA parameter of the polynomial mutation (as defined in the origin NSGA-II paper by Deb.). It corresponds to the crowding degree of the mutation. A high ETA will produce mutants close to its parent, a small ETA will produce offspring with more changes.
+
+    # Lastly, we deploy an optimisation algorithm that will refine the most promising solutions of the grid to find the best-performing individuals
+    algoQuality:
+        type: CMAES         # The type of algorithm. Here, we use CMA-ES, a very good stochastic optimiser, to find the best-performing solutions in the grid, using the already explored landscape
+        budget: 4000        # The total number of allowed evaluations for this algorithm
+        sigma0: 0.1         # The initial value of sigma
+        #separable_cma: True
+        ignore_if_not_added_to_container: False   # Do not tell to CMA-ES individuals that could not be added to the container
+
+
+    # All described algorithms are placed in a Sequence (Sq) of algorithms to execute them one after the other
+    algoTotal:
+        type: Sq
+        algorithms: ['algoInit', 'algoQD', 'algoQuality'] # The list of algorithms to execute
+        tell_container_when_switching: only_best
+        #tell_container_when_switching: True               # Whether to tell the next algorithm in the list all results of the previous algorithm
+
+
+
+# MODELINE "{{{1
+# vim:expandtab:softtabstop=4:shiftwidth=4:fileencoding=utf-8
+# vim:foldmethod=marker

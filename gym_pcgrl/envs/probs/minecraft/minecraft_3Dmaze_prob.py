@@ -193,54 +193,45 @@ class Minecraft3DmazeProblem(Problem):
         }
     
     def render(self, map, iteration_num, repr_name):
+        # NOTE: the agent's action is rendered directly before this function is called.
+
+        # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
+        # block_dict.update(get_3D_maze_blocks(map))
         # block_dict = {}
 
+        # It would be nice to not have to re-render the whole path at each step, but for now, we do not
+        # know if the agent's edit action has disrupted the old path, so we won't delete blocks in the
+        # old path that are also in the new path, but we will have to render all blocks in the new path,
+        # just in case.
         old_path_coords = [tuple(coords) for coords in self.old_path_coords]
         path_to_erase = set(old_path_coords)
         path_to_render = []
         for (x, y, z) in self.path_coords:
             if (x, y, z) in path_to_erase:
                 path_to_erase.remove((x, y, z))
-            else:
-                path_to_render.append((x, y, z))
+            # else:
+                # path_to_render.append((x, y, z))
+#       print(self.path_coords)
+#       print(path_to_render)
+#       print(path_to_erase)
+#       print(len(self.path_coords))
 
         if self.render_path:
+            # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
             erase_3D_path(path_to_erase)
 
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
             spawn_3D_border(map, self._border_tile)
+            self._rendered_initial_maze = True
 
-        # FIXME: if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
-        if repr_name in ["narrow3D", "turtle3D", "wide3D"]:
-            if not self._rendered_initial_maze:      
-
-                # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
-                # block_dict.update(get_3D_maze_blocks(map))
-
-                # TODO: remove this call to spawn_3D_maze, and render the edit alone in representation.
-                spawn_3D_maze(map)
-
-                self._rendered_initial_maze = True
-
-        else:
-            # block_dict.update(get_3D_maze_blocks(map))
-            spawn_3D_maze(map)
-
-#       # Rendering maze without path to debug path rendering.
-#       render_blocks(block_dict)
-#       block_dict = {}
+        # block_dict.update(get_3D_maze_blocks(map))
 
         if self.render_path:
-            # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
-
             # block_dict.update(get_3D_path_blocks(self.path_coords))
-            spawn_3D_path(path_to_render)
+            spawn_3D_path(self.path_coords)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)
-
-        # If using a narrow, turtle, or wide, the edit will be rendered *after* calling this function, in the 
-        # representation.
 
         return 

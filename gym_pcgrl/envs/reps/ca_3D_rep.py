@@ -1,5 +1,6 @@
 from pdb import set_trace as TT
 from pdb import set_trace as T
+from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze
 from gym_pcgrl.envs.reps.representation3D import Representation3D
 from PIL import Image
 from gym import spaces
@@ -84,4 +85,7 @@ class CA3DRepresentation(Representation3D):
             change = (next_map != self._map).any()
         self._map = next_map
         return change, [None, None, None]
+
+    def render(self, map):
+        spawn_3D_maze(map)
     

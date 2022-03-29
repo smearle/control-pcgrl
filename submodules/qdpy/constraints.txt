@@ -1,0 +1,12 @@
+numpy>=1.15.0
+scipy>=1.2.0
+pandas>=0.23.0
+sklearn>=0.0
+matplotlib>=3.0.0
+typing_extensions>=3.6.6
+PyYAML>=3.13
+tqdm>=4.28.1
+colorama>=0.4.1
+tables>=3.4.4
+cma>=2.6.0
+deap>=1.2.2

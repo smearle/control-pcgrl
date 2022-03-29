@@ -34,6 +34,8 @@ class Turtle3DRepresentation(Representation3D):
         self._x = self._random.randint(length)
         self._y = self._random.randint(width)
         self._z = self._random.randint(height)
+        self._new_coords = [self._x, self._y, self._z]
+        self._old_coords = [self._x, self._y, self._z]
 
     """
     Adjust the current used parameters
@@ -148,7 +150,10 @@ class Turtle3DRepresentation(Representation3D):
 
         ###########################################################
     def render(self, map):
-        return edit_3D_maze(map, self._x, self._y, self._z)
+        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        edit_3D_maze(map, x, y, z)
+        self._old_coords = self._new_coords
+        return 
     #
     # """
     # Modify the level image with a red rectangle around the tile that the turtle is on

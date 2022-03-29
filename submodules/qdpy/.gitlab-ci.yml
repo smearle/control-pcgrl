@@ -1,0 +1,55 @@
+image: python:3.7.4
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/reference/pip_install/#caching
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script:
+  - python -V               # Print out python version for debugging
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+
+#test:
+#  script:
+#  - python setup.py test
+#  - pip install tox flake8  # you can also use tox
+#  - tox -e py36,flake8
+
+run:
+  script:
+  - apt-get update
+  - apt-get install -y libhdf5-dev gfortran libblas-dev liblapack-dev # libhdf5 For pytables, the rest is necessary for scipy
+  - pip install numpy numexpr six  # For pytables
+  - pip install -r constraints.txt
+  - pip install mypy
+  - python setup.py bdist_wheel
+  # an alternative approach is to install and run:
+  - pip install dist/*
+  # run the command here
+  - python -m mypy --ignore-missing-imports .
+  artifacts:
+    paths:
+    - dist/*.whl
+
+pages:
+  script:
+  - pip install sphinx sphinx-rtd-theme
+  - cd docs ; make html
+  - mv _build/html/ ../public/
+  artifacts:
+    paths:
+    - public
+  only:
+  - master

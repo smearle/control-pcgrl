@@ -12,6 +12,7 @@ psutil
 imageio
 graphviz
 gym==0.19.0     # minerl will require 0.19.0
+numpy==1.21
 tqdm
 ribs
 scikit-image
