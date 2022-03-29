@@ -126,8 +126,8 @@ def flatten_stats(stats, tex, evaluation=False):
 
 def compile_results(settings_list, tex=False):
 #   batch_exp_name = settings_list[0]["exp_name"]
-    EVO_DIR = "../evo_runs"
-    EVAL_DIR = "../eval_experiment"
+    EVO_DIR = "evo_runs"
+    EVAL_DIR = "eval_experiment"
 #   if batch_exp_name == "0":
 #       EVO_DIR = "evo_runs_06-12"
 #   else:
@@ -204,7 +204,7 @@ def compile_results(settings_list, tex=False):
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
 #       exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
-        stats_f = os.path.join(exp_name, "stats.json")
+        stats_f = os.path.join(exp_name, "train_time_stats.json")
         fixLvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
 
         if not (os.path.isfile(stats_f) and os.path.isfile(fixLvl_stats_f)):
@@ -235,12 +235,12 @@ def compile_results(settings_list, tex=False):
         oneway_anova_data = {'model': [v[0] for v in vals], metric: [d[qd_score_idx] for d in data]}
         oneway_anova_df = pd.DataFrame(oneway_anova_data)
         oneway_anova = pg.anova(data=oneway_anova_df, dv=metric, between='model', detailed=True)
-        oneway_anova.to_latex(os.path.join('../eval_experiment', f'oneway_anova_{metric}.tex'))
-        oneway_anova.to_html(os.path.join('../eval_experiment', f'oneway_anova_{metric}.html'))
+        oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
+        oneway_anova.to_html(os.path.join('eval_experiment', f'oneway_anova_{metric}.html'))
 
         pairwise_tukey = pg.pairwise_tukey(data=oneway_anova_df, dv=metric, between='model')
-        pairwise_tukey.to_latex(os.path.join('../eval_experiment', f'pairwise_tukey_{metric}.tex'))
-        pairwise_tukey.to_html(os.path.join('../eval_experiment', f'pairwise_tukey_{metric}.html'))
+        pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
+        pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
     for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
         analyze_metric(metric)
@@ -503,7 +503,7 @@ def cross_eval_heatmap(data, row_labels, col_labels, title, cbarlabel='', errors
    ax.set_xlabel(xlabel)
    ax.set_ylabel(ylabel)
    plt.savefig(os.path.join(
-       '../eval_experiment',
+       'eval_experiment',
       '{}.png'.format(filename),
    ))
    plt.close()

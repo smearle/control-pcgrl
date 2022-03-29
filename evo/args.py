@@ -1,4 +1,5 @@
 """Command-line arguments for the evolutionary algorithm launched by running `python evolve.py`."""
+import pathlib
 from pdb import set_trace as TT
 import os
 import sys
@@ -256,6 +257,7 @@ def get_exp_name(args, arg_dict):
     if args.mega:
         exp_name += "_MEGA"
     exp_name += "_" + arg_dict["exp_name"]
-    SAVE_PATH = os.path.join("../evo_runs", exp_name)
+    evo_runs_dir = os.path.join(pathlib.Path(__file__).parent.parent.resolve(), 'evo_runs')
+    SAVE_PATH = os.path.join(evo_runs_dir, exp_name)
 
     return SAVE_PATH

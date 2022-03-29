@@ -411,7 +411,7 @@ def plot_csv(exp_name):
     mean_rews, mean_lens, mean_times = np.nanmean(rew_arr, axis=0), np.nanmean(len_arr, axis=0), np.nanmean(time_arr, axis=0)
     plt.figure()
     mean_rews = np.convolve(mean_rews, [1/7 for i in range(7)])
-    with open(os.path.join(exp_name, 'stats.json'), 'w') as f:
+    with open(os.path.join(exp_name, 'train_time_stats.json'), 'w') as f:
         json.dump({'n_frames': np.nansum(len_arr)}, f)
     plt.plot(mean_rews)
     plt.savefig(os.path.join(exp_name, 'reward.png'))
