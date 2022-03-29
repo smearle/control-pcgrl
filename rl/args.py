@@ -51,7 +51,7 @@ def parse_pcgrl_args(args, load_args=None):
         if opts.max_step == -1:
             opts.max_step = None
 
-    if opts.conditionals == ["NONE"]:
+    if opts.conditionals == ["NONE", "NONE"]:
         opts.conditionals = []
         opts.conditional = False
     elif opts.conditionals == ["DEFAULT"]:

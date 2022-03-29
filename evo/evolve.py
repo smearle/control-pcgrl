@@ -491,7 +491,7 @@ class MEOptimizer():
         batch = [self.toolbox.select(breedable) for i in range(self.batch_size)]
 
         ## Vary the pool of individuals
-        self.inds = deap.algorithms.varAnd(batch, self.toolbox, self.cxpb, self.mutpb) if self.i > 1 else batch
+        self.inds = deap.algorithms.varAnd(batch, self.toolbox, self.cxpb, self.mutpb)
 
         return self.inds
 
@@ -2820,7 +2820,6 @@ class EvoPCGRL:
                                     eval_reliability_scores[j],
                                 )
                     i += 1
-                    TT()
 
                 auto_garbage_collect()
 
