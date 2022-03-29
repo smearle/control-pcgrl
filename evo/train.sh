@@ -22,7 +22,7 @@ source activate
 conda activate pcgrl
 
 start=$SECONDS
-while ! python evolve.py -la 1
+while ! python evo/evolve.py -la 1
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
