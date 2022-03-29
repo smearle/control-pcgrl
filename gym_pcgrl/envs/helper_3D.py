@@ -327,17 +327,17 @@ def calc_num_regions(map, map_locations, passable_values):
 
 
 """
-Public function that runs dikjstra algorithm and return the map
+Public function that runs dijkstra algorithm and return the map
 
 Parameters:
-    x (int): the starting x position for dikjstra algorithm
-    y (int): the starting y position for dikjstra algorithm
-    z (int): the starting z position for dikjstra algorithm
+    x (int): the starting x position for dijkstra algorithm
+    y (int): the starting y position for dijkstra algorithm
+    z (int): the starting z position for dijkstra algorithm
     map (any[][][]): the current map being tested
     passable_values (any[]): an array of all the passable tile values
 
 Returns:
-    int[][][]: returns the dikjstra map after running the dijkstra algorithm
+    int[][][]: returns the dijkstra map after running the dijkstra algorithm
 """
 def run_dijkstra(x, y, z, map, passable_values):
     dijkstra_map = np.full((len(map), len(map[0]), len(map[0][0])), -1)
@@ -370,10 +370,10 @@ def run_dijkstra(x, y, z, map, passable_values):
 
             # Add the new tile to the frontier
             queue.append((nx, ny, nz, cd + 1))
-            if cz == 3:
-                print(f"**********current place: {cx},{cy},{cz}**********")
-                print("queue in run_dijkstra: ", queue)
-                print("dijkstra_map in run_dijkstra: ", dijkstra_map)
+#           if cz == 3:
+#               print(f"**********current place: {cx},{cy},{cz}**********")
+#               print("queue in run_dijkstra: ", queue)
+#               print("dijkstra_map in run_dijkstra: ", dijkstra_map)
 
     return dijkstra_map, visited_map
 
@@ -407,23 +407,23 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
             continue
 
         # Calculate the distance from the current tile to all other (reachable) tiles.
-        dikjstra_map, visited_map = run_dijkstra(x, y, z, map, passable_values)
+        dijkstra_map, visited_map = run_dijkstra(x, y, z, map, passable_values)
         final_visited_map += visited_map
 
         # Get furthest tile from current tile.
-        (mz,my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
+        (mz,my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
 
         # Search again from this furthest tile. This tile must belong to a longest shortest path within this connected 
         # component. Search again to find this path.
-        dikjstra_map, _ = run_dijkstra(mx, my, mz, map, passable_values)
-        max_value = np.max(dikjstra_map)
+        dijkstra_map, _ = run_dijkstra(mx, my, mz, map, passable_values)
+        max_value = np.max(dijkstra_map)
 
         # Store this path/length if it is the longest of all connected components visited thus far.
         if max_value > final_value:
             final_value = max_value
 
             if get_path:
-                path_map = dikjstra_map
+                path_map = dijkstra_map
 
     path = []
 
@@ -433,7 +433,7 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
     return final_value, path
 
 """
-Recover a shortest path (as list of coords) from a dikjstra map, 
+Recover a shortest path (as list of coords) from a dijkstra map, 
 using either some initial coords, or else from the furthest point
 
 If you have trouble understanding this func, you can refer to the 2D version of this in helper.py
@@ -555,11 +555,11 @@ Returns:
 """
 def calc_num_reachable_tile(map, map_locations, start_value, passable_values, reachable_values):
     (sx,sy,sz) = _get_certain_tiles(map_locations, [start_value])[0]
-    dikjstra_map, _ = run_dijkstra(sx, sy, sz, map, passable_values)
+    dijkstra_map, _ = run_dijkstra(sx, sy, sz, map, passable_values)
     tiles = _get_certain_tiles(map_locations, reachable_values)
     total = 0
     for (tx,ty,tz) in tiles:
-        if dikjstra_map[tz][ty][tx] >= 0:
+        if dijkstra_map[tz][ty][tx] >= 0:
             total += 1
     return total
 

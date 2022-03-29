@@ -3,7 +3,7 @@ from pdb import set_trace as TT
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dikjstra, get_path_coords
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dijkstra, get_path_coords
 
 """
 Generate a fully connected GVGAI zelda level where the player can reach key then the door.
@@ -104,28 +104,28 @@ class ZeldaProblem(Problem):
             if len(enemies) > 0:
                 # NOTE: for evo-pcgrl, we don't want these super-high nearest-enemy scores from when
                 # the player is cornered behind a key (it distorts our map of elites), so we make key passable
-                dikjstra,_ = run_dikjstra(p_x, p_y, map, ["key", "empty", "player", "bat", "spider", "scorpion"])
-#               dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
+                dijkstra,_ = run_dijkstra(p_x, p_y, map, ["key", "empty", "player", "bat", "spider", "scorpion"])
+#               dijkstra,_ = run_dijkstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
                 min_dist = self._width * self._height
                 for e_x,e_y in enemies:
-                    if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
-                        min_dist = dikjstra[e_y][e_x]
+                    if dijkstra[e_y][e_x] > 0 and dijkstra[e_y][e_x] < min_dist:
+                        min_dist = dijkstra[e_y][e_x]
                 map_stats["nearest-enemy"] = min_dist
             if map_stats["key"] == 1 and map_stats["door"] == 1:
                 k_x,k_y = map_locations["key"][0]
                 d_x,d_y = map_locations["door"][0]
 
                 # start point is people
-                dikjstra_k,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
-                map_stats["path-length"] += dikjstra_k[k_y][k_x]
+                dijkstra_k,_ = run_dijkstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
+                map_stats["path-length"] += dijkstra_k[k_y][k_x]
 
                 # start point is key
-                dikjstra_d,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
-                map_stats["path-length"] += dikjstra_d[d_y][d_x]
+                dijkstra_d,_ = run_dijkstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
+                map_stats["path-length"] += dijkstra_d[d_y][d_x]
                 if self.render_path:
                                                                              # end point is key
-                    self.path = np.hstack((get_path_coords(dikjstra_k, init_coords=(k_x, k_y)),
-                                          get_path_coords(dikjstra_d, init_coords=(d_x, d_y))))
+                    self.path = np.hstack((get_path_coords(dijkstra_k, init_coords=(k_x, k_y)),
+                                          get_path_coords(dijkstra_d, init_coords=(d_x, d_y))))
                                                                              # end point is door
         self.path_length = map_stats["path-length"]
         return map_stats

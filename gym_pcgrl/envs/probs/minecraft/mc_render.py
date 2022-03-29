@@ -224,7 +224,7 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=LEAVES):
+def spawn_3D_path(path, base_pos=5, item=TRAPDOOR):
     if len(path) == 0:
         return
     blocks = []

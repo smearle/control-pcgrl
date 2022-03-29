@@ -20,7 +20,11 @@ for prob in PROBLEMS.keys():
                 id=id,
                 entry_point=entry_point,
                 kwargs={"prob": prob, "rep": rep},
-            #   order_enforce=False,
+
+                # Need this when using newer versions of gym. But we also need to update rendering to use the new 
+                # version of gym.
+#               order_enforce=False,  
+
             )
         else:
             continue

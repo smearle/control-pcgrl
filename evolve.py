@@ -3588,9 +3588,9 @@ class EvoPCGRL:
                         for eval_archive in eval_archives
                     ]
             else:
-                TT()
                 eval_archive = gen_archive_cls(
                     [1, 1], [(0, 1), (0, 1)], *self.init_level_archive_args
+                )
 
             RENDER = False
             # Iterate through our archive of trained elites, evaluating them and storing stats about them.

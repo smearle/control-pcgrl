@@ -3,7 +3,7 @@ import os
 import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dikjstra
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dijkstra
 
 from gym_pcgrl.envs.probs.zelda.zelda_ctrl_prob import ZeldaCtrlProblem
 

@@ -6,7 +6,7 @@ from gym_pcgrl.envs.helper import (
     calc_num_regions,
     get_range_reward,
     get_tile_locations,
-    run_dikjstra,
+    run_dijkstra,
     get_path_coords,
 )
 from gym_pcgrl.envs.probs.zelda.zelda_prob import ZeldaProblem
@@ -113,7 +113,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
             UPPER_DIST = self._width * self._height * 100
 
             if len(enemies) > 0:
-                dikjstra, _ = run_dikjstra(
+                dijkstra, _ = run_dijkstra(
                     p_x,
                     p_y,
                     map,
@@ -122,8 +122,8 @@ class ZeldaCtrlProblem(ZeldaProblem):
                 min_dist = UPPER_DIST
 
                 for e_x, e_y in enemies:
-                    if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
-                        min_dist = dikjstra[e_y][e_x]
+                    if dijkstra[e_y][e_x] > 0 and dijkstra[e_y][e_x] < min_dist:
+                        min_dist = dijkstra[e_y][e_x]
 
                 if min_dist == UPPER_DIST:
                     # And this
@@ -133,24 +133,24 @@ class ZeldaCtrlProblem(ZeldaProblem):
             if map_stats["key"] == 1 and map_stats["door"] == 1:
                 k_x, k_y = map_locations["key"][0]
                 d_x, d_y = map_locations["door"][0]
-                dikjstra_k, _ = run_dikjstra(
+                dijkstra_k, _ = run_dijkstra(
                     p_x,
                     p_y,
                     map,
                     ["empty", "key", "player", "bat", "spider", "scorpion"],
                 )
-                map_stats["path-length"] += dikjstra_k[k_y][k_x]
-                dikjstra_d, _ = run_dikjstra(
+                map_stats["path-length"] += dijkstra_k[k_y][k_x]
+                dijkstra_d, _ = run_dijkstra(
                     k_x,
                     k_y,
                     map,
                     ["empty", "player", "key", "door", "bat", "spider", "scorpion"],
                 )
-                map_stats["path-length"] += dikjstra_d[d_y][d_x]
+                map_stats["path-length"] += dijkstra_d[d_y][d_x]
 
                 if self.render_path:  # and map_stats["regions"] == 1:
-                    self.path = np.vstack((get_path_coords(dikjstra_k, init_coords=(k_y, k_x))[:],
-                        get_path_coords(dikjstra_d, init_coords=(d_y, d_x))[:]))
+                    self.path = np.vstack((get_path_coords(dijkstra_k, init_coords=(k_y, k_x))[:],
+                        get_path_coords(dijkstra_d, init_coords=(d_y, d_x))[:]))
                     front_tiles = set(((k_x, k_y), (d_x, d_y), (p_x, p_y)))
                     i = 0
                     render_path = self.path.copy()

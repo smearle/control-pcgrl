@@ -44,7 +44,7 @@ class Minecraft3DmazeProblem(Problem):
         self.old_path_coords = []
         self.path_length = None
         self.render_path = False
-        self._rendered_border = False
+        self._rendered_initial_maze = False
 
     """
     Get a list of all the different tile names
@@ -88,7 +88,7 @@ class Minecraft3DmazeProblem(Problem):
         start_stats (dict(string,any)): the first stats of the map
     """
     def reset(self, start_stats):
-        self._rendered_border = False
+        self._rendered_initial_maze = False
         super().reset(start_stats)
         if self._random_probs:
             self._prob["AIR"] = self._random.random()
@@ -193,20 +193,35 @@ class Minecraft3DmazeProblem(Problem):
         }
     
     def render(self, map, iteration_num, repr_name):
-        block_dict = {}
+        # block_dict = {}
+
+        old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        path_to_erase = set(old_path_coords)
+        path_to_render = []
+        for (x, y, z) in self.path_coords:
+            if (x, y, z) in path_to_erase:
+                path_to_erase.remove((x, y, z))
+            else:
+                path_to_render.append((x, y, z))
+
+        if self.render_path:
+            erase_3D_path(path_to_erase)
 
         # Render the border if we haven't yet already.
-        if not self._rendered_border:
+        if not self._rendered_initial_maze:
             spawn_3D_border(map, self._border_tile)
 
         # FIXME: if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
-        if repr_name == "narrow3D" or repr_name == "turtle3D":
-            # if iteration_num == 0 or iteration_num == 1:      
+        if repr_name in ["narrow3D", "turtle3D", "wide3D"]:
+            if not self._rendered_initial_maze:      
 
-            # FIXME: these functions which returns dictionaries of blocks to be rendered are broken somehow
-            # block_dict.update(get_3D_maze_blocks(map))
+                # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
+                # block_dict.update(get_3D_maze_blocks(map))
 
-            spawn_3D_maze(map)
+                # TODO: remove this call to spawn_3D_maze, and render the edit alone in representation.
+                spawn_3D_maze(map)
+
+                self._rendered_initial_maze = True
 
         else:
             # block_dict.update(get_3D_maze_blocks(map))
@@ -214,17 +229,18 @@ class Minecraft3DmazeProblem(Problem):
 
 #       # Rendering maze without path to debug path rendering.
 #       render_blocks(block_dict)
-        block_dict = {}
+#       block_dict = {}
 
         if self.render_path:
-            # FIXME: deleting the old path could delete solid blocks!
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
-            # erase_3D_path(self.path_coords)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
-            spawn_3D_path(self.path_coords)
+            spawn_3D_path(path_to_render)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)
+
+        # If using a narrow, turtle, or wide, the edit will be rendered *after* calling this function, in the 
+        # representation.
 
         return 
