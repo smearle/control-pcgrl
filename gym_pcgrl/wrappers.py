@@ -1,5 +1,6 @@
 from pdb import set_trace as TT
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
+from gym_pcgrl.envs import helper_3D
 
 import numpy as np
 
@@ -100,17 +101,18 @@ class ToImage(gym.Wrapper):
             if self.shape is None:
                 self.shape = self.env.observation_space.spaces[n].shape
             new_shape = self.env.observation_space.spaces[n].shape
-            depth += 1 if len(new_shape) <= 2 else new_shape[2]
+            depth += 1 if len(new_shape) <= 2 else new_shape[-1]
             assert (
-                self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1]
-            ), "This wrapper only works when all objects have same width and height"
+                # self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1]
+                np.all([self.shape[i] == new_shape[i] for i in range(len(self.shape))])
+            ), "This wrapper only works when all objects have same width, height, length..."
 
             if self.env.observation_space[n].high.max() > max_value:
                 max_value = self.env.observation_space[n].high.max()
         self.names = names
 
         self.observation_space = gym.spaces.Box(
-            low=0, high=max_value, shape=(self.shape[0], self.shape[1], depth)
+            low=0, high=max_value, shape=(*self.shape[:-1], depth)
         )
 
     def step(self, action, **kwargs):
@@ -130,12 +132,20 @@ class ToImage(gym.Wrapper):
         final = np.empty([])
 
         for n in self.names:
+#           if len(self.env.observation_space.spaces[n].shape) == 3:
             if len(final.shape) == 0:
-                final = obs[n].reshape(self.shape[0], self.shape[1], -1)
+                final = obs[n].reshape(*self.shape[:-1], -1)
             else:
                 final = np.append(
-                    final, obs[n].reshape(self.shape[0], self.shape[1], -1), axis=2
+                    final, obs[n].reshape(*self.shape[:-1], -1), axis=2
                 )
+#           else:
+#               if len(final.shape) == 0:
+#                   final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
+#               else:
+#                   final = np.append(
+#                       final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2
+#                   )
 
         return final
 
@@ -150,50 +160,45 @@ class ToImageCA(ToImage):
 
         return obs, reward, done, info
 
-class ToImage3D(ToImage):
-    def __init__(self, game, names, **kwargs):
-        if isinstance(game, str):
-            self.env = gym.make(game)
-        else:
-            self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
-        self.shape = None
-        depth=0
-        max_value = 0
-        for n in names:
-            assert n in self.env.observation_space.spaces.keys(), 'This wrapper only works if your observation_space is spaces.Dict with the input names.'
-            if self.shape == None:
-                self.shape = self.env.observation_space[n].shape
-            new_shape = self.env.observation_space[n].shape
-            depth += 1 if len(new_shape) <= 3 else new_shape[3]
-            assert self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1] and self.shape[2] == new_shape[2], 'This wrapper only works when all objects have same length, width and height'
-            if self.env.observation_space[n].high.max() > max_value:
-                max_value = self.env.observation_space[n].high.max()
-        self.names = names
-
-        self.observation_space = gym.spaces.Box(low=0, high=max_value,shape=(self.shape[0], self.shape[1], self.shape[2], depth))
-
-    def transform(self, obs):
-        final = np.empty([])
-        for n in self.names:
-            if len(final.shape) == 0:
-                final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
-            else:
-                final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2)
-        return final
+#class ToImage3D(ToImage):
+#    def __init__(self, game, names, **kwargs):
+#        if isinstance(game, str):
+#            self.env = gym.make(game)
+#        else:
+#            self.env = game
+#        get_pcgrl_env(self.env).adjust_param(**kwargs)
+#        gym.Wrapper.__init__(self, self.env)
+#        self.shape = None
+#        depth=0
+#        max_value = 0
+#        for n in names:
+#            assert n in self.env.observation_space.spaces.keys(), 'This wrapper only works if your observation_space is spaces.Dict with the input names.'
+#            if self.shape == None:
+#                self.shape = self.env.observation_space[n].shape
+#            new_shape = self.env.observation_space[n].shape
+#            depth += 1 if len(new_shape) <= 3 else new_shape[3]
+#            assert self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1] and self.shape[2] == new_shape[2], 'This wrapper only works when all objects have same length, width and height'
+#            if self.env.observation_space[n].high.max() > max_value:
+#                max_value = self.env.observation_space[n].high.max()
+#        self.names = names
+#
+#        self.observation_space = gym.spaces.Box(low=0, high=max_value,shape=(self.shape[0], self.shape[1], self.shape[2], depth))
+#
+#    def transform(self, obs):
+#        final = np.empty([])
+#        for n in self.names:
+#            if len(final.shape) == 0:
+#                final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
+#            else:
+#                final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2)
+#        return final
 
 
 class OneHotEncoding(gym.Wrapper):
     """
     Transform any object in the dictionary to one hot encoding
-
-
-
-    Transform any object in the dictionary to one hot encoding
     can be stacked
     """
-
     def __init__(self, game, name, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
@@ -490,7 +495,7 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
         # Indices for flatting
         flat_indices = ['map']
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage3D(env, flat_indices)
+        self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 
@@ -525,7 +530,6 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
             self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
-
 # This precedes the ParamRew wrapper so we only worry about the map as observation
 class CAactionWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
@@ -554,6 +558,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         env = self.pcgrl_env
         width = env._prob._width
         height = env._prob._height
+        length = env._prob._length
         self.n_ca_tick = 0
         # Add the action map wrapper
         #       env = ActionMap(env)
@@ -565,7 +570,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
         # NOTE: check this insanity out so cool
-        self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.env.dim] * width * height)
+        self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.env.dim] * width * height * length)
         #       self.action_space = self.pcgrl_env.action_space = gym.spaces.Box(low=0, high=1, shape=(self.n_tile_types* width* height,))
         self.last_action = None
         self.INFER = kwargs.get('infer')
@@ -576,7 +581,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         action = action.reshape(pcgrl_env._rep._map.shape).astype(int)
         #       obs = get_one_hot_map(action, self.n_tile_types)
         obs = action.reshape(1, *action.shape)
-        obs = obs.transpose(1, 2, 0)
+        obs = obs.transpose(1, 2, 3, 0)
         pcgrl_env._rep._map = obs.squeeze(-1)
         obs = self.env.get_one_hot_map()
         #       print(obs['map'][:,:,-1:].transpose(1, 2, 0))
@@ -585,7 +590,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
             done = True
         else:
             done = False
-        self.env._rep_stats = pcgrl_env._prob.get_stats(get_string_map(action, pcgrl_env._prob.get_tile_types()))
+        self.env._rep_stats = pcgrl_env._prob.get_stats(helper_3D.get_string_map(action, pcgrl_env._prob.get_tile_types()))
         pcgrl_env.metrics = env.metrics = self.env._rep_stats
         self.last_action = action
 

@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+import numpy as np
 import torch as th
 from pdb import set_trace as TT
 from ray.rllib.models.modelv2 import ModelV2
@@ -51,6 +52,65 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
         x = nn.functional.relu(self.fc_1(x))
         self._features = x
         action_out = self.action_branch(self._features)
+
+        return action_out, []
+
+
+class WideModel3D(TorchModelV2, nn.Module):
+    def __init__(self,
+                 obs_space,
+                 action_space,
+                 num_outputs,
+                 model_config,
+                 name,
+                #  conv_filters=64,  # fixing model parameters for now
+                # fc_size=128,
+                 ):
+        nn.Module.__init__(self)
+        super().__init__(obs_space, action_space, num_outputs, model_config,
+                         name)
+        # How many possible actions can the agent take *at a given coordinate*.
+        num_output_actions = num_outputs // np.prod(obs_space.shape[:-1])
+
+        # self.obs_size = get_preprocessor(obs_space)(obs_space).size
+        obs_shape = obs_space.shape
+
+        # Determine size of activation after convolutional layers so that we can initialize the fully-connected layer 
+        # with the correct number of weights.
+        # TODO: figure this out properly, independent of map size. Here we just assume width/height/length of 
+        # (padded) observation is 14
+        # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * 32
+        # self.pre_fc_size = 128 * 2 * 2 * 2
+
+        # Size of activation after flattening, after convolutional layers and before the value branch.
+        pre_val_size = (obs_shape[-2]) * (obs_shape[-3]) * (obs_shape[-4]) * num_output_actions
+
+        # Convolutinal layers.
+        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=64, kernel_size=3, padding=1)  # 7 * 7 * 7
+        self.conv_2 = nn.Conv3d(64, out_channels=num_output_actions, kernel_size=3, padding=1)  # 4 * 4 * 4
+
+        # Fully connected layer.
+        # self.fc_1 = SlimFC(self.pre_fc_size, fc_size)
+
+        # Fully connected action and value heads.
+        # self.action_branch = SlimFC(fc_size, num_outputs)
+        self.value_branch = SlimFC(pre_val_size, 1)
+
+        # Holds the current "base" output (before logits layer).
+        self._features = None
+
+    @override(ModelV2)
+    def value_function(self):
+        assert self._features is not None, "must call forward() first"
+        return th.reshape(self.value_branch(self._features), [-1])
+
+    def forward(self, input_dict, state, seq_lens):
+        input = input_dict["obs"].permute(0, 4, 1, 2, 3)  # Because rllib order tensors the tensorflow way (channel last)
+        x = nn.functional.relu(self.conv_1(input.float()))
+        x = nn.functional.relu(self.conv_2(x.float()))
+        x = x.reshape(x.size(0), -1)
+        self._features = x
+        action_out = x
 
         return action_out, []
 

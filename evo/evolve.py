@@ -925,7 +925,7 @@ def get_path_length(stats):
     return stats["path-length"]
 
 
-# TODO: call this once to return the releveant get_bc function, then call this after each eval, so that we don't have to repeatedly compare strings
+# TODO: call this once to return the relevant get_bc function, then call this after each eval, so that we don't have to repeatedly compare strings
 
 
 def get_bc(bc_name, int_map, stats, env, idx):
@@ -1122,7 +1122,6 @@ def multi_evo(
         player_1=player_1,
         player_2=player_2,
     )
-
     return result
 
 
@@ -1351,6 +1350,7 @@ def simulate(
 
         n_step = 0
 
+        # Simulate an episode of level generation.
         while not done:
             if env.unwrapped._rep._map is not None:
                 if render_levels:
@@ -1482,6 +1482,7 @@ def simulate(
                             stats, time_penalty, targets_penalty
                         )
                     )
+                TT()
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]

@@ -35,7 +35,7 @@ representations: List[str] = [
 ]
 # TODO: incorporate formal (rather than only functional) metrics as controls
 global_controls: List[List] = [
-    ["NONE"],
+    ["NONE", "NONE"],
     # ['emptiness', 'symmetry'],
 ]
 local_controls: Dict[str, List] = {

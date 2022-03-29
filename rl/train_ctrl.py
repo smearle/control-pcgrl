@@ -10,7 +10,7 @@ import gym
 import numpy as np
 
 import gym_pcgrl
-from model import CustomFeedForwardModel, CustomFeedForwardModel3D  # noqa : F401
+from model import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D  # noqa : F401
 from args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -88,7 +88,10 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         # Using this simple feedforward model for now by default
         ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel)
     else:
-        ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel3D)
+        if representation == "wide3D":
+            ModelCatalog.register_custom_model("feedforward", WideModel3D)
+        else:
+            ModelCatalog.register_custom_model("feedforward", CustomFeedForwardModel3D)
 
 #   # Define a few default rllib models for different square crop sizes. These are lists of conv layers, where each conv
 #   # layer is a list of [n_filters, kernel_size, stride]. Padding is automatic.
@@ -149,6 +152,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     if opts.infer:
         env = make_env(kwargs)
         for i in range(10000):
+            TT()
             obs = env.reset()
             done = False
             while not done:

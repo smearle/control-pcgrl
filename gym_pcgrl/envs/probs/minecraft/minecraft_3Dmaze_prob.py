@@ -223,6 +223,7 @@ class Minecraft3DmazeProblem(Problem):
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
             spawn_3D_border(map, self._border_tile)
+            spawn_3D_maze(map)
             self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))

@@ -58,7 +58,7 @@ def get_args(load_args=None):
         "--behavior_characteristics",
         nargs="+",
         help="A list of strings corresponding to the behavior characteristics that will act as the dimensions for our grid of elites during evo.",
-        default=["NONE"],
+        default=["NONE", "NONE"],
     )
     opts.add_argument(
         "-r", "--render", help="Render the environment.", action="store_true"
