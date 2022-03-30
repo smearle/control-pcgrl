@@ -8,6 +8,7 @@ from pdb import set_trace as TT
 # from utils import make_vec_envs
 from gym_pcgrl.envs.helper_3D import calc_num_regions, debug_path, get_string_map,\
                                         get_tile_locations, calc_longest_path, run_dijkstra
+import matplotlib.pyplot as plt
 
 ################################################################################
 # test the helper functions
@@ -225,6 +226,32 @@ test_map_4 = [
     ]
 ]
 
+
+# test_map_5:
+# size: 3 * 3 * 3
+# for testing the 3D plotting
+test_map_5 = [
+    [
+        [1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 0, 0, 0, 0],
+    ],
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+    ],
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+    ],
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+    ]
+]
+
+
+
+
 """
 get the state of the test maps
 """
@@ -242,6 +269,32 @@ def get_test_state(test_map, tile_types):
     print(f"The path is: {debug_path_coords}")
     return path_length, path_coords, num_regions
 
+def plot_3d_map(test_map):
+    test_map = np.array(test_map)
+
+    # change the map axis for plotting
+    test_map = np.moveaxis(test_map, (0, 2), (2, 1))
+
+    # create the boolen map of the maze
+    boolen_map = np.array(test_map) == 1
+
+    # create the color map of the maze
+    color_map = np.empty(test_map.shape, dtype=object)
+    color_map[boolen_map] = "green"
+
+    # plot it out!
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.set_box_aspect([test_map.shape[0]/test_map.shape[1],
+                         1,
+                         test_map.shape[2]/test_map.shape[1]])
+    # ax.set_box_aspect([1,
+    #                    1,
+    #                    5/7])
+    print('test_map.shape:', test_map.shape)
+    ax.voxels(boolen_map, facecolors=color_map, edgecolor='k')
+    plt.show()
+
+
 
 if __name__=="__main__":
     ################################################################################
@@ -257,56 +310,17 @@ if __name__=="__main__":
     #         env.render()
 
     ################################################################################
-  
-    # path_length_1, path_coords_1, num_regions_1 = get_test_state(test_map_1, tile_types)
-    # path_length_2, path_coords_2, num_regions_2 = get_test_state(test_map_2, tile_types)
-    # path_length_3, path_coords_3, num_regions_3 = get_test_state(test_map_3, tile_types)
-    path_length_4, path_coords_4, num_regions_4 = get_test_state(test_map_4, tile_types)
+    # test the path finding algorithm
+
+    # # path_length_1, path_coords_1, num_regions_1 = get_test_state(test_map_1, tile_types)
+    # # path_length_2, path_coords_2, num_regions_2 = get_test_state(test_map_2, tile_types)
+    # # path_length_3, path_coords_3, num_regions_3 = get_test_state(test_map_3, tile_types)
+    # path_length_4, path_coords_4, num_regions_4 = get_test_state(test_map_4, tile_types)
     
-    dijkstra_map_4, _ = run_dijkstra(1, 0, 0, get_string_map(np.array(test_map_4), tile_types), ["AIR"])
-    print("dijkstra_map_4 is \n", dijkstra_map_4)
-    """
-    dijkstra_map_1
-    array([[[ 0,  1,  2,  3,  4,  5,  6],
-            [-1, -1, -1, -1, -1, -1,  7],
-            [14, 13, 12, 11, 10,  9,  8],
-            [15, -1, -1, -1, -1, -1, -1],
-            [16, 17, 18, 19, 20, 21, 22],
-            [-1, -1, -1, -1, -1, -1, 23],
-            [-1, -1, -1, 27, 26, 25, 24]],
+    # dijkstra_map_4, _ = run_dijkstra(1, 0, 0, get_string_map(np.array(test_map_4), tile_types), ["AIR"])
+    # print("dijkstra_map_4 is \n", dijkstra_map_4)
 
-           [[-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1]],
+    ################################################################################
+    # test the 3D plotting using matplotlib 3D voxel / volumetric plotting
 
-           [[-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1]],
-
-           [[-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1]],
-
-           [[-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1],
-            [-1, -1, -1, -1, -1, -1, -1]]])
-
-        still some issues with the passable function
-"""
-    print(path_coords_4)
+    plot_3d_map(test_map_5)

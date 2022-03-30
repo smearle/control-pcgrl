@@ -1,6 +1,7 @@
 """
 A helper module that can be used by all problems in cubic 3D game
 """
+import matplotlib.pyplot as plt
 import numpy as np
 from pdb import set_trace as TT
 """
@@ -649,3 +650,33 @@ def get_range_reward(new_value, old_value, low, high):
         return high - new_value + old_value - low
     if new_value < low and old_value > high:
         return high - old_value + new_value - low
+
+"""
+A function to plot the 3D structure of the map
+"""
+def plot_3D_path(size_x, size_y, size_z, path_coords):
+
+    # create the boolen map of the maze
+    path_boolean_map = np.full((size_z, size_y, size_x), False, dtype=bool)
+
+    for (x,y,z) in path_coords:
+        path_boolean_map[z][y][x] = True
+
+    # change the map axis for plotting
+    path_boolean_map = np.moveaxis(path_boolean_map, (0, 2), (2, 1))
+
+    # create the color map of the maze
+    path_color_map = np.empty(path_boolean_map.shape, dtype=object)
+    path_color_map[path_boolean_map] = "red"
+
+    # make a 3D plot
+    ax = plt.figure().add_subplot(projection='3d')
+
+    # scale the plot so that the blocks are cube but not cuboid
+    ax.set_box_aspect([path_boolean_map.shape[0]/path_boolean_map.shape[1],
+                       1,
+                       path_boolean_map.shape[2]/path_boolean_map.shape[1]])
+    
+    # plot it out!
+    ax.voxels(path_boolean_map, facecolors=path_color_map, edgecolor='k')
+    plt.show()

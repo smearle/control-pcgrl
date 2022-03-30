@@ -13,9 +13,10 @@ from timeit import default_timer as timer
 
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
-    calc_longest_path, debug_path, run_dijkstra
+    calc_longest_path, debug_path, plot_3D_path, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
+from test3D import plot_3d_map
 
 
 class Minecraft3DmazeProblem(Problem):
@@ -192,7 +193,7 @@ class Minecraft3DmazeProblem(Problem):
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
     
-    def render(self, map, iteration_num, repr_name):
+    def render(self, map, iteration_num, repr_name, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
 
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
@@ -235,4 +236,8 @@ class Minecraft3DmazeProblem(Problem):
 
         # render_blocks(block_dict)
 
+        passable_tile = kwargs["passable_tile"] if "passable_tile" in kwargs else "AIR"
+
+        # plot the path using matplotlib
+        plot_3D_path(self._length, self._width, self._height, self.path_coords)
         return 
