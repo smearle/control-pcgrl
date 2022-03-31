@@ -63,7 +63,7 @@ class WideModel3D(TorchModelV2, nn.Module):
                  num_outputs,
                  model_config,
                  name,
-                #  conv_filters=64,  # fixing model parameters for now
+                 n_hid_filters=64,  # number of "hidden" filters in convolutional layers
                 # fc_size=128,
                  ):
         nn.Module.__init__(self)
@@ -86,8 +86,8 @@ class WideModel3D(TorchModelV2, nn.Module):
         pre_val_size = (obs_shape[-2]) * (obs_shape[-3]) * (obs_shape[-4]) * num_output_actions
 
         # Convolutinal layers.
-        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=64, kernel_size=3, padding=1)  # 7 * 7 * 7
-        self.conv_2 = nn.Conv3d(64, out_channels=num_output_actions, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=n_hid_filters, kernel_size=3, padding=1)  # 7 * 7 * 7
+        self.conv_2 = nn.Conv3d(n_hid_filters, out_channels=num_output_actions, kernel_size=3, padding=1)  # 4 * 4 * 4
 
         # Fully connected layer.
         # self.fc_1 = SlimFC(self.pre_fc_size, fc_size)

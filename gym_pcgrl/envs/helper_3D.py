@@ -357,6 +357,15 @@ def run_dijkstra(x, y, z, map, passable_values):
         if dijkstra_map[cz][cy][cx] >= 0 and dijkstra_map[cz][cy][cx] <= cd:
             continue
 
+        # We never start path-finding from a position at which the player cannot stand. Foot-room is guaranteed, so we
+        # check for headroom.
+        # Zelda (and other games maybe) calls this function directly without calling calc_longest_path, so we need to 
+        # add this check here.
+        if cz+1 == len(map) or map[cz+1][y][x] not in passable_values:
+            visited_map[cz][cy][cx] = 1
+            continue
+
+
         # Count the tile as visited and record its distance 
         visited_map[cz][cy][cx] = 1
         dijkstra_map[cz][cy][cx] = cd

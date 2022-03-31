@@ -18,9 +18,9 @@ problems: List[str] = [
     "minecraft_3D_maze_ctrl",
     # "minecraft_3D_zelda_ctrl",
     # "binary_ctrl",
-#   "zelda_ctrl",
-#   "sokoban_ctrl",
-#   'simcity',
+    # "zelda_ctrl",
+    # "sokoban_ctrl",
+    # 'simcity',
     # 'smb_ctrl',
 ]
 representations: List[str] = [

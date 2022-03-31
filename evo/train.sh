@@ -13,7 +13,7 @@
 #SBATCH --mail-user=zj2086@nyu.edu
 #SBATCH --output=evopcgrl_%j.out
 
-cd /scratch/zj2086/control-pcgrl3D
+cd /scratch/zj2086/control-pcgrl
 
 ## Is this actually necessary?
 source activate

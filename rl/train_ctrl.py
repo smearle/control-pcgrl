@@ -122,6 +122,9 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
             # for using ~/ray_results/...).
             "logdir": log_dir,
         },
+#       "log_level": "INFO",
+#       "train_batch_size": 32,
+#       "sgd_minibatch_size": 32,
     }
 
     register_env('pcgrl', make_env)

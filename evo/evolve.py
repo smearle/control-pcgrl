@@ -243,7 +243,10 @@ def save_grid(csv_name="levels", d=4):
             # Set map
             env.unwrapped._rep._x = env.unwrapped._rep._y = 0
             env.unwrapped._rep._map = level
+
+            # TODO: this won't work for minecraft! Find a workaround?
             img = env.render(mode="rgb_array")
+
 #           axs[row_num, col_num].imshow(img, aspect="auto")
             axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
 
@@ -2424,7 +2427,7 @@ class EvoPCGRL:
                         # parallelization would be kind of pointelss here
                         init_nn = set_weights(self.gen_model, model, algo=ALGO)
                         # run simulation, but only on a single level-seed
-#                       init_state = (1, self.env)
+                        # init_state = (1, self.env)
                         #                       init_state = np.random.randint(
                         #                           0, self.n_tile_types, size=(1, *self.init_states.shape[1:])
                         #                       )
@@ -2454,7 +2457,7 @@ class EvoPCGRL:
                         else:
                             level_frames += level_frames_i
                         # Get image
-#                       img = self.env.render(mode="rgb_array")
+                        # img = self.env.render(mode="rgb_array")
                         img = level_frames[-1]
                         axs[n_row, n_col].imshow(img, aspect=1)
                 if concat_gifs:
@@ -2980,6 +2983,7 @@ class EvoPCGRL:
 
             return
 
+        # This is the inference code, which will play back models for our own enjoyment/observation.
         while i < len(models):
             #           model = self.archive.get_random_elite()[0]
             #           model = models[np.random.randint(len(models))]
@@ -3225,20 +3229,18 @@ if __name__ == "__main__":
             evolver.visualize()
 
         if INFER:
-            # global RENDER
             RENDER = True
             N_STEPS = N_INFER_STEPS
 
-            #           if not RANDOM_INIT_LEVELS:
             # evaluate on initial level seeds that each generator has seen before
             RANDOM_INIT_LEVELS = False
             evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels_fixLvls")
+
             # evaluate on random initial level seeds
             RANDOM_INIT_LEVELS = True
             evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels")
-        #           save_grid(csv_name="levels")
 
         if not (INFER or VISUALIZE):
             writer = init_tensorboard()

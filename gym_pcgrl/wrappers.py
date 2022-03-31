@@ -298,6 +298,7 @@ class ActionMap(gym.Wrapper):
 
     def step(self, action, **kwargs):
         # y, x, v = np.unravel_index(np.argmax(action), action.shape)
+        TT()
         y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
 
         if "pos" in self.old_obs:
@@ -570,31 +571,20 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
         # NOTE: check this insanity out so cool
-        self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.env.dim] * width * height * length)
+        # self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.env.dim] * width * height * length)
+        self.action_space = self.unwrapped.action_space = gym.spaces.Discrete(self.env.dim * width * height * length)
         #       self.action_space = self.pcgrl_env.action_space = gym.spaces.Box(low=0, high=1, shape=(self.n_tile_types* width* height,))
         self.last_action = None
         self.INFER = kwargs.get('infer')
 
     def step(self, action, **kwargs):
-        env = self.env
-        pcgrl_env = self.pcgrl_env
-        action = action.reshape(pcgrl_env._rep._map.shape).astype(int)
-        #       obs = get_one_hot_map(action, self.n_tile_types)
-        obs = action.reshape(1, *action.shape)
-        obs = obs.transpose(1, 2, 3, 0)
-        pcgrl_env._rep._map = obs.squeeze(-1)
-        obs = self.env.get_one_hot_map()
-        #       print(obs['map'][:,:,-1:].transpose(1, 2, 0))
-        self.n_ca_tick += 1
-        if self.n_ca_tick >= 50 or (action == self.last_action).all():
-            done = True
-        else:
-            done = False
-        self.env._rep_stats = pcgrl_env._prob.get_stats(helper_3D.get_string_map(action, pcgrl_env._prob.get_tile_types()))
-        pcgrl_env.metrics = env.metrics = self.env._rep_stats
-        self.last_action = action
+        """
+        :param action: (int) the unravelled index of the action. We will re-ravel to get spatial (x, y, z) coordinates, 
+                      and action type.
+        """
+        action = np.unravel_index(action, (self.observation_space.shape))
 
-        return obs['map'], 0, done, {}
+        return super().step(action, **kwargs)
 
     def reset(self):
         self.last_action = None

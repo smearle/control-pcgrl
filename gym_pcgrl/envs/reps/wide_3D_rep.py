@@ -1,4 +1,5 @@
 from gym_pcgrl.envs.reps.representation3D import Representation3D
+from pdb import set_trace as TT
 from PIL import Image
 from gym import spaces
 import numpy as np
@@ -72,6 +73,7 @@ class Wide3DRepresentation(Representation3D):
     def update(self, action):
         change = [0,1][self._map[action[2]][action[1]][action[0]] != action[3]]
         self._map[action[2]][action[1]][action[0]] = action[3]
+
         return change, [action[0], action[1], action[2]]
 
     def render(self, map):
