@@ -63,7 +63,7 @@ class WideModel3D(TorchModelV2, nn.Module):
                  num_outputs,
                  model_config,
                  name,
-                 n_hid_filters=64,  # number of "hidden" filters in convolutional layers
+                 n_hid_filters=128,  # number of "hidden" filters in convolutional layers
                 # fc_size=128,
                  ):
         nn.Module.__init__(self)

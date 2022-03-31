@@ -193,7 +193,7 @@ class Minecraft3DmazeProblem(Problem):
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
     
-    def render(self, map, iteration_num, repr_name, **kwargs):
+    def render(self, map, iteration_num, repr_name, render_matplotlib=False, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
 
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
@@ -236,8 +236,8 @@ class Minecraft3DmazeProblem(Problem):
 
         # render_blocks(block_dict)
 
-        passable_tile = kwargs["passable_tile"] if "passable_tile" in kwargs else "AIR"
-
         # plot the path using matplotlib
-        plot_3D_path(self._length, self._width, self._height, self.path_coords)
+        if render_matplotlib:
+            plot_3D_path(self._length, self._width, self._height, self.path_coords)
+
         return 

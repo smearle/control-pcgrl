@@ -75,6 +75,11 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
             # Create the log directory if training from scratch.
             os.mkdir(log_dir)
 
+        else:
+            # Overwrite the log directory.
+            shutil.rmtree(log_dir)
+            os.mkdir(log_dir)
+
         # Save the experiment settings for future reference.
         with open(os.path.join(log_dir, 'settings.json'),
                 'w',
@@ -155,7 +160,6 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
     if opts.infer:
         env = make_env(kwargs)
         for i in range(10000):
-            TT()
             obs = env.reset()
             done = False
             while not done:
@@ -195,6 +199,7 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
                 with open(checkpoint_path_file, 'r') as f:
                     old_checkpoint_path = f.read()
 
+                # FIXME: sometimes this does not exist (when overwriting?)
                 shutil.rmtree(Path(old_checkpoint_path).parent)
             
             # Record the path of the new checkpoint.
