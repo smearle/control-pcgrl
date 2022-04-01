@@ -41,11 +41,11 @@ class ConditionalWrapper(gym.Wrapper):
         self.ctrl_metrics = ctrl_metrics  # controllable metrics
 #       self.ctrl_metrics = ctrl_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
         # fixed metrics (i.e. playability constraints)
-        self.static_metrics = set(env.static_trgs.keys())
+        self.static_metric_names = set(env.static_trgs.keys())
 
         for k in ctrl_loss_metrics:
-            if k in self.static_metrics:
-                self.static_metrics.remove(k)
+            if k in self.static_metric_names:
+                self.static_metric_names.remove(k)
         self.num_params = len(self.ctrl_metrics)
         self.auto_reset = True
         self.weights = {}
@@ -79,7 +79,7 @@ class ConditionalWrapper(gym.Wrapper):
         self.all_metrics = set()
         self.all_metrics.update(self.ctrl_metrics)
         self.all_metrics.update(ctrl_loss_metrics)  # probably some overlap here
-        self.all_metrics.update(self.static_metrics)
+        self.all_metrics.update(self.static_metric_names)
 
         if "RCT" in str(type(env.unwrapped)) or "Micropolis" in str(
             type(env.unwrapped)
@@ -360,7 +360,7 @@ class ConditionalWrapper(gym.Wrapper):
     def get_static_loss(self):
         loss = 0
 
-        for metric in self.static_metrics:
+        for metric in self.static_metric_names:
             # We already pop these from static_metrics during init
             # if metric in self.ctrl_metrics:
             #     continue

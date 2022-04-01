@@ -59,7 +59,7 @@ class PcgrlEnv(gym.Env):
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
         
         self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)
-        self.weights = self._prob.weights
+        self.weights = self._prob._weights
 #       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
 

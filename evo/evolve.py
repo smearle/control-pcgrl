@@ -48,7 +48,7 @@ from tqdm import tqdm
 
 from args import get_args
 from evo.models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
-    set_weights, NCA, NCA3D
+    set_weights, NCA, NCA3D, DirectBinaryEncoding
 from evo.utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
@@ -456,12 +456,14 @@ class MEOptimizer():
         if start_time == None:
             self.start_time = timer()
         self.logbook = deap.tools.Logbook()
-        self.logbook.header = ["iteration", "containerSize", "evals", "nbUpdated"] + (stats.fields if stats else []) + ["elapsed"]
-        print(self.logbook.header)
+        self.logbook.header = ["iteration", "containerSize", "evals", "nbUpdated"] + (stats.fields if stats else []) + \
+            ["meanFitness", "maxFitness", "elapsed"]
         self.i = 0
 
 
     def tell(self, objective_values, behavior_values):
+        """Tell MAP-Elites about the performance (and diversity measures) of new offspring / candidate individuals, 
+        after evaluation on the task."""
         # Update individuals' stats with results of last batch of simulations
 #       [(ind.fitness.setValues(obj), ind.fitness.features.setValues(bc)) for
 #        (ind, obj, bc) in zip(self.inds, objective_values, behavior_values)]
@@ -472,7 +474,13 @@ class MEOptimizer():
         nb_updated = self.grid.update(self.inds, issue_warning=True, ignore_exceptions=False)
         # Compile stats and update logs
         record = self.stats.compile(self.grid) if self.stats else {}
-        self.logbook.record(iteration=self.i, containerSize=self.grid.size_str(), evals=len(self.inds), nbUpdated=nb_updated, elapsed=timer()-self.start_time, **record)
+
+        assert len(self.grid._best_fitness.values) == 1, "Multi-objective evolution is not supported."
+        maxFitness = self.grid._best_fitness[0]
+        meanFitness = np.mean([ind.fitness.values[0] for ind in self.grid])
+        self.logbook.record(iteration=self.i, containerSize=self.grid.size_str(), evals=len(self.inds), 
+                            nbUpdated=nb_updated, elapsed=timer()-self.start_time, meanFitness=0, maxFitness=maxFitness,
+                            **record)
         self.i += 1
         print(self.logbook.stream)
 
@@ -1436,7 +1444,6 @@ def simulate(
                         trg_penalty_k = abs(static_targets[k] - stats[k])
                     trg_penalty_k *= target_weights[k]
                     targets_penalty += trg_penalty_k
-                #                   targets_penalty = np.sum([abs(static_targets[k] - stats[k]) if not isinstance(static_targets[k], tuple) else abs(np.arange(*static_targets[k]) - stats[k]).min() for k in static_targets])
                 batch_targets_penalty -= targets_penalty
                 # if SAVE_LEVELS:
                 trg[n_episode] = -targets_penalty
@@ -1748,10 +1755,6 @@ class EvoPCGRL:
         if CUDA:
             self.gen_model.cuda()
         set_nograd(self.gen_model)
-        initial_w = get_init_weights(self.gen_model)
-        assert len(initial_w.shape) == 1
-        self.n_generator_weights = initial_w.shape[0]
-        self.n_player_weights = 0
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
 
         if MODEL == "NCA":
@@ -1770,6 +1773,7 @@ class EvoPCGRL:
         batch_size = 30
         n_emitters = 5
         if ALGO == "ME":
+            self.n_generator_weights = None
             pass
 
         # elif args.mega:
@@ -1786,7 +1790,15 @@ class EvoPCGRL:
         #         )
         #         for _ in range(n_emitters)  # Create 5 separate emitters.
         #     ]
+
+        # Otherwise, we're using CMAME. 
         else:
+            # Get the initial (continuous) weights so that we can feed them to CMAME for covariance matrix 
+            # adaptation.
+            initial_w = get_init_weights(self.gen_model)
+            assert len(initial_w.shape) == 1
+            self.n_generator_weights = initial_w.shape[0]
+            self.n_player_weights = 0
             gen_emitters = [
                 #           ImprovementEmitter(
                 emitter_type(
@@ -1826,7 +1838,7 @@ class EvoPCGRL:
                    'n_actions': self.n_tile_types,
             }
             if MODEL == "DirectBinaryEncoding":
-                ind_cls_args.update({'map_width': self.env._prob._width})
+                ind_cls_args.update({'map_width': self.env.unwrapped._prob._width})
 
             self.gen_optimizer = MEOptimizer(self.gen_archive,
                                              ind_cls=Individual,

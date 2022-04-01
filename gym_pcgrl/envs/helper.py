@@ -278,6 +278,8 @@ def calc_tortuosity(map,map_locations,passable_values,get_path=False):
     To calculate tortuosity, we follow the logic of calc_longest_path above, but instead of tracking the longest
     shortest path, we track the longest shortest path divided by the euclidean distance between the correspoding 
     start/end points.
+
+    #TODO: this doesn't actually compute all shortest paths. We'll plug in better code here soon.
     """
     width, height = len(map), len(map[0])
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
@@ -288,10 +290,10 @@ def calc_tortuosity(map,map_locations,passable_values,get_path=False):
     for (x,y) in empty_tiles:
         if final_visited_map[y][x] > 0:
             continue
-        dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
+        dikjstra_map, visited_map = run_dijkstra(x, y, map, passable_values)
         final_visited_map += visited_map
         (my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
-        dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
+        dikjstra_map, _ = run_dijkstra(mx, my, map, passable_values)
         max_path_xy = np.max(dikjstra_map)
 
         if max_path_xy > max_path_length:

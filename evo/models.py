@@ -40,6 +40,10 @@ class MixActiv(nn.Module):
 
 class AuxNCA(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_aux=3, render=False, **kwargs):
+        """
+        Args:
+            render (bool): whether to render the auxiliary channels in order to observe the model's behavior.
+        """
         super().__init__()
         self.n_hid_1 = n_hid_1 = 32
         self.n_aux = n_aux
@@ -527,7 +531,7 @@ class FixedGenCPPN(ResettableNN):
 
 
 class DirectBinaryEncoding():
-    def __init__(self, n_in_chans, n_actions, map_width):
+    def __init__(self, n_in_chans, n_actions, map_width, **kwargs):
         self.layers = np.array([])  # dummy
         self.discrete = th.randint(0, n_in_chans, (map_width, map_width))
 

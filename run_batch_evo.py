@@ -33,19 +33,19 @@ exp_ids = [
         # 10,
 ]
 problems = [
-    #   "microstructure"
+      "microstructure"
 #      "binary_ctrl",
       # "zelda_ctrl",
       # "sokoban_ctrl",
       # "smb_ctrl"
       # "loderunner_ctrl",
       # "face_ctrl",
-      "minecraft_3D_maze_ctrl",
+    #   "minecraft_3D_maze_ctrl",
     # "minecraft_3D_zelda_ctrl",
 ]
 representations = [
-#       "cellular",  # change entire board at each step
-        "cellular3D",
+      "cellular",  # change entire board at each step
+        # "cellular3D",
 #       "wide",  # agent "picks" one tile to change
 #       "wide3D",
 #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
@@ -54,9 +54,9 @@ representations = [
 #       "turtle3D"
 ]
 models = [
-#     "DirectBinaryEncoding",
+    "DirectBinaryEncoding",
 #     "NCA",
-      "NCA3D",
+    #   "NCA3D",
 #     "GenSinCPPN",
 #     "GenCPPN",
 #     "Decoder",
@@ -102,13 +102,13 @@ n_init_states_lst = [
 ]
 # How many steps in an episode of level editing?
 n_steps_lst = [
-#   1,
+  1,
 #   10,
-    50,
+    # 50,
 #   100,
 ]
 global_bcs: List[List] = [
-#       ["NONE", "NONE"], 
+        ["NONE", "NONE"], 
 #       ["emptiness", "symmetry"],
 ]
 local_bcs = {
@@ -155,7 +155,7 @@ local_bcs = {
     "minecraft_3D_zelda_ctrl": [
         ["emptiness", "path-length"]
     ],
-    "microstructure_ctrl": [
+    "microstructure": [
         # ["emptiness", "path-length"],
         # ["path-length", "tortuosity"],
     ]

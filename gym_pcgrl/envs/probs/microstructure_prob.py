@@ -21,7 +21,7 @@ class MicroStructureProblem(Problem):
 
         self._random_probs = True
 
-        self._rewards = {
+        self._weights = {
             # nth moment?
 #           "short_circuit_current",  # max amount of current-per-unit-area when applied voltage is zero
 #           "fill_factor",  # max amount of power
@@ -31,6 +31,7 @@ class MicroStructureProblem(Problem):
         
 
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
+        self._max_tortuosity = self._max_path_length / 2
         self._target_path = 20
         self.render_path = False
         self.path_coords = []
@@ -40,16 +41,16 @@ class MicroStructureProblem(Problem):
         #       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
 
         # default conditional targets
-        self.static_trgs = {}
-
-        # boundaries for conditional inputs/targets
-        self.cond_bounds = {
-            "path-length": (0, self._max_path_length),
-            "tortuosity": (0, self._max_path_length / 2),
+        self.static_trgs = {
+            "tortuosity": self._max_tortuosity,
         }
 
+        # Upper and lower bounds for the values of conditional metrics.
+        self.cond_bounds = {
+            "path-length": (0, self._max_path_length),
+            "tortuosity": (0, self._max_tortuosity),
+        }
 
-        self.weights = {"regions": 0, "path-length": 0}
 
     """
     Get a list of all the different tile names
@@ -81,8 +82,8 @@ class MicroStructureProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._weights:
+                    self._weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -186,8 +187,8 @@ class MicroStructureProblem(Problem):
                 }
             else:
                 self._graphics = {
-                    "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                    "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
-                    "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
+                    "empty": Image.open(os.path.dirname(__file__) + "/binary/binary/empty.png").convert('RGBA'),
+                    "solid": Image.open(os.path.dirname(__file__) + "/binary/binary/solid.png").convert('RGBA'),
+                    "path" : Image.open(os.path.dirname(__file__) + "/binary/binary/path_g.png").convert('RGBA'),
                 }
         return super().render(map, render_path=self.path_coords)
