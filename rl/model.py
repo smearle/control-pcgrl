@@ -63,7 +63,7 @@ class WideModel3D(TorchModelV2, nn.Module):
                  num_outputs,
                  model_config,
                  name,
-                 n_hid_filters=128,  # number of "hidden" filters in convolutional layers
+                 n_hid_filters=64,  # number of "hidden" filters in convolutional layers
                 # fc_size=128,
                  ):
         nn.Module.__init__(self)
@@ -86,8 +86,14 @@ class WideModel3D(TorchModelV2, nn.Module):
         pre_val_size = (obs_shape[-2]) * (obs_shape[-3]) * (obs_shape[-4]) * num_output_actions
 
         # Convolutinal layers.
-        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=n_hid_filters, kernel_size=3, padding=1)  # 7 * 7 * 7
-        self.conv_2 = nn.Conv3d(n_hid_filters, out_channels=num_output_actions, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=32, kernel_size=3, padding=1)  # 7 * 7 * 7
+        self.conv_2 = nn.Conv3d(32, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_3 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_4 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_5 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_6 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_7 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 4 * 4 * 4
+        self.conv_8 = nn.Conv3d(n_hid_filters, out_channels=num_output_actions, kernel_size=3, padding=1)  # 4 * 4 * 4
 
         # Fully connected layer.
         # self.fc_1 = SlimFC(self.pre_fc_size, fc_size)
@@ -108,6 +114,12 @@ class WideModel3D(TorchModelV2, nn.Module):
         input = input_dict["obs"].permute(0, 4, 1, 2, 3)  # Because rllib order tensors the tensorflow way (channel last)
         x = nn.functional.relu(self.conv_1(input.float()))
         x = nn.functional.relu(self.conv_2(x.float()))
+        x = nn.functional.relu(self.conv_3(x.float()))
+        x = nn.functional.relu(self.conv_4(x.float()))
+        x = nn.functional.relu(self.conv_5(x.float()))
+        x = nn.functional.relu(self.conv_6(x.float()))
+        x = nn.functional.relu(self.conv_7(x.float()))
+        x = nn.functional.relu(self.conv_8(x.float()))
         x = x.reshape(x.size(0), -1)
         self._features = x
         action_out = x
