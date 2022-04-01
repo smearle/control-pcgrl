@@ -1,3 +1,7 @@
+# Ignore changes to SLURM sbatch scripts (mostly just changing email addresses etc.)
+*_train.sh
+*_eval.sh
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -11,9 +11,10 @@ numba
 psutil
 imageio
 graphviz
-gym==0.19.0     # minerl will require 0.19.0
-numpy==1.21
+numpy==1.21  # numba requires this version or lower
 opencv-python
+gym
+# gym==0.19.0     # minerl will require 0.19.0
 tqdm
 ribs
 scikit-image
@@ -28,7 +29,6 @@ pymks
 ./submodules/pytorch-neat
 
 ray[rllib]     # ray[rllib]==1.9.2 in particle, but 1.11.0 should be fine here
-
 
 # Installing minerl:
 # python -m pip install --upgrade minerl
