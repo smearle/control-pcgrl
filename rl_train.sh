@@ -6,7 +6,7 @@
 
 #SBATCH --gres=gpu:1
 
-#SBATCH --time=120:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mem=30GB
 #SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
