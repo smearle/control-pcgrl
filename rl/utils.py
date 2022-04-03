@@ -168,61 +168,63 @@ def get_env_name(game, representation):
     return env_name
 
 
-def get_exp_name(game, representation, **kwargs):
-    exp_name = "{}_{}".format(game, representation)
-    change_percentage = kwargs.get("change_percentage")
+def get_exp_name(cfg):
+    exp_name = "{}_{}".format(cfg.problem, cfg.representation)
 
-    if kwargs.get("conditional"):
+    if cfg.model:
+        exp_name += "_" + cfg.model
+
+    if cfg.conditional:
         exp_name += "_conditional"
-        exp_name += "_" + "-".join(["ctrl"] + kwargs.get("cond_metrics"))
-        if change_percentage != 1.0:
-            exp_name += "_chng-{}".format(change_percentage)
+        exp_name += "_" + "-".join(["ctrl"] + cfg.cond_metrics)
+        if cfg.change_percentage != 1.0:
+            exp_name += "_chng-{}".format(cfg.change_percentage)
     else:
         exp_name += "_vanilla"
-        exp_name += "_chng-{}".format(change_percentage)
+        exp_name += "_chng-{}".format(cfg.change_percentage)
 
-    if kwargs.get("midep_trgs"):
+    if cfg.midep_trgs:
         exp_name += "_midEpTrgs"
 
-    if kwargs.get("ca_action"):
+    if cfg.ca_actions:
         exp_name += "_CAaction"
 
-    if kwargs.get("alp_gmm"):
+    if cfg.alp_gmm:
         exp_name += "_ALPGMM"
 
     return exp_name
 
 
-def load_model(log_dir, n_tools=None, load_best=False):
-    if load_best:
-        name = "best"
-    else:
-        name = "latest"
-    model_path = os.path.join(log_dir, "{}_model.pkl".format(name))
-
-    if not os.path.exists(model_path):
-        model_path = os.path.join(log_dir, "{}_model.zip".format(name))
-
-    if not os.path.exists(model_path):
-        files = [f for f in os.listdir(log_dir) if ".pkl" in f or ".zip" in f]
-
-        if len(files) > 0:
-            # selects the last file listed by os.listdir
-            # What the fuck is up with the random thing
-            model_path = os.path.join(log_dir, np.random.choice(files))
-        else:
-            print("No models are saved at {}".format(model_path))
-            return None
-#           raise Exception("No models are saved at {}".format(model_path))
-    print("Loading model at {}".format(model_path))
-
-    if n_tools:
-        policy_kwargs = {"n_tools": n_tools}
-    else:
-        policy_kwargs = {}
-    model = PPO2.load(model_path, reset_num_timesteps=False)
-
-    return model
+# def load_model(log_dir, n_tools=None, load_best=False):
+#     if load_best:
+#         name = "best"
+#     else:
+#         name = "latest"
+#     model_path = os.path.join(log_dir, "{}_model.pkl".format(name))
+# 
+#     if not os.path.exists(model_path):
+#         model_path = os.path.join(log_dir, "{}_model.zip".format(name))
+# 
+#     if not os.path.exists(model_path):
+#         files = [f for f in os.listdir(log_dir) if ".pkl" in f or ".zip" in f]
+# 
+#         if len(files) > 0:
+#             # selects the last file listed by os.listdir
+#             # What the fuck is up with the random thing
+#             model_path = os.path.join(log_dir, np.random.choice(files))
+#         else:
+#             print("No models are saved at {}".format(model_path))
+#             return None
+# #           raise Exception("No models are saved at {}".format(model_path))
+#     print("Loading model at {}".format(model_path))
+# 
+#     if n_tools:
+#         policy_kwargs = {"n_tools": n_tools}
+#     else:
+#         policy_kwargs = {}
+#     model = PPO2.load(model_path, reset_num_timesteps=False)
+# 
+#     return model
 
 
 def max_exp_idx(exp_name):

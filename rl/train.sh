@@ -9,7 +9,7 @@
 #SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=rl_runs/pcgrl_%j.out
+#SBATCH --output=rl_runs/pcgrl_1_%j.out
 
 cd /scratch/zj2086/control-pcgrl
 
@@ -20,7 +20,7 @@ source activate pcgrl-rllib
 conda activate pcgrl-rllib
 
 # start=$SECONDS
-python rl/train_ctrl.py --load_args 0
+python rl/train_ctrl.py --load_args 1
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

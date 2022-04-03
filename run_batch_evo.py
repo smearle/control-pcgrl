@@ -117,10 +117,19 @@ def launch_batch(exp_name, collect_params=False):
                                             script_name = "evo/train.sh"
                                         with open(script_name, "r") as f:
                                             content = f.read()
+
+                                            # Replace the ``python scriptname --cl_args`` line.
                                             new_content = re.sub(
                                                 "python evo/evolve.py -la \d+",
                                                 "python evo/evolve.py -la {}".format(i),
                                                 content,
+                                            )
+
+                                            # Replace the job name.
+                                            new_content = re.sub(
+                                                "evo_runs/evopcg_\d+", 
+                                                "evo_runs/evopcg_{}".format(i), 
+                                                new_content
                                             )
                                         with open(script_name, "w") as f:
                                             f.write(new_content)

@@ -11,7 +11,7 @@
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=evo_runs/evopcg_%j.out
+#SBATCH --output=evo_runs/evopcg_0_%j.out
 
 cd /scratch/zj2086/control-pcgrl
 

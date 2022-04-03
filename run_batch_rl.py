@@ -86,13 +86,22 @@ def launch_batch(exp_name, collect_params=False):
                         if not opts.render:
                             with open(sbatch_name, "r") as f:
                                 content = f.read()
-                                new_content = re.sub(
+
+                                # Replace the ``python scriptname --cl_args`` line.
+                                content = re.sub(
                                     "python .* --load_args \d+",
                                     "python {} --load_args {}".format(py_script_name, i),
                                     content,
                                 )
+
+                                # Replace the job name.
+                                content = re.sub(
+                                    "rl_runs/pcgrl_\d+", 
+                                    f"rl_runs/pcgrl_{i}", 
+                                    content
+                                )
                             with open(sbatch_name, "w") as f:
-                                f.write(new_content)
+                                f.write(content)
                         # Write the config file with the desired settings
                         exp_config = copy.deepcopy(default_config)
 
