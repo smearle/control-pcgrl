@@ -1,0 +1,83 @@
+{
+  "problems": [
+    "minecraft_3D_maze_ctrl",
+    # "minecraft_3D_zelda_ctrl",
+    # "binary_ctrl",
+    # "zelda_ctrl",
+    # "sokoban_ctrl",
+    # 'simcity',
+    # 'smb_ctrl',
+  ],
+
+  "representations": [
+      # "narrow3D",
+      # "turtle3D",
+      "wide3D",
+      # "cellular3D",
+      # "narrow",
+      # 'cellular',
+      # "wide",
+      # 'turtle',
+  ],
+
+  # TODO: incorporate formal (rather than only functional) metrics as controls
+  "global_controls": [
+      ["NONE", "NONE"],
+      # ['emptiness', 'symmetry'],
+  ],
+
+  "local_controls": {
+      "binary_ctrl": [
+  #       ["regions"],
+  #       ["path-length"],
+  #       ["regions", "path-length"],
+          # ['emptiness', 'path-length'],
+          # ["symmetry", "path-length"]
+      ],
+      "zelda_ctrl": [
+          ["nearest-enemy"],
+          ["path-length"],
+          ["nearest-enemy", "path-length"],
+          # ["emptiness", "path-length"],
+          # ["symmetry", "path-length"],
+      ],
+      "sokoban_ctrl": [
+          # ["crate"],
+          ["sol-length"],
+          ["crate", "sol-length"],
+          # ["emptiness", "sol-length"],
+          # ["symmetry", "sol-length"],
+      ],
+      "smb_ctrl": [
+          # ['enemies', 'jumps'],
+          # ["emptiness", "jumps"],
+          # ["symmetry", "jumps"],
+      ],
+      "RCT": [
+          # ['income'],
+      ],
+      "minecraft_3D_zelda_ctrl": [
+  #       ["emptiness", "path-length"],
+      ],
+      "minecraft_3D_maze_ctrl": [
+  #       ["emptiness", "path-length"],
+      ],
+  },
+
+  # Whether to use a funky curriculum (Absolute Learning Progress w/ Gaussian Mixture Models: 
+  # https://arxiv.org/abs/1910.07224) for sampling controllable metric targets. (i.e., sample lower path-length targets 
+  # at first, then higher ones as agent becomes more skilled.)
+  "alp_gmms": [
+      False,
+  #   True,
+  ],
+
+  # How much of the original level the generator-agent is allowed to change before episode termination.
+  "change_percentages": [
+  #   0.2,
+  #   0.6,
+  #   0.8
+      1.0,
+  ],
+
+}

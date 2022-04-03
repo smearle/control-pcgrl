@@ -48,8 +48,8 @@ evo_runs/*
 rl_runs/*
 !rl_runs/.gitkeep
 rl_runs/*
-configs/evo/settings_*.json
-configs/rl/settings_*.json
+configs/evo/auto/settings_*.json
+configs/rl/auto/settings_*.json
 evopcgrl*.out
 evalevopcgrl*.out
 

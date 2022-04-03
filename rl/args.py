@@ -44,7 +44,7 @@ def parse_pcgrl_args(args, load_args=None):
         arg_dict.update(load_args)
 
     if opts.load_args is not None:
-        with open('configs/rl/settings_{}.json'.format(opts.load_args)) as f:
+        with open('configs/rl/auto/settings_{}.json'.format(opts.load_args)) as f:
             new_arg_dict = json.load(f)
             arg_dict.update(new_arg_dict)
 

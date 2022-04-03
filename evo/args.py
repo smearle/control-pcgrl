@@ -165,7 +165,7 @@ def get_args(load_args=None):
     if load_args is not None:
         arg_dict.update(load_args)  
     if args.load_args is not None:
-        with open("configs/evo/settings_{}.json".format(args.load_args)) as f:
+        with open("configs/evo/auto/settings_{}.json".format(args.load_args)) as f:
             new_arg_dict = json.load(f)
             arg_dict.update(new_arg_dict)
 

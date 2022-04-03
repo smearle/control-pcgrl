@@ -3,94 +3,24 @@ Launch a batch of experiments on a SLURM cluster.
 
 dead processes.
 """
-from pdb import set_trace as TT
 import argparse
+from collections import namedtuple
 import copy
 import json
 import os
+from pdb import set_trace as TT
 import re
 from typing import Dict, List
+import yaml
 
 import numpy as np
+
 from rl.cross_eval import compile_results
 
-problems: List[str] = [
-    "minecraft_3D_maze_ctrl",
-    # "minecraft_3D_zelda_ctrl",
-    # "binary_ctrl",
-    # "zelda_ctrl",
-    # "sokoban_ctrl",
-    # 'simcity',
-    # 'smb_ctrl',
-]
-representations: List[str] = [
-    # "narrow3D",
-    # "turtle3D",
-    "wide3D",
-    # "cellular3D",
-    # "narrow",
-    # 'cellular',
-    # "wide",
-    # 'turtle',
-]
-# TODO: incorporate formal (rather than only functional) metrics as controls
-global_controls: List[List] = [
-    ["NONE", "NONE"],
-    # ['emptiness', 'symmetry'],
-]
-local_controls: Dict[str, List] = {
-    "binary_ctrl": [
-#       ["regions"],
-#       ["path-length"],
-#       ["regions", "path-length"],
-        # ['emptiness', 'path-length'],
-        # ["symmetry", "path-length"]
-    ],
-    "zelda_ctrl": [
-        ["nearest-enemy"],
-        ["path-length"],
-        ["nearest-enemy", "path-length"],
-        # ["emptiness", "path-length"],
-        # ["symmetry", "path-length"],
-    ],
-    "sokoban_ctrl": [
-        # ["crate"],
-        ["sol-length"],
-        ["crate", "sol-length"],
-        # ["emptiness", "sol-length"],
-        # ["symmetry", "sol-length"],
-    ],
-    "smb_ctrl": [
-        # ['enemies', 'jumps'],
-        # ["emptiness", "jumps"],
-        # ["symmetry", "jumps"],
-    ],
-    "RCT": [
-        # ['income'],
-    ],
-    "minecraft_3D_zelda_ctrl": [
-#       ["emptiness", "path-length"],
-    ],
-    "minecraft_3D_maze_ctrl": [
-#       ["emptiness", "path-length"],
-    ],
-}
 
-# Whether to use a funky curriculum (Absolute Learning Progress w/ Gaussian Mixture Models) for sampling controllable 
-# metric targets. (i.e., sample lower path-length targets at first, then higher ones as agent becomes more skilled.)
-alp_gmms = [
-    False,
-#   True,
-]
-
-# How much of the original level the generator-agent is allowed to change before episode termination.
-change_percentages = [
-#   0.2,
-#   0.6,
-#   0.8
-    1.0,
-]
-
+with open("configs/rl/batch.yaml", "r") as f:
+    batch_config = yaml.safe_load(f)
+batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
 
 def launch_batch(exp_name, collect_params=False):
     if collect_params:
@@ -109,7 +39,7 @@ def launch_batch(exp_name, collect_params=False):
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
         n_bins = 10
-    with open("configs/rl/default_settings.json", "r") as f:
+    with open("configs/rl/auto/default_settings.json", "r") as f:
         default_config = json.load(f)
     print("Loaded default config:\n{}".format(default_config))
 
@@ -118,18 +48,18 @@ def launch_batch(exp_name, collect_params=False):
 #       default_config["n_frames"] = 100000
     i = 0
 
-    for prob in problems:
-        prob_controls = global_controls + local_controls[prob]
+    for prob in batch_config.problems:
+        prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
-        for rep in representations:
+        for rep in batch_config.representations:
             for controls in prob_controls:
 
 #                   if controls != ["NONE"] and change_percentage != 1:
 
 #                       continue
 
-                for alp_gmm in alp_gmms:
-                    for change_percentage in change_percentages:
+                for alp_gmm in batch_config.alp_gmms:
+                    for change_percentage in batch_config.change_percentages:
 
                         if sum(['3D' in name for name in [prob, rep]]) == 1:
                             print('Dimensions (2D or 3D) of problem and representation do not match. Skipping '
@@ -195,7 +125,7 @@ def launch_batch(exp_name, collect_params=False):
                                 }
                             )
                         print("Saving experiment config:\n{}".format(exp_config))
-                        with open("configs/rl/settings_{}.json".format(i), "w") as f:
+                        with open("configs/rl/auto/settings_{}.json".format(i), "w") as f:
                             json.dump(exp_config, f, ensure_ascii=False, indent=4)
                         # Launch the experiment. It should load the saved settings
 

@@ -5,166 +5,25 @@ below, and this script will launch all valid combinations of uncommented hyperpa
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
 dead processes.  """
 import argparse
+from bdb import GENERATOR_AND_COROUTINE_FLAGS
+from collections import namedtuple
 import copy
 import json
+import yaml
 import os
 import re
 from pdb import set_trace as TT
 from typing import List
 
 from evo.cross_eval import compile_results
-from render_gifs import render_gifs
+from evo.render_gifs import render_gifs
 
-
-##### HYPERPARAMETERS #####
 
 GENERATIVE_ONLY_CROSS_EVAL = True
-exp_ids = [
-        0,
-        # 1,
-        # 2,
-        # 3,
-        # 4,
-        # 5,
-        # 6,
-        # 7,
-        # 8,
-        # 9,
-        # 10,
-]
-problems = [
-      "microstructure"
-#      "binary_ctrl",
-      # "zelda_ctrl",
-      # "sokoban_ctrl",
-      # "smb_ctrl"
-      # "loderunner_ctrl",
-      # "face_ctrl",
-    #   "minecraft_3D_maze_ctrl",
-    # "minecraft_3D_zelda_ctrl",
-]
-representations = [
-      "cellular",  # change entire board at each step
-        # "cellular3D",
-#       "wide",  # agent "picks" one tile to change
-#       "wide3D",
-#       "narrow",  # scan over board in sequence, feed current tile to agent as observation
-#       "narrow3D",
-#       "turtle", # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
-#       "turtle3D"
-]
-models = [
-    "DirectBinaryEncoding",
-#     "NCA",
-    #   "NCA3D",
-#     "GenSinCPPN",
-#     "GenCPPN",
-#     "Decoder",
-#     "DeepDecoder",
-#     "GenCPPN2",
-#     "GenSinCPPN2",
-#     "GenSin2CPPN2",
-#     "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-#     "AttentionNCA",
-#     "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
-#     "Sin2CPPN",
 
-#     "CPPNCA",  # NCA followed by a traditional CPPN, not a fixed-size/continuous genome
-#     "DoneAuxNCA",  # AuxNCA but with one aux. channel to represent done-ness (agent decides when it's finished)
-#     "CoordNCA",  # NCA with additional channels corresponding to x and y coordinates
-
-#     "MixCPPN",
-#     "MixNCA",
-
-#     "GenReluCPPN",
-#     "GenMixCPPN",
-
-#     "FeedForwardCPPN",
-#     "SinCPPN",
-#     "CNN"  # Doesn't learn atm
-]
-# Reevaluate elites on new random seeds after inserting into the archive?
-fix_elites = [
-        True,
-       ]
-# Fix a set of random levels with which to seed the generator (otherwise generate new ones each generation).
-fix_seeds = [
-        True,
-#       False
-        ]
-# How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
-# in the center)
-n_init_states_lst = [
-    0,
-    # 1,
-    # 10,
-#   20,
-]
-# How many steps in an episode of level editing?
-n_steps_lst = [
-  1,
-#   10,
-    # 50,
-#   100,
-]
-global_bcs: List[List] = [
-        ["NONE", "NONE"], 
-#       ["emptiness", "symmetry"],
-]
-local_bcs = {
-    "binary_ctrl": [
-#       ["regions", "path-length"],
-#       ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
-    ],
-    "zelda_ctrl": [
-#       ["nearest-enemy", "path-length"],
-#       ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
-    ],
-    "sokoban_ctrl": [
-#       ["crate", "sol-length"],
-        ["emptiness", "sol-length"],
-#       ["symmetry", "sol-length"],
-    ],
-    "smb_ctrl": [
-       ["jumps", "sol-length"],
-       ["emptiness", "sol-length"],
-       ["symmetry", "sol-length"]
-       ],
-    "loderunner_ctrl": [
-        ["emptiness", "path-length"],
-#       ["symmetry", "path-length"],
-#       ["emptiness", "path-length"],
-        ["symmetry", "path-length"],
-#       ["win", "path-length"],
-#       ["gold", "emptiness"],
-    ],
-    "face_ctrl": [
-#       ["face_1", "brightness"],
-#       ['brightness', 'blur'],
-        ['brightness', 'entropy'],
-#       ['rand_sol', 'rand_sol']
-    ],
-    "minecraft_3D_maze":[
-#       ["emptiness", "path-length"]
-    ],
-    "minecraft_3D_maze_ctrl": [
-        ["emptiness", "path-length"]
-    ],
-    "minecraft_3D_zelda_ctrl": [
-        ["emptiness", "path-length"]
-    ],
-    "microstructure": [
-        # ["emptiness", "path-length"],
-        # ["path-length", "tortuosity"],
-    ]
-}
-
-###########################
-
-
-
+with open("configs/evo/batch.yaml", "r") as f:
+    batch_config = yaml.safe_load(f)
+batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
 
 def launch_batch(exp_name, collect_params=False):
     if collect_params:
@@ -175,7 +34,7 @@ def launch_batch(exp_name, collect_params=False):
         print("Testing locally.")
     else:
         print("Launching batch of experiments on SLURM.")
-    with open("configs/evo/default_settings.json", "r") as f:
+    with open("configs/evo/auto/default_settings.json", "r") as f:
         default_config = json.load(f)
     # print("Loaded default config:\n{}".format(default_config))
 
@@ -183,12 +42,12 @@ def launch_batch(exp_name, collect_params=False):
         default_config["n_generations"] = 50000
     i = 0
 
-    for exp_id in exp_ids:
-        for prob in problems:
-            prob_bcs = global_bcs + local_bcs[prob]
+    for exp_id in batch_config.exp_ids:
+        for prob in batch_config.problems:
+            prob_bcs = batch_config.global_bcs + batch_config.local_bcs[prob]
 
-            for rep in representations:
-                for model in models:
+            for rep in batch_config.representations:
+                for model in batch_config.models:
 
                     if model == "CNN" and rep == "cellular":
                         print("Skipping experiments with CNN model and cellular representation, as this would necessitate "
@@ -198,8 +57,8 @@ def launch_batch(exp_name, collect_params=False):
 
                     for bc_pair in prob_bcs:
 
-                        for fix_el in fix_elites:
-                            for fix_seed in fix_seeds:
+                        for fix_el in batch_config.fix_elites:
+                            for fix_seed in batch_config.fix_seeds:
 
                                 # No reason to re-evaluate other than random seeds so this would cause an error
 
@@ -208,15 +67,15 @@ def launch_batch(exp_name, collect_params=False):
                                           "point re-evaluating generators (which are deterministic) on the same seeds.")
                                     continue
 
-                                for n_steps in n_steps_lst:
+                                for n_steps in batch_config.n_steps_lst:
                                     if rep != "cellular":
-                                        if n_steps != n_steps_lst[0]:
+                                        if n_steps != batch_config.n_steps_lst[0]:
                                             continue
 
                                     if "NCA" in model and n_steps <= 5:
                                         continue
 
-                                    for n_init_states in n_init_states_lst:
+                                    for n_init_states in batch_config.n_init_states_lst:
                                         if n_init_states == 0 and not (fix_seed and fix_el):
                                             print("Skipping experiments with n_init_states=0 and fix_seed=False. The "
                                                   "hand-made seed cannot be randomized.")
@@ -314,7 +173,7 @@ def launch_batch(exp_name, collect_params=False):
                                             )
                                          )
                                         with open(
-                                            "configs/evo/settings_{}.json".format(i), "w"
+                                            "configs/evo/auto/settings_{}.json".format(i), "w"
                                         ) as f:
                                             json.dump(
                                                 exp_config, f, ensure_ascii=False, indent=4
