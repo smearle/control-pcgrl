@@ -76,33 +76,33 @@ class TeacherController(object):
 
         #data recording
         self.env_params_train = []
-        self.env_train_rewards = []
-        self.env_train_norm_rewards = []
+        self.env_train_reward_weights = []
+        self.env_train_norm_reward_weights = []
         self.env_train_len = []
 
         self.env_params_test = []
-        self.env_test_rewards = []
+        self.env_test_reward_weights = []
         self.env_test_len = []
 
     def record_train_episode(self, reward, ep_len):
-        self.env_train_rewards.append(reward)
+        self.env_train_reward_weights.append(reward)
         self.env_train_len.append(ep_len)
         if self.teacher != 'Oracle':
             reward = np.interp(reward, (-150, 350), (0, 1))
-            self.env_train_norm_rewards.append(reward)
+            self.env_train_norm_reward_weights.append(reward)
         self.task_generator.update(self.env_params_train[-1], reward)
 
     def record_test_episode(self, reward, ep_len):
-        self.env_test_rewards.append(reward)
+        self.env_test_reward_weights.append(reward)
         self.env_test_len.append(ep_len)
 
     def dump(self, filename):
         with open(filename, 'wb') as handle:
             dump_dict = {'env_params_train': self.env_params_train,
-                         'env_train_rewards': self.env_train_rewards,
+                         'env_train_reward_weights': self.env_train_reward_weights,
                          'env_train_len': self.env_train_len,
                          'env_params_test': self.env_params_test,
-                         'env_test_rewards': self.env_test_rewards,
+                         'env_test_reward_weights': self.env_test_reward_weights,
                          'env_test_len': self.env_test_len,
                          'env_param_bounds': list(self.param_env_bounds.items())}
             dump_dict = self.task_generator.dump(dump_dict)

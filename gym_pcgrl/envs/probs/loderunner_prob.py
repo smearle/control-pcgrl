@@ -32,7 +32,7 @@ class LoderunnerProblem(Problem):
              }
         self.tiles_to_chars = {v: k for k, v in chars_to_tiles.items()}
 
-        self._rewards = {
+        self._reward_weights = {
             "player": 1,
 #           "enemies": 1,
             "enemies": 0,
@@ -57,8 +57,8 @@ class LoderunnerProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     
     def _run_game(self, map):
@@ -101,11 +101,11 @@ class LoderunnerProblem(Problem):
 #           "path-length": get_range_reward(new_stats["path-length"], old_stats["path-length"], np.inf, np.inf),
         }
         #calculate the total reward
-        return rewards["player"] * self._rewards["player"] +\
-            rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["gold"] * self._rewards["gold"] +\
-            rewards["win"] * self._rewards["win"] +\
-            rewards["path-length"] * self._rewards["path-length"] 
+        return rewards["player"] * self._reward_weights["player"] +\
+            rewards["enemies"] * self._reward_weights["enemies"] +\
+            rewards["gold"] * self._reward_weights["gold"] +\
+            rewards["win"] * self._reward_weights["win"] +\
+            rewards["path-length"] * self._reward_weights["path-length"] 
 
     def get_episode_over(self, new_stats, old_stats):
         return new_stats["win"] == 1 and new_stats["path-length"] >= 20

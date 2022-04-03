@@ -29,7 +29,7 @@ class MDungeonProblem(Problem):
         self._target_col_enemies = 0.5
         self._target_solution = 20
 
-        self._rewards = {
+        self._reward_weights = {
             "player": 3,
             "exit": 3,
             "potions": 1,
@@ -81,8 +81,8 @@ class MDungeonProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Private function that runs the game on the input level
@@ -194,15 +194,15 @@ class MDungeonProblem(Problem):
             "sol-length": get_range_reward(new_stats["sol-length"], old_stats["sol-length"], np.inf, np.inf)
         }
         #calculate the total reward
-        return rewards["player"] * self._rewards["player"] +\
-            rewards["exit"] * self._rewards["exit"] +\
-            rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["treasures"] * self._rewards["treasures"] +\
-            rewards["potions"] * self._rewards["potions"] +\
-            rewards["regions"] * self._rewards["regions"] +\
-            rewards["col-enemies"] * self._rewards["col-enemies"] +\
-            rewards["dist-win"] * self._rewards["dist-win"] +\
-            rewards["sol-length"] * self._rewards["sol-length"]
+        return rewards["player"] * self._reward_weights["player"] +\
+            rewards["exit"] * self._reward_weights["exit"] +\
+            rewards["enemies"] * self._reward_weights["enemies"] +\
+            rewards["treasures"] * self._reward_weights["treasures"] +\
+            rewards["potions"] * self._reward_weights["potions"] +\
+            rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["col-enemies"] * self._reward_weights["col-enemies"] +\
+            rewards["dist-win"] * self._reward_weights["dist-win"] +\
+            rewards["sol-length"] * self._reward_weights["sol-length"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

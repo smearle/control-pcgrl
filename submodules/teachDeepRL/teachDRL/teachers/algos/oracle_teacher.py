@@ -23,15 +23,15 @@ class OracleTeacher():
             else: # if step is negative, we go from max to min (and thus start at max - window_range)
                 self.window_pos[i] = self.maxs[i] - self.window_range[i]
 
-        self.train_rewards = []
+        self.train_reward_weights = []
         print("window range:{} \n position:{}\n step:{}\n"
               .format(self.window_range, self.window_pos, self.window_step_vector))
 
     def update(self, task, reward):
-        self.train_rewards.append(reward)
-        if len(self.train_rewards) == self.step_rate:
-            mean_reward = np.mean(self.train_rewards)
-            self.train_rewards = []
+        self.train_reward_weights.append(reward)
+        if len(self.train_reward_weights) == self.step_rate:
+            mean_reward = np.mean(self.train_reward_weights)
+            self.train_reward_weights = []
             if mean_reward > self.reward_thr:
                 for i,step in enumerate(self.window_step_vector):
                     if step > 0:  # check if not stepping over max

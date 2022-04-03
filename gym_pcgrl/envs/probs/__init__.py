@@ -13,7 +13,7 @@ from gym_pcgrl.envs.probs.smb.smb_ctrl_prob import SMBCtrlProblem
 from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 from gym_pcgrl.envs.probs.loderunner_ctrl_prob import LoderunnerCtrlProblem
 from gym_pcgrl.envs.probs.face_prob import FaceProblem
-from gym_pcgrl.envs.probs.microstructure_prob import MicroStructureProblem
+from gym_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructureProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_2Dmaze_prob import Minecraft2DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_ctrl_prob import Minecraft3DmazeCtrlProblem

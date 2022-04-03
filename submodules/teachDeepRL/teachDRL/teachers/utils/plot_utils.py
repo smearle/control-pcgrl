@@ -98,7 +98,7 @@ def region_plot_gif(all_boxes, interests, iterations, goals, gifname='riac', rew
     filenames = []
     images = []
     steps = []
-    mean_rewards = []
+    mean_reward_weights = []
     for i in range(len(goals)):
         if i > 0 and (i % plot_step == 0):
             f, (ax0) = plt.subplots(1, 1, figsize=fs)

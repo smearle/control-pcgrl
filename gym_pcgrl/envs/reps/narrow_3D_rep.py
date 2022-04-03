@@ -17,7 +17,7 @@ class Narrow3DRepresentation(Representation3D):
     """
     def __init__(self):
         super().__init__()
-        self._random_tile = False 
+        self._random_tile = True 
 
     """
     Resets the current representation where it resets the parent and the current
@@ -35,12 +35,12 @@ class Narrow3DRepresentation(Representation3D):
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
-#       self._x = self._random.randint(length)
-#       self._y = self._random.randint(width)
-#       self._z = self._random.randint(height)
-        self._x = 0
-        self._y = 0
-        self._z = 0 
+        self._x = self._random.randint(length)
+        self._y = self._random.randint(width)
+        self._z = self._random.randint(height)
+        # self._x = 0
+        # self._y = 0
+        # self._z = 0 
         self._new_coords = [self._x, self._y, self._z]
         self._old_coords = [self._x, self._y, self._z]
 

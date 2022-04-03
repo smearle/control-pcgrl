@@ -14,8 +14,8 @@ class NarrowRepresentation(Representation):
     """
     def __init__(self):
         super().__init__()
-#       self._random_tile = True
-        self._random_tile = False
+        self._random_tile = True
+        # self._random_tile = False
 
     """
     Resets the current representation where it resets the parent and the current
@@ -28,10 +28,10 @@ class NarrowRepresentation(Representation):
     """
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
-#       self._x = self._random.randint(width)
-#       self._y = self._random.randint(height)
-        self._x = 0
-        self._y = 0
+        self._x = self._random.randint(width)
+        self._y = self._random.randint(height)
+#         self._x = 0
+#         self._y = 0
 
     """
     Gets the action space used by the narrow representation

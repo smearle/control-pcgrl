@@ -21,8 +21,8 @@ class ZeldaCtrlProblem(ZeldaProblem):
         # Twice the optimal zig-zag minus one for the end-point at which the player turns around
         self._max_path_length = (np.ceil(self._width / 2) * (self._height) + np.floor(self._height / 2)) * 2 - 1
 #       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
-        # like "_rewards" but for use with ParamRew
-        self.weights = {
+        # like "_reward_weights" but for use with ParamRew
+        self._reward_weights = {
             "player": 3,
             "key": 3,
             "door": 3,

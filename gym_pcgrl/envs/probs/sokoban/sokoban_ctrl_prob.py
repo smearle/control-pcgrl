@@ -10,9 +10,9 @@ class SokobanCtrlProblem(SokobanProblem):
     def __init__(self):
         super(SokobanCtrlProblem, self).__init__()
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
-        # like _rewards but for use with ParamRew
-        #       self.weights = self._rewards
-        self.weights = {
+        # like _reward_weights but for use with ParamRew
+        #       self._reward_weights = self._reward_weights
+        self._reward_weights = {
             "player": 3,
             "crate": 1,
 #           "target": 1,

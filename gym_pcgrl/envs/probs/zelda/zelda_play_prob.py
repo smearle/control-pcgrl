@@ -143,13 +143,13 @@ class ZeldaPlayProblem(ZeldaCtrlProblem):
         }
         #calculate the total reward
 
-        return rewards["player"] * self._rewards["player"] +\
-            rewards["key"] * self._rewards["key"] +\
-            rewards["door"] * self._rewards["door"] +\
-            rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["regions"] * self._rewards["regions"] +\
-            rewards["nearest-enemy"] * self._rewards["nearest-enemy"] +\
-            rewards["path-length"] * self._rewards["path-length"]
+        return rewards["player"] * self._reward_weights["player"] +\
+            rewards["key"] * self._reward_weights["key"] +\
+            rewards["door"] * self._reward_weights["door"] +\
+            rewards["enemies"] * self._reward_weights["enemies"] +\
+            rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["nearest-enemy"] * self._reward_weights["nearest-enemy"] +\
+            rewards["path-length"] * self._reward_weights["path-length"]
 
     def is_playable(self, stats):
         return stats["player"] == 1  and stats["key"] == 1 and stats["door"] == 1 and stats["regions"] == 1

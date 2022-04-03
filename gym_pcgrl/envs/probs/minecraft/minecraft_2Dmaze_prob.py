@@ -22,7 +22,7 @@ class Minecraft2DmazeProblem(Problem):
         self._target_path = 20
         self._random_probs = True
 
-        self._rewards = {
+        self._reward_weights = {
             "regions": 5,
             "path-length": 1
         }
@@ -61,8 +61,8 @@ class Minecraft2DmazeProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -109,8 +109,8 @@ class Minecraft2DmazeProblem(Problem):
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
         }
         #calculate the total reward
-        return rewards["regions"] * self._rewards["regions"] +\
-            rewards["path-length"] * self._rewards["path-length"]
+        return rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["path-length"] * self._reward_weights["path-length"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

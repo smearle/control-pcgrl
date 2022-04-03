@@ -32,7 +32,7 @@ class Minecraft3DmazeCtrlProblem(Minecraft3DmazeProblem):
             "path-length": (0, self._max_path_length),
         }
 
-        self.weights = {"regions": 1, "path-length": 1}
+        self._reward_weights = {"regions": 1, "path-length": 1}
 
     # We do these things in the ParamRew wrapper (note that max change and iterations
 

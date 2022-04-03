@@ -40,7 +40,7 @@ class Minecraft3DZeldaCtrlProblem(Minecraft3DZeldaProblem):
             "chests": (0, self._width * self._length * self._height),
         }
 
-        self.weights = {"regions": 1, "path-length": 1, "chests": 1}
+        self._reward_weights = {"regions": 1, "path-length": 1, "chests": 1}
 
 
     # NOTE: We do these things in the ParamRew wrapper.

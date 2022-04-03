@@ -29,7 +29,7 @@ class ZeldaProblem(Problem):
         self._target_enemy_dist = 4
         self._target_path = 16
 
-        self._rewards = {
+        self._reward_weights = {
             "player": 3,
             "key": 3,
             "door": 3,
@@ -73,8 +73,8 @@ class ZeldaProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Get the current stats of the map
@@ -152,13 +152,13 @@ class ZeldaProblem(Problem):
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
         }
         #calculate the total reward
-        return rewards["player"] * self._rewards["player"] +\
-            rewards["key"] * self._rewards["key"] +\
-            rewards["door"] * self._rewards["door"] +\
-            rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["regions"] * self._rewards["regions"] +\
-            rewards["nearest-enemy"] * self._rewards["nearest-enemy"] +\
-            rewards["path-length"] * self._rewards["path-length"]
+        return rewards["player"] * self._reward_weights["player"] +\
+            rewards["key"] * self._reward_weights["key"] +\
+            rewards["door"] * self._reward_weights["door"] +\
+            rewards["enemies"] * self._reward_weights["enemies"] +\
+            rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["nearest-enemy"] * self._reward_weights["nearest-enemy"] +\
+            rewards["path-length"] * self._reward_weights["path-length"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

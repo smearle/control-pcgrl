@@ -21,7 +21,7 @@ class MicroStructureProblem(Problem):
 
         self._random_probs = True
 
-        self._weights = {
+        self._reward_weights = {
             # nth moment?
 #           "short_circuit_current",  # max amount of current-per-unit-area when applied voltage is zero
 #           "fill_factor",  # max amount of power
@@ -82,8 +82,8 @@ class MicroStructureProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._weights:
-                    self._weights[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -192,3 +192,24 @@ class MicroStructureProblem(Problem):
                     "path" : Image.open(os.path.dirname(__file__) + "/binary/binary/path_g.png").convert('RGBA'),
                 }
         return super().render(map, render_path=self.path_coords)
+
+
+# def get_two_spatial(int_map, env):
+#     int_map = np.expand_dims(int_map, axis=0)
+#     data = PrimitiveTransformer(n_state=2, min_=0.0, max_=1.0).transform(int_map)
+# #   plot_microstructures(
+# #       data[0, :, :, 0],
+# #       data[0, :, :, 1],
+# #       titles=['First phase with ones', 'Second phase with ones'],
+# #       cmap='gray',
+# #       colorbar=False
+# #   )
+
+#     auto_correlation = TwoPointCorrelation(
+#         periodic_boundary=True,
+#         cutoff=25,
+#         correlations=[(0, 0)]
+#     ).transform(data)
+#     mean_2nd_moment = np.asarray(auto_correlation.mean()).item()
+
+#     return mean_2nd_moment

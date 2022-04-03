@@ -20,14 +20,14 @@ class BinaryProblem(Problem):
 
         # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
         # beginning of a level-generation episode.
-        self._prob = {"empty": 0.0, "solid": 1.0}
+        self._prob = {"empty": 0.5, "solid": 0.5}
 
         self._border_tile = "solid"
 
         self._target_path = 20
-        self._random_probs = False
+        self._random_probs = True 
 
-        self._rewards = {
+        self._reward_weights = {
             "regions": 5,
             "path-length": 1
         }
@@ -67,8 +67,8 @@ class BinaryProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -115,8 +115,8 @@ class BinaryProblem(Problem):
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], 125, 125)
         }
         #calculate the total reward
-        return rewards["regions"] * self._rewards["regions"] +\
-            rewards["path-length"] * self._rewards["path-length"]
+        return rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["path-length"] * self._reward_weights["path-length"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

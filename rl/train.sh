@@ -9,7 +9,7 @@
 #SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=pcgrl-digger_%j.out
+#SBATCH --output=rl_runs/pcgrl_%j.out
 
 cd /scratch/zj2086/control-pcgrl
 

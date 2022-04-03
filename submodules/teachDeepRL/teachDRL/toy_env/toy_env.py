@@ -181,7 +181,7 @@ def test_covar_gmm(env, nb_episodes, gif=True, nb_dims=2, score_step=1000, verbo
             bk['weights'].append(task_generator.gmm.weights_.copy())
             bk['covariances'].append(task_generator.gmm.covariances_.copy())
             bk['means'].append(task_generator.gmm.means_.copy())
-            bk['tasks_lps'] = task_generator.tasks_times_rewards
+            bk['tasks_lps'] = task_generator.tasks_times_reward_weights
             bk['episodes'].append(i)
             if nb_dims == 2:
                 bk['comp_grids'].append(env.cube_competence.copy())

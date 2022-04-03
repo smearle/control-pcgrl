@@ -28,16 +28,16 @@ class Minecraft3DmazeProblem(Problem):
         self._length = 7
         self._width = 7
         self._height = 7
-        self._prob = {"AIR": 0.0, "DIRT":1.0}
+        self._prob = {"AIR": 0.5, "DIRT": 0.5}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
 
         self._target_path = 10
-        self._random_probs = False
+        self._random_probs = True 
 
-        self._rewards = {
-            "regions": 1,
-            "path-length": 5
+        self._reward_weights = {
+            "regions": 5,
+            "path-length": 1
         }
         self.static_trgs = {"regions": 1, "path-length": np.inf}
 
@@ -78,8 +78,8 @@ class Minecraft3DmazeProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -158,8 +158,8 @@ class Minecraft3DmazeProblem(Problem):
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
         }
         #calculate the total reward
-        return rewards["regions"] * self._rewards["regions"] +\
-            rewards["path-length"] * self._rewards["path-length"]
+        return rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["path-length"] * self._reward_weights["path-length"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

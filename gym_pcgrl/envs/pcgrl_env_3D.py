@@ -46,7 +46,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         for k in {**self._prob.static_trgs}:
             self.metrics[k] = None
         print('env metrics: {}'.format(self.metrics))
-        self.weights = self._prob.weights
+        self._reward_weights = self._prob._reward_weights
         self.cond_bounds = self._prob.cond_bounds
         self.static_trgs = self._prob.static_trgs
         self.width = self._prob._width

@@ -712,11 +712,6 @@ def unravel_index(
 
 # TODO: Use the GPU!
 
-#   if CUDA:
-#       m.cuda()
-#       m.to('cuda:0')
-
-
 # class GeneratorNN(ResettableNN):
 
 
@@ -737,6 +732,7 @@ Behavior Characteristics Functions
 
 def get_blur(float_map, env):
     return measure.blur_effect(float_map)
+
 
 def get_entropy(int_map, env):
     """
@@ -781,17 +777,20 @@ def get_counts(int_map, env):
         for tile in range(len(env.unwrapped._prob._prob))
     ]
 
+
 def get_brightness(float_map, env):
     assert np.min(float_map) >= 0.0 and np.max(float_map) <= 1.0
     return np.sum(float_map) / reduce(mul, float_map.shape)
 
 rand_sols = {}
 
+
 def get_rand_sol(float_map, env, idx=0):
     # TODO: discrete version
     if idx not in rand_sols:
         rand_sols[idx] = np.random.uniform(0, 1, size=float_map.shape)
     return np.sum(np.abs(float_map - rand_sols[idx])) / reduce(mul, float_map.shape)
+
 
 def get_emptiness(int_map, env):
     """
@@ -809,27 +808,6 @@ def get_emptiness(int_map, env):
     return np.sum(int_map.flatten() == 0) / max_val
 
 #from pymks import PrimitiveTransformer, plot_microstructures, two_point_stats, TwoPointCorrelation
-
-
-def get_two_spatial(int_map, env):
-    int_map = np.expand_dims(int_map, axis=0)
-    data = PrimitiveTransformer(n_state=2, min_=0.0, max_=1.0).transform(int_map)
-#   plot_microstructures(
-#       data[0, :, :, 0],
-#       data[0, :, :, 1],
-#       titles=['First phase with ones', 'Second phase with ones'],
-#       cmap='gray',
-#       colorbar=False
-#   )
-
-    auto_correlation = TwoPointCorrelation(
-        periodic_boundary=True,
-        cutoff=25,
-        correlations=[(0, 0)]
-    ).transform(data)
-    mean_2nd_moment = np.asarray(auto_correlation.mean()).item()
-
-    return mean_2nd_moment
 
 
 def get_hor_sym(int_map, env):
@@ -962,8 +940,8 @@ def get_bc(bc_name, int_map, stats, env, idx):
         return get_rand_sol(int_map, env, idx=idx)
     elif bc_name == "NONE":
         return 0
-    elif bc_name == "two_spatial":
-        return get_two_spatial(int_map, env)
+    # elif bc_name == "two_spatial":
+    #     return get_two_spatial(int_map, env)
     else:
         print("The BC {} is not recognized.".format(bc_name))
         raise Exception
@@ -1933,7 +1911,7 @@ class EvoPCGRL:
                             init_states,
                             self.bc_names,
                             self.static_targets,
-                            self.env.weights,
+                            self.env._reward_weights,
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -1973,7 +1951,7 @@ class EvoPCGRL:
                         init_states=init_states,
                         bc_names=self.bc_names,
                         static_targets=self.static_targets,
-                        target_weights=self.env.weights,
+                        target_weights=self.env._reward_weights,
                         seed=seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -2031,7 +2009,7 @@ class EvoPCGRL:
                             init_states,
                             self.bc_names,
                             self.static_targets,
-                            self.env.weights,
+                            self.env._reward_weights,
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2088,7 +2066,7 @@ class EvoPCGRL:
                             init_states=init_states,
                             bc_names=self.bc_names,
                             static_targets=self.static_targets,
-                            target_weights=self.env.weights,
+                            target_weights=self.env._reward_weights,
                             seed=seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2460,7 +2438,7 @@ class EvoPCGRL:
                             self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
-                            target_weights=self.env.weights,
+                            target_weights=self.env._reward_weights,
                             seed=None,
                             render_levels=True,
                         )
@@ -2518,7 +2496,7 @@ class EvoPCGRL:
                             self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
-                            target_weights=self.env.weights,
+                            target_weights=self.env._reward_weights,
                             seed=None,
                             render_levels=True,
                         )
@@ -2748,7 +2726,7 @@ class EvoPCGRL:
                         init_states,
                         [bc for bc_names in eval_bc_names for bc in bc_names],
                         self.static_targets,
-                        self.env.weights,
+                        self.env._reward_weights,
                         seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -2870,7 +2848,7 @@ class EvoPCGRL:
                         init_states=init_states,
                         bc_names=self.bc_names,
                         static_targets=self.static_targets,
-                        target_weights=self.env.weights,
+                        target_weights=self.env._reward_weights,
                         seed=None,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -3024,7 +3002,7 @@ class EvoPCGRL:
                 init_states,
                 self.bc_names,
                 self.static_targets,
-                target_weights=self.env.weights,
+                target_weights=self.env._reward_weights,
                 seed=None,
                 player_1=self.player_1,
                 player_2=self.player_2,
@@ -3219,7 +3197,8 @@ if __name__ == "__main__":
     def init_tensorboard():
         assert not INFER
         # Create TensorBoard Log Directory if does not exist
-        LOG_NAME = "./runs/" + datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + exp_name
+        # LOG_NAME = "./runs/" + datetime.now().strftime("%Y%m%d-%H%M%S") + "-" + exp_name
+        LOG_NAME = SAVE_PATH
         writer = SummaryWriter(LOG_NAME)
 
         return writer

@@ -422,7 +422,7 @@ def eval_episodes(
             env.win1.editMapView.changeScale(0.77)
             env.win1.editMapView.centerOnTile(20, 16)
         obs = env.reset()
-        #       epi_rewards = np.zeros((max_step, n_envs))
+        #       epi_reward_weights = np.zeros((max_step, n_envs))
         i = 0
         # note that this is weighted loss
         init_loss = env.get_loss()
@@ -470,7 +470,7 @@ def eval_episodes(
             curr_tokens = env.state.argmax(axis=0)
         elif RCT:
             curr_tokens = env.rct_env.park.map[0]
-    #           epi_rewards[i] = rewards
+    #           epi_reward_weights[i] = rewards
 
 
 
@@ -757,7 +757,7 @@ class EvalData:
 #    while n < n_trials:
 #
 #        obs = env.reset()
-##       epi_rewards = np.zeros((max_step, n_envs))
+##       epi_reward_weights = np.zeros((max_step, n_envs))
 #        i = 0
 # env.remotes[0].send(('env_method', ('get_metric_vals', [], {})))  # supply opts and kwargs
 ##       init_metric_vals = env.remotes[0].recv()
@@ -768,7 +768,7 @@ class EvalData:
 #        while not dones.all():
 #            action, _ = model.predict(obs)
 #            obs, rewards, dones, info = env.step(action)
-##           epi_rewards[i] = rewards
+##           epi_reward_weights[i] = rewards
 #            i += 1
 #        # since reward is weighted loss
 #        final_loss = np.sum(rewards)

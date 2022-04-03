@@ -28,7 +28,7 @@ class DDaveProblem(Problem):
         self._target_jumps = 2
         self._target_solution = 20
 
-        self._rewards = {
+        self._reward_weights = {
             "player": 3,
             "dist-floor": 2,
             "exit": 3,
@@ -78,8 +78,8 @@ class DDaveProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Private function that runs the game on the input level
@@ -193,16 +193,16 @@ class DDaveProblem(Problem):
             "sol-length": get_range_reward(new_stats["sol-length"], old_stats["sol-length"], np.inf, np.inf)
         }
         #calculate the total reward
-        return rewards["player"] * self._rewards["player"] +\
-            rewards["dist-floor"] * self._rewards["dist-floor"] +\
-            rewards["exit"] * self._rewards["exit"] +\
-            rewards["spikes"] * self._rewards["spikes"] +\
-            rewards["diamonds"] * self._rewards["diamonds"] +\
-            rewards["key"] * self._rewards["key"] +\
-            rewards["regions"] * self._rewards["regions"] +\
-            rewards["num-jumps"] * self._rewards["num-jumps"] +\
-            rewards["dist-win"] * self._rewards["dist-win"] +\
-            rewards["sol-length"] * self._rewards["sol-length"]
+        return rewards["player"] * self._reward_weights["player"] +\
+            rewards["dist-floor"] * self._reward_weights["dist-floor"] +\
+            rewards["exit"] * self._reward_weights["exit"] +\
+            rewards["spikes"] * self._reward_weights["spikes"] +\
+            rewards["diamonds"] * self._reward_weights["diamonds"] +\
+            rewards["key"] * self._reward_weights["key"] +\
+            rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["num-jumps"] * self._reward_weights["num-jumps"] +\
+            rewards["dist-win"] * self._reward_weights["dist-win"] +\
+            rewards["sol-length"] * self._reward_weights["sol-length"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

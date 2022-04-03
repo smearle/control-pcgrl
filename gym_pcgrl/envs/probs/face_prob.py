@@ -51,7 +51,7 @@ class FaceProblem(Problem):
         self._target_path = 20
         self._random_probs = True
 
-        self._rewards = {
+        self._reward_weights = {
             "face_1": 1,
         }
 
@@ -64,7 +64,7 @@ class FaceProblem(Problem):
             "face_1": (0, 1),
         }
 
-        self.weights = {"face_1": 1}
+        self._reward_weights = {"face_1": 1}
 
     """
     Get a list of all the different tile names
@@ -99,8 +99,8 @@ class FaceProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -147,7 +147,7 @@ class FaceProblem(Problem):
             "face_1": get_range_reward(new_stats["face_1"], old_stats["face_1"], 1, 1),
         }
         #calculate the total reward
-        return rewards["face_1"] * self._rewards["face_1"]
+        return rewards["face_1"] * self._reward_weights["face_1"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

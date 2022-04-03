@@ -160,13 +160,7 @@ def get_args():
 #       help="Compare with work in evo-pcgrl using pyribs to train NNs as generators.",
 #       action="store_true",
 #   )
-
-    # Not for training:
-    args.add_argument(
-        "--HPC",
-        help='Load from "hpc_runs" (rather than "runs") directory.',
-        action="store_true",
-    )
+    
     args.add_argument(
         "--n_frames",
         help="The net total number of gameplay frames to be experienced by the agent during training.",
@@ -185,6 +179,11 @@ def get_args():
         "--overwrite",
         action='store_true',
         help="Overwrite previous experiment with same name."
+    )
+    args.add_argument(
+        "--cuda",
+        help="Whether to use CUDA (GPU) or not.",
+        action="store_true",
     )
 
     return args

@@ -42,7 +42,7 @@ class SokobanProblem(Problem):
 
         self._target_solution = 18
 
-        self._rewards = {
+        self._reward_weights = {
             "player": 3,
             "crate": 2,
             "target": 2,
@@ -89,8 +89,8 @@ class SokobanProblem(Problem):
 
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Private function that runs the game on the input level
@@ -227,13 +227,13 @@ class SokobanProblem(Problem):
         # calculate the total reward
 
         return (
-            rewards["player"] * self._rewards["player"]
-            + rewards["crate"] * self._rewards["crate"]
-            + rewards["target"] * self._rewards["target"]
-            + rewards["regions"] * self._rewards["regions"]
-            + rewards["ratio"] * self._rewards["ratio"]
-            + rewards["dist-win"] * self._rewards["dist-win"]
-            + rewards["sol-length"] * self._rewards["sol-length"]
+            rewards["player"] * self._reward_weights["player"]
+            + rewards["crate"] * self._reward_weights["crate"]
+            + rewards["target"] * self._reward_weights["target"]
+            + rewards["regions"] * self._reward_weights["regions"]
+            + rewards["ratio"] * self._reward_weights["ratio"]
+            + rewards["dist-win"] * self._reward_weights["dist-win"]
+            + rewards["sol-length"] * self._reward_weights["sol-length"]
         )
 
     """

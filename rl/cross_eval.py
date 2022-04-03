@@ -374,7 +374,7 @@ def listolists_to_arr(a):
 def plot_csv(exp_name):
     monitor_files = [os.path.join(exp_name, f) for f in os.listdir(exp_name) if "monitor.csv" in f]
     g_rew_id, g_len_id, g_time_id = None, None, None
-    g_rewards, g_lens, g_times = [], [], []
+    g_reward_weights, g_lens, g_times = [], [], []
     for f in monitor_files:
         rewards, lens, times = [], [], []
         with open(f, newline='') as mf:
@@ -402,12 +402,12 @@ def plot_csv(exp_name):
                 rewards.append(row[g_rew_id])
                 lens.append(row[g_len_id])
                 times.append(row[g_time_id])
-        g_rewards.append(rewards)
+        g_reward_weights.append(rewards)
         g_lens.append(lens)
         g_times.append(times)
-    if not g_rewards:
+    if not g_reward_weights:
         return
-    rew_arr, len_arr, time_arr = listolists_to_arr(g_rewards), listolists_to_arr(g_lens), listolists_to_arr(g_times)
+    rew_arr, len_arr, time_arr = listolists_to_arr(g_reward_weights), listolists_to_arr(g_lens), listolists_to_arr(g_times)
     mean_rews, mean_lens, mean_times = np.nanmean(rew_arr, axis=0), np.nanmean(len_arr, axis=0), np.nanmean(time_arr, axis=0)
     plt.figure()
     mean_rews = np.convolve(mean_rews, [1/7 for i in range(7)])

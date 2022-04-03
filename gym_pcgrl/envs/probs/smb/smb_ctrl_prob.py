@@ -7,8 +7,8 @@ class SMBCtrlProblem(SMBProblem):
 
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         self._max_sol_length = np.ceil(self._width) * 3  # Suppose he zig-zags back and forth about 3 times
-        # like _rewards but for use with ParamRew
-        self.weights = self._rewards
+        # like _reward_weights but for use with ParamRew
+        self._reward_weights = self._reward_weights
 
         self.static_trgs = {
                 'dist-floor': 0,

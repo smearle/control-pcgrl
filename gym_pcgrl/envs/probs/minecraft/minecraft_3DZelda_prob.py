@@ -39,7 +39,7 @@ class Minecraft3DZeldaProblem(Problem):
 
         self.render_path = False 
 
-        self._rewards = {
+        self._reward_weights = {
             "regions": 5,
             "path-length": 1,
             "chests": 3,
@@ -82,8 +82,8 @@ class Minecraft3DZeldaProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
@@ -174,11 +174,11 @@ class Minecraft3DZeldaProblem(Problem):
             "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
         }
         #calculate the total reward
-        return rewards["regions"] * self._rewards["regions"] +\
-            rewards["path-length"] * self._rewards["path-length"] +\
-            rewards["chests"] * self._rewards["chests"] +\
-            rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["nearest-enemy"] * self._rewards["nearest-enemy"]
+        return rewards["regions"] * self._reward_weights["regions"] +\
+            rewards["path-length"] * self._reward_weights["path-length"] +\
+            rewards["chests"] * self._reward_weights["chests"] +\
+            rewards["enemies"] * self._reward_weights["enemies"] +\
+            rewards["nearest-enemy"] * self._reward_weights["nearest-enemy"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

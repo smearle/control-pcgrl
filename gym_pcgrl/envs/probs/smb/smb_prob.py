@@ -22,7 +22,7 @@ class SMBProblem(Problem):
         self._max_enemies = 30
         self._min_jumps = 20
 
-        self._rewards = {
+        self._reward_weights = {
             "dist-floor": 2,
             "disjoint-tubes": 1,
             "enemies": 1,
@@ -47,8 +47,8 @@ class SMBProblem(Problem):
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
-                if t in self._rewards:
-                    self._rewards[t] = rewards[t]
+                if t in self._reward_weights:
+                    self._reward_weights[t] = rewards[t]
 
     def _get_runnable_lvl(self, map):
         new_map = []
@@ -161,14 +161,14 @@ class SMBProblem(Problem):
             "dist-win": get_range_reward(new_stats["dist-win"], old_stats["dist-win"], 0, 0)
         }
         #calculate the total reward
-        return rewards["dist-floor"] * self._rewards["dist-floor"] +\
-            rewards["disjoint-tubes"] * self._rewards["disjoint-tubes"] +\
-            rewards["enemies"] * self._rewards["enemies"] +\
-            rewards["empty"] * self._rewards["empty"] +\
-            rewards["noise"] * self._rewards["noise"] +\
-            rewards["jumps"] * self._rewards["jumps"] +\
-            rewards["jumps-dist"] * self._rewards["jumps-dist"] +\
-            rewards["dist-win"] * self._rewards["dist-win"]
+        return rewards["dist-floor"] * self._reward_weights["dist-floor"] +\
+            rewards["disjoint-tubes"] * self._reward_weights["disjoint-tubes"] +\
+            rewards["enemies"] * self._reward_weights["enemies"] +\
+            rewards["empty"] * self._reward_weights["empty"] +\
+            rewards["noise"] * self._reward_weights["noise"] +\
+            rewards["jumps"] * self._reward_weights["jumps"] +\
+            rewards["jumps-dist"] * self._reward_weights["jumps-dist"] +\
+            rewards["dist-win"] * self._reward_weights["dist-win"]
 
     def get_episode_over(self, new_stats, old_stats):
         return new_stats["dist-win"] <= 0

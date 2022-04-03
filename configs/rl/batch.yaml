@@ -11,15 +11,15 @@
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-      # ["narrow3D", None],
-      # ["turtle3D", None],
+      ["narrow3D", null],
+      # ["turtle3D", null],
       # ["wide3D", "WideModel3D"],
-      ["wide3D", "WideModel3DSkip"],
-      # ["cellular3D", None],
-      # ["narrow", None],
-      # ['cellular', None],
-      # ["wide", None],
-      # ['turtle', None],
+      # ["wide3D", "WideModel3DSkip"],
+      # ["cellular3D", null],
+      # ["narrow", null],
+      # ["wide", null],
+      # ["cellular", null],
+      # ['turtle', null],
   ],
 
   # TODO: incorporate formal (rather than only functional) metrics as controls

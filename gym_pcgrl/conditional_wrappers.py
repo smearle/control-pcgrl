@@ -48,7 +48,7 @@ class ConditionalWrapper(gym.Wrapper):
                 self.static_metric_names.remove(k)
         self.num_params = len(self.ctrl_metrics)
         self.auto_reset = True
-        self.weights = {}
+        # self.unwrapped._reward_weights = {}
 
         #       self.unwrapped.configure(**kwargs)
 
@@ -67,7 +67,7 @@ class ConditionalWrapper(gym.Wrapper):
             v = self.cond_bounds[k]
             improvement = abs(v[1] - v[0])
             self.param_ranges[k] = improvement
-        #           self.max_improvement += improvement * self.weights[k]
+        #           self.max_improvement += improvement * self.unwrapped._reward_weights[k]
 
         self.metric_trgs = {}
         # we might be using a subset of possible conditional targets supplied by the problem
@@ -91,10 +91,10 @@ class ConditionalWrapper(gym.Wrapper):
         for k in self.all_metrics:
             v = self.metrics[k]
 
-            if self.SC_RCT and k not in self.ctrl_metrics:
-                self.weights[k] = 0
-            else:
-                self.weights[k] = self.unwrapped.weights[k]
+            # if self.SC_RCT and k not in self.ctrl_metrics:
+                # self.unwrapped._reward_weights[k] = 0
+            # else:
+                # self.unwrapped._reward_weights[k] = self.unwrapped._reward_weights[k]
 
         #       for k in self.ctrl_metrics:
         #           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
@@ -324,7 +324,7 @@ class ConditionalWrapper(gym.Wrapper):
                 loss_m = -abs(np.arange(*trg) - val).min()
             else:
                 loss_m = -abs(trg - val)
-            loss_m = loss_m * self.weights[metric]
+            loss_m = loss_m * self.unwrapped._reward_weights[metric]
             loss += loss_m
 
         return loss
@@ -337,8 +337,8 @@ class ConditionalWrapper(gym.Wrapper):
             if k in ctrl_metrics:
                 continue
             if isinstance(v, tuple):
-                max_loss = max(abs(v[0] - self.cond_bounds[k][0]), abs(v[1] - self.cond_bounds[k][1])) * self.weights[k]
-            else: max_loss = max(abs(v - self.cond_bounds[k][0]), abs(v - self.cond_bounds[k][1])) * self.weights[k]
+                max_loss = max(abs(v[0] - self.cond_bounds[k][0]), abs(v[1] - self.cond_bounds[k][1])) * self.unwrapped._reward_weights[k]
+            else: max_loss = max(abs(v - self.cond_bounds[k][0]), abs(v - self.cond_bounds[k][1])) * self.unwrapped._reward_weights[k]
             net_max_loss += max_loss
         return net_max_loss
 
@@ -352,7 +352,7 @@ class ConditionalWrapper(gym.Wrapper):
                 loss_m = -abs(np.arange(*trg) - val).min()
             else:
                 loss_m = -abs(trg - val)
-            loss_m = loss_m * self.weights[metric]
+            loss_m = loss_m * self.unwrapped._reward_weights[metric]
             loss += loss_m
 
         return loss
@@ -371,7 +371,7 @@ class ConditionalWrapper(gym.Wrapper):
                 loss_m = -abs(np.arange(*trg) - val).min()
             else:
                 loss_m = -abs(trg - val)
-            loss_m = loss_m * self.weights[metric]
+            loss_m = loss_m * self.unwrapped._reward_weights[metric]
             loss += loss_m
 
         return loss
@@ -390,7 +390,7 @@ class ConditionalWrapper(gym.Wrapper):
         #        high = trg
         #    else:
         #        low, high = trg
-        #    reward += get_range_reward(self.metrics[k], self.last_metrics[k], low, high) * self.unwrapped._prob._rewards[k]
+        #    reward += get_range_reward(self.metrics[k], self.last_metrics[k], low, high) * self.unwrapped._prob._reward_weights[k]
         #       print(self.metrics)
         #       print(reward)
         # return reward
