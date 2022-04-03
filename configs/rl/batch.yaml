@@ -9,15 +9,17 @@
     # 'smb_ctrl',
   ],
 
-  "representations": [
-      # "narrow3D",
-      # "turtle3D",
-      "wide3D",
-      # "cellular3D",
-      # "narrow",
-      # 'cellular',
-      # "wide",
-      # 'turtle',
+  # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
+  "representations_models": [
+      # ["narrow3D", None],
+      # ["turtle3D", None],
+      # ["wide3D", "WideModel3D"],
+      ["wide3D", "WideModel3DSkip"],
+      # ["cellular3D", None],
+      # ["narrow", None],
+      # ['cellular', None],
+      # ["wide", None],
+      # ['turtle', None],
   ],
 
   # TODO: incorporate formal (rather than only functional) metrics as controls

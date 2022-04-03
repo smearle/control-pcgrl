@@ -78,6 +78,13 @@ def get_args():
         default="narrow",
     )
     args.add_argument(
+        "-mo",
+        "--model",
+        type=str,
+        help="Which model to use.",
+        default=None,
+    )
+    args.add_argument(
         "-mw",
         "--map_width",
         help="Width of the game level.",

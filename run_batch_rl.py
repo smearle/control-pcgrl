@@ -51,7 +51,7 @@ def launch_batch(exp_name, collect_params=False):
     for prob in batch_config.problems:
         prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
-        for rep in batch_config.representations:
+        for rep, model in batch_config.representations_models:
             for controls in prob_controls:
 
 #                   if controls != ["NONE"] and change_percentage != 1:
@@ -102,6 +102,7 @@ def launch_batch(exp_name, collect_params=False):
                                 "n_cpu": opts.n_cpu,
                                 "problem": prob,
                                 "representation": rep,
+                                "model": model,
                                 "conditionals": controls,
                                 "change_percentage": change_percentage,
                                 "alp_gmm": alp_gmm,
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     opts.add_argument(
         "--n_cpu",
         type=int,
-        default=48,
+        default=12,
     )
     opts.add_argument(
         "--load",
