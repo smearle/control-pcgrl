@@ -1,8 +1,11 @@
 # Ignore changes to SLURM sbatch scripts (mostly just changing email addresses etc.)
-rl/train.sh
-rl/eval.sh
-evo/train.sh
-evo/eval.sh
+# rl/train.sh
+# rl/eval.sh
+# evo/train.sh
+# evo/eval.sh
+# */train.sh
+# */eval.sh
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
