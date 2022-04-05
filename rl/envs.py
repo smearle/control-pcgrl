@@ -13,14 +13,14 @@ from gym_pcgrl import wrappers, conditional_wrappers
 def make_env(cfg_dict):
     """
     Return a function that will initialize the environment when called.
+
+    Args:
+        cfg_dict: dictionary of configuration parameters
     """
     # Turn dictionary into an object with attributes instead of keys.
-    try:
-        cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
-    except:
-        # handle the case where the cfg_dict is argparse Namespace object
-        cfg = cfg_dict
-        cfg_dict = vars(cfg)
+    cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
+    crop_size = cfg.cropped_size
+    cfg_dict.pop('cropped_size')
 
     if cfg.representation == 'wide':
         env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
@@ -31,10 +31,10 @@ def make_env(cfg_dict):
         # env = wrappers.CAWrapper(env_name, **kwargs)
         env = wrappers.CAactionWrapper(cfg.env_name, **cfg_dict)
     elif cfg.representation in ['narrow', 'turtle']:
-        crop_size = cfg.get('cropped_size')
+        crop_size = cfg.cropped_size
         env = wrappers.CroppedImagePCGRLWrapper(cfg.env_name, crop_size, **cfg_dict)
     elif cfg.representation in ['narrow3D', 'turtle3D']:
-        crop_size = cfg.get('cropped_size')
+        crop_size = cfg.cropped_size
         env = wrappers.Cropped3DImagePCGRLWrapper(cfg.env_name, crop_size, **cfg_dict)
     else:
         raise Exception('Unknown representation: {}'.format(cfg.representation))

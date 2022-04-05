@@ -3,8 +3,8 @@
 # rl/eval.sh
 # evo/train.sh
 # evo/eval.sh
-# */train.sh
-# */eval.sh
+*/train.sh
+*/eval.sh
 
 
 # Byte-compiled / optimized / DLL files

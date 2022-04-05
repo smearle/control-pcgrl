@@ -25,6 +25,7 @@ def get_action(a):
     return a.item() if hasattr(a, "item") else a
 
 
+# Q: why don't we just use env.unwrapped?
 # unwrap all the environments and get the PcgrlEnv
 def get_pcgrl_env(env):
     return (
