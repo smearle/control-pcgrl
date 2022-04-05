@@ -97,6 +97,9 @@ def main(cfg):
         'model': {
             'custom_model': 'feedforward',
         },
+        "evaluation_config": {
+            "explore": True,
+        },
         "logger_config": {
             "type": "ray.tune.logger.TBXLogger",
             # Optional: Custom logdir (do not define this here
