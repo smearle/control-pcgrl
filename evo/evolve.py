@@ -53,6 +53,7 @@ from evo.utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
 from gym_pcgrl.envs.helper_3D import get_string_map as get_string_map_3d
+from qdpy import plots as qdpy_plots
 
 # from example_play_call import random_player
 # gvgai_path = '/home/sme/GVGAI_GYM/'
@@ -2310,7 +2311,7 @@ class EvoPCGRL:
         #       grid_archive_heatmap(archive, vmin=vmin, vmax=vmax)
         if ALGO == "ME":
             obj_min, obj_max = archive.fitness_extrema[0]
-            qdpy.plots.plotGridSubplots(archive.quality_array[..., 0], os.path.join(SAVE_PATH, 'fitness.pdf'),
+            qdpy_plots.plotGridSubplots(archive.quality_array[..., 0], os.path.join(SAVE_PATH, 'fitness.pdf'),
                                         plt.get_cmap("inferno_r"), archive.features_domain,
                                         archive.fitness_domain[0], nbTicks=None)
         else:
@@ -3002,7 +3003,7 @@ class EvoPCGRL:
                 init_states,
                 self.bc_names,
                 self.static_targets,
-                target_weights=self.env._reward_weights,
+                target_weights=self.env.unwrapped._reward_weights,
                 seed=None,
                 player_1=self.player_1,
                 player_2=self.player_2,
