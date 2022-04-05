@@ -18,6 +18,12 @@ class ResettableNN(nn.Module):
     def reset(self):
         pass
 
+    def mutate(self):
+        set_nograd(self)
+        w = get_init_weights(self, init=False, torch=True)
+        w += th.randn_like(w) * 0.1
+        set_weights(self, w)
+
 
 class MixActiv(nn.Module):
     def __init__(self):
@@ -861,7 +867,7 @@ def set_nograd(nn):
         param.requires_grad = False
 
 
-def get_init_weights(nn):
+def get_init_weights(nn, init=True, torch=False):
     """
     Use to get flat vector of weights from PyTorch model
     """
@@ -875,11 +881,16 @@ def get_init_weights(nn):
             init_params.append(node.bias)
     else:
         for lyr in nn.layers:
-            init_params.append(lyr.weight.view(-1).cpu().numpy())
+            init_params.append(lyr.weight.view(-1))
             if lyr.bias is not None:
-                init_params.append(lyr.bias.view(-1).cpu().numpy())
-    init_params = np.hstack(init_params)
-    print("number of initial NN parameters: {}".format(init_params.shape))
+                init_params.append(lyr.bias.view(-1))
+    if not torch:
+        init_params = [p.cpu().numpy() for p in init_params]
+        init_params = np.hstack(init_params)
+    else:
+        init_params = th.cat(init_params)
+    if init:
+        print("number of initial NN parameters: {}".format(init_params.shape))
 
     return init_params
 

@@ -47,7 +47,7 @@ import copy
 from tqdm import tqdm
 
 from args import get_args
-from evo.models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
+from evo.models import AuxNCA, Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, NCA, NCA3D, DirectBinaryEncoding
 from evo.utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
@@ -1951,7 +1951,7 @@ class EvoPCGRL:
                         init_states=init_states,
                         bc_names=self.bc_names,
                         static_targets=self.static_targets,
-                        target_weights=self.env._reward_weights,
+                        target_weights=self.env.unwrapped._reward_weights,
                         seed=seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -3106,7 +3106,8 @@ if __name__ == "__main__":
     ALGO = arg_dict["algo"]
     if ALGO == "ME":
         # TODO: implement wrapper around other models generically
-        assert MODEL in ["CPPN", "GenCPPN", "CPPNCA", "DirectBinaryEncoding"]
+        pass
+        # assert MODEL in ["CPPN", "GenCPPN", "CPPNCA", "DirectBinaryEncoding"]
     else:
         assert ALGO == "CMAME"
     REPRESENTATION = arg_dict["representation"]
