@@ -15,7 +15,12 @@ def make_env(cfg_dict):
     Return a function that will initialize the environment when called.
     """
     # Turn dictionary into an object with attributes instead of keys.
-    cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
+    try:
+        cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
+    except:
+        # handle the case where the cfg_dict is argparse Namespace object
+        cfg = cfg_dict
+        cfg_dict = vars(cfg)
 
     if cfg.representation == 'wide':
         env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)

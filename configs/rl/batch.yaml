@@ -1,7 +1,7 @@
 {
   "problems": [
     "minecraft_3D_maze_ctrl",
-    "minecraft_3D_zelda_ctrl",
+    # "minecraft_3D_zelda_ctrl",
     # "binary_ctrl",
     # "zelda_ctrl",
     # "sokoban_ctrl",
