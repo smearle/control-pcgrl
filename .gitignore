@@ -61,8 +61,8 @@ evalevopcgrl*.out
 # VSCode
 .vscode/
 
-# Ignore PNG files
-*.png
+# # Ignore PNG files (Wait... why?)
+# *.png
 
 # Ignore Mac OS finder cache
 *.DS_Store
