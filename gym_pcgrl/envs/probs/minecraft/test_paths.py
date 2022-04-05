@@ -244,4 +244,3 @@ for int_map in test_maps:
     )
     print(stats)
     env.render()
-    TT()

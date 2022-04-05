@@ -84,10 +84,10 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 #       raise Exception(
 #           "Did not find ranked saved model of experiment: {}".format(exp_name)
 #       )
-    crop_size = infer_kwargs.get("cropped_size")
+    crop_size = infer_kwargs.get("crop_size")
 
     if crop_size == -1:
-        infer_kwargs["cropped_size"] = get_crop_size(game)
+        infer_kwargs["crop_size"] = get_crop_size(game)
     log_dir = os.path.join(EXPERIMENT_DIR, '{}_{}_log'.format(exp_name, exp_id))
     eval_dir = os.path.join(log_dir, 'eval')
     if not os.path.isdir(eval_dir):
@@ -916,7 +916,7 @@ infer_kwargs = {
     "ca_action": ca_action,
     "map_width": map_width,
     "eval_controls": opts.eval_controls,
-    "cropped_size": opts.crop_size,
+    "crop_size": opts.crop_size,
     "experiment_id": opts.experiment_id,
 }
 

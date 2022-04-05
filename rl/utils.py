@@ -55,17 +55,17 @@ def get_map_width(game):
             return v
     raise Exception("Unknown game")
 
-def get_crop_size(game):
-    if "binary" in game:
-        return 32
-    elif "minecraft_3D" in game:
-        return 14
-    elif "zelda" in game:
-        return 32
-    elif "sokoban" in game:
-        return 10
-    else:
-        raise Exception("Unknown game")
+# def get_crop_size(game):
+#     if "binary" in game:
+#         return 32
+#     elif "minecraft_3D" in game:
+#         return 14
+#     elif "zelda" in game:
+#         return 32
+#     elif "sokoban" in game:
+#         return 10
+#     else:
+#         raise Exception("Unknown game")
 
 
 #class RenderMonitor(Monitor):
@@ -121,7 +121,7 @@ def get_action(obs, env, model, action_type=True):
 #        if representation == "wide":
 #            env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
 #        else:
-#            crop_size = kwargs.get("cropped_size", 28)
+#            crop_size = kwargs.get("crop_size", 28)
 #            env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
 #
 #        if max_step is not None:

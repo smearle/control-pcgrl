@@ -135,7 +135,6 @@ class Narrow3DRepresentation(Representation3D):
         return change, [self._x, self._y, self._z]
 
     def render(self, map):
-        # TT()
         x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
         edit_3D_maze(map, x, y, z)
         self._old_coords = self._new_coords

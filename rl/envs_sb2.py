@@ -25,10 +25,10 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
            # env = wrappers.CAWrapper(env_name, **kwargs)
             env = wrappers.CAactionWrapper(env_name, **kwargs)
         elif representation in ['narrow', 'turtle']:
-            crop_size = kwargs.get('cropped_size')
+            crop_size = kwargs.get('crop_size')
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
         elif representation in ['narrow3D', 'turtle3D']:
-            crop_size = kwargs.get('cropped_size')
+            crop_size = kwargs.get('crop_size')
             env = wrappers.Cropped3DImagePCGRLWrapper(env_name, crop_size, **kwargs)
         else:
             raise Exception('Unknown representation: {}'.format(representation))
@@ -74,9 +74,9 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     Prepare a vectorized environment using a list of 'make_env' functions.
     '''
     map_width = get_map_width(env_name)
-    cropped_size = kwargs.get('cropped_size')
-    cropped_size = map_width * 2 if cropped_size == -1 else cropped_size
-    kwargs['cropped_size'] = cropped_size
+    crop_size = kwargs.get('crop_size')
+    crop_size = map_width * 2 if crop_size == -1 else crop_size
+    kwargs['crop_size'] = crop_size
     kwargs['map_width'] = map_width
     n_cpu = kwargs.pop('n_cpu')
     if n_cpu > 1:

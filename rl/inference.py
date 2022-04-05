@@ -16,16 +16,16 @@ def infer(game, representation, model_path, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     if game == "binary":
         model_sb2.FullyConvPolicy = model_sb2.FullyConvPolicyBigMap
-        kwargs['cropped_size'] = 28
+        kwargs['crop_size'] = 28
     elif game == "zelda":
         model_sb2.FullyConvPolicy = model_sb2.FullyConvPolicyBigMap
-        kwargs['cropped_size'] = 22
+        kwargs['crop_size'] = 22
     elif game == "sokoban":
         model_sb2.FullyConvPolicy = model_sb2.FullyConvPolicySmallMap
-        kwargs['cropped_size'] = 10
+        kwargs['crop_size'] = 10
     # elif game == "minecraft_2Dmaze":
     #     model.FullyConvPolicy = model.FullyConvPolicyBigMap
-    #     kwargs['cropped_size'] = 28
+    #     kwargs['crop_size'] = 28
 
     kwargs['render'] = True
 

@@ -43,10 +43,10 @@ def infer(game, representation, infer_kwargs, **kwargs):
 #       raise Exception(
 #           "Did not find ranked saved model of experiment: {}".format(exp_name)
 #       )
-    crop_size = infer_kwargs.get("cropped_size")
+    crop_size = infer_kwargs.get("crop_size")
 
     if crop_size == -1:
-        infer_kwargs["cropped_size"] = get_crop_size(game)
+        infer_kwargs["crop_size"] = get_crop_size(game)
 #   log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, n)
     log_dir = "{}/{}_{}_log".format(EXPERIMENT_DIR, exp_name, exp_id)
     # no log dir, 1 parallel environment
@@ -195,7 +195,7 @@ infer_kwargs = {
     "infer": True,
     "ca_action": ca_action,
     "map_width": opts.map_width,
-    "cropped_size": opts.crop_size,
+    "crop_size": opts.crop_size,
     "alp_gmm": alp_gmm,
     "experiment_id": opts.experiment_id,
 }

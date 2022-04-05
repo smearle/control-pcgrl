@@ -299,7 +299,6 @@ class ActionMap(gym.Wrapper):
 
     def step(self, action, **kwargs):
         # y, x, v = np.unravel_index(np.argmax(action), action.shape)
-        TT()
         y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
 
         if "pos" in self.old_obs:
@@ -470,18 +469,17 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
             self.pcgrl_env.adjust_param(**kwargs)
             # Cropping the map to the correct crop_size
             env = Cropped(
-                self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), "map"
+                game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map"
             )
             # Transform to one hot encoding if not binary
 
-            if "binary" not in game:
-                env = OneHotEncoding(env, "map")
+            # if "binary" not in game:
+            env = OneHotEncoding(env, "map")
             # Indices for flatting
             flat_indices = ["map"]
             # Final Wrapper has to be ToImage or ToFlat
             self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
-
 
 
 class Cropped3DImagePCGRLWrapper(gym.Wrapper):

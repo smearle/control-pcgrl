@@ -104,11 +104,11 @@ def main(game, representation, n_frames, n_cpu, render, logging, **kwargs):
         if game == "sokoban" or game == "sokoban_ctrl":
             #           T()
             policy = CustomPolicySmallMap
-    crop_size = kwargs.get('cropped_size')
+    crop_size = kwargs.get('crop_size')
 
 #   if crop_size == -1:
-#       kwargs['cropped_size'] = map_width * 2
-        # kwargs['cropped_size'] = get_crop_size(game)
+#       kwargs['crop_size'] = map_width * 2
+        # kwargs['crop_size'] = get_crop_size(game)
 
     exp_id = kwargs.get('experiment_id')
 #   n = kwargs.get('experiment_id')
@@ -260,7 +260,7 @@ kwargs = {
     'max_step': max_step,
     'midep_trgs': midep_trgs,
     'ca_action': ca_action,
-    'cropped_size': opts.crop_size,
+    'crop_size': opts.crop_size,
     'alp_gmm': alp_gmm,
     'experiment_id': opts.experiment_id,
 }

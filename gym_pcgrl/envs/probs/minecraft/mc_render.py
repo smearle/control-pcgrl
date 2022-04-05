@@ -265,7 +265,6 @@ def edit_3D_maze(map, i, j, k, base_pos=5):
         j (int) : the y position that the action take place
         k (int) : the z position that the action take place
     '''
-    # TT()
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
     # time.sleep(0.2)

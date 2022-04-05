@@ -1,6 +1,4 @@
-# Install pytorch and cuda with the following: 
-# conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
-
+# TODO: separate requirements for evo/rl (while ensuring they do not conflict).
 
 pandas
 deap
@@ -34,7 +32,7 @@ ray[rllib]     # ray[rllib]==1.9.2 in particle, but 1.11.0 should be fine here
 # python -m pip install --upgrade minerl
 
 
-# Would be great to try using dqd-rl inside evolve.py
+# Would be great to try using dqd-rl inside evolve.py... until then, we don't need dqd.
 #./dqd
 
 

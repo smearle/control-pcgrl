@@ -127,7 +127,6 @@ class Minecraft3DmazeProblem(Problem):
         # # print("path length: ", self.path_length)
 
         # if self.render_path:
-        #     # TT()
         #     if dijkstra_p[d_z][d_y][d_x] > 0:
         #         self.path_coords = get_path_coords(dijkstra_p, d_x, d_y, d_z)
                 # path_debug(path, map, passable_values)

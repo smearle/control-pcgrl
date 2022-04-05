@@ -65,11 +65,11 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         if game == "sokoban":
             policy = CustomPolicySmallMap
     if game == "binary":
-        kwargs['cropped_size'] = 28
+        kwargs['crop_size'] = 28
     elif game == "zelda":
-        kwargs['cropped_size'] = 22
+        kwargs['crop_size'] = 22
     elif game == "sokoban":
-        kwargs['cropped_size'] = 10
+        kwargs['crop_size'] = 10
 
     # What's the ID of the latest log directory corresponding to this experiment?
     n = max_exp_idx(exp_name)

@@ -16,7 +16,7 @@
     #   ["wide3D", "WideModel3D"],
     #   ["wide3D", "WideModel3DSkip"],
       # ["cellular3D", null],
-      # ["narrow", null],
+    #   ["narrow", null],
       # ["wide", null],
       # ["cellular", null],
       # ['turtle', null],
@@ -24,15 +24,15 @@
 
   # TODO: incorporate formal (rather than only functional) metrics as controls
   "global_controls": [
-      ["NONE", "NONE"],
+        ["NONE", "NONE"],
       # ['emptiness', 'symmetry'],
   ],
 
   "local_controls": {
       "binary_ctrl": [
-  #       ["regions"],
-  #       ["path-length"],
-  #       ["regions", "path-length"],
+        # ["regions"],
+        # ["path-length"],
+        # ["regions", "path-length"],
           # ['emptiness', 'path-length'],
           # ["symmetry", "path-length"]
       ],

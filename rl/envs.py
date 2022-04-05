@@ -19,23 +19,28 @@ def make_env(cfg_dict):
     """
     # Turn dictionary into an object with attributes instead of keys.
     cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
-    crop_size = cfg.cropped_size
-    cfg_dict.pop('cropped_size')
+    crop_size = cfg.crop_size
+    cfg_dict.pop('crop_size')
 
     if cfg.representation == 'wide':
         env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+
     elif cfg.representation == 'wide3D':
         # raise NotImplementedError("3D wide representation not implemented")
         env = wrappers.ActionMap3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+
     elif cfg.representation == 'cellular':
         # env = wrappers.CAWrapper(env_name, **kwargs)
         env = wrappers.CAactionWrapper(cfg.env_name, **cfg_dict)
+
     elif cfg.representation in ['narrow', 'turtle']:
-        crop_size = cfg.cropped_size
+        crop_size = cfg.crop_size
         env = wrappers.CroppedImagePCGRLWrapper(cfg.env_name, crop_size, **cfg_dict)
+
     elif cfg.representation in ['narrow3D', 'turtle3D']:
-        crop_size = cfg.cropped_size
+        crop_size = cfg.crop_size
         env = wrappers.Cropped3DImagePCGRLWrapper(cfg.env_name, crop_size, **cfg_dict)
+
     else:
         raise Exception('Unknown representation: {}'.format(cfg.representation))
     env.configure(**cfg_dict)

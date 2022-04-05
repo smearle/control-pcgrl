@@ -487,7 +487,6 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
     # print("zi, yi, xi is curr[:, 0]: ", zi, yi, xi)
     # print("max_cell: ", max_cell)
     # print("iterating:") 
-    # # TT()
     path = np.zeros(shape=(max_cell, 3), dtype=np.int32)
     i = 0
     while max_cell > 1:
@@ -500,7 +499,6 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
         # print("curr: ", curr)
         # print("zi, yi, xi is curr[:, 0]: ", zi, yi, xi)     
         # print("max_cell: ", max_cell)
-        # TT()
         curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
         
         # print("curr is changed to: ", curr)

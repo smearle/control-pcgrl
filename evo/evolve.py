@@ -1471,7 +1471,6 @@ def simulate(
                             stats, time_penalty, targets_penalty
                         )
                     )
-                TT()
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
@@ -1912,7 +1911,7 @@ class EvoPCGRL:
                             init_states,
                             self.bc_names,
                             self.static_targets,
-                            self.env._reward_weights,
+                            self.env.unwrapped._reward_weights,
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2010,7 +2009,7 @@ class EvoPCGRL:
                             init_states,
                             self.bc_names,
                             self.static_targets,
-                            self.env._reward_weights,
+                            self.env.unwrapped._reward_weights,
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2067,7 +2066,7 @@ class EvoPCGRL:
                             init_states=init_states,
                             bc_names=self.bc_names,
                             static_targets=self.static_targets,
-                            target_weights=self.env._reward_weights,
+                            target_weights=self.env.unwrapped._reward_weights,
                             seed=seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
@@ -2439,7 +2438,7 @@ class EvoPCGRL:
                             self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
-                            target_weights=self.env._reward_weights,
+                            target_weights=self.env.unwrapped._reward_weights,
                             seed=None,
                             render_levels=True,
                         )
@@ -2497,7 +2496,7 @@ class EvoPCGRL:
                             self.init_states[0:1],
                             self.bc_names,
                             self.static_targets,
-                            target_weights=self.env._reward_weights,
+                            target_weights=self.env.unwrapped._reward_weights,
                             seed=None,
                             render_levels=True,
                         )
@@ -2727,7 +2726,7 @@ class EvoPCGRL:
                         init_states,
                         [bc for bc_names in eval_bc_names for bc in bc_names],
                         self.static_targets,
-                        self.env._reward_weights,
+                        self.env.unwrapped._reward_weights,
                         seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
@@ -2849,7 +2848,7 @@ class EvoPCGRL:
                         init_states=init_states,
                         bc_names=self.bc_names,
                         static_targets=self.static_targets,
-                        target_weights=self.env._reward_weights,
+                        target_weights=self.env.unwrapped._reward_weights,
                         seed=None,
                         player_1=self.player_1,
                         player_2=self.player_2,

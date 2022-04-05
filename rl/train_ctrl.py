@@ -24,7 +24,7 @@ from ray.tune.logger import pretty_print
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 # from stable_baselines.results_plotter import load_results, ts2xy
 # import tensorflow as tf
-from utils import (get_crop_size, get_env_name, get_exp_name, get_map_width,
+from utils import (get_env_name, get_exp_name, get_map_width,
 #                  max_exp_idx
                    )
 
@@ -106,6 +106,9 @@ def main(cfg):
             # for using ~/ray_results/...).
             "logdir": log_dir,
         },
+#       "exploration_config": {
+#           "type": "Curiosity",
+#       }
 #       "log_level": "INFO",
 #       "train_batch_size": 32,
 #       "sgd_minibatch_size": 32,
@@ -202,9 +205,9 @@ cfg.logging = True  # Always log
 # NOTE: change percentage currently has no effect! Be warned!! (We fix number of steps for now.)
 
 cfg.map_width = get_map_width(cfg.problem)
-cropped_size = cfg.crop_size
-cropped_size = cfg.map_width * 2 if cropped_size == -1 else cropped_size
-cfg.cropped_size = cropped_size
+crop_size = cfg.crop_size
+crop_size = cfg.map_width * 2 if crop_size == -1 else crop_size
+cfg.crop_size = crop_size
 
 if __name__ == '__main__':
     main(cfg)

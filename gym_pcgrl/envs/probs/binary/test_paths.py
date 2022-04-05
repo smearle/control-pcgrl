@@ -28,5 +28,7 @@ env.render()
 stats = env.unwrapped._prob.get_stats(
     get_string_map(maze, env.unwrapped._prob.get_tile_types()),
 )
-env.render()
-TT()
+
+# Keep rendering for the sake of observation.
+while True:
+    env.render()

@@ -61,7 +61,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         # Check for invalid path
         if self._rep_stats is None:
             self.render()
-            TT()
+            raise Exception("Pathfinding bug: invalid path.")
         self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros(
             (self._prob._height, self._prob._width, self._prob._length))
