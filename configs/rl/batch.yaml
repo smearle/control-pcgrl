@@ -11,9 +11,9 @@
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-      ["narrow3D", null],
+      # ["narrow3D", null],
       # ["turtle3D", null],
-    #   ["wide3D", "WideModel3D"],
+      ["wide3D", "WideModel3D"],
     #   ["wide3D", "WideModel3DSkip"],
       # ["cellular3D", null],
     #   ["narrow", null],

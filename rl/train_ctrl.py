@@ -149,7 +149,6 @@ def main(cfg):
                 obs, reward, done, info = env.step(action)
                 print(env.unwrapped._rep_stats)
                 env.render()
-# NEXT: why the environment is automatically reset after a certain number of iterations?
 
         # Quit the program before agent starts training.
         sys.exit()
@@ -179,10 +178,10 @@ def main(cfg):
             # Remove the old checkpoint file if it exists.
             if os.path.isfile(checkpoint_path_file):
                 with open(checkpoint_path_file, 'r') as f:
-                    old_checkpoint_path = f.read()
+                    old_checkpoint = f.read()
 
                 # FIXME: sometimes this does not exist (when overwriting?)
-                shutil.rmtree(Path(old_checkpoint_path).parent)
+                shutil.rmtree(Path(old_checkpoint).parent)
             
             # Record the path of the new checkpoint.
             with open(checkpoint_path_file, 'w') as f:

@@ -75,14 +75,12 @@ class MaxStep(gym.Wrapper):
         return obs
 
 
-"""
-Return a Box instead of dictionary by stacking different similar objects
-
-Can be stacked as Last Layer
-"""
-
-
 class ToImage(gym.Wrapper):
+    """
+    Return a Box instead of dictionary by stacking different similar objects
+
+    Can be stacked as Last Layer
+    """
     def __init__(self, game, names, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
@@ -138,7 +136,7 @@ class ToImage(gym.Wrapper):
                 final = obs[n].reshape(*self.shape[:-1], -1)
             else:
                 final = np.append(
-                    final, obs[n].reshape(*self.shape[:-1], -1), axis=2
+                    final, obs[n].reshape(*self.shape[:-1], -1), axis=-1
                 )
 #           else:
 #               if len(final.shape) == 0:
@@ -258,14 +256,10 @@ class OneHotEncoding(gym.Wrapper):
         return self.transform(obs)
 
 
-"""
-Transform the action input space to a 3D map of values where the argmax value will be applied
-
-can be stacked
-"""
-
-
 class ActionMap(gym.Wrapper):
+    """
+    Transform the action input space to a 3D map of values where the argmax value will be applied can be stacked
+    """
     def __init__(self, game, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
@@ -348,16 +342,12 @@ class CAMap(gym.Wrapper):
         self.action_space = gym.spaces.MultiDiscrete([self.dim] * self.h * self.w)
 
 
-"""
-Crops and centers the view around the agent and replace the map with cropped version
-The crop size can be larger than the actual view, it just pads the outside
-This wrapper only works on games with a position coordinate
-
-can be stacked
-"""
-
-
 class Cropped(gym.Wrapper):
+    """
+    Crops and centers the view around the agent and replace the map with cropped version
+    The crop size can be larger than the actual view, it just pads the outside
+    This wrapper only works on games with a position coordinate can be stacked
+    """
     def __init__(self, game, crop_size, pad_value, name, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
@@ -449,12 +439,10 @@ class Cropped3D(Cropped):
 ################################################################################
 #   Final used wrappers for the experiments
 ################################################################################
-"""
-The wrappers we use for narrow and turtle experiments
-"""
-
-
 class CroppedImagePCGRLWrapper(gym.Wrapper):
+    """
+    The wrappers we use for narrow and turtle experiments
+    """
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
         # These envs don't use a lot of PCGRL conventions and are wide be default
@@ -503,8 +491,6 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
 Similar to the previous wrapper but the input now is the index in a 3D map (height, width, num_tiles) of the highest value
 Used for wide experiments
 """
-
-
 class ActionMapImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)

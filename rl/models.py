@@ -44,7 +44,6 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
     def value_function(self):
         assert self._features is not None, "must call forward() first"
         return th.reshape(self.value_branch(self._features), [-1])
-
     def forward(self, input_dict, state, seq_lens):
         input = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = nn.functional.relu(self.conv_1(input.float()))
@@ -86,14 +85,14 @@ class WideModel3D(TorchModelV2, nn.Module):
         pre_val_size = (obs_shape[-2]) * (obs_shape[-3]) * (obs_shape[-4]) * num_output_actions
 
         # Convolutinal layers.
-        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7   
-        self.conv_2 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
-        self.conv_3 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
-        self.conv_4 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
-        self.conv_5 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
-        self.conv_6 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
-        self.conv_7 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
-        self.conv_8 = nn.Conv3d(n_hid_filters, out_channels=num_output_actions, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7 
+        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=n_hid_filters, kernel_size=5, padding=2)  # 64 * 7 * 7 * 7   
+        self.conv_2 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=5, padding=2)  # 64 * 7 * 7 * 7
+        self.conv_3 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=5, padding=2)  # 64 * 7 * 7 * 7
+#       self.conv_4 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=5, padding=2)  # 64 * 7 * 7 * 7
+#       self.conv_5 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
+#       self.conv_6 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
+#       self.conv_7 = nn.Conv3d(n_hid_filters, out_channels=n_hid_filters, kernel_size=3, padding=1)  # 64 * 7 * 7 * 7
+        self.conv_8 = nn.Conv3d(n_hid_filters, out_channels=num_output_actions, kernel_size=5, padding=2)  # 64 * 7 * 7 * 7 
 
         # Fully connected layer.
         # self.fc_1 = SlimFC(self.pre_fc_size, fc_size)
@@ -111,16 +110,25 @@ class WideModel3D(TorchModelV2, nn.Module):
         return th.reshape(self.value_branch(self._features), [-1])
 
     def forward(self, input_dict, state, seq_lens):
-        input = input_dict["obs"].permute(0, 4, 1, 2, 3)  # Because rllib order tensors the tensorflow way (channel last)
+        # Because rllib order tensors the tensorflow way (channel last), we swap the order of the tensor to comply with
+        # pytorch.
+        input = input_dict["obs"].permute(0, 4, 1, 2, 3)
+
         x = nn.functional.relu(self.conv_1(input.float()))
         x = nn.functional.relu(self.conv_2(x.float()))
         x = nn.functional.relu(self.conv_3(x.float()))
-        x = nn.functional.relu(self.conv_4(x.float()))
-        x = nn.functional.relu(self.conv_5(x.float()))
-        x = nn.functional.relu(self.conv_6(x.float()))
-        x = nn.functional.relu(self.conv_7(x.float()))
+#       x = nn.functional.relu(self.conv_4(x.float()))
+#       x = nn.functional.relu(self.conv_5(x.float()))
+#       x = nn.functional.relu(self.conv_6(x.float()))
+#       x = nn.functional.relu(self.conv_7(x.float()))
         x = nn.functional.relu(self.conv_8(x.float()))
+
+        # So that we flatten in a way that matches the dimensions of the observation space.
+        x = x.permute(0, 2, 3, 4, 1)
+
+        # Flatten the tensor
         x = x.reshape(x.size(0), -1)
+
         self._features = x
         action_out = x
 
@@ -130,16 +138,19 @@ class WideModel3DSkip(WideModel3D, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         input = input_dict["obs"].permute(0, 4, 1, 2, 3)  # Because rllib order tensors the tensorflow way (channel last)
         x1 = nn.functional.relu(self.conv_1(input.float()))
-        x2 = nn.functional.relu(self.conv_2(x1.float()))
-        x3 = nn.functional.relu(self.conv_3(x2.float()))
-        x4 = nn.functional.relu(self.conv_4(x3.float()))
+        x2 = nn.functional.relu(self.conv_2(x1.float())) 
+        x3 = nn.functional.relu(self.conv_3(x2.float())) + x2
+        # x4 = nn.functional.relu(self.conv_4(x3.float()))
 
-        x5 = nn.functional.relu(self.conv_5(x4.float())) + x4
-        x6 = nn.functional.relu(self.conv_6(x5.float())) + x3
-        x7 = nn.functional.relu(self.conv_7(x6.float())) + x2
-        x8 = nn.functional.relu(self.conv_8(x7.float()))
-   
-        x = x8.reshape(x8.size(0), -1)
+        # x5 = nn.functional.relu(self.conv_5(x4.float())) + x4
+        # x6 = nn.functional.relu(self.conv_6(x5.float())) + x3
+        # x7 = nn.functional.relu(self.conv_7(x6.float())) + x2
+        x8 = nn.functional.relu(self.conv_8(x3.float()))
+
+        # So that we flatten in a way that matches the dimensions of the observation space.
+        x = x8.permute(0, 2, 3, 4, 1)
+
+        x = x.reshape(x.size(0), -1)
         self._features = x
         action_out = x
 

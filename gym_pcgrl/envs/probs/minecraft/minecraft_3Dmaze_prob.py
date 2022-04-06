@@ -28,12 +28,12 @@ class Minecraft3DmazeProblem(Problem):
         self._length = 7
         self._width = 7
         self._height = 7
-        self._prob = {"AIR": 0.5, "DIRT": 0.5}
+        self._prob = {"AIR": 1.0, "DIRT": 0.0}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
 
         self._target_path = 10
-        self._random_probs = True 
+        self._random_probs = False 
 
         self._reward_weights = {
             "regions": 5,
