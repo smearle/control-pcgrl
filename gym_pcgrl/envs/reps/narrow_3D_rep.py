@@ -126,6 +126,9 @@ class Narrow3DRepresentation(Representation3D):
             change += [0,1][self._map[self._z][self._y][self._x] != action-1]
             self._map[self._z][self._y][self._x] = action-1
         if self._random_tile:
+            if self.n_step == len(self.act_coords):
+                self.n_step = 0
+                np.random.shuffle(self.act_coords)
             self._x, self._y, self._z = self.act_coords[self.n_step]
             # self._x = self._random.randint(self._map.shape[2])
             # self._y = self._random.randint(self._map.shape[1])
