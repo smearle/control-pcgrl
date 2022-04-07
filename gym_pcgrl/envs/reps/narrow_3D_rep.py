@@ -18,6 +18,7 @@ class Narrow3DRepresentation(Representation3D):
     def __init__(self):
         super().__init__()
         self._random_tile = True 
+        self.act_coords = None
 
     """
     Resets the current representation where it resets the parent and the current
@@ -30,14 +31,21 @@ class Narrow3DRepresentation(Representation3D):
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, length, width, height, prob):
+        self.n_step = 0
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, length, width, height, prob)
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
-        self._x = self._random.randint(length)
-        self._y = self._random.randint(width)
-        self._z = self._random.randint(height)
+
+        if self.act_coords is None:
+            act_coords = np.meshgrid(np.arange(self._map.shape[2]), np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
+            self.act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 3))
+        np.random.shuffle(self.act_coords)
+        self._x, self._y, self._z = self.act_coords[self.n_step]
+        # self._x = self._random.randint(length)
+        # self._y = self._random.randint(width)
+        # self._z = self._random.randint(height)
         # self._x = 0
         # self._y = 0
         # self._z = 0 
@@ -118,9 +126,10 @@ class Narrow3DRepresentation(Representation3D):
             change += [0,1][self._map[self._z][self._y][self._x] != action-1]
             self._map[self._z][self._y][self._x] = action-1
         if self._random_tile:
-            self._x = self._random.randint(self._map.shape[2])
-            self._y = self._random.randint(self._map.shape[1])
-            self._z = self._random.randint(self._map.shape[0])
+            self._x, self._y, self._z = self.act_coords[self.n_step]
+            # self._x = self._random.randint(self._map.shape[2])
+            # self._y = self._random.randint(self._map.shape[1])
+            # self._z = self._random.randint(self._map.shape[0])
 
         else:
             self._x += 1
@@ -132,6 +141,7 @@ class Narrow3DRepresentation(Representation3D):
                     self._z += 1
                     if self._z >= self._map.shape[0]:
                         self._z = 0
+        self.n_step += 1
         return change, [self._x, self._y, self._z]
 
     def render(self, map):
