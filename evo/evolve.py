@@ -474,7 +474,7 @@ class MEOptimizer():
         # FIXME: something is wrong here, this is the min, not max.
         # maxFitness = self.grid._best_fitness[0]
 
-        fits = [ind.fitness.values[0] for ind in self.inds]
+        fits = [ind.fitness.values[0] for ind in self.grid]
         maxFitness = np.max(fits)
         meanFitness = np.mean(fits)
         self.logbook.record(iteration=self.i, containerSize=self.grid.size_str(), evals=len(self.inds), 
