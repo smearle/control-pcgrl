@@ -45,7 +45,7 @@ from tqdm import tqdm
 from args import get_args
 from evo.archives import InitStatesArchive, MEGrid, MEInitStatesArchive, FlexArchive
 from evo.models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
-    set_weights, NCA, AuxNCA
+    set_weights, NCA, AuxNCA, NCA3D
 from evo.utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
@@ -1570,11 +1570,9 @@ class EvoPCGRL:
         else:
             emitter_type = ImprovementEmitter
 
-        batch_size = 30
-        n_emitters = 5
         if ALGO == "ME":
+            batch_size = 150
             self.n_generator_weights = None
-            pass
 
         # elif args.mega:
         #     gen_emitters = [
@@ -1593,6 +1591,8 @@ class EvoPCGRL:
 
         # Otherwise, we're using CMAME. 
         else:
+            n_emitters = 5
+            batch_size = 30
             # Get the initial (continuous) weights so that we can feed them to CMAME for covariance matrix 
             # adaptation.
             initial_w = get_init_weights(self.gen_model)
