@@ -2,6 +2,7 @@ from pdb import set_trace as TT
 
 import cv2
 import neat
+from neat import DefaultGenome
 import numpy as np
 from pytorch_neat.cppn import create_cppn
 from qdpy import phenotype
@@ -562,10 +563,12 @@ class DirectBinaryEncoding():
         return
 
 
+neat_config_path = 'evo/config_cppn'
+
+
 class CPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions):
         super().__init__()
-        neat_config_path = 'config_cppn'
         self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
                                               neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
                                               neat_config_path)
@@ -640,9 +643,8 @@ class CPPNCA(ResettableNN):
 
 
 class GenCPPN(CPPN):
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, **kwargs):
         super().__init__(n_in_chans, n_actions)
-        neat_config_path = 'config_cppn'
         self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
                                               neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
                                               neat_config_path)
