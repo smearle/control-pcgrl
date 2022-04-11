@@ -2575,6 +2575,9 @@ class EvoPCGRL:
                     # TODO: remove this (it's for backward compatibility) since we've implemented get_index for qdpy
                     #   grid
                     if ALGO == "ME":
+                        # Clip features to within the feature domain (shouldn't be outside of this domain in theory 
+                        # though).
+                        grid_bcs = [np.clip(bc, *archive.features_domain[i]) for i, bc in enumerate(grid_bcs)]
                         id_0, id_1 = archive.index_grid(tuple(grid_bcs))
                     else:
                         id_0, id_1 = archive.get_index(np.array(grid_bcs))
