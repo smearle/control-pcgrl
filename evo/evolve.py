@@ -2607,6 +2607,7 @@ class EvoPCGRL:
                                 final_bcs[2 * j: 2 * (j + 1)]
                             )
                             if ALGO == "ME":
+                                eval_bcs = [np.clip(bc, *archive.features_domain[i]) for i, bc in enumerate(eval_bcs)]
                                 id_0, id_1 = archive.index_grid(tuple(eval_bcs))
                                 # Dummy individual
                                 individual = Individual(type(self.gen_model), self.n_tile_types, self.n_tile_types)
