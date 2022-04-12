@@ -1,16 +1,16 @@
 {
  "exp_ids": [
           0,
-          # 1,
-          # 2,
-          # 3,
-          # 4,
-          # 5,
-          # 6,
-          # 7,
-          # 8,
-          # 9,
-          # 10,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+#         10,
   ],
 
  "problems": [
@@ -37,22 +37,22 @@
   ],
 
   "algos": [
-    #   "CMAME",
-      "ME",
+      "CMAME",
+#     "ME",
   ],
 
  "models": [
 #       "DirectBinaryEncoding",
-  #     "NCA",
+        "NCA",
 #       "NCA3D",
   #     "GenSinCPPN",
   #     "GenCPPN",
   #     "Decoder",
   #     "DeepDecoder",
-        "GenCPPN2",
+#       "GenCPPN2",
   #     "GenSinCPPN2",
   #     "GenSin2CPPN2",
-#       "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+        "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
   #     "AttentionNCA",
   #     "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
   #     "Sin2CPPN",
@@ -87,7 +87,7 @@
   "n_init_states_lst" : [
   #   0,
       1,
-#     10,
+      10,
   #   20,
   ],
 
@@ -95,7 +95,7 @@
   "n_steps_lst": [
       1,
 #     10,
-#     50,
+      50,
 #     100,
   ],
 

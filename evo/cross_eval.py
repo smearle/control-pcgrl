@@ -242,6 +242,7 @@ def compile_results(settings_list, tex=False):
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
+    TT()
     for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
         analyze_metric(metric)
 

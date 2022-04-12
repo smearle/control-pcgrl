@@ -94,7 +94,10 @@ def launch_batch(exp_name, collect_params=False):
                                                     continue
 
                                             if model in ["CPPN", "GenCPPN", "GenCPPN2", "CPPNCA", "DirectBinaryEncoding"]:
-                                                assert algo == "ME"
+                                                if algo != "ME":
+                                                    print("Skipping experiments with model {model} and algo {algo}. (requires "
+                                                    "MAP-Elites.)")
+                                                    continue
                                             else:
                                                 pass
                                                 # algo = "CMAME"
