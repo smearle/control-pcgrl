@@ -1,0 +1,27 @@
+{
+    "problem": "minecraft_3D_maze_ctrl",
+    "exp_name": "0",
+    "n_generations": 50000,
+    "n_init_states": 0,
+    "n_steps": 50,
+    "behavior_characteristics": [
+        "emptiness",
+        "path-length"
+    ],
+    "render": true,
+    "infer": true,
+    "visualize": true,
+    "show_vis": false,
+    "render_levels": false,
+    "multi_thread": false,
+    "play_level": false,
+    "evaluate": false,
+    "save_levels": false,
+    "fixed_init_levels": false,
+    "cascade_reward": false,
+    "representation": "cellular3D",
+    "model": "NCA3D",
+    "algo": "CMAME",
+    "fix_elites": true,
+    "fix_level_seeds": true
+}

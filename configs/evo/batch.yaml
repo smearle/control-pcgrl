@@ -37,8 +37,8 @@
   ],
 
   "algos": [
-      "CMAME",
-#     "ME",
+#     "CMAME",
+      "ME",
   ],
 
  "models": [
@@ -49,8 +49,8 @@
   #     "GenCPPN",
   #     "Decoder",
   #     "DeepDecoder",
-#       "GenCPPN2",
-  #     "GenSinCPPN2",
+        "GenCPPN2",
+#       "GenSinCPPN2",
   #     "GenSin2CPPN2",
         "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
   #     "AttentionNCA",

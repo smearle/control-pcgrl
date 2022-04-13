@@ -238,13 +238,13 @@ def compile_results(settings_list, tex=False):
         oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
         oneway_anova.to_html(os.path.join('eval_experiment', f'oneway_anova_{metric}.html'))
 
+        TT()
         pairwise_tukey = pg.pairwise_tukey(data=oneway_anova_df, dv=metric, between='model')
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
-    TT()
-    for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
-        analyze_metric(metric)
+#   for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
+#       analyze_metric(metric)
 
     tuples = vals
     for i, tpl in enumerate(tuples):
@@ -340,7 +340,7 @@ def compile_results(settings_list, tex=False):
             continue
         new_row_names.append(name[:-1])
         repeat_exps = df.loc[name[:-1]]
-        eval_qd_scores.append(repeat_exps[('Evaluation', 'QD score')].to_numpy())
+        eval_qd_scores.append(repeat_exps[('Evaluation', 'qd_score')].to_numpy())
         mean_exp = repeat_exps.mean(axis=0)
         std_exp = repeat_exps.std(axis=0)
         mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
