@@ -156,7 +156,7 @@ def launch_batch(exp_name, collect_params=False):
                                                     "n_init_states": n_init_states,
                                                     "n_generations": 50000,
                                                     "multi_thread": not args.single_thread,
-                                                    # "save_interval": 1,
+                                                    "save_interval": 10 if args.local else 100,
                                                 }
                                             )
                                             if args.render:
