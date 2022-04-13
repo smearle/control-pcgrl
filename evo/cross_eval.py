@@ -24,6 +24,7 @@ col_keys = {
 #   "(generalize) % elites maintained": newline("(infer) archive", "maintained"),
     "(generalize) % QD score maintained": "(infer) QD score maintained",
     "(generalize) eval QD score": "(infer) QD score",
+#   "(generalize) eval QD score": "(infer) qd_score",
     "(generalize) QD score": "QD score 2",
     "(generalize) diversity (mean)": "(infer) diversity",
     "diversity (mean)": "diversity",
@@ -32,7 +33,8 @@ col_keys = {
 col_key_linebreaks = {
     'archive maintained': newline("archive", "maintained"),
     'QD score maintained': newline("QD score", "maintained"),
-    'diversity': newline("generator", "diversity"),
+    'qd_score': 'QD score',
+#   'diversity': newline("generator", "diversity"),
 }
 
 row_idx_names = {
@@ -89,10 +91,11 @@ def bold_extreme_values(data, data_max=-1, col_name=None):
 
 def flatten_stats(stats, tex, evaluation=False):
     '''Process jsons saved for each experiment, replacing hierarchical dicts with a 1-level list of keys.
-    args:
-    - evaluation: True iff we're looking at stats when latents were randomized, False when agent is evaluated on
-                      latents with which it joined the archive.
-    - tex: True iff we're formatting for .tex output
+
+    Args:
+        evaluation (bool): True iff we're looking at stats when latents were randomized, False when agent is evaluated on
+            latents with which it joined the archive.
+        tex (bool): True iff we're formatting for .tex output
     '''
     # TODO: maybe we can derive multicolumn hierarchy from this directly?
     flat_stats = {}
@@ -160,6 +163,7 @@ def compile_results(settings_list, tex=False):
 #       "problem",
 #       "behavior_characteristics",
         "model",
+        "algo",
 #       "representation",
         "n_init_states",
         "fix_level_seeds",
@@ -187,7 +191,7 @@ def compile_results(settings_list, tex=False):
     assert len(hyperparams) == len(set(hyperparams))
     col_indices = None
     data = []
-    vals = []
+    row_vals = []
 
     for i, settings in enumerate(settings_list):
         val_lst = []
@@ -204,17 +208,18 @@ def compile_results(settings_list, tex=False):
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
 #       exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
-        stats_f = os.path.join(exp_name, "train_time_stats.json")
-        fixLvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
+        # stats_f = os.path.join(exp_name, "train_time_stats.json")
+        stats_f = os.path.join(exp_name, "stats.json")
+        fix_lvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
 
-        if not (os.path.isfile(stats_f) and os.path.isfile(fixLvl_stats_f)):
+        if not (os.path.isfile(stats_f) and os.path.isfile(fix_lvl_stats_f)):
             print("skipping evaluation of experiment due to missing stats file(s): {}".format(exp_name))
             continue
-        vals.append(tuple(val_lst))
+        row_vals.append(tuple(val_lst))
         data.append([])
         stats = json.load(open(stats_f, "r"))
-        fixLvl_stats = json.load(open(fixLvl_stats_f, "r"))
-        flat_stats = flatten_stats(fixLvl_stats, tex=tex)
+        fix_lvl_stats = json.load(open(fix_lvl_stats_f, "r"))
+        flat_stats = flatten_stats(fix_lvl_stats, tex=tex)
         flat_stats.update(flatten_stats(stats, tex=tex, evaluation=True))
 
         if col_indices is None:
@@ -232,22 +237,21 @@ def compile_results(settings_list, tex=False):
         # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
         # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
         qd_score_idx = col_indices.index(metric)
-        oneway_anova_data = {'model': [v[0] for v in vals], metric: [d[qd_score_idx] for d in data]}
+        oneway_anova_data = {'model': [v[0] for v in row_vals], metric: [d[qd_score_idx] for d in data]}
         oneway_anova_df = pd.DataFrame(oneway_anova_data)
         oneway_anova = pg.anova(data=oneway_anova_df, dv=metric, between='model', detailed=True)
         oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
         oneway_anova.to_html(os.path.join('eval_experiment', f'oneway_anova_{metric}.html'))
 
-        TT()
         pairwise_tukey = pg.pairwise_tukey(data=oneway_anova_df, dv=metric, between='model')
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
-#   for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
-#       analyze_metric(metric)
+    for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
+        analyze_metric(metric)
 
-    tuples = vals
-    for i, tpl in enumerate(tuples):
+    row_tpls = row_vals
+    for i, tpl in enumerate(row_tpls):
         # Preprocess row headers
         for j, hyper_val in enumerate(tpl):
             hyper_name = hyperparams[j]
@@ -256,7 +260,7 @@ def compile_results(settings_list, tex=False):
                     tpl = list(tpl)
                     tpl[j] = hyperparam_rename[hyper_name][hyper_val]
             tpl = tuple(tpl)
-        tuples[i] = tpl
+        row_tpls[i] = tpl
 
 
     # Rename headers
@@ -280,15 +284,14 @@ def compile_results(settings_list, tex=False):
             return 0
         return 1
 #   tuples.sort(key=lambda x: sort_rows(x, new_keys))
-    row_indices = pd.MultiIndex.from_tuples(tuples, names=new_keys)
-    TT()
+    row_indices = pd.MultiIndex.from_tuples(row_tpls, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
     z_cols = [
 #       "% train archive full",
         "archive size",
         "QD score",
         "diversity (mean)",
-        #       "(generalize) % train archive full",
+#       "(generalize) % train archive full",
         "(generalize) archive size",
         "(generalize) eval QD score",
 #       "(generalize) archive maintained",
@@ -308,8 +311,9 @@ def compile_results(settings_list, tex=False):
             return ('Training', col)
     for i, col in enumerate(z_cols):
         hier_col = hierarchicalize_col(col)
-        z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
-                           i in range(len(hier_col))])
+        z_cols[i] = tuple([hier_col[i] for i in range(len(hier_col))])
+#       z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
+#                          i in range(len(hier_col))])
     col_tuples = []
 
     for col in col_indices:

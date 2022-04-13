@@ -45,7 +45,7 @@ from tqdm import tqdm
 from args import get_args
 from evo.archives import InitStatesArchive, MEGrid, MEInitStatesArchive, FlexArchive
 from evo.models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
-    set_weights, NCA, AuxNCA, NCA3D, GenCPPN2
+    set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN
 from evo.utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
@@ -506,185 +506,6 @@ class MEOptimizer():
         return self.inds
 
 
-<<<<<<< Updated upstream:evo/evolve.py
-=======
-
-class InitStatesArchive(GridArchive):
-    """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
-    reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
-
-    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
-        super(InitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
-        if CONTINUOUS:
-            self.init_states_archive = np.empty(
-                shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
-            )
-        else:
-            self.init_states_archive = np.empty(
-                shape=(*bin_sizes, n_init_states, map_w, map_h)
-            )
-
-    def set_init_states(self, init_states):
-        self.init_states = init_states
-
-    def add(self, solution, objective_value, behavior_values, meta, index=None):
-        status, dtype_improvement = super().add(
-            solution, objective_value, behavior_values
-        )
-
-        # NOTE: for now we won't delete these when popping an elite for re-evaluation
-
-        if status != AddStatus.NOT_ADDED:
-            if index is None:
-                index = self.get_index(behavior_values)
-            archive_init_states(self.init_states_archive, self.init_states, index)
-
-        return status, dtype_improvement
-
-
-class MEGrid(containers.Grid):
-    def __init__(self, bin_sizes, bin_bounds):
-        max_items_per_bin = int(200) if np.all(np.array(bin_sizes) == 1) else 1
-        super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=max_items_per_bin,
-                                     features_domain=bin_bounds,
-                                     fitness_domain=((-np.inf, np.inf),),
-                                     )
-
-        # pyribs compatibility
-        def get_index(self, bcs):
-            return self.index_grid(features=bcs)
-
-    def add(self, item):
-        # We'll clip the feature calues at the extremes
-        # TODO: what's happening in this case using pyribs?
-        item.features.setValues([np.clip(item.features.values[i], *self.features_domain[i])
-                                 for i in range(len(item.features.values))])
-        return super(MEGrid, self).add(item)
-
-
-class MEInitStatesArchive(MEGrid):
-    """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
-    reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
-
-    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
-        super(MEInitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
-        if CONTINUOUS:
-            self.init_states_archive = np.empty(
-                shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
-            )
-        else:
-            self.init_states_archive = np.empty(
-                shape=(*bin_sizes, n_init_states, map_w, map_h)
-            )
-
-    def set_init_states(self, init_states):
-        self.init_states = init_states
-
-    def add(self, item):
-        index = super(MEInitStatesArchive, self).add(item)
-
-        if index is not None:
-            idx = self.index_grid(item.features)
-            archive_init_states(self.init_states_archive, self.init_states, idx)
-
-        return index
-
-
-class FlexArchive(InitStatesArchive):
-    """ Subclassing a pyribs archive class to do some funky stuff."""
-
-    def __init__(self, *args, **kwargs):
-        self.n_evals = {}
-        #       self.obj_hist = {}
-        #       self.bc_hist = {}
-        super().__init__(*args, **kwargs)
-        #       # "index of indices", so we can remove them from _occupied_indices when removing
-        #       self._index_ranks = {}
-        self._occupied_indices = set()
-
-    def _add_occupied_index(self, index):
-        #       rank = len(self._occupied_indices)
-        #       self._index_ranks[index] = rank  # the index of the index in _occupied_indices
-
-        return super()._add_occupied_index(index)
-
-    def _remove_occupied_index(self, index):
-        self._occupied_indices.remove(index)
-        self._occupied_indices_cols = tuple(
-            [self._occupied_indices[i][j] for i in range(len(self._occupied_indices))]
-            for j in range(len(self._storage_dims))
-        )
-
-    def pop_elite(self, obj, bcs, old_bcs):
-        """
-        Need to call update_elite after this!
-        """
-        # Remove it, update it
-        old_idx = self.get_index(np.array(old_bcs))
-        self._remove_occupied_index(old_idx)
-
-        #       rank = self._index_ranks.pop(old_idx)
-        #       self._occupied_indices.pop(rank)
-        #       [self._occupied_indices_cols[i].pop(rank) for i in range(len(self._storage_dims))]
-        n_evals = self.n_evals.pop(old_idx)
-        old_obj = self._objective_values[old_idx]
-        mean_obj = (old_obj * n_evals + obj) / (n_evals + 1)
-        mean_bcs = np.array(
-            [
-                (old_bcs[i] * n_evals + bcs[i]) / (n_evals + 1)
-                for i in range(len(old_bcs))
-            ]
-        )
-        #       obj_hist = self.obj_hist.pop(old_idx)
-        #       obj_hist.append(obj)
-        #       mean_obj = np.mean(obj_hist)
-        #       bc_hist = self.bc_hist.pop(old_idx)
-        #       bc_hist.append(bcs)
-        #       bc_hist_np = np.asarray(bc_hist)
-        #       mean_bcs = bc_hist_np.mean(axis=0)
-        self._objective_values[old_idx] = np.nan
-        self._behavior_values[old_idx] = np.nan
-        self._occupied[old_idx] = False
-        solution = self._solutions[old_idx].copy()
-        self._solutions[old_idx] = np.nan
-        self._metadata[old_idx] = np.nan
-        #       while len(obj_hist) > 100:
-        #           obj_hist = obj_hist[-100:]
-        #       while len(bc_hist) > 100:
-        #           bc_hist = bc_hist[-100:]
-
-        return solution, mean_obj, mean_bcs, n_evals
-
-    def update_elite(self, solution, mean_obj, mean_bcs, n_evals):
-        """
-        obj: objective score from new evaluations
-        bcs: behavior characteristics from new evaluations
-        old_bcs: previous behavior characteristics, for getting the individuals index in the archive
-        """
-
-        # Add it back
-
-        self.add(solution, mean_obj, mean_bcs, None, n_evals=n_evals)
-
-
-    def add(self, solution, objective_value, behavior_values, meta, n_evals=0):
-
-        index = self.get_index(behavior_values)
-
-        status, dtype_improvement = super().add(
-            solution, objective_value, behavior_values, meta, index
-        )
-
-        if not status == AddStatus.NOT_ADDED:
-            if n_evals == 0:
-                self.n_evals[index] = 1
-            else:
-                self.n_evals[index] = min(n_evals + 1, 100)
-
-        return status, dtype_improvement
-
-
->>>>>>> Stashed changes:evolve.py
 def unravel_index(
     indices: th.LongTensor, shape: Tuple[int, ...]
 ) -> th.LongTensor:
@@ -720,270 +541,9 @@ def unravel_index(
 #class ReluCPPN(ResettableNN):
 
 
-<<<<<<< Updated upstream:evo/evolve.py
-=======
-class GenSinCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        n_hid = 64
-        self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
-        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
-        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
-        self.layers = [self.l1, self.l2, self.l3]
-        if "Sin2" in MODEL:
-            init_siren_weights(self.layers[0], first_layer=True)
-            [init_siren_weights(li, first_layer=False) for li in self.layers[1:]]
-        else:
-            self.apply(init_weights)
-
-    def forward(self, x):
-        coord_x = get_coord_grid(x, normalize=True) * 2
-        x = th.cat((x, coord_x), axis=1)
-        with th.no_grad():
-            x = th.sin(self.l1(x))
-            x = th.sin(self.l2(x))
-            x = th.sigmoid(self.l3(x))
-
-        return x, True
-
-
-class MixCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        n_hid = 64
-        self.l1 = Conv2d(2, n_hid, kernel_size=1)
-        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
-        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
-        self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
-        self.mix_activ = MixActiv()
-
-
-    def forward(self, x):
-        x = get_coord_grid(x, normalize=True) * 2
-        with th.no_grad():
-            x = self.mix_activ(self.l1(x))
-            x = self.mix_activ(self.l2(x))
-            x = th.sigmoid(self.l3(x))
-
-        return x, True
-
-
-class GenMixCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        n_hid = 64
-        self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
-        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
-        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
-        self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
-        self.mix_activ = MixActiv()
-
-
-    def forward(self, x):
-        coord_x = get_coord_grid(x, normalize=True) * 2
-        x = th.cat((x, coord_x), axis=1)
-        with th.no_grad():
-            x = self.mix_activ(self.l1(x))
-            x = self.mix_activ(self.l2(x))
-            x = th.sigmoid(self.l3(x))
-
-        return x, True
-
-
-class FixedGenCPPN(ResettableNN):
-    """A fixed-topology CPPN that takes additional channels of noisey input to prompts its output.
-    Like a CoordNCA but without the repeated passes and with 1x1 rather than 3x3 kernels."""
-    # TODO: Maybe try this with 3x3 conv, just to cover our bases?
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        n_hid = 64
-        self.l1 = Conv2d(2 + n_in_chans, n_hid, kernel_size=1)
-        self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
-        self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
-        self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
-
-    def forward(self, x):
-        coord_x = get_coord_grid(x, normalize=True) * 2
-        x = th.cat((x, coord_x), axis=1)
-        with th.no_grad():
-            x = th.sin(self.l1(x))
-            x = th.sin(self.l2(x))
-            x = th.sigmoid(self.l3(x))
-
-        return x, True
-
-
-class DirectBinaryEncoding():
-    def __init__(self, n_in_chans, n_actions, map_width):
-        self.discrete = None
-        self.layers = np.array([])  # dummy
-        self.discrete = th.randint(0, n_in_chans, (map_width, map_width))
-
-    def __call__(self, x):
-        # if self.discrete is None:
-            # self.discrete = x[0].argmax(0)
-
-        onehot = th.zeros(1, x.shape[1], x.shape[2], x.shape[3])
-        onehot[0,0,self.discrete==0]=1
-        onehot[0,1,self.discrete==1]=1
-        # onehot.scatter_(1, self.discrete.unsqueeze(0), 1)
-
-        return onehot, True
-
-    def mutate(self):
-        # flip some tiles
-        mut_act = (th.rand(self.discrete.shape) < 0.01).long()  # binary mutation actions
-        new_discrete = (self.discrete + mut_act) % 2
-        self.discrete = new_discrete
-
-    def reset(self):
-        return
-
-
-
-
-class CPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        neat_config_path = 'config_cppn'
-        self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
-                                              neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
-                                              neat_config_path)
-        self.n_actions = n_actions
-        self.neat_config.genome_config.num_outputs = n_actions
-        self.neat_config.genome_config.num_hidden = 2
-        self.genome = DefaultGenome(0)
-        self.genome.configure_new(self.neat_config.genome_config)
-        self.input_names = ['x_in', 'y_in']
-        self.output_names = ['tile_{}'.format(i) for i in range(n_actions)]
-        self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
-
-    def mate(self, ind_1, fit_0, fit_1):
-        self.genome.fitness = fit_0
-        ind_1.genome.fitness = fit_1
-        return self.genome.configure_crossover(self.genome, ind_1.genome, self.neat_config.genome_config)
-
-    def mutate(self):
-#       print(self.input_names, self.neat_config.genome_config.input_keys, self.genome.nodes)
-        self.genome.mutate(self.neat_config.genome_config)
-        self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
-
-    def draw_net(self):
-        draw_net(self.neat_config, self.genome,  view=True, filename='cppn')
-
-    def forward(self, x):
-        X = th.arange(x.shape[-2])
-        Y = th.arange(x.shape[-1])
-        X, Y = th.meshgrid(X/X.max(), Y/Y.max())
-        tile_probs = [self.cppn[i](x_in=X, y_in=Y) for i in range(self.n_actions)]
-        multi_hot = th.stack(tile_probs, axis=0)
-        multi_hot = multi_hot.unsqueeze(0)
-        return multi_hot, True
-
-
-class CPPNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
-        n_hid_1 = 32
-        with th.no_grad():
-            self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
-            self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
-            self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
-        self.layers = [self.l1, self.l2, self.l3]
-        self.apply(init_weights)
-        n_nca_params = sum(p.numel() for p in self.parameters())
-        self.cppn_body = GenCPPN(n_in_chans, n_actions)
-        self.normal = th.distributions.multivariate_normal.MultivariateNormal(th.zeros(1), th.eye(1))
-
-    def mate(self):
-        raise NotImplementedError
-
-    def mutate(self):
-        self.cppn_body.mutate()
-
-        with th.no_grad():
-            for layer in self.layers:
-                dw = self.normal.sample(layer.weight.shape)
-                layer.weight = th.nn.Parameter(layer.weight + dw.squeeze(-1))
-                db = self.normal.sample(layer.bias.shape)
-                layer.bias = th.nn.Parameter(layer.bias + db.squeeze(-1))
-
-    def forward(self, x):
-        with th.no_grad():
-            x = self.l1(x)
-            x = th.relu(x)
-            x = self.l2(x)
-            x = th.relu(x)
-            x = th.sigmoid(x)
-        x, _ = self.cppn_body(x)
-        return x, False
-
-
-class GenCPPN(CPPN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__(n_in_chans, n_actions)
-        neat_config_path = 'config_cppn'
-        self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
-                                              neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
-                                              neat_config_path)
-        self.n_actions = n_actions
-        self.neat_config.genome_config.num_outputs = n_actions
-        self.genome = DefaultGenome(0)
-        self.input_names = ['x_in', 'y_in'] + ['tile_{}_in'.format(i) for i in range(n_actions)]
-        n_inputs = len(self.input_names)
-        self.output_names = ['tile_{}_out'.format(i) for i in range(n_actions)]
-        self.neat_config.genome_config.input_keys = (-1*np.arange(n_inputs) - 1).tolist()
-        self.neat_config.genome_config.num_inputs = n_inputs
-        self.neat_config.genome_config.num_hidden = 2
-        self.genome.configure_new(self.neat_config.genome_config)
-        self.cppn = create_cppn(self.genome, self.neat_config, self.input_names, self.output_names)
-
-    def forward(self, x):
-        x[:, :, :, :] = x[:, :, 0:1, 0:1]
-        X = th.arange(x.shape[-2])
-        Y = th.arange(x.shape[-1])
-        X, Y = th.meshgrid(X/X.max(), Y/Y.max())
-        inputs = {'x_in': X, 'y_in': Y}
-        inputs.update({'tile_{}_in'.format(i): th.Tensor(x[0,i,:,:]) for i in range(self.n_actions)})
-        tile_probs = [self.cppn[i](**inputs) for i in range(self.n_actions)]
-        multi_hot = th.stack(tile_probs, axis=0)
-        multi_hot = multi_hot.unsqueeze(0)
-        multi_hot = (multi_hot + 1) / 2
-        return multi_hot, True
-
->>>>>>> Stashed changes:evolve.py
 # Sin2 is siren-type net (i.e. sinusoidal, fixed-topology CPPN), with proper activation as per paper
 
 # CPPN2 takes latent seeds not onehot levels
-<<<<<<< Updated upstream:evo/evolve.py
-=======
-GenSinCPPN2 = GenSinCPPN
-GenSin2CPPN2 = GenSinCPPN
-GenCPPN2 = GenCPPN
-
-
-class Individual(qdpy.phenotype.Individual):
-    "An individual for mutating with operators. Assuming we're using vanilla MAP-Elites here."
-    def __init__(self, model_cls, n_in_chans, n_actions, **model_kwargs):
-        super(Individual, self).__init__()
-        self.model = model_cls(n_in_chans, n_actions, **model_kwargs)
-        self.fitness = Fitness([0])
-        self.fitness.delValues()
-
-    def mutate(self):
-        self.model.mutate()
-
-    def mate(self, ind_1):
-        assert len(self.fitness.values) == 1 == len(ind_1.fitness.values)
-        self.model.mate(ind_1.model, fit_0=self.fitness.values[0], fit_1=ind_1.fitness.values[0])
-
-    def __eq__(self, ind_1):
-        if not hasattr(ind_1, "model"): return False
-        return self.model == ind_1.model
->>>>>>> Stashed changes:evolve.py
 
 
 # FIXME: this guy don't work
@@ -1982,7 +1542,6 @@ class EvoPCGRL:
                 n_flat_actions=n_flat_actions,
             )
         # TODO: remove this, just call model "NCA"
-<<<<<<< Updated upstream:evo/evolve.py
 #       elif MODEL == "NCA":
 #           self.gen_model = globals()["GeneratorNN"](
 #               n_in_chans=self.n_tile_types, n_actions=n_out_chans
@@ -1995,17 +1554,6 @@ class EvoPCGRL:
         # TODO: toggle CUDA/GPU use with command line argument.
         if CUDA:
             self.gen_model.cuda()
-=======
-        elif MODEL == "NCA":
-            self.gen_model = globals()["GeneratorNN"](
-                n_in_chans=self.n_tile_types, n_actions=n_out_chans
-            )
-        else:
-            n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN2" in MODEL else self.n_tile_types
-            self.gen_model = globals()[MODEL](
-                n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env._prob._width
-            )
->>>>>>> Stashed changes:evolve.py
         set_nograd(self.gen_model)
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
 
@@ -2090,11 +1638,7 @@ class EvoPCGRL:
                    'n_actions': self.n_tile_types,
             }
             if MODEL == "DirectBinaryEncoding":
-<<<<<<< Updated upstream:evo/evolve.py
                 ind_cls_args.update({'map_width': self.env.unwrapped._prob._width})
-=======
-                ind_cls_args.update({'map_width': self.env._prob._width})
->>>>>>> Stashed changes:evolve.py
 
             self.gen_optimizer = MEOptimizer(grid=self.gen_archive,
                                              ind_cls=Individual,
@@ -2518,15 +2062,8 @@ class EvoPCGRL:
         self.env = ConditionalWrapper(self.env)
         self.env.adjust_param(render=RENDER)
 
-<<<<<<< Updated upstream:evo/evolve.py
 #       if CMAES:
 #           # Give a little wiggle room from targets, to allow for some diversity (or not)
-=======
-        if CMAES:
-            # Give a little wiggle room from targets, to allow for some diversity
-
-            pass
->>>>>>> Stashed changes:evolve.py
 #           if "binary" in PROBLEM:
 #               path_trg = self.env._prob.static_trgs["path-length"]
 #               self.env._prob.static_trgs.update(
@@ -3318,7 +2855,7 @@ def gen_latent_seeds(n_init_states, env):
             init_states = np.tile(init_states[:, :, None, None], (1, 1, *im_dims))
         if "Decoder" in MODEL:
             assert env.unwrapped._prob._width % 4 == env.unwrapped._prob._height % 4 == 0
-            init_states = np.tile(init_states[:, :, None, None], (1, 1, *tuple(np.array(im_dims // 4))))
+            init_states = np.tile(init_states[:, :, None, None], (1, 1, *tuple(np.array(im_dims) // 4)))
     else:
         init_states = np.random.randint(
             0, len(env.unwrapped._prob.get_tile_types()), (N_INIT_STATES, *im_dims)
@@ -3422,7 +2959,7 @@ if __name__ == "__main__":
 
     # How many latents for Decoder and CPPN architectures
     # TODO: Try making this nonzero for NCA?
-    N_LATENTS = 0 if "NCA" in MODEL else 16
+    N_LATENTS = 0 if "NCA" in MODEL else 2
     N_STEPS = arg_dict["n_steps"]
 
     SHOW_VIS = arg_dict["show_vis"]

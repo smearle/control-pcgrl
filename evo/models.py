@@ -230,10 +230,10 @@ class Decoder(ResettableNN):
     """
     Decoder-like architecture (e.g. as in VAEs and GANs).
     """
-    def __init__(self, n_in_chans, n_actions, **kwargs):
+    def __init__(self, n_in_chans, n_actions, n_latents=2, **kwargs):
         super().__init__()
         n_hid_1 = 16
-        self.l1 = nn.ConvTranspose2d(n_in_chans + 2, n_hid_1, 3, 2, 1, 1, bias=True)
+        self.l1 = nn.ConvTranspose2d(n_in_chans + n_latents, n_hid_1, 3, 2, 1, 1, bias=True)
         self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 2, 1, 1, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions, 1, 1, 0, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
@@ -419,10 +419,10 @@ class GenReluCPPN(ResettableNN):
 
 class SinCPPN(ResettableNN):
     """A vanilla CPPN that only takes (x, y) coordinates. #TODO: merge with GenSinCPPN"""
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, n_latents=2, **kwargs):
         super().__init__()
         n_hid = 64
-        self.l1 = Conv2d(2, n_hid, kernel_size=1)
+        self.l1 = Conv2d(n_latents, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
@@ -444,10 +444,10 @@ class SinCPPN(ResettableNN):
 
 
 class GenSinCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
+    def __init__(self, n_in_chans, n_actions, n_latents=2, **kwargs):
         super().__init__()
         n_hid = 64
-        self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
+        self.l1 = Conv2d(n_latents+n_in_chans, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
         self.l3 = Conv2d(n_hid, n_actions, kernel_size=1)
         self.layers = [self.l1, self.l2, self.l3]
