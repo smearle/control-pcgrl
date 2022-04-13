@@ -281,6 +281,7 @@ def compile_results(settings_list, tex=False):
         return 1
 #   tuples.sort(key=lambda x: sort_rows(x, new_keys))
     row_indices = pd.MultiIndex.from_tuples(tuples, names=new_keys)
+    TT()
     #   df = index.sort_values().to_frame(index=True)
     z_cols = [
 #       "% train archive full",
@@ -340,7 +341,7 @@ def compile_results(settings_list, tex=False):
             continue
         new_row_names.append(name[:-1])
         repeat_exps = df.loc[name[:-1]]
-        eval_qd_scores.append(repeat_exps[('Evaluation', 'qd_score')].to_numpy())
+        eval_qd_scores.append(repeat_exps[('Evaluation', 'QD score')].to_numpy())
         mean_exp = repeat_exps.mean(axis=0)
         std_exp = repeat_exps.std(axis=0)
         mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
