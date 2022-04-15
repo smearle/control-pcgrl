@@ -22,6 +22,7 @@ import torch as th
 from skimage import measure
 from numba import njit
 from qdpy.phenotype import Fitness, Features
+from ribs.archives import GridArchive
 from ribs.emitters import (
     # GradientImprovementEmitter,
     ImprovementEmitter,
