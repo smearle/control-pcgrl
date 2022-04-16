@@ -17,7 +17,7 @@ class Narrow3DRepresentation(Representation3D):
     """
     def __init__(self):
         super().__init__()
-        self._random_tile = True 
+        self._random_tile = False 
         self._act_coords = None
 
     """
@@ -31,14 +31,8 @@ class Narrow3DRepresentation(Representation3D):
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, length, width, height, prob):
+        super().reset(length, width, height, prob)
         self.n_step = 0
-
-        # ZJ: Why is this map stuff necessary here, but not necessary in 2D? -SE
-        if self._random_start or self._old_map is None:
-            self._map = gen_random_map(self._random, length, width, height, prob)
-            self._old_map = self._map.copy()
-        else:
-            self._map = self._old_map.copy()
 
         if self._act_coords is None:
             act_coords = np.meshgrid(np.arange(self._map.shape[2]), np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
