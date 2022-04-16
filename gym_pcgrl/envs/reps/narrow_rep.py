@@ -15,7 +15,8 @@ class NarrowRepresentation(Representation):
     def __init__(self):
         super().__init__()
         self._random_tile = True
-        # self._random_tile = False
+        self._act_coords = None
+        self.n_step = 0
 
     """
     Resets the current representation where it resets the parent and the current
@@ -28,8 +29,14 @@ class NarrowRepresentation(Representation):
     """
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
+        self.n_step = 0
         self._x = self._random.randint(width)
         self._y = self._random.randint(height)
+        if self._act_coords is None:
+            act_coords = np.meshgrid(np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
+            self._act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 2))
+        np.random.shuffle(self._act_coords)
+        self._x, self._y = self._act_coords[self.n_step]
 #         self._x = 0
 #         self._y = 0
 
@@ -105,8 +112,11 @@ class NarrowRepresentation(Representation):
             change += [0,1][self._map[self._y][self._x] != action-1]
             self._map[self._y][self._x] = action-1
         if self._random_tile:
-            self._x = self._random.randint(self._map.shape[1])
-            self._y = self._random.randint(self._map.shape[0])
+#           self._x = self._random.randint(self._map.shape[1])
+#           self._y = self._random.randint(self._map.shape[0])
+            if self.n_step == len(self._act_coords):
+                np.random.shuffle(self._act_coords)
+            self._x, self._y = self._act_coords[self.n_step % len(self._act_coords)]
         else:
             self._x += 1
             if self._x >= self._map.shape[1]:
@@ -114,6 +124,7 @@ class NarrowRepresentation(Representation):
                 self._y += 1
                 if self._y >= self._map.shape[0]:
                     self._y = 0
+        self.n_step += 1
         return change, [self._x, self._y]
 
     """

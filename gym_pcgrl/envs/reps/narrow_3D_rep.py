@@ -18,7 +18,7 @@ class Narrow3DRepresentation(Representation3D):
     def __init__(self):
         super().__init__()
         self._random_tile = True 
-        self.act_coords = None
+        self._act_coords = None
 
     """
     Resets the current representation where it resets the parent and the current
@@ -32,17 +32,19 @@ class Narrow3DRepresentation(Representation3D):
     """
     def reset(self, length, width, height, prob):
         self.n_step = 0
+
+        # ZJ: Why is this map stuff necessary here, but not necessary in 2D? -SE
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, length, width, height, prob)
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
 
-        if self.act_coords is None:
+        if self._act_coords is None:
             act_coords = np.meshgrid(np.arange(self._map.shape[2]), np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
-            self.act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 3))
-        np.random.shuffle(self.act_coords)
-        self._x, self._y, self._z = self.act_coords[self.n_step]
+            self._act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 3))
+        np.random.shuffle(self._act_coords)
+        self._x, self._y, self._z = self._act_coords[self.n_step]
         # self._x = self._random.randint(length)
         # self._y = self._random.randint(width)
         # self._z = self._random.randint(height)
@@ -126,10 +128,10 @@ class Narrow3DRepresentation(Representation3D):
             change += [0,1][self._map[self._z][self._y][self._x] != action-1]
             self._map[self._z][self._y][self._x] = action-1
         if self._random_tile:
-            if self.n_step == len(self.act_coords):
-                self.n_step = 0
-                np.random.shuffle(self.act_coords)
-            self._x, self._y, self._z = self.act_coords[self.n_step]
+            # If we've acted on all tiles, but the episode is not over, re-shuffle them and cycle through again.
+            if self.n_step == len(self._act_coords):
+                np.random.shuffle(self._act_coords)
+            self._x, self._y, self._z = self._act_coords[self.n_step % len(self._act_coords)]
             # self._x = self._random.randint(self._map.shape[2])
             # self._y = self._random.randint(self._map.shape[1])
             # self._z = self._random.randint(self._map.shape[0])

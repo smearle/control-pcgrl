@@ -44,6 +44,7 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
     def value_function(self):
         assert self._features is not None, "must call forward() first"
         return th.reshape(self.value_branch(self._features), [-1])
+
     def forward(self, input_dict, state, seq_lens):
         input = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = nn.functional.relu(self.conv_1(input.float()))
@@ -133,6 +134,7 @@ class WideModel3D(TorchModelV2, nn.Module):
         action_out = x
 
         return action_out, []
+
 
 class WideModel3DSkip(WideModel3D, nn.Module):
     def forward(self, input_dict, state, seq_lens):
