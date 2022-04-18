@@ -10,7 +10,7 @@ import pingouin as pg
 import scipy.stats
 
 from evo.args import get_args, get_exp_name
-from tex_formatting import pandas_to_latex, newline
+from tex_formatting import align, newline, pandas_to_latex
 from matplotlib import pyplot as plt
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
@@ -33,12 +33,13 @@ col_keys = {
 col_key_linebreaks = {
     'archive maintained': newline("archive", "maintained"),
     'QD score maintained': newline("QD score", "maintained"),
-    'qd_score': 'QD score',
-#   'diversity': newline("generator", "diversity"),
+    # 'QD score': align('QD score', "c"),
+    'diversity': newline("generator", "diversity", align="c"),
 }
 
 row_idx_names = {
     "exp_name": "exp_name",
+    "algo": "algorithm",
     "fix_level_seeds": "latents",
     "fix_elites": "elites",
     "n_init_states": newline("batch", "size"),
@@ -165,19 +166,26 @@ def compile_results(settings_list, tex=False):
         "model",
         "algo",
 #       "representation",
-        "n_init_states",
-        "fix_level_seeds",
-        "fix_elites",
-        "n_steps",
+#       "n_init_states",
+#       "fix_level_seeds",
+#       "fix_elites",
+#       "n_steps",
         "exp_name",
     ]
 
     hyperparam_rename = {
         "model" : {
+            "AuxNCA": newline("NCA with", "auxiliary channels", "c"),
+            "Sin2CPPN": newline("fixed-topology", "CPPN", "c"),
+            "GenSin2CPPN2": newline("generative,", "fixed-topology CPPN", "c"),
+            "GenCPPN2": "generative CPPN",
             # "CPPN": "Vanilla CPPN",
             # "GenSinCPPN": " "+newline("Fixed", "CPPN"),
             # "GenSinCPPN": " Fixed CPPN",
             # "GenCPPN": "CPPN",
+        },
+        "algo" : {
+            "CMAME": "CMA-ME",
         },
         "fix_level_seeds": {
             True: "Fix",
@@ -188,6 +196,7 @@ def compile_results(settings_list, tex=False):
             False: "Re-evaluate",
         },
     }
+
     assert len(hyperparams) == len(set(hyperparams))
     col_indices = None
     data = []
@@ -311,9 +320,9 @@ def compile_results(settings_list, tex=False):
             return ('Training', col)
     for i, col in enumerate(z_cols):
         hier_col = hierarchicalize_col(col)
-        z_cols[i] = tuple([hier_col[i] for i in range(len(hier_col))])
-#       z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
-#                          i in range(len(hier_col))])
+#       z_cols[i] = tuple([hier_col[i] for i in range(len(hier_col))])
+        z_cols[i] = tuple([col_key_linebreaks[hier_col[i]] if hier_col[i] in col_key_linebreaks else hier_col[i] for
+                           i in range(len(hier_col))])
     col_tuples = []
 
     for col in col_indices:
@@ -411,6 +420,7 @@ def compile_results(settings_list, tex=False):
         vertical_bars=True,
         columns=z_cols,
         # column_format=col_widths,
+        right_align_first_column=False,
         multirow=True,
         multicolumn=True,
         multicolumn_format='c|',

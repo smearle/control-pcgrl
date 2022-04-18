@@ -10,7 +10,7 @@ import gym
 import numpy as np
 
 import gym_pcgrl
-from rl.models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip # noqa : F401
+from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip # noqa : F401
 from args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -90,7 +90,7 @@ def main(cfg):
     trainer_config = {
         'framework': 'torch',
         'num_workers': num_workers,
-        'num_gpus': 1,
+        'num_gpus': 0,
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
         'num_envs_per_worker': 10 if not cfg.infer else 1,
         'render_env': cfg.render,
