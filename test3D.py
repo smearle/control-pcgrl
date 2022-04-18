@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 # test the helper functions
 tile_types = ["AIR", "DIRT"]
 
+######## Test the path finding func and region counting func in stairing logic #########
+
 # test_map_1: 
 # size: 7 * 7 * 5
 # longest path length: 28 + 2 + 29 = 59
@@ -227,9 +229,9 @@ test_map_4 = [
 ]
 
 
+########### For testing the 3D plotting ###########
 # test_map_5:
 # size: 3 * 3 * 3
-# for testing the 3D plotting
 test_map_5 = [
     [
         [1, 1, 1, 1, 1, 1, 1, 1],
@@ -248,6 +250,411 @@ test_map_5 = [
         [0, 0, 0, 0, 0, 0, 0, 0]
     ]
 ]
+
+
+############ Test the path finding func in the jumping logic #############
+# Note: In Minecraft jumping, the extra head room of the staring position and extra head room of the position 1 before 
+# foothold needs to be garanteded
+# 
+#       |__
+# O
+# 大_    __
+#   |   |
+#   |   |                                                          
+
+
+
+# test_map_6:
+# size: 5 * 1 * 6
+# This is the max jump distance in Minecraft (press double w + space to jump)
+# path length: 2
+# region number: 1
+# jump: 1
+# jump distance: 3
+test_map_6 = [
+    [
+        [1, 0, 0, 0, 1]    
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ]
+]
+
+
+# test_map_7:
+# size: 5 * 1 * 6
+# This is the max jump distance in Minecraft (press double w + space to jump)
+# path length: 2
+# region number: 1
+# jump: 1
+# jump distance: 3
+# info: valid jump, the head room of the foothold position is trivial
+test_map_7 = [
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 1]     # the head room of the foothold position is trivial
+    ]
+]
+
+# test_map_8:
+# size: 5 * 1 * 6
+# This is the max jump distance in Minecraft (press double w + space to jump)
+# path length: 1
+# region number: 1
+# jump: 0
+# jump distance: 3
+# info: head blocked in starting position in either direction
+test_map_8 = [
+    [
+        [1, 0, 0, 0, 1]    
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [1, 0, 0, 0, 1]     # head blocked in starting position in either direction
+    ]
+]
+
+
+
+# test_map_9:
+# size: 5 * 1 * 6
+# This is the max jump distance in Minecraft (press double w + space to jump)
+# path length: 1
+# region number: 1
+# jump: 0
+# jump distance: 3
+# info: head blocked in the position before foothold position
+test_map_9 = [
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 0, 1]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 1, 1]     # head blocked in the position before foothold position
+    ]
+]
+
+
+# test_map_10:
+# size: 4 * 1 * 6
+# jump distance: 2
+# path length: 2
+# region number: 1
+# jump: 1
+test_map_10 = [
+    [
+        [1, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 1]
+    ],
+    [
+        [1, 0, 0, 1]
+    ],
+    [
+        [0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0]
+    ],
+    [
+        [0, 0, 0, 0]
+    ]
+]
+
+
+# test_map_11:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+test_map_11 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ]
+]
+
+
+# test_map_12:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: 1
+# info: the height difference of starting point and foothold position is 1
+test_map_12 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 0]       # the height difference of starting point and foothold position is 1
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]     
+    ]
+]
+
+
+# test_map_13:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: 2
+# info: the height difference of starting point and foothold position is 1
+test_map_13 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 0]
+    ],
+    [
+        [1, 0, 0]       # the height difference of starting point and foothold position is 2
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ]
+]
+
+
+# test_map_14:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 1
+# region number: 1
+# jump: 0
+# height difference: 0
+# info: head blocked in starting position in either direction
+test_map_14 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]     
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [1, 0, 1]
+    ]
+]
+
+
+# test_map_15:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 1
+# region number: 1
+# jump: 0
+# height difference: 0
+# info: head blocked in foothold position
+test_map_15 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 1, 1]
+    ]
+]
+
+
+# test_map_16:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: 0
+# info: valid jump
+test_map_16 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 1]
+    ]
+]
+
+
+# test_map_17:
+# size: 3 * 1 * 6
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: -1
+# info: valid jump
+test_map_17 = [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 1]
+    ],
+    [
+        [0, 0, 1]
+    ]
+]
+
+# TODO: test map for falling distance > 1 and <= 3
 
 
 
@@ -269,6 +676,10 @@ def get_test_state(test_map, tile_types):
     print(f"The path is: {debug_path_coords}")
     return path_length, path_coords, num_regions
 
+
+"""
+plot the test maps using matplotlib 3D voxel / volumetric plotting
+"""
 def plot_3d_map(test_map):
     test_map = np.array(test_map)
 

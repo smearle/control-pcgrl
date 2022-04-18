@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.reps.representation3D import Representation3D
+from gym_pcgrl.envs.reps.representation_3D import Representation3D
 from PIL import Image
 from gym import spaces
 import numpy as np

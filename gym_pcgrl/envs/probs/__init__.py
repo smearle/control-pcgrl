@@ -14,11 +14,13 @@ from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 from gym_pcgrl.envs.probs.loderunner_ctrl_prob import LoderunnerCtrlProblem
 from gym_pcgrl.envs.probs.face_prob import FaceProblem
 from gym_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructureProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_2Dmaze_prob import Minecraft2DmazeProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_prob import Minecraft3DmazeProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3Dmaze_ctrl_prob import Minecraft3DmazeCtrlProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3DZelda_prob import Minecraft3DZeldaProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3DZelda_ctrl_prob import Minecraft3DZeldaCtrlProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_2D_maze_prob import Minecraft2DmazeProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_ctrl_prob import Minecraft3DmazeCtrlProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Zelda_prob import Minecraft3DZeldaProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Zelda_ctrl_prob import Minecraft3DZeldaCtrlProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_prob import Minecraft3DParkourProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_ctrl_prob import Minecraft3DParkourCtrlProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
@@ -43,4 +45,6 @@ PROBLEMS = {
     "minecraft_3D_maze_ctrl": Minecraft3DmazeCtrlProblem,
     "minecraft_3D_zelda": Minecraft3DZeldaProblem,
     "minecraft_3D_zelda_ctrl": Minecraft3DZeldaCtrlProblem,
+    "minecraft_3D_parkour": Minecraft3DParkourProblem,
+    "minecraft_3D_parkour_ctrl": Minecraft3DParkourCtrlProblem,
 }
