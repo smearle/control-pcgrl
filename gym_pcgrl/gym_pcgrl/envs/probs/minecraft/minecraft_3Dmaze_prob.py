@@ -16,7 +16,7 @@ from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile
     calc_longest_path, debug_path, plot_3D_path, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
-from test3D import plot_3d_map
+# from gym_pcgrl.test3D import plot_3d_map
 
 
 class Minecraft3DmazeProblem(Problem):
