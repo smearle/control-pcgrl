@@ -3,14 +3,14 @@
           0,
           1,
           2,
-#         3,
+          3,
 #         4,
-#         5,
-#         6,
-#         7,
-#         8,
-#         9,
-#         10,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
   ],
 
  "problems": [
@@ -40,7 +40,7 @@
 #
   "algos": [
       "CMAME",
-      "ME",
+#     "ME",
   ],
 
  "models": [
@@ -78,12 +78,12 @@
 
   # Standard deviation of a mutation in MAP-Elites. Initial step size in CMAME.
   "step_sizes": [
-      5,
-#     1,
-      0.5,
-      0.1,
-      0.05,
-#     0.01,
+#     5,
+      1,
+#     0.5,
+#     0.1,
+#     0.05,
+      0.01,
   ],
 
   # Reevaluate elites on new random seeds after inserting into the archive?

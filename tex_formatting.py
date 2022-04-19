@@ -37,7 +37,6 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
         # Add the vertical lines
         cols = '|' + '|'.join(cols) + '|'
 
-    TT()
     latex = df_table.to_latex(escape=escape, index=index, column_format=cols, header=header, multicolumn=multicolumn,
                               **kwargs)
     latex = latex.replace('\\begin{table}', '\\begin{table*}')

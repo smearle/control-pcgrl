@@ -2996,7 +2996,8 @@ if __name__ == "__main__":
         PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
     )
 
-    if arg_dict["step_size"] != 1:
+    # TODO: remove this! Ad hoc, for backward compatibility.
+    if ALGO == "CMAME" and arg_dict["step_size"] != 1 or ALGO == "ME" and arg_dict[step_size] != 0.01:
         exp_name += f"_{arg_dict['step_size']}-stepSize"
 
     if CASCADE_REWARD:

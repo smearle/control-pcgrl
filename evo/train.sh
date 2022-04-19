@@ -10,10 +10,10 @@
 #SBATCH --mem=32GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=evo_runs/evopcg_0_%j.out
+#SBATCH --mail-user=se2161@nyu.edu
+#SBATCH --output=evo_runs/evopcg_10_%j.out
 
-cd /scratch/zj2086/control-pcgrl
+cd /scratch/se2161/control-pcgrl
 
 ## Is this actually necessary?
 source activate
@@ -22,7 +22,7 @@ source activate
 conda activate pcgrl
 
 start=$SECONDS
-while ! python evo/evolve.py -la 0
+while ! python evo/evolve.py -la 10
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
