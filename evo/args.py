@@ -157,6 +157,13 @@ def get_args(load_args=None):
         help="Which evolutionary algorithm to run. (CMAME, ME)",
         default="CMAME",
     )
+    opts.add_argument(
+        "-ss",
+        "--step_size",
+        help="Standard deviation of the Gaussian noise added to mutated models.",
+        type=float,
+        default=0.01,
+    )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
     args = opts.parse_args()
@@ -241,8 +248,8 @@ def get_exp_name(args, arg_dict):
     exp_name = "EvoPCGRL_"
     if arg_dict['algo'] == "ME":
         exp_name += "ME_"
-    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
+    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass_{}-stepSize".format(
+        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS, arg_dict['step_size'],
     )
 
     if CASCADE_REWARD:

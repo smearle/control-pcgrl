@@ -331,7 +331,12 @@ class ConditionalWrapper(gym.Wrapper):
 
 
     def get_max_loss(self, ctrl_metrics=[]):
-        '''Upper bound on distance of level from static targets.'''
+        '''Upper bound on distance of level from static targets.
+        
+        Args:
+            ctrl_metrics (list): list of metrics to be controlled (in RL), or used as diversity measured (in QD). These
+                will not factor into the loss.
+        '''
         net_max_loss = 0
         for k, v in self.static_trgs.items():
             if k in ctrl_metrics:

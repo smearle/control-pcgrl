@@ -115,95 +115,98 @@ def launch_batch(exp_name, collect_params=False):
                                             if 'Decoder' in model and n_steps != 1:
                                                 continue
 
-                                            # Edit the sbatch file to load the correct config file
+                                            for step_size in batch_config.step_sizes:
 
-                                            if EVALUATE:
-                                                script_name = "evo/eval.sh"
-                                            else:
-                                                script_name = "evo/train.sh"
-                                            with open(script_name, "r") as f:
-                                                content = f.read()
+                                                # Edit the sbatch file to load the correct config file
 
-                                                # Replace the ``python scriptname --cl_args`` line.
-                                                new_content = re.sub(
-                                                    "python evo/evolve.py -la \d+",
-                                                    "python evo/evolve.py -la {}".format(i),
-                                                    content,
-                                                )
+                                                if EVALUATE:
+                                                    script_name = "evo/eval.sh"
+                                                else:
+                                                    script_name = "evo/train.sh"
+                                                with open(script_name, "r") as f:
+                                                    content = f.read()
 
-                                                # Replace the job name.
-                                                new_content = re.sub(
-                                                    "evo_runs/evopcg_\d+", 
-                                                    "evo_runs/evopcg_{}".format(i), 
-                                                    new_content
-                                                )
-                                            with open(script_name, "w") as f:
-                                                f.write(new_content)
-                                            # Write the config file with the desired settings
-                                            exp_config = copy.deepcopy(default_config)
-                                            exp_config.update({
-                                                    "problem": prob,
-                                                    "representation": rep,
-                                                    "behavior_characteristics": bc_pair,
-                                                    "algo": algo,
-                                                    "model": model,
-                                                    "fix_elites": fix_el,
-                                                    "fix_level_seeds": fix_seed,
-    #                                               "exp_name": exp_name,
-                                                    "exp_name": str(exp_id),
-                                                    "save_levels": False,
-                                                    "n_steps": n_steps,
-                                                    "n_init_states": n_init_states,
-                                                    "n_generations": 50000,
-                                                    "multi_thread": not args.single_thread,
-                                                    "save_interval": 10 if args.local else 100,
-                                                }
-                                            )
-                                            if args.render:
-                                                exp_config.update(
-                                                    {
-                                                        "infer": True,
-                                                        "render": True,
-                                                        "visualize": True,
+                                                    # Replace the ``python scriptname --cl_args`` line.
+                                                    new_content = re.sub(
+                                                        "python evo/evolve.py -la \d+",
+                                                        "python evo/evolve.py -la {}".format(i),
+                                                        content,
+                                                    )
+
+                                                    # Replace the job name.
+                                                    new_content = re.sub(
+                                                        "evo_runs/evopcg_\d+", 
+                                                        "evo_runs/evopcg_{}".format(i), 
+                                                        new_content
+                                                    )
+                                                with open(script_name, "w") as f:
+                                                    f.write(new_content)
+                                                # Write the config file with the desired settings
+                                                exp_config = copy.deepcopy(default_config)
+                                                exp_config.update({
+                                                        "algo": algo,
+                                                        "problem": prob,
+                                                        "representation": rep,
+                                                        "behavior_characteristics": bc_pair,
+                                                        "model": model,
+                                                        "fix_elites": fix_el,
+                                                        "fix_level_seeds": fix_seed,
+        #                                               "exp_name": exp_name,
+                                                        "exp_name": str(exp_id),
+                                                        "save_levels": False,
+                                                        "n_steps": n_steps,
+                                                        "n_init_states": n_init_states,
+                                                        "n_generations": 50000,
+                                                        "multi_thread": not args.single_thread,
+                                                        "save_interval": 10 if args.local else 100,
+                                                        "step_size": step_size,
                                                     }
                                                 )
+                                                if args.render:
+                                                    exp_config.update(
+                                                        {
+                                                            "infer": True,
+                                                            "render": True,
+                                                            "visualize": True,
+                                                        }
+                                                    )
 
-                                            elif EVALUATE:
-                                                # No real point a mapping that takes only one-step (unless we're debugging latent seeds, in which case just use more steps)
-                                                render_levels = RENDER_LEVELS and n_steps > 1
-                                                # ... Also, because this isn't compatible with qdpy at the moment
-                                                render_levels = RENDER_LEVELS and algo != "ME"
-                                                exp_config.update(
-                                                    {
-                                                        "infer": True,
-                                                        "evaluate": True,
-                                                        "render_levels": render_levels,
-                                                        "save_levels": True,
-                                                        "visualize": True,
-                                                    }
+                                                elif EVALUATE:
+                                                    # No real point a mapping that takes only one-step (unless we're debugging latent seeds, in which case just use more steps)
+                                                    render_levels = RENDER_LEVELS and n_steps > 1
+                                                    # ... Also, because this isn't compatible with qdpy at the moment
+                                                    render_levels = RENDER_LEVELS and algo != "ME"
+                                                    exp_config.update(
+                                                        {
+                                                            "infer": True,
+                                                            "evaluate": True,
+                                                            "render_levels": render_levels,
+                                                            "save_levels": True,
+                                                            "visualize": True,
+                                                        }
+                                                    )
+                                                print(
+                                                    "Saving experiment config:\n{}".format(
+                                                        exp_config
+                                                    )
                                                 )
-                                            print(
-                                                "Saving experiment config:\n{}".format(
-                                                    exp_config
-                                                )
-                                            )
-                                            with open(
-                                                "configs/evo/auto/settings_{}.json".format(i), "w"
-                                            ) as f:
-                                                json.dump(
-                                                    exp_config, f, ensure_ascii=False, indent=4
-                                                )
-                                            # Launch the experiment. It should load the saved settings
+                                                with open(
+                                                    "configs/evo/auto/settings_{}.json".format(i), "w"
+                                                ) as f:
+                                                    json.dump(
+                                                        exp_config, f, ensure_ascii=False, indent=4
+                                                    )
+                                                # Launch the experiment. It should load the saved settings
 
-                                            if collect_params:
-                                                settings_list.append(exp_config)
-                                            elif LOCAL:
-                                                os.system("python evo/evolve.py -la {}".format(i))
-                                                # Turned off for mid-training evals
-    #                                           os.system("ray stop")
-                                            else:
-                                                os.system("sbatch {}".format(script_name))
-                                            i += 1
+                                                if collect_params:
+                                                    settings_list.append(exp_config)
+                                                elif LOCAL:
+                                                    os.system("python evo/evolve.py -la {}".format(i))
+                                                    # Turned off for mid-training evals
+        #                                           os.system("ray stop")
+                                                else:
+                                                    os.system("sbatch {}".format(script_name))
+                                                i += 1
 
     if collect_params:
         return settings_list
@@ -266,6 +269,13 @@ if __name__ == "__main__":
         help="Run experiment sequentially, instead of using ray to parallelise evaluation.",
         action="store_true",
     )
+#   opts.add_argument(
+#       "-ss",
+#       "--step_size",
+#       help="Standard deviation of the Gaussian noise added to mutated models.",
+#       type=float,
+#       default=0.01,
+#   )
     args = opts.parse_args()
     EXP_NAME = args.experiment_name
     EVALUATE = args.evaluate

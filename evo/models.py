@@ -1,3 +1,4 @@
+import math
 from pdb import set_trace as TT
 
 import cv2
@@ -15,6 +16,13 @@ from utils import get_one_hot_map, draw_net
 
 
 class ResettableNN(nn.Module):
+    """Neural networks that may have internal state that needs to be reset.
+    
+    For example, NCAs with "auxiliary" activations---channels in the map that are not actually part of the level, but
+    used as external memory by the model (therefore, we store them here). Or maybe memory states? Same thing??"""
+    def __init__(self, step_size=0.01, **kwargs):
+        self.step_size = step_size
+        super().__init__()
 
     def reset(self):
         pass
@@ -22,7 +30,10 @@ class ResettableNN(nn.Module):
     def mutate(self):
         set_nograd(self)
         w = get_init_weights(self, init=False, torch=True)
-        w += th.randn_like(w) * 0.1
+
+        # Add a random gaussian to the weights, with mean 0 and standard deviation `self.step_size`.
+        w += th.randn_like(w) * math.sqrt(self.step_size)
+
         set_weights(self, w)
 
 
@@ -51,7 +62,7 @@ class AuxNCA(ResettableNN):
         Args:
             render (bool): whether to render the auxiliary channels in order to observe the model's behavior.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.n_hid_1 = n_hid_1 = 32
         self.n_aux = n_aux
         self.l1 = Conv2d(n_in_chans + self.n_aux, n_hid_1, 3, 1, 1, bias=True)
@@ -99,10 +110,10 @@ class AuxNCA(ResettableNN):
 
 
 class DoneAuxNCA(AuxNCA):
-    def __init__(self, n_in_chans, n_actions, n_aux=3):
+    def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
         # Add an extra auxiliary ("done") channel after the others
         n_aux += 1
-        super().__init__(n_in_chans, n_actions, n_aux=n_aux)
+        super().__init__(n_in_chans, n_actions, n_aux=n_aux, **kwargs)
         done_kernel_size = 3
         self.l_done = Conv2d(1, 1, 7, stride=999)
         self.layers += [self.l_done]
@@ -121,9 +132,9 @@ class DoneAuxNCA(AuxNCA):
 
 
 class AttentionNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions, n_aux=3):
+    def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
         self.n_aux = n_aux
-        super().__init__()
+        super().__init__(**kwargs)
         n_in_chans += n_aux
         h_chan = 48
         self.l1 = Conv2d(n_in_chans, h_chan, 1, 1, 0, bias=True)
@@ -167,7 +178,7 @@ class NCA3D(ResettableNN):
             n_aux (int, optional): Auxiliary channels. That is, channels in the NCA's input & output, which do not
                 have any effect on the map itself, but can be used as a form of external memory. Defaults to 3.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         n_hid_1 = 32
         self.n_aux = n_aux
         self.l1 = Conv3d(n_in_chans + n_aux, n_hid_1, 3, 1, 1, bias=True)
@@ -199,7 +210,7 @@ class NCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         n_hid_1 = 32
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
@@ -231,7 +242,7 @@ class Decoder(ResettableNN):
     Decoder-like architecture (e.g. as in VAEs and GANs).
     """
     def __init__(self, n_in_chans, n_actions, n_latents=2, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         n_hid_1 = 16
         self.l1 = nn.ConvTranspose2d(n_in_chans + n_latents, n_hid_1, 3, 2, 1, 1, bias=True)
         self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 2, 1, 1, bias=True)
@@ -260,7 +271,7 @@ class DeepDecoder(ResettableNN):
     Decoder-like architecture (e.g. as in VAEs and GANs). But deeper.
     """
     def __init__(self, n_in_chans, n_actions, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         n_hid_1 = 10
         self.l1 = nn.ConvTranspose2d(n_in_chans + 2, n_hid_1, 3, 1, 0, 0, bias=True)
         self.l2 = nn.ConvTranspose2d(n_hid_1, n_hid_1, 3, 1, 0, 0, bias=True)
@@ -297,7 +308,7 @@ class DeepDecoder(ResettableNN):
 
 class MixNCA(ResettableNN):
     def __init__(self, *args, **kwargs):
-        super(MixNCA, self).__init__()
+        super(MixNCA, self).__init__(**kwargs)
         self.mix_activ = MixActiv()
 
     def forward(self, x):
@@ -314,8 +325,8 @@ class CoordNCA(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions.
     With coordinates as additional input, like a CPPN."""
 
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid_1 = 28
         #       n_hid_2 = 16
 
@@ -377,8 +388,8 @@ def get_coord_grid(x, normalize=False, env3d=False):
 
 
 class FeedForwardCPPN(nn.Module):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(2, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -397,8 +408,8 @@ class FeedForwardCPPN(nn.Module):
 
 
 class GenReluCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -420,7 +431,7 @@ class GenReluCPPN(ResettableNN):
 class SinCPPN(ResettableNN):
     """A vanilla CPPN that only takes (x, y) coordinates. #TODO: merge with GenSinCPPN"""
     def __init__(self, n_in_chans, n_actions, n_latents=2, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(n_latents, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -445,7 +456,7 @@ class SinCPPN(ResettableNN):
 
 class GenSinCPPN(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_latents=2, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(n_latents+n_in_chans, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -469,8 +480,8 @@ class GenSinCPPN(ResettableNN):
 
 
 class MixCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(2, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -491,8 +502,8 @@ class MixCPPN(ResettableNN):
 
 
 class GenMixCPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(2+n_in_chans, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -517,8 +528,8 @@ class FixedGenCPPN(ResettableNN):
     """A fixed-topology CPPN that takes additional channels of noisey input to prompts its output.
     Like a CoordNCA but without the repeated passes and with 1x1 rather than 3x3 kernels."""
     # TODO: Maybe try this with 3x3 conv, just to cover our bases?
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid = 64
         self.l1 = Conv2d(2 + n_in_chans, n_hid, kernel_size=1)
         self.l2 = Conv2d(n_hid, n_hid, kernel_size=1)
@@ -567,8 +578,8 @@ neat_config_path = 'evo/config_cppn'
 
 
 class CPPN(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
                                               neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
                                               neat_config_path)
@@ -605,8 +616,8 @@ class CPPN(ResettableNN):
 
 
 class CPPNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid_1 = 32
         with th.no_grad():
             self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
@@ -644,7 +655,7 @@ class CPPNCA(ResettableNN):
 
 class GenCPPN(CPPN):
     def __init__(self, n_in_chans, n_actions, **kwargs):
-        super().__init__(n_in_chans, n_actions)
+        super().__init__(n_in_chans, n_actions, **kwargs)
         self.neat_config = neat.config.Config(DefaultGenome, neat.reproduction.DefaultReproduction,
                                               neat.species.DefaultSpeciesSet, neat.stagnation.DefaultStagnation,
                                               neat_config_path)
@@ -686,9 +697,9 @@ def gauss(x, mean=0, std=1):
 
 class Individual(phenotype.Individual):
     "An individual for mutating with operators. Assuming we're using vanilla MAP-Elites here."
-    def __init__(self, model_cls, n_in_chans, n_actions, **model_kwargs):
+    def __init__(self, model_cls, n_in_chans, n_actions, **kwargs):
         super(Individual, self).__init__()
-        self.model = model_cls(n_in_chans, n_actions, **model_kwargs)
+        self.model = model_cls(n_in_chans, n_actions, **kwargs)
         self.fitness = phenotype.Fitness([0])
         self.fitness.delValues()
 
@@ -707,8 +718,8 @@ class Individual(phenotype.Individual):
 class GeneratorNNDenseSqueeze(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
-    def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid_1 = 16
         # Hack af. Pad the input to make it have root 2? idk, bad
         sq_i = 2
@@ -750,8 +761,8 @@ class GeneratorNNDenseSqueeze(ResettableNN):
 class GeneratorNNDense(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
-    def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions):
-        super().__init__()
+    def __init__(self, n_in_chans, n_actions, observation_shape, n_flat_actions, **kwargs):
+        super().__init__(**kwargs)
         n_hid_1 = 16
         n_hid_2 = 32
         self.conv1 = Conv2d(n_in_chans, n_hid_1, kernel_size=3, stride=2)
@@ -780,8 +791,8 @@ class GeneratorNNDense(ResettableNN):
 
 
 class PlayerNN(ResettableNN):
-    def __init__(self, n_tile_types, n_actions=4):
-        super().__init__()
+    def __init__(self, n_tile_types, n_actions=4, **kwargs):
+        super().__init__(**kwargs)
         self.n_tile_types = n_tile_types
         # assert "zelda" in PROBLEM
         self.l1 = Conv2d(n_tile_types, 16, 3, 1, 0, bias=True)

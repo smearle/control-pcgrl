@@ -35,18 +35,22 @@
   #       "turtle", # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
   #       "turtle3D"
   ],
-
+#
+#
+#
   "algos": [
       "CMAME",
 #     "ME",
   ],
 
  "models": [
+        "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
         "NCA",
         "Decoder",
         "GenSin2CPPN2",
-        "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-        "Sin2CPPN",
+
+#       "Sin2CPPN",
+
 #       "GenCPPN",
 #       "DirectBinaryEncoding",
 #       "NCA3D",
@@ -71,6 +75,16 @@
 #       "SinCPPN",
 #       "CNN"  # Doesn't learn atm
   ],
+
+  # Standard deviation of a mutation in MAP-Elites. Initial step size in CMAME.
+  "step_sizes": [
+#     10,
+#     1,
+#     0.1,
+#     0.05,
+      0.01,
+  ],
+
   # Reevaluate elites on new random seeds after inserting into the archive?
  "fix_elites": [
           True,
@@ -85,7 +99,7 @@
   # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
   # in the center)
   "n_init_states_lst" : [
-      0,
+#     0,
 #     1,
       10,
 #     20,

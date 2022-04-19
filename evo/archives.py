@@ -186,3 +186,20 @@ class FlexArchive(InitStatesArchive):
 @njit
 def archive_init_states(init_states_archive, init_states, index):
     init_states_archive[index] = init_states
+
+
+def get_qd_score(archive, args):
+    """Get the QD score of the archive.
+    
+    Archive can be either a GridArchive (pyribs, CMA-ME) or a MEArchive (qdpy, MAP-Elites). Translate scores in the grid
+    to all be > 0, so that the QD score is always positive, and never decreases when new individuals are added."""
+    if args.algo == 'ME':
+        # TODO: work out max diversity bonus to make this possible ?? Would this bias scores between n. latent seeds
+        #   though?
+        # qd_score = archive.qd_score()  # we need to specify lower *and upper* bounds for this
+        qd_score = np.nansum(archive.quality_array + args.max_loss)
+    else:
+        df = archive.as_pandas(include_solutions=False)
+        qd_score = (df['objective'] + args.max_loss).sum()
+    return qd_score
+

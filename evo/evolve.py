@@ -13,14 +13,15 @@ from typing import Tuple
 import gym
 import matplotlib
 import matplotlib.pyplot as plt
+from numba import njit
 import numpy as np
 import pandas as pd
 import psutil
 import ray
 import scipy
-import torch as th
 from skimage import measure
-from numba import njit
+import torch as th
+from tqdm import tqdm
 from qdpy.phenotype import Fitness, Features
 from ribs.archives import GridArchive
 from ribs.emitters import (
@@ -40,11 +41,8 @@ from deap.base import Toolbox
 import copy
 
 
-# Use for .py file
-from tqdm import tqdm
-
 from args import get_args
-from archives import InitStatesArchive, MEGrid, MEInitStatesArchive, FlexArchive
+from archives import InitStatesArchive, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN
 from utils import get_one_hot_map
@@ -95,7 +93,6 @@ https://arxiv.org/pdf/2009.01398.pdf
 RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
-TARGETS_PENALTY_WEIGHT = 10
 
 
 def save_level_frames(level_frames, model_name):
@@ -114,23 +111,9 @@ def save_level_frames(level_frames, model_name):
         )
 
 
-def get_qd_score(archive, env, bc_names):
-    max_loss = env.get_max_loss(ctrl_metrics=bc_names)
-    max_loss = max_loss * TARGETS_PENALTY_WEIGHT
-    if ALGO == 'ME':
-        # qd_score = archive.qd_score()  # we need to specify lower *and upper* bounds for this
-        # TODO: work out max diversity bonus to make this possible ?? Would this bias scores between n. latent seeds
-        #   though?
-        qd_score = np.nansum(archive.quality_array + max_loss)
-    else:
-        df = archive.as_pandas(include_solutions=False)
-        qd_score = (df['objective'] + max_loss).sum()
-    return qd_score
-
-
-def save_train_stats(objs, archive, env, bc_names, itr=None):
+def save_train_stats(objs, archive, args, itr=None):
     train_time_stats = {
-            "QD score": get_qd_score(archive, env, bc_names),
+            "QD score": get_qd_score(archive, args),
             "objective": get_stats(objs),
             }
 
@@ -801,10 +784,7 @@ class PlayerRight(nn.Module):
         return [1]
 
 
-def log_archive(archive, name, itr, start_time, level_json=None):
-    if ALGO == "ME":
-        # Do this inside optimizer ..?
-        return
+def log_archive(archive, name, itr, start_time, args, level_json=None):
     # TensorBoard Logging.
     df = archive.as_pandas(include_solutions=False)
     elapsed_time = time.time() - start_time
@@ -812,6 +792,7 @@ def log_archive(archive, name, itr, start_time, level_json=None):
     writer.add_scalar("{} score/mean".format(name), df["objective"].mean(), itr)
     writer.add_scalar("{} score/max".format(name), df["objective"].max(), itr)
     writer.add_scalar("{} score/min".format(name), df["objective"].min(), itr)
+    writer.add_scalar(f"{name} QD score", get_qd_score(archive, args), itr)
 
     # Change: log mean, max, and min for all stats
 
@@ -833,8 +814,11 @@ def log_archive(archive, name, itr, start_time, level_json=None):
                 "Training {}/max".format(stat), np.max(level_json[stat]), itr
             )
 
-    # Logging.
+    if ALGO == "ME":
+        # This is handled by the qdpy/deap Logbook.
+        return
 
+    # Logging to console.
     if itr % 1 == 0:
         print(f"> {itr} itrs completed after {elapsed_time:.2f} s")
         print(f"  - {name} Archive Size: {len(df)}")
@@ -1297,7 +1281,7 @@ def simulate(
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
-    batch_targets_penalty = TARGETS_PENALTY_WEIGHT * batch_targets_penalty / max(N_INIT_STATES, 1)
+    batch_targets_penalty = args.targets_penalty_weight * batch_targets_penalty / max(N_INIT_STATES, 1)
     # batch_targets_penalty = batch_targets_penalty / N_INIT_STATES
     batch_reward += batch_targets_penalty
 
@@ -1381,8 +1365,10 @@ def simulate(
 
 
 class EvoPCGRL:
-    def __init__(self):
+    def __init__(self, args):
         self.init_env()
+        args.max_loss = self.env.get_max_loss(ctrl_metrics=args.behavior_characteristics) * args.targets_penalty_weight
+        self.args = args
         if not ENV3D:
             assert self.env.observation_space["map"].low[0, 0] == 0
             # get number of tile types from environment's observation space
@@ -1558,12 +1544,13 @@ class EvoPCGRL:
         set_nograd(self.gen_model)
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
 
-        if MODEL == "NCA":
-            init_step_size = 0.01
-        elif MODEL == "CNN":
-            init_step_size = 0.01
-        else:
-            init_step_size = 0.01
+        init_step_size = args.step_size
+#       if MODEL == "NCA":
+#           init_step_size = args.step_size
+#       elif MODEL == "CNN":
+#           init_step_size = args.step_size
+#       else:
+#           init_step_size = args.step_size
 
         if CMAES:
             # The optimizing emitter will prioritize fitness over exploration of behavior space
@@ -1637,6 +1624,7 @@ class EvoPCGRL:
                     'model_cls': globals()[MODEL],
                    'n_in_chans': self.n_tile_types,
                    'n_actions': self.n_tile_types,
+                   'step_size': args.step_size,
             }
             if MODEL == "DirectBinaryEncoding":
                 ind_cls_args.update({'map_width': self.env.unwrapped._prob._width})
@@ -1902,7 +1890,7 @@ class EvoPCGRL:
 
             #               last_archive_size = len(self.gen_archive.as_pandas(include_solutions=False))
 
-            log_archive(self.gen_archive, "Generator", itr, self.start_time, stat_json)
+            log_archive(self.gen_archive, "Generator", itr, self.start_time, args=self.args, level_json=stat_json)
 
             # FIXME: implement these
             #           self.play_bc_names = ['action_entropy', 'action_entropy_local']
@@ -2001,7 +1989,7 @@ class EvoPCGRL:
                         # obj = np.mean(m_objs)
                         # objs.append(obj)
                         # bcs.append([bc_a])
-                        log_archive(self.play_archive, "Player", p_itr, play_start_time)
+                        log_archive(self.play_archive, "Player", p_itr, play_start_time, args=args)
 
                         if net_p_itr > 0 and net_p_itr % SAVE_INTERVAL == 0:
                             # Save checkpoint during player evo loop
@@ -2704,8 +2692,8 @@ class EvoPCGRL:
                 n_filled_bins = len(eval_archive._occupied_indices)
                 assert len(models) == len(archive._occupied_indices)
                 n_total_bins = archive.bins
-            qd_score = get_qd_score(archive, self.env, self.bc_names)
-            eval_qd_score = get_qd_score(eval_archive, self.env, self.bc_names)
+            qd_score = get_qd_score(archive, self.args)
+            eval_qd_score = get_qd_score(eval_archive, self.args)
             stats = {
                 "generations completed": self.n_itr,
                 "% train archive full": len(models) / n_total_bins,
@@ -2780,7 +2768,7 @@ class EvoPCGRL:
                         bcs_key: n_occupied,
                     })
                     stats["eval QD scores"].update({
-                        bcs_key: get_qd_score(eval_archive, self.env, bc_names)
+                        bcs_key: get_qd_score(eval_archive, self.args),
                     })
 
             stats.update(
@@ -2973,6 +2961,7 @@ if __name__ == "__main__":
     RENDER_LEVELS = arg_dict["render_levels"]
     THREADS = arg_dict["multi_thread"]  # or EVALUATE
     SAVE_INTERVAL = arg_dict["save_interval"]
+    args.targets_penalty_weight = 10
     VIS_INTERVAL = 50
     ENV3D = "3D" in PROBLEM
 
@@ -2986,6 +2975,7 @@ if __name__ == "__main__":
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
+    # TODO: This is redundant. Re-use `utils.get_exp_name()`
     #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
@@ -2993,8 +2983,8 @@ if __name__ == "__main__":
     exp_name = 'EvoPCGRL_'
     if ALGO == "ME":
         exp_name += "ME_"
-    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
+    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass_{}-stepSize".format(
+        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS, arg_dict['step_size']
     )
 
     if CASCADE_REWARD:
@@ -3077,7 +3067,7 @@ if __name__ == "__main__":
                 )
             )
             writer = init_tensorboard()
-            evolver = EvoPCGRL()
+            evolver = EvoPCGRL(args)
             evolver.evolve()
         else:
             print(
