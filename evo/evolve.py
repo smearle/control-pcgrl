@@ -44,10 +44,10 @@ import copy
 from tqdm import tqdm
 
 from args import get_args
-from evo.archives import InitStatesArchive, MEGrid, MEInitStatesArchive, FlexArchive
-from evo.models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
+from archives import InitStatesArchive, MEGrid, MEInitStatesArchive, FlexArchive
+from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN
-from evo.utils import get_one_hot_map
+from utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
 from gym_pcgrl.envs.helper_3D import get_string_map as get_string_map_3d
@@ -1559,11 +1559,11 @@ class EvoPCGRL:
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
 
         if MODEL == "NCA":
-            init_step_size = 1
+            init_step_size = 0.01
         elif MODEL == "CNN":
-            init_step_size = 1
+            init_step_size = 0.01
         else:
-            init_step_size = 1
+            init_step_size = 0.01
 
         if CMAES:
             # The optimizing emitter will prioritize fitness over exploration of behavior space

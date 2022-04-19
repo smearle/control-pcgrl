@@ -10,8 +10,8 @@ import torch as th
 from torch import nn
 from torch.nn import Conv2d, Conv3d, Linear
 
-from evo.cbam import CBAM
-from evo.utils import get_one_hot_map, draw_net
+from cbam import CBAM
+from utils import get_one_hot_map, draw_net
 
 
 class ResettableNN(nn.Module):
