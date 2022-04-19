@@ -253,7 +253,7 @@ def get_exp_name(args, arg_dict):
     )
 
     # TODO: remove this! Ad hoc, for backward compatibility.
-    if arg_dict["algo"] == "CMAME" and arg_dict["step_size"] != 1 or arg_dict["algo"] == "ME" and arg_dict[step_size] != 0.01:
+    if arg_dict["algo"] == "CMAME" and arg_dict["step_size"] != 1 or arg_dict["algo"] == "ME" and arg_dict["step_size"] != 0.01:
         exp_name += f"_{arg_dict['step_size']}-stepSize"
 
     if CASCADE_REWARD:
