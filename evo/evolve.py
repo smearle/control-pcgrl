@@ -29,6 +29,7 @@ from ribs.emitters import (
     ImprovementEmitter,
     OptimizingEmitter,
 )
+from ribs.archives._add_status import AddStatus
 from ribs.optimizers import Optimizer
 from ribs.visualize import grid_archive_heatmap
 from torch import nn
@@ -2167,6 +2168,7 @@ class EvoPCGRL:
 
     def infer(self, concat_gifs=True):
         assert INFER
+        args = self.args
         self.init_env()
         archive = self.gen_archive
         if args.algo == "ME":
@@ -2353,7 +2355,7 @@ class EvoPCGRL:
                 # visualize if we haven't already
                 self.visualize()
             # aggregate scores of individuals currently in the grid
-            save_train_stats(objs, archive, self.env, self.bc_names)
+            save_train_stats(objs=objs, archive=archive, args=args)
 
             # Basically deprecated, not really fuckin' with this.
             # Toss our elites into an archive with different BCs. For fun!
