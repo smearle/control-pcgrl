@@ -786,12 +786,19 @@ class PlayerRight(nn.Module):
 
 def log_archive(archive, name, itr, start_time, args, level_json=None):
     # TensorBoard Logging.
-    df = archive.as_pandas(include_solutions=False)
+    if args.algo == "CMAME":
+        df = archive.as_pandas(include_solutions=False)
+        archive_size = len(df)
+        objs = df["objective"]
+    else:
+        archive_size = len(archive)
+        objs = archive.quality_array
+
     elapsed_time = time.time() - start_time
-    writer.add_scalar("{} ArchiveSize".format(name), len(df), itr)
-    writer.add_scalar("{} score/mean".format(name), df["objective"].mean(), itr)
-    writer.add_scalar("{} score/max".format(name), df["objective"].max(), itr)
-    writer.add_scalar("{} score/min".format(name), df["objective"].min(), itr)
+    writer.add_scalar("{} ArchiveSize".format(name), archive_size, itr)
+    writer.add_scalar("{} score/mean".format(name), np.nanmean(objs), itr)
+    writer.add_scalar("{} score/max".format(name), np.nanmean(objs), itr)
+    writer.add_scalar("{} score/min".format(name), np.nanmean(objs), itr)
     writer.add_scalar(f"{name} QD score", get_qd_score(archive, args), itr)
 
     # Change: log mean, max, and min for all stats
@@ -814,11 +821,11 @@ def log_archive(archive, name, itr, start_time, args, level_json=None):
                 "Training {}/max".format(stat), np.max(level_json[stat]), itr
             )
 
+    # Logging to console.
     if ALGO == "ME":
         # This is handled by the qdpy/deap Logbook.
         return
 
-    # Logging to console.
     if itr % 1 == 0:
         print(f"> {itr} itrs completed after {elapsed_time:.2f} s")
         print(f"  - {name} Archive Size: {len(df)}")

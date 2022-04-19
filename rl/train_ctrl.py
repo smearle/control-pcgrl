@@ -92,7 +92,7 @@ def main(cfg):
         'num_workers': num_workers,
         'num_gpus': 0,
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
-        'num_envs_per_worker': 10 if not cfg.infer else 1,
+        'num_envs_per_worker': 20 if not cfg.infer else 1,
         'render_env': cfg.render,
         'model': {
             'custom_model': 'feedforward',
@@ -115,6 +115,12 @@ def main(cfg):
     }
 
     register_env('pcgrl', make_env)
+
+    # Log the trainer config, excluding overly verbose entries (i.e. Box observation space printouts).
+    trainer_config_loggable = trainer_config.copy()
+    # trainer_config_loggable.pop('multiagent')
+    print(f'Loading trainer with config:')
+    print(pretty_print(trainer_config_loggable))
 
     trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
 

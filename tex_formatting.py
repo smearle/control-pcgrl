@@ -7,6 +7,7 @@ def newline(t0, t1, align="r"):
 
 def align(t0, align="c"):
     assert align in ["l", "r", "c"]
+    raise NotImplementedError("align() not implemented properly yet")
     return "\\begin{tabular}["+align+"]{@{}"+align+"@{}}" + t0 + "\\\ " + t0 + "\\end{tabular}"
 
 def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first_column=True, header=True, index=False,
@@ -36,6 +37,7 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
         # Add the vertical lines
         cols = '|' + '|'.join(cols) + '|'
 
+    TT()
     latex = df_table.to_latex(escape=escape, index=index, column_format=cols, header=header, multicolumn=multicolumn,
                               **kwargs)
     latex = latex.replace('\\begin{table}', '\\begin{table*}')

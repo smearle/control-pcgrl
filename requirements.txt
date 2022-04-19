@@ -9,6 +9,7 @@ numba
 psutil
 imageio
 graphviz
+grpc  # For rendering minecraft via Evocraft
 numpy==1.21  # numba requires this version or lower
 opencv-python
 gym
@@ -17,7 +18,6 @@ tqdm
 ribs
 scikit-image
 pingouin
-pymks
 
 # git submodule update --init qdpy/       # add submodule first before python -m pip install -r requirements.txt
 # ./submodules/qdpy
@@ -27,7 +27,7 @@ pymks
 # python -m pip install neat-python
 ./submodules/pytorch-neat
 
-ray[rllib]     # ray[rllib]==1.9.2 in particle, but 1.11.0 should be fine here
+ray[rllib]
 
 # Installing minerl:
 # python -m pip install --upgrade minerl

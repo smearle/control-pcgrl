@@ -385,7 +385,7 @@ def compile_results(settings_list, tex=False):
     ndf = ndf.sort_values(by=new_keys[:-1])
     ndf.to_csv(csv_name)
     ndf.to_html(html_name)
-#   df.rename(col_keys, axis=1)
+    df.rename(col_keys, axis=1)
 
     df = ndf
 
