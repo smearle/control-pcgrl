@@ -44,6 +44,7 @@ row_idx_names = {
     "fix_elites": "elites",
     "n_init_states": newline("batch", "size"),
     "n_steps": newline("num.", "steps"),
+    "step_size": "step size",
 }
 
 # flatten the dictionary here
@@ -165,6 +166,7 @@ def compile_results(settings_list, tex=False):
 #       "behavior_characteristics",
         "model",
         "algo",
+        "step_size",
 #       "representation",
 #       "n_init_states",
 #       "fix_level_seeds",
@@ -256,8 +258,8 @@ def compile_results(settings_list, tex=False):
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
-#   for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
-#       analyze_metric(metric)
+    # for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
+    #     analyze_metric(metric)
 
     row_tpls = row_vals
     for i, tpl in enumerate(row_tpls):
