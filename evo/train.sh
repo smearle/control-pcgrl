@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=48
+#SBATCH --cpus-per-task=10
 
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
 #SBATCH --time=48:00:00
-#SBATCH --mem=64GB
+#SBATCH --mem=32GB
 #SBATCH --job-name=evopcgrl
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
