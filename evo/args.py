@@ -162,7 +162,7 @@ def get_args(load_args=None):
         "--step_size",
         help="Standard deviation of the Gaussian noise added to mutated models.",
         type=float,
-        default=0.01,
+        default=1.00,
     )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
@@ -248,9 +248,12 @@ def get_exp_name(args, arg_dict):
     exp_name = "EvoPCGRL_"
     if arg_dict['algo'] == "ME":
         exp_name += "ME_"
-    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass_{}-stepSize".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS, arg_dict['step_size'],
+    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
+        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
     )
+
+    if arg_dict["step_size"] != 1:
+        exp_name += f"_{arg_dict['step_size']}-stepSize"
 
     if CASCADE_REWARD:
         exp_name += "_cascRew"

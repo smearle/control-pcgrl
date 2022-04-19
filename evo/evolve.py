@@ -2983,9 +2983,12 @@ if __name__ == "__main__":
     exp_name = 'EvoPCGRL_'
     if ALGO == "ME":
         exp_name += "ME_"
-    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass_{}-stepSize".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS, arg_dict['step_size']
+    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
+        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
     )
+
+    if arg_dict["step_size"] != 1:
+        exp_name += f"_{arg_dict['step_size']}-stepSize"
 
     if CASCADE_REWARD:
         exp_name += "_cascRew"

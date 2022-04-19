@@ -1,9 +1,9 @@
 {
  "exp_ids": [
           0,
-#         1,
-#         2,
-#         3,
+          1,
+          2,
+          3,
 #         4,
 #         5,
 #         6,
@@ -45,9 +45,9 @@
 
  "models": [
         "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-        "NCA",
-        "Decoder",
-        "GenSin2CPPN2",
+#       "NCA",
+#       "Decoder",
+#       "GenSin2CPPN2",
 
 #       "Sin2CPPN",
 
@@ -78,11 +78,12 @@
 
   # Standard deviation of a mutation in MAP-Elites. Initial step size in CMAME.
   "step_sizes": [
-#     10,
+      5,
 #     1,
-#     0.1,
-#     0.05,
-      0.01,
+      0.5,
+      0.1,
+      0.05,
+#     0.01,
   ],
 
   # Reevaluate elites on new random seeds after inserting into the archive?
