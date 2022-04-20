@@ -19,7 +19,9 @@ tile_types = ["AIR", "DIRT"]
 # test_map_1: 
 # size: 7 * 7 * 5
 # longest path length: 28 + 2 + 29 = 59
-test_map_1 = [
+test_map_1 = {
+    "name": "test_map_1",
+    "map": [
     [
         [0, 0, 0, 0, 0, 0, 0],
         [1, 1, 1, 1, 1, 1, 0],
@@ -65,13 +67,20 @@ test_map_1 = [
         [0, 1, 0, 0, 0, 1, 0],
         [0, 0, 1, 1, 1, 1, 0]
     ]
-]
+],
+    "size": (7, 7, 5),
+    "path_length": 59,
+    "region_number": 1,
+    "info": "Two-layer test map with perpendicular corridors."
+}
 
 
 # test_map_2:
 # size: 7 * 7 * 5
 # longest path length: 28 + 2 + 27 = 57
-test_map_2 = [
+test_map_2 = {
+    "name": "test_map_2",
+    "map": [
     [
         [0, 0, 0, 0, 0, 0, 0],
         [1, 1, 1, 1, 1, 1, 0],
@@ -117,14 +126,21 @@ test_map_2 = [
         [0, 0, 0, 0, 0, 1, 0],
         [0, 0, 1, 1, 0, 0, 0]
     ]
-]
+], 
+    "size": (7, 7, 5),
+    "path_length": 57,
+    "region_number": 1,
+    "info": "Two-layer test map with parallel corridor",
+}
 
 
 # test_map_3:
 # size: 7 * 7 * 5
 # longest path length: 28 + 2 + 27 = 57
 # info: identical to test_map_2, except that some unnecessary tiles are removed (to test region number)
-test_map_3 = [
+test_map_3 = {
+    "name": "test_map_3",
+    "map": [
     [
         [0, 0, 0, 0, 0, 0, 0],
         [1, 1, 1, 1, 1, 1, 0],
@@ -170,14 +186,21 @@ test_map_3 = [
         [0, 0, 0, 0, 0, 1, 0],
         [0, 0, 0, 0, 0, 0, 0]           # diff: [0, 0, 1, 1, 0, 0, 0] in test_map_2
     ]
-]
+],
+    "size": (7, 7, 5),
+    "path_length": 57,
+    "region_number": 1,
+    "info": "identical to test_map_2, except that some unnecessary tiles are removed (to test region number)",
+}
 
 
 # test_map_4:
 # size: 3 * 6 * 6
 # longest path length: 2 + 1 + 1 + 1 = 5
 # info: small map for testing climbing stairs
-test_map_4 = [
+test_map_4 = {
+    "name": "test_map_4",
+    "map": [
     [
         [1, 0, 1],
         [1, 0, 1],
@@ -226,13 +249,20 @@ test_map_4 = [
         [1, 1, 1],
         [1, 1, 1]
     ]
-]
+],
+    "size": (3, 6, 6),
+    "path_length": 5,
+    "region_number": 1,
+    "info": "small map for testing climbing stairs",
+}
 
 
 ########### For testing the 3D plotting ###########
 # test_map_5:
 # size: 3 * 3 * 3
-test_map_5 = [
+test_map_5 = {
+    "name": "test_map_5",
+    "map": [
     [
         [1, 1, 1, 1, 1, 1, 1, 1],
         [1, 0, 0, 0, 0, 0, 0, 0],
@@ -249,7 +279,9 @@ test_map_5 = [
         [1, 0, 0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0, 0]
     ]
-]
+],
+    "size": (3, 3, 3),
+}
 
 
 ############ Test the path finding func in the jumping logic #############
@@ -271,7 +303,9 @@ test_map_5 = [
 # region number: 1
 # jump: 1
 # jump distance: 3
-test_map_6 = [
+test_map_6 = {
+    "name": "test_map_6",
+    "map": [
     [
         [1, 0, 0, 0, 1]    
     ],
@@ -293,7 +327,15 @@ test_map_6 = [
     [
         [0, 0, 0, 0, 0]
     ]
-]
+],
+    "size": (5, 1, 6),
+    "jump_distance": 3,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump",
+}
 
 
 # test_map_7:
@@ -304,7 +346,9 @@ test_map_6 = [
 # jump: 1
 # jump distance: 3
 # info: valid jump, the head room of the foothold position is trivial
-test_map_7 = [
+test_map_7 = {
+    "name": "test_map_7",
+    "map": [
     [
         [1, 0, 0, 0, 1]
     ],
@@ -326,7 +370,15 @@ test_map_7 = [
     [
         [0, 0, 0, 0, 1]     # the head room of the foothold position is trivial
     ]
-]
+],
+    "size": (5, 1, 6),
+    "jump_distance": 3,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump, the head room of the foothold position is trivial",
+}
 
 # test_map_8:
 # size: 5 * 1 * 6
@@ -336,7 +388,9 @@ test_map_7 = [
 # jump: 0
 # jump distance: 3
 # info: head blocked in starting position in either direction
-test_map_8 = [
+test_map_8 = {
+    "name": "test_map_8",
+    "map": [
     [
         [1, 0, 0, 0, 1]    
     ],
@@ -358,7 +412,15 @@ test_map_8 = [
     [
         [1, 0, 0, 0, 1]     # head blocked in starting position in either direction
     ]
-]
+],
+    "size": (5, 1, 6),
+    "jump_distance": 3,
+    "path_length": 1,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": 0,
+    "info": "head blocked in starting position in either direction",
+}
 
 
 
@@ -370,7 +432,9 @@ test_map_8 = [
 # jump: 0
 # jump distance: 3
 # info: head blocked in the position before foothold position
-test_map_9 = [
+test_map_9 = {
+    "name": "test_map_9",
+    "map": [
     [
         [1, 0, 0, 0, 1]
     ],
@@ -392,7 +456,15 @@ test_map_9 = [
     [
         [0, 0, 0, 1, 1]     # head blocked in the position before foothold position
     ]
-]
+],
+    "size": (5, 1, 6),
+    "jump_distance": 3,
+    "path_length": 1,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": 0,
+    "info": "head blocked in the position before foothold position",
+}
 
 
 # test_map_10:
@@ -401,7 +473,9 @@ test_map_9 = [
 # path length: 2
 # region number: 1
 # jump: 1
-test_map_10 = [
+test_map_10 = {
+    "name": "test_map_10",
+    "map": [
     [
         [1, 0, 0, 1]
     ],
@@ -423,7 +497,15 @@ test_map_10 = [
     [
         [0, 0, 0, 0]
     ]
-]
+],
+    "size": (4, 1, 6),
+    "jump_distance": 2,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump",
+}
 
 
 # test_map_11:
@@ -432,7 +514,9 @@ test_map_10 = [
 # path length: 2
 # region number: 1
 # jump: 1
-test_map_11 = [
+test_map_11 = {
+    "name": "test_map_11",
+    "map": [
     [
         [1, 0, 1]
     ],
@@ -454,7 +538,15 @@ test_map_11 = [
     [
         [0, 0, 0]
     ]
-]
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump",
+}
 
 
 # test_map_12:
@@ -465,7 +557,9 @@ test_map_11 = [
 # jump: 1
 # height difference: 1
 # info: the height difference of starting point and foothold position is 1
-test_map_12 = [
+test_map_12 = {
+    "name": "test_map_12",
+    "map": [
     [
         [1, 0, 1]
     ],
@@ -487,7 +581,15 @@ test_map_12 = [
     [
         [0, 0, 0]     
     ]
-]
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 1,
+    "info": "the height difference of starting point and foothold position is 1",
+}
 
 
 # test_map_13:
@@ -498,7 +600,9 @@ test_map_12 = [
 # jump: 1
 # height difference: 2
 # info: the height difference of starting point and foothold position is 1
-test_map_13 = [
+test_map_13 = {
+    "name": "test_map_13",
+    "map": [
     [
         [1, 0, 1]
     ],
@@ -520,7 +624,15 @@ test_map_13 = [
     [
         [0, 0, 0]
     ]
-]
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 2,
+    "info": "the height difference of starting point and foothold position is 1",
+}
 
 
 # test_map_14:
@@ -531,7 +643,9 @@ test_map_13 = [
 # jump: 0
 # height difference: 0
 # info: head blocked in starting position in either direction
-test_map_14 = [
+test_map_14 = {
+    "name": "test_map_14",
+    "map":[
     [
         [1, 0, 1]
     ],
@@ -553,8 +667,15 @@ test_map_14 = [
     [
         [1, 0, 1]
     ]
-]
-
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 1,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": 0,
+    "info": "head blocked in starting position in either direction",
+}
 
 # test_map_15:
 # size: 3 * 1 * 6
@@ -564,7 +685,10 @@ test_map_14 = [
 # jump: 0
 # height difference: 0
 # info: head blocked in foothold position
-test_map_15 = [
+test_map_15 = {
+    "name": "test_map_15",
+    "map": 
+    [
     [
         [1, 0, 1]
     ],
@@ -586,7 +710,15 @@ test_map_15 = [
     [
         [0, 1, 1]
     ]
-]
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 1,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": 0,
+    "info": "head blocked in foothold position",
+}
 
 
 # test_map_16:
@@ -597,7 +729,9 @@ test_map_15 = [
 # jump: 1
 # height difference: 0
 # info: valid jump
-test_map_16 = [
+test_map_16 = {
+    "name": "test_map_16",
+    "map": [
     [
         [1, 0, 1]
     ],
@@ -619,7 +753,15 @@ test_map_16 = [
     [
         [0, 0, 1]
     ]
-]
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump",
+}
 
 
 # test_map_17:
@@ -630,7 +772,9 @@ test_map_16 = [
 # jump: 1
 # height difference: -1
 # info: valid jump
-test_map_17 = [
+test_map_17 = {
+    "name": "test_map_17",
+    "map":[
     [
         [1, 0, 1]
     ],
@@ -652,7 +796,15 @@ test_map_17 = [
     [
         [0, 0, 1]
     ]
-]
+],
+    "size": (3, 1, 6),
+    "jump_distance": 1,
+    "path_length": 2,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": -1,
+    "info": "valid jump",
+}
 
 # TODO: test map for falling distance > 1 and <= 3
 
@@ -662,8 +814,8 @@ test_map_17 = [
 """
 get the state of the test maps
 """
-def get_test_state(test_map, tile_types):
-    test_map = np.array(test_map)
+def get_test_state(map, tile_types):
+    test_map = np.array(map["map"])
     test_string_map = get_string_map(test_map, tile_types)
     map_locations = get_tile_locations(test_string_map, tile_types)
 
@@ -671,9 +823,15 @@ def get_test_state(test_map, tile_types):
     path_length, path_coords = calc_longest_path(test_string_map, map_locations, ["AIR"], get_path=True)
     num_regions = calc_num_regions(test_string_map, map_locations, ["AIR"])
     debug_path_coords = debug_path(path_coords, test_string_map, ["AIR"])
-    print("longest path length:", path_length)
-    print("number of regions:", num_regions)
-    print(f"The path is: {debug_path_coords}")
+
+    print(f"Testing on {map['name']}")
+    print(
+        f"longest path length: {path_length}, it should be {map['path_length']}, "
+        f"pass the test? {path_length == map['path_length']}")
+    print(
+        f"num_regions: {num_regions}, it should be {map['region_number']}, pass the test? {num_regions == map['region_number']}")
+    print(f"The path is valid? {debug_path_coords}") 
+    print(f"Test passed? {path_length == map['path_length'] and num_regions == map['region_number'] and debug_path_coords}")
     return path_length, path_coords, num_regions
 
 
@@ -734,4 +892,11 @@ if __name__=="__main__":
     ################################################################################
     # test the 3D plotting using matplotlib 3D voxel / volumetric plotting
 
-    plot_3d_map(test_map_5)
+    # plot_3d_map(test_map_5)
+
+    ################################################################################
+    # test the jumping logic
+    # jumping distance: 1
+    
+    path_length, path_coords, num_regions = get_test_state(test_map_4 , tile_types)
+
