@@ -229,7 +229,7 @@ test_map_4 = [
     ]
 ]
 
-test_maps = [np.array(tm) for tm in [staircase, test_map_1, test_map_2, test_map_3, test_map_4]]
+test_maps = [np.array(tm) for tm in [test_map_2]]
 
 for int_map in test_maps:
     # FIXME: why does this seem to take so long? Path-finding is fast. Just creating the environment itself?

@@ -15,7 +15,8 @@ import matplotlib.pyplot as plt
 tile_types = ["AIR", "DIRT"]
 
 ######## Test the path finding func and region counting func in stairing logic #########
-
+# Note: the path length is calculated by the dijkstra map in helper_3D.py (the max value in the dijkstra map), which 
+# starts the counting from 0. As a result, the path length is 1 less than the actual path length / len(path_coords).
 # test_map_1: 
 # size: 7 * 7 * 5
 # longest path length: 28 + 2 + 29 = 59
@@ -69,7 +70,7 @@ test_map_1 = {
     ]
 ],
     "size": (7, 7, 5),
-    "path_length": 59,
+    "path_length": 58,
     "region_number": 1,
     "info": "Two-layer test map with perpendicular corridors."
 }
@@ -128,7 +129,7 @@ test_map_2 = {
     ]
 ], 
     "size": (7, 7, 5),
-    "path_length": 57,
+    "path_length": 54, # previously I think it was 56, but it's not because there's a short cut at the beginning of the second layer
     "region_number": 1,
     "info": "Two-layer test map with parallel corridor",
 }
@@ -188,7 +189,7 @@ test_map_3 = {
     ]
 ],
     "size": (7, 7, 5),
-    "path_length": 57,
+    "path_length": 54,
     "region_number": 1,
     "info": "identical to test_map_2, except that some unnecessary tiles are removed (to test region number)",
 }
@@ -251,7 +252,7 @@ test_map_4 = {
     ]
 ],
     "size": (3, 6, 6),
-    "path_length": 5,
+    "path_length": 4,
     "region_number": 1,
     "info": "small map for testing climbing stairs",
 }
@@ -330,7 +331,7 @@ test_map_6 = {
 ],
     "size": (5, 1, 6),
     "jump_distance": 3,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 0,
@@ -373,7 +374,7 @@ test_map_7 = {
 ],
     "size": (5, 1, 6),
     "jump_distance": 3,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 0,
@@ -415,7 +416,7 @@ test_map_8 = {
 ],
     "size": (5, 1, 6),
     "jump_distance": 3,
-    "path_length": 1,
+    "path_length": 0,
     "region_number": 1,
     "jump": 0,
     "height_difference": 0,
@@ -459,7 +460,7 @@ test_map_9 = {
 ],
     "size": (5, 1, 6),
     "jump_distance": 3,
-    "path_length": 1,
+    "path_length": 0,
     "region_number": 1,
     "jump": 0,
     "height_difference": 0,
@@ -500,7 +501,7 @@ test_map_10 = {
 ],
     "size": (4, 1, 6),
     "jump_distance": 2,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 0,
@@ -541,7 +542,7 @@ test_map_11 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 0,
@@ -584,7 +585,7 @@ test_map_12 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 1,
@@ -627,7 +628,7 @@ test_map_13 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 2,
@@ -670,7 +671,7 @@ test_map_14 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 1,
+    "path_length": 0,
     "region_number": 1,
     "jump": 0,
     "height_difference": 0,
@@ -713,7 +714,7 @@ test_map_15 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 1,
+    "path_length": 0,
     "region_number": 1,
     "jump": 0,
     "height_difference": 0,
@@ -756,7 +757,7 @@ test_map_16 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": 0,
@@ -799,7 +800,7 @@ test_map_17 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 2,
+    "path_length": 1,
     "region_number": 1,
     "jump": 1,
     "height_difference": -1,
@@ -831,7 +832,7 @@ def get_test_state(map, tile_types):
     print(
         f"num_regions: {num_regions}, it should be {map['region_number']}, pass the test? {num_regions == map['region_number']}")
     print(f"The path is valid? {debug_path_coords}") 
-    print(f"Test passed? {path_length == map['path_length'] and num_regions == map['region_number'] and debug_path_coords}")
+    print(f"Test passed? -------> {path_length == map['path_length'] and num_regions == map['region_number'] and debug_path_coords}")
     return path_length, path_coords, num_regions
 
 
@@ -898,5 +899,6 @@ if __name__=="__main__":
     # test the jumping logic
     # jumping distance: 1
     
-    path_length, path_coords, num_regions = get_test_state(test_map_4 , tile_types)
+    for i in range(11, 18):
+        path_length, path_coords, num_regions = get_test_state(globals()[f"test_map_{11}"], tile_types)
 
