@@ -700,7 +700,8 @@ class Individual(phenotype.Individual):
     def __init__(self, model_cls, n_in_chans, n_actions, **kwargs):
         super(Individual, self).__init__()
         self.model = model_cls(n_in_chans, n_actions, **kwargs)
-        self.fitness = phenotype.Fitness([0])
+        # Provide weight of 1 to prevent qdpy/deap from defaulting to minimization
+        self.fitness = phenotype.Fitness([0], weights=[1])
         self.fitness.delValues()
 
     def mutate(self):
