@@ -159,7 +159,7 @@ class ConditionalWrapper(gym.Wrapper):
         self.infer = kwargs.get("infer", False)
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
-        self.max_loss = self.get_max_loss()
+        self.max_loss = self.get_max_loss(ctrl_metrics=ctrl_loss_metrics)
 
 
     def get_control_bounds(self):
