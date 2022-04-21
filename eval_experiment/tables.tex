@@ -1,14 +1,39 @@
 \documentclass{article}
-\usepackage[paperheight=10in,paperwidth=13.00in,margin=1in,heightrounded,showframe]{geometry}
+\usepackage[paperheight=40in,paperwidth=13.00in,margin=1in,heightrounded,showframe]{geometry}
 %\usepackage{table}
 \usepackage{booktabs}
 \usepackage{multirow}
 \begin{document}
 %    Hyperparameter ablations:\\
 \input{cross_eval.tex}
+    \subsubsection*{Archive size}
+    One-way ANOVA:\\
+    \input{oneway_anova_archive size.tex}\\
+    Pairwise Tukey:\\
+    \input{pairwise_tukey_archive size.tex}
+    \subsubsection*{QD score}
+    One-way ANOVA:\\
+    \input{oneway_anova_QD score.tex}\\
+    Pairwise Tukey:\\
+    \input{pairwise_tukey_QD score.tex}
+    \subsubsection*{diversity}
+    One-way ANOVA:\\
+    % \input{}\\
+    Pairwise Tukey:\\
+    % \input{}
+    \subsubsection*{Eval archive size}
+    One-way ANOVA:\\
+    \input{oneway_anova_(generalize) archive size.tex}\\
+    Pairwise Tukey:\\
+    \input{pairwise_tukey_(generalize) archive size.tex}
     \subsubsection*{Eval QD score}
     One-way ANOVA:\\
     \input{oneway_anova_(infer) QD score.tex}\\
     Pairwise Tukey:\\
     \input{pairwise_tukey_(infer) QD score.tex}
+    \subsubsection*{Eval diversity}
+    One-way ANOVA:\\
+    \input{oneway_anova_(infer) diversity.tex}\\
+    Pairwise Tukey:\\
+    \input{pairwise_tukey_(infer) diversity.tex}
 \end{document}

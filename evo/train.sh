@@ -11,18 +11,22 @@
 #SBATCH --job-name=evopcg
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=se2161@nyu.edu
-#SBATCH --output=evo_runs/evopcg_1_%j.out
+#SBATCH --output=evo_runs/evopcg_62_%j.out
 
 cd /scratch/se2161/control-pcgrl
+
+
+# We try to activate the relevant conda environment below.
 
 ## Is this actually necessary?
 source activate
 
-## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
+## Is the error message here telling the truth?
 conda activate pcgrl
 
+
 start=$SECONDS
-while ! python evo/evolve.py -la 1
+while ! python evo/evolve.py -la 62
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

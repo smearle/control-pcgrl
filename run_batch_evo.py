@@ -5,7 +5,6 @@ below, and this script will launch all valid combinations of uncommented hyperpa
 WARNING: This will kill all ray processes running on the current node after each experiment, to avoid memory issues from
 dead processes.  """
 import argparse
-from bdb import GENERATOR_AND_COROUTINE_FLAGS
 from collections import namedtuple
 import copy
 import json
@@ -19,7 +18,7 @@ from evo.cross_eval import compile_results
 from evo.render_gifs import render_gifs
 
 
-GENERATIVE_ONLY_CROSS_EVAL = True
+GECCO_CROSS_EVAL = True
 
 with open("configs/evo/batch.yaml", "r") as f:
     batch_config = yaml.safe_load(f)
@@ -87,12 +86,6 @@ def launch_batch(exp_name, collect_params=False):
                                             if n_init_states == 0 and "Decoder" in model:
                                                 continue
 
-                                            # For the sake of cross-evaluating over model variable alone, do not look at
-                                            # experiments treating models with generative capabilities as indirect encodings
-                                            if args.cross_eval and GENERATIVE_ONLY_CROSS_EVAL:
-                                                if n_init_states == 0 and not (model == "CPPN" or model == "Sin2CPPN" or model == "SinCPPN"):
-                                                    continue
-
                                             if model in ["CPPN", "GenCPPN", "GenCPPN2", "CPPNCA", "DirectBinaryEncoding"]:
                                                 if algo != "ME":
                                                     print("Skipping experiments with model {model} and algo {algo}. (requires "
@@ -117,8 +110,16 @@ def launch_batch(exp_name, collect_params=False):
 
                                             for step_size in batch_config.step_sizes:
 
-                                                # Edit the sbatch file to load the correct config file
+                                                # For rendering tables for the GECCO paper, we exclude a bunch of experiments.
+                                                if args.cross_eval and GECCO_CROSS_EVAL:
+                                                    if n_init_states == 0 and not (model == "CPPN" or model == "Sin2CPPN" or model == "SinCPPN"):
+                                                        continue
+                                                    if algo == "ME" and step_size != 0.01 or algo == "CMAME" and step_size != 1.0:
+                                                        continue
+                                                    if algo == "ME" and model not in ["CPPN", "GenCPPN2"]:
+                                                        continue
 
+                                                # Edit the sbatch file to load the correct config file
                                                 if EVALUATE:
                                                     script_name = "evo/eval.sh"
                                                 else:

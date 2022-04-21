@@ -1,24 +1,28 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=10
 
 ## We won't be asking for gpus, for now
 ##SBATCH --gres=gpu:1
 
 #SBATCH --time=2:00:00
-#SBATCH --mem=50GB
-#SBATCH --job-name=evalevopcgrl
+#SBATCH --mem=32GB
+#SBATCH --job-name=evalevopcg
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=evalevopcgrl_%j.out
+#SBATCH --mail-user=se2161@nyu.edu
+#SBATCH --output=evalevopcg_%j.out
 
-cd /scratch/zj2086/control-pcgrl
+cd /scratch/se2161/control-pcgrl
+
+
+# We try to activate the relevant conda environment below.
 
 ## Is this actually necessary?
 source activate
 
-## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate evo-pcgrl
+## Is the error message here telling the truth?
+conda activate pcgrl
 
-python evo/evolve.py -la 19
+
+python evo/evolve.py -la 2

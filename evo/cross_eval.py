@@ -53,6 +53,9 @@ row_idx_names = {
 def bold_extreme_values(data, data_max=-1, col_name=None):
 
     data, err = data
+    if data == err == 0.0:
+        return "---"
+        
     if data == data_max:
         bold = True
     else: bold = False
@@ -165,21 +168,24 @@ def compile_results(settings_list, tex=False):
 #       "problem",
 #       "behavior_characteristics",
         "model",
-        "algo",
-        "step_size",
+#       "algo",
+#       "step_size",
 #       "representation",
 #       "n_init_states",
 #       "fix_level_seeds",
 #       "fix_elites",
-#       "n_steps",
+        "n_steps",
         "exp_name",
     ]
 
     hyperparam_rename = {
         "model" : {
-            "AuxNCA": newline("NCA with", "auxiliary channels", "r"),
-            "Sin2CPPN": newline("fixed-topology", "CPPN", "r"),
-            "GenSin2CPPN2": newline("generative,", "fixed-topology CPPN", "r"),
+            # "AuxNCA": newline("NCA with", "auxiliary channels", "r"),
+            "AuxNCA": "NCA with auxiliary channels",
+            # "Sin2CPPN": newline("fixed-topology", "CPPN", "r"),
+            "Sin2CPPN": "fixed-topology CPPN",
+            # "GenSin2CPPN2": newline("generative,", "fixed-topology CPPN", "r"),
+            "GenSin2CPPN2": "generative, fixed-topology CPPN",
             "GenCPPN2": "generative CPPN",
             # "CPPN": "Vanilla CPPN",
             # "GenSinCPPN": " "+newline("Fixed", "CPPN"),
@@ -202,7 +208,7 @@ def compile_results(settings_list, tex=False):
     assert len(hyperparams) == len(set(hyperparams))
     col_indices = None
     data = []
-    row_vals = []
+    row_tpls = []
 
     for i, settings in enumerate(settings_list):
         val_lst = []
@@ -226,9 +232,10 @@ def compile_results(settings_list, tex=False):
         if not (os.path.isfile(stats_f) and os.path.isfile(fix_lvl_stats_f)):
             print("skipping evaluation of experiment due to missing stats file(s): {}".format(exp_name))
             continue
-        row_vals.append(tuple(val_lst))
+        row_tpls.append(tuple(val_lst))
         data.append([])
         stats = json.load(open(stats_f, "r"))
+        print(fix_lvl_stats_f)
         fix_lvl_stats = json.load(open(fix_lvl_stats_f, "r"))
         flat_stats = flatten_stats(fix_lvl_stats, tex=tex)
         flat_stats.update(flatten_stats(stats, tex=tex, evaluation=True))
@@ -237,9 +244,14 @@ def compile_results(settings_list, tex=False):
             # grab columns (json keys) from any experiment's stats json, since they should all be the same
             col_indices = list(flat_stats.keys())
 
+        generative = settings['n_init_states'] != 0
+
         for j, c in enumerate(col_indices):
             if c not in flat_stats:
                 data[-1].append("N/A")
+            # All values that are not applicable for non-generative (indirect encoding) models are zeroed out.
+            if not generative and (c == 'diversity' or c.startswith('(infer)') or c.startswith('(generalize)')):
+                data[-1].append(0)
             else:
                 data[-1].append(flat_stats[c])
 
@@ -248,7 +260,7 @@ def compile_results(settings_list, tex=False):
         # Do one-way anova test over models. We need a version of the dataframe with "model" as a column (I guess).
         # NOTE: This is only meaningful when considering a batch of experiments varying only over 1 hyperparameter
         qd_score_idx = col_indices.index(metric)
-        oneway_anova_data = {'model': [v[0] for v in row_vals], metric: [d[qd_score_idx] for d in data]}
+        oneway_anova_data = {'model': [v[0] for v in row_tpls], metric: [d[qd_score_idx] for d in data]}
         oneway_anova_df = pd.DataFrame(oneway_anova_data)
         oneway_anova = pg.anova(data=oneway_anova_df, dv=metric, between='model', detailed=True)
         oneway_anova.to_latex(os.path.join('eval_experiment', f'oneway_anova_{metric}.tex'))
@@ -258,12 +270,29 @@ def compile_results(settings_list, tex=False):
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
-    # for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity']:
-    #     analyze_metric(metric)
+    for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity', 'diversity']:
+        analyze_metric(metric)
 
-    row_tpls = row_vals
+    # Rename hyperparameter names (row indices)
+    new_keys = []
+    for k in hyperparams:
+        if tex and k in col_keys:
+            new_keys.append(col_keys[k])
+        elif k not in new_keys:
+            new_keys.append(k)
+        else:
+            pass
+#           new_keys.append('{}_{}'.format(k, 2))
+
+    # Sort rows (of hyperparam values and corresponding data) manually.
+    def sort_rows(row_tpl, row_keys):
+        model_name = row_tpl[row_keys.index('model')]
+        return ["CPPN", "Sin2CPPN", "GenCPPN2", "GenSin2CPPN2", "Decoder", "NCA", "AuxNCA"].index(model_name)
+    rows_data_sorted = sorted(zip(row_tpls, data), key=lambda x: sort_rows(x[0], new_keys))
+    row_tpls, data = [list(e) for e in zip(*rows_data_sorted)]
+
+    # Preprocess/rename hyperparameter values (row index headers)
     for i, tpl in enumerate(row_tpls):
-        # Preprocess row headers
         for j, hyper_val in enumerate(tpl):
             hyper_name = hyperparams[j]
             if hyper_name in hyperparam_rename:
@@ -273,28 +302,6 @@ def compile_results(settings_list, tex=False):
             tpl = tuple(tpl)
         row_tpls[i] = tpl
 
-
-    # Rename headers
-    new_keys = []
-
-
-
-    for k in hyperparams:
-        if tex and k in col_keys:
-            new_keys.append(col_keys[k])
-        elif k not in new_keys:
-            new_keys.append(k)
-        else:
-            pass
-#           new_keys.append('{}_{}'.format(k, 2))
-    def sort_rows(row_tpl, row_keys):
-        i = row_keys.index('model')
-        if row_tpl[i] == 'NCA':
-            return 2
-        if row_tpl[i] == 'CPPN':
-            return 0
-        return 1
-#   tuples.sort(key=lambda x: sort_rows(x, new_keys))
     row_indices = pd.MultiIndex.from_tuples(row_tpls, names=new_keys)
     #   df = index.sort_values().to_frame(index=True)
     z_cols = [
@@ -334,7 +341,7 @@ def compile_results(settings_list, tex=False):
         # columns = pd.MultiIndex.from_tuples(col_tuples, names=['', newline('evaluated', 'controls'), ''])
     col_indices = pd.MultiIndex.from_tuples(col_tuples)
     # columns = pd.MultiIndex.from_tuples(col_tuples)
-    df = pd.DataFrame(data=data, index=row_indices, columns=col_indices).sort_values(by=new_keys)
+    df = pd.DataFrame(data=data, index=row_indices, columns=col_indices)
 
     csv_name = r"{}/cross_eval_multi.csv".format(EVAL_DIR)
     html_name = r"{}/cross_eval_multi.html".format(EVAL_DIR)
@@ -365,6 +372,9 @@ def compile_results(settings_list, tex=False):
 
     for i, vi in enumerate(eval_qd_scores):
         for j, vj in enumerate(eval_qd_scores):
+            if vi.sum() == vj.sum() == 0:
+                pvals[i,j] = 1.0
+                continue
             pvals[i,j] = scipy.stats.mannwhitneyu(vi, vj)[1]
 
     im = plt.figure()
@@ -384,7 +394,7 @@ def compile_results(settings_list, tex=False):
     ndf.index = new_row_indices
     ndf.columns = new_col_indices
     ndf.index.names = df.index.names[:-1]
-    ndf = ndf.sort_values(by=new_keys[:-1])
+    ndf = ndf
     ndf.to_csv(csv_name)
     ndf.to_html(html_name)
     df.rename(col_keys, axis=1)
