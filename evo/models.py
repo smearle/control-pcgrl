@@ -5,7 +5,7 @@ import cv2
 import neat
 from neat import DefaultGenome
 import numpy as np
-from pytorch_neat.cppn import create_cppn
+from pytorch_neat.cppn import create_cppn, Leaf
 from qdpy import phenotype
 import torch as th
 from torch import nn

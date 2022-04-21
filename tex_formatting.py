@@ -5,7 +5,7 @@ def newline(t0, t1, align="r"):
     assert align in ["l", "r", "c"]
     return "\\begin{tabular}["+align+"]{@{}"+align+"@{}}" + t0 + "\\\ " + t1 + "\\end{tabular}"
 
-def align(t0, align="c"):
+def align(t0, align="r"):
     assert align in ["l", "r", "c"]
     raise NotImplementedError("align() not implemented properly yet")
     return "\\begin{tabular}["+align+"]{@{}"+align+"@{}}" + t0 + "\\\ " + t0 + "\\end{tabular}"
@@ -29,7 +29,7 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
     n = len(df_table.columns) + len(df_table.index[0])
 
 #   if right_align_first_column:
-    cols = 'c' + 'r' * (n - 1)
+    cols = 'r' + 'r' * (n - 1)
 #   else:
 #       cols = 'r' * n
 

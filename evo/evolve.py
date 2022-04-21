@@ -45,7 +45,7 @@ import copy
 from args import get_args
 from archives import InitStatesArchive, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
-    set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN
+    set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN
 from utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
@@ -1542,7 +1542,7 @@ class EvoPCGRL:
 #               n_in_chans=self.n_tile_types, n_actions=n_out_chans
 #           )
 #       else:
-        n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN2" in MODEL else self.n_tile_types
+        n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN" in MODEL else self.n_tile_types
         self.gen_model = globals()[MODEL](
             n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env.unwrapped._prob._width,
             render=RENDER)

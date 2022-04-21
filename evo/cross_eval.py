@@ -34,7 +34,7 @@ col_key_linebreaks = {
     'archive maintained': newline("archive", "maintained"),
     'QD score maintained': newline("QD score", "maintained"),
     # 'QD score': align('QD score', "c"),
-    'diversity': newline("generator", "diversity", align="c"),
+    'diversity': newline("generator", "diversity", align="r"),
 }
 
 row_idx_names = {
@@ -177,9 +177,9 @@ def compile_results(settings_list, tex=False):
 
     hyperparam_rename = {
         "model" : {
-            "AuxNCA": newline("NCA with", "auxiliary channels", "c"),
-            "Sin2CPPN": newline("fixed-topology", "CPPN", "c"),
-            "GenSin2CPPN2": newline("generative,", "fixed-topology CPPN", "c"),
+            "AuxNCA": newline("NCA with", "auxiliary channels", "r"),
+            "Sin2CPPN": newline("fixed-topology", "CPPN", "r"),
+            "GenSin2CPPN2": newline("generative,", "fixed-topology CPPN", "r"),
             "GenCPPN2": "generative CPPN",
             # "CPPN": "Vanilla CPPN",
             # "GenSinCPPN": " "+newline("Fixed", "CPPN"),
