@@ -11,7 +11,7 @@
 #SBATCH --job-name=evopcg
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=se2161@nyu.edu
-#SBATCH --output=evo_runs/evopcg_8_%j.out
+#SBATCH --output=evo_runs/evopcg_1_%j.out
 
 cd /scratch/se2161/control-pcgrl
 
@@ -22,7 +22,7 @@ source activate
 conda activate pcgrl
 
 start=$SECONDS
-while ! python evo/evolve.py -la 8
+while ! python evo/evolve.py -la 1
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

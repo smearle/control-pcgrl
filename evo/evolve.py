@@ -531,8 +531,6 @@ def unravel_index(
 # CPPN2 takes latent seeds not onehot levels
 
 
-# FIXME: this guy don't work
-
 
 """
 Behavior Characteristics Functions
@@ -798,8 +796,8 @@ def log_archive(archive, name, itr, start_time, args, level_json=None):
     elapsed_time = time.time() - start_time
     writer.add_scalar("{} ArchiveSize".format(name), archive_size, itr)
     writer.add_scalar("{} score/mean".format(name), np.nanmean(objs), itr)
-    writer.add_scalar("{} score/max".format(name), np.nanmean(objs), itr)
-    writer.add_scalar("{} score/min".format(name), np.nanmean(objs), itr)
+    writer.add_scalar("{} score/max".format(name), np.nanmax(objs), itr)
+    writer.add_scalar("{} score/min".format(name), np.nanmin(objs), itr)
     writer.add_scalar(f"{name} QD score", get_qd_score(archive, args), itr)
 
     # Change: log mean, max, and min for all stats
@@ -1130,7 +1128,7 @@ def simulate(
         # TODO: wrap the env instead
         env.unwrapped._rep._x = env.unwrapped._rep._y = 0
         # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
-        if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
+        if ("Decoder" in MODEL) or ("CPPN" in MODEL):
             obs = init_state
         else:
             # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
@@ -2847,9 +2845,9 @@ def gen_latent_seeds(n_init_states, env):
         im_dims = (env.unwrapped._prob._height, env.unwrapped._prob._width)
     if env.unwrapped._prob.is_continuous():  # AD HOC continous representation
         init_states = np.random.uniform(0, 1, size=(N_INIT_STATES, 3, *im_dims))
-    elif "CPPN2" in MODEL or "Decoder" in MODEL:
+    elif "CPPN" in MODEL or "Decoder" in MODEL:
         init_states = np.random.normal(0, 1, (N_INIT_STATES, N_LATENTS))
-        if "CPPN2" in MODEL:
+        if "CPPN" in MODEL:
             init_states = np.tile(init_states[:, :, None, None], (1, 1, *im_dims))
         if "Decoder" in MODEL:
             assert env.unwrapped._prob._width % 4 == env.unwrapped._prob._height % 4 == 0
@@ -2979,7 +2977,7 @@ if __name__ == "__main__":
             assert N_INIT_STATES == 0 and not RANDOM_INIT_LEVELS and not REEVALUATE_ELITES
         if MODEL != "CPPNCA":
             assert N_STEPS == 1
-    if ("Decoder" in MODEL) or ("CPPN2" in MODEL):
+    if ("Decoder" in MODEL) or ("CPPN" in MODEL):
         assert N_STEPS == 1
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
