@@ -135,7 +135,7 @@ def launch_batch(exp_name, collect_params=False):
                                 # Replace the job name.
                                 content = re.sub(
                                     "rl_runs/pcgrl_.*",
-                                    f"rl_runs/pcgrl_{prob}_{rep}_{exp_name}",
+                                    f"rl_runs/pcgrl_{prob}_{rep}_{exp_name}_%j.out",
                                     content
                                 )
                             with open(sbatch_name, "w") as f:
@@ -219,6 +219,13 @@ if __name__ == "__main__":
         "--n_cpu",
         type=int,
         default=12,
+        help="Number of remote workers to use for rllib training.",
+    ) 
+    opts.add_argument(
+        "--n_gpu",
+        type=int,
+        default=1,
+        help="Number of GPUs to use for training.",
     )
     opts.add_argument(
         "--load",

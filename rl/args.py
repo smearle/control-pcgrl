@@ -36,17 +36,15 @@ def parse_args():
 def parse_pcgrl_args(args):
     opts = args.parse_args()
     opts.conditional = True
-
-    arg_dict = vars(opts)
+    opts_dict = vars(opts)
 
     if opts.load_args is not None:
         with open(f'configs/rl/auto/settings_{opts.load_args}.json') as f:
             new_arg_dict = json.load(f)
-            arg_dict.update(new_arg_dict)
+            opts_dict.update(new_arg_dict)
 
         if opts.max_step == -1:
             opts.max_step = None
-
     if opts.conditionals == ["NONE", "NONE"]:
         opts.conditionals = []
         opts.conditional = False
@@ -122,7 +120,16 @@ def get_args():
         type=int,
         default=50,
     )
-    args.add_argument("--render", help="Render an environment?", action="store_true")
+    args.add_argument(
+        "--n_gpu",
+        help="How many GPUs to use.",
+        type=int,
+        default=1,
+    )
+    args.add_argument("--render",
+        help="Render an environment?", 
+        action="store_true"
+    )
     args.add_argument(
         "--load_best",
         help="Whether to load the best saved model of a given run rather than the latest.",

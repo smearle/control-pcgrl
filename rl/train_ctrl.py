@@ -53,6 +53,7 @@ def main(cfg):
     if not cfg.load:
 
         if not cfg.overwrite:
+            # New experiment
             if os.path.isdir(log_dir):
                 raise Exception(f"Log directory rl_runs/{exp_name_id} exists. Please delete it first (or use command "
                 "line argument `--load` to load experiment, or `--overwrite` to overwrite it).")
@@ -66,9 +67,7 @@ def main(cfg):
             os.mkdir(log_dir)
 
         # Save the experiment settings for future reference.
-        with open(os.path.join(log_dir, 'settings.json'),
-                'w',
-                encoding='utf-8') as f:
+        with open(os.path.join(log_dir, 'settings.json'), 'w', encoding='utf-8') as f:
             json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
 
     # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
@@ -90,7 +89,7 @@ def main(cfg):
     trainer_config = {
         'framework': 'torch',
         'num_workers': num_workers,
-        'num_gpus': 1,
+        'num_gpus': cfg.n_gpu,
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
         'num_envs_per_worker': 20 if not cfg.infer else 1,
         'render_env': cfg.render,
@@ -139,6 +138,7 @@ def main(cfg):
 
     n_params = 0
     param_dict = trainer.get_weights()['default_policy']
+
     for v in param_dict.values():
         n_params += np.prod(v.shape)
     print(f'default_policy has {n_params} parameters.')
@@ -202,7 +202,6 @@ def main(cfg):
 cfg = parse_args()
 
 cfg.evaluate = False  # TODO: implement evaluation
-
 cfg.ca_actions = False  # Not using NCA-type actions.
 cfg.logging = True  # Always log
 
