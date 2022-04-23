@@ -54,8 +54,8 @@ def main(cfg):
 
         if not cfg.overwrite:
             if os.path.isdir(log_dir):
-                raise Exception("Log directory exists. Delete it first (or use command line argument `--load` to load "
-                "experiment, or `--overwrite` to overwrite it).")
+                raise Exception(f"Log directory rl_runs/{exp_name_id} exists. Please delete it first (or use command "
+                "line argument `--load` to load experiment, or `--overwrite` to overwrite it).")
 
             # Create the log directory if training from scratch.
             os.mkdir(log_dir)

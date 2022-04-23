@@ -9,7 +9,7 @@
 #SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=rl_runs/pcgrl_0_%j.out
+#SBATCH --output=rl_runs/pcgrl_binary_ctrl_narrow_TestConfig1_%j.out
 
 cd /scratch/zj2086/control-pcgrl
 
@@ -20,7 +20,7 @@ source activate pcgrl
 conda activate pcgrl
 
 # start=$SECONDS
-python rl/train_ctrl.py --load_args 0
+python rl/train_ctrl.py --load_args binary_ctrl_narrow_TestConfig1
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

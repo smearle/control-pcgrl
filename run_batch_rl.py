@@ -16,6 +16,7 @@ import yaml
 import numpy as np
 
 from rl.cross_eval import compile_results
+from rl.utils import get_exp_name
 
 
 with open("configs/rl/batch.yaml", "r") as f:
@@ -62,8 +63,8 @@ def launch_batch(exp_name, collect_params=False):
                     for change_percentage in batch_config.change_percentages:
 
                         if sum(['3D' in name for name in [prob, rep]]) == 1:
-                            print('Dimensions (2D or 3D) of problem and representation do not match. Skipping '
-                                  'experiment.')
+                            print(f'Dimensions (2D or 3D) of Problem: {prob} and Representation: {rep} '
+                                     'do not match. Skipping experiment.')
                             continue
 
                         if alp_gmm and controls == ["NONE", "NONE"]:
@@ -82,26 +83,7 @@ def launch_batch(exp_name, collect_params=False):
                         else:
                             py_script_name = "rl/train_ctrl.py"
                             sbatch_name = "rl/train.sh"
-                        # Edit the sbatch file to load the correct config file
-                        if not opts.render:
-                            with open(sbatch_name, "r") as f:
-                                content = f.read()
-
-                                # Replace the ``python scriptname --cl_args`` line.
-                                content = re.sub(
-                                    "python .* --load_args \d+",
-                                    "python {} --load_args {}".format(py_script_name, i),
-                                    content,
-                                )
-
-                                # Replace the job name.
-                                content = re.sub(
-                                    "rl_runs/pcgrl_\d+", 
-                                    f"rl_runs/pcgrl_{i}", 
-                                    content
-                                )
-                            with open(sbatch_name, "w") as f:
-                                f.write(content)
+                        
                         # Write the config file with the desired settings
                         exp_config = copy.deepcopy(default_config)
 
@@ -134,17 +116,41 @@ def launch_batch(exp_name, collect_params=False):
                                     "vis_only": opts.vis_only,
                                 }
                             )
-                        print("Saving experiment config:\n{}".format(exp_config))
-                        with open("configs/rl/auto/settings_{}.json".format(i), "w") as f:
+                        print(f"Saving experiment config:\n{exp_config}")
+                        
+                        # get the experiment name to name the config file
+                        config_name = f"{prob}_{rep}_{exp_name}"
+                        # Edit the sbatch file to load the correct config file
+                        if not opts.render:
+                            with open(sbatch_name, "r") as f:
+                                content = f.read()
+
+                                # Replace the ``python scriptname --cl_args`` line.
+                                content = re.sub(
+                                    "python .* --load_args .*",
+                                    f"python {py_script_name} --load_args {config_name}",
+                                    content,
+                                )
+
+                                # Replace the job name.
+                                content = re.sub(
+                                    "rl_runs/pcgrl_.*",
+                                    f"rl_runs/pcgrl_{prob}_{rep}_{exp_name}",
+                                    content
+                                )
+                            with open(sbatch_name, "w") as f:
+                                f.write(content)
+                        
+                        with open(f"configs/rl/auto/settings_{config_name}.json", "w") as f:
                             json.dump(exp_config, f, ensure_ascii=False, indent=4)
                         # Launch the experiment. It should load the saved settings
 
                         if collect_params:
                             settings_list.append(exp_config)
                         elif LOCAL:
-                            os.system("python {} --load_args {}".format(py_script_name, i))
+                            os.system(f"python {py_script_name} --load_args {config_name}")
                         else:
-                            os.system("sbatch {}".format(sbatch_name))
+                            os.system(f"sbatch {sbatch_name}")
                         i += 1
     if collect_params:
         return settings_list

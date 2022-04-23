@@ -2,7 +2,7 @@
 import argparse
 import json
 import sys
-from pdb import set_trace as T
+from pdb import set_trace as TT
 
 prob_cond_metrics = {
     "binary_ctrl": ["regions", "path-length"],
@@ -27,24 +27,20 @@ all_metrics = {
 }
 
 
-def parse_args(load_args=None):
+def parse_args():
     args = get_args()
 
-    return parse_pcgrl_args(args, load_args=load_args)
+    return parse_pcgrl_args(args)
 
 
-def parse_pcgrl_args(args, load_args=None):
-    if load_args is not None:
-        sys.argv = sys.argv[:1]
+def parse_pcgrl_args(args):
     opts = args.parse_args()
     opts.conditional = True
 
     arg_dict = vars(opts)
-    if load_args is not None:
-        arg_dict.update(load_args)
 
     if opts.load_args is not None:
-        with open('configs/rl/auto/settings_{}.json'.format(opts.load_args)) as f:
+        with open(f'configs/rl/auto/settings_{opts.load_args}.json') as f:
             new_arg_dict = json.load(f)
             arg_dict.update(new_arg_dict)
 
@@ -172,7 +168,7 @@ def get_args():
         "--load_args",
         help='Rather than having the above opts supplied by the command-line, load them from a settings.json file. (Of '
         'course, the value of this arg in the json will have no effect.)',
-        type=int,
+        type=str,
         default=None,
     )
     args.add_argument(
