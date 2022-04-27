@@ -119,7 +119,10 @@ def launch_batch(exp_name, collect_params=False):
                         print(f"Saving experiment config:\n{exp_config}")
                         
                         # get the experiment name to name the config file
-                        config_name = f"{prob}_{rep}_{exp_name}"
+                        # config_name = f"{prob}_{rep}_{exp_name}"
+                        configure_name = namedtuple('configure_name', exp_config.keys())(**exp_config)
+                        config_name = get_exp_name(configure_name)
+                        config_name += f"_{exp_name}"
                         # Edit the sbatch file to load the correct config file
                         if not opts.render:
                             with open(sbatch_name, "r") as f:
@@ -135,7 +138,7 @@ def launch_batch(exp_name, collect_params=False):
                                 # Replace the job name.
                                 content = re.sub(
                                     "rl_runs/pcgrl_.*",
-                                    f"rl_runs/pcgrl_{prob}_{rep}_{exp_name}_%j.out",
+                                    f"rl_runs/pcgrl_{config_name}_%j.out",
                                     content
                                 )
                             with open(sbatch_name, "w") as f:

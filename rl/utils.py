@@ -174,7 +174,7 @@ def get_exp_name(cfg):
     if cfg.model:
         exp_name += "_" + cfg.model
 
-    if cfg.conditional:
+    if hasattr(cfg, "conditional") and cfg.conditional:
         exp_name += "_conditional"
         exp_name += "_" + "-".join(["ctrl"] + cfg.cond_metrics)
         if cfg.change_percentage != 1.0:
@@ -183,13 +183,13 @@ def get_exp_name(cfg):
         exp_name += "_vanilla"
         exp_name += "_chng-{}".format(cfg.change_percentage)
 
-    if cfg.midep_trgs:
+    if hasattr(cfg, "midep_trgs") and cfg.midep_trgs:
         exp_name += "_midEpTrgs"
 
-    if cfg.ca_actions:
+    if hasattr(cfg, "ca_actions") and cfg.ca_actions:
         exp_name += "_CAaction"
 
-    if cfg.alp_gmm:
+    if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
         exp_name += "_ALPGMM"
 
     return exp_name
