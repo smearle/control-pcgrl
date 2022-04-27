@@ -103,6 +103,8 @@ def launch_batch(exp_name, collect_params=False):
                                 "load": opts.load or opts.infer,
                                 "infer": opts.infer,
                                 "overwrite": opts.overwrite,
+                                "lr": opts.learning_rate,
+                                "gamma": opts.gamma,
                             }
                         )
 
@@ -241,6 +243,20 @@ if __name__ == "__main__":
         "--overwrite",
         action="store_true",
         help="Overwrite previous experiment with same name."
+    )
+    opts.add_argument(
+        "-lr",
+        "--learning_rate",
+        type=float,
+        default=0.0001,
+        help="Learning rate for rllib agent, default is 0.0001."
+    )
+    opts.add_argument(
+        "-ga",
+        "--gamma",
+        type=float,
+        default=0.99,
+        help="Discount factor of the MDP."
     )
 
     opts = opts.parse_args()

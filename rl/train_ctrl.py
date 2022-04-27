@@ -93,6 +93,8 @@ def main(cfg):
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
         'num_envs_per_worker': 20 if not cfg.infer else 1,
         'render_env': cfg.render,
+        'lr': cfg.lr,
+        'gamma': cfg.gamma,
         'model': {
             'custom_model': 'feedforward',
         },
