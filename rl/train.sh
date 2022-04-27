@@ -14,12 +14,13 @@
 cd /scratch/zj2086/control-pcgrl
 
 ## Is this actually necessary?
-source activate pcgrl
+## ZJ: I don't think so? Calling conda activate <env_name> twice will throw an warning (but won't crash)
+## source activate pcgrl
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate pcgrl
+## conda activate pcgrl
 
-# start=$SECONDS
+start=$SECONDS
 python rl/train_ctrl.py --load_args minecraft_3D_maze_ctrl_narrow3D_vanilla_chng-1.0_TestConfig1
 do
     duration=$((( SECONDS - start ) / 60))

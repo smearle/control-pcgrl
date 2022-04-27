@@ -91,6 +91,7 @@ def launch_batch(exp_name, collect_params=False):
                         exp_config.update(
                             {
                                 "n_cpu": opts.n_cpu,
+                                "n_gpu": opts.n_gpu,
                                 "problem": prob,
                                 "representation": rep,
                                 "model": model,
