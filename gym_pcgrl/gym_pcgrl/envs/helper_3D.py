@@ -269,6 +269,9 @@ def _passable(map, x, y, z, passable_values):
         # Note: Currently we only check whether we can jump over a tile and land on the same level since we want 
         # to make sure the path returnable, i.e. max fall height < 2 (1 is to go down a stair), and max jump distance 
         # is 1. The max height difference of starting point and foothold is 1
+
+        # Note: Though the extra head room of the foothold is not required, yet to make the path returnable, we 
+        # need to garantee there is extra head room above the foothold.
         elif (
             nz - 2 >= 0 and nz + 2 < len(map)  # Our head must remain inside the map and the empty space below must >= 2
             and map[nz+2][ny][nx] in passable_values  # five blocks ahead must be passable
@@ -280,19 +283,22 @@ def _passable(map, x, y, z, passable_values):
             and jx >= 0 and jy >= 0 and jx < len(map[z][y]) and jy < len(map[z])  # The foothold must be in the map
         ):
             if (# the height difference is 0
-                map[jz+1][jy][jx] in passable_values                                # head room at the foothold 
+                map[jz+1][jy][jx] in passable_values                                # head room at the foothold
+                and map[jz+2][jy][jx] in passable_values                            # extra head room at the foothold 
                 and map[jz][jy][jx] in passable_values                              # foot room at the foothold
                 and map[jz-1][jy][jx] not in passable_values                        # the solid foothold
             ):
                 passable_tiles.append((jx, jy, jz))
-            elif (# the height difference is 1
-                map[jz+2][jy][jx] in passable_values                                # head room at the foothold 
+            elif (# the height difference is 1 (jump up)
+                jz+3 < len(map) and map[jz+3][jy][jx] in passable_values            # extra head room at the foothold
+                and map[jz+2][jy][jx] in passable_values                            # head room at the foothold 
                 and map[jz+1][jy][jx] in passable_values                            # foot room at the foothold
                 and map[jz][jy][jx] not in passable_values                          # the solid foothold
             ):
                 passable_tiles.append((jx, jy, jz+1))
             elif (# the height difference is -1
                 map[jz][jy][jx] in passable_values                                  # head room at the foothold 
+                and map[jz+1][jy][jx] in passable_values                            # extra head room at the foothold
                 and map[jz-1][jy][jx] in passable_values                            # foot room at the foothold
                 and map[jz-2][jy][jx] not in passable_values                        # the solid foothold 
             ):

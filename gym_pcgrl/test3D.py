@@ -600,7 +600,7 @@ test_map_12 = {
 # region number: 1
 # jump: 1
 # height difference: 2
-# info: the height difference of starting point and foothold position is 1
+# info: the height difference of starting point and foothold position is 2
 test_map_13 = {
     "name": "test_map_13",
     "map": [
@@ -628,9 +628,9 @@ test_map_13 = {
 ],
     "size": (3, 1, 6),
     "jump_distance": 1,
-    "path_length": 1,
+    "path_length": 0,
     "region_number": 1,
-    "jump": 1,
+    "jump": 0,
     "height_difference": 2,
     "info": "the height difference of starting point and foothold position is 1",
 }
@@ -723,7 +723,7 @@ test_map_15 = {
 
 
 # test_map_16:
-# size: 3 * 1 * 6
+# size: 3 * 1 * 7
 # jump distance: 1
 # path length: 2
 # region number: 1
@@ -755,24 +755,24 @@ test_map_16 = {
         [0, 0, 1]
     ]
 ],
-    "size": (3, 1, 6),
+    "size": (3, 1, 7),
     "jump_distance": 1,
-    "path_length": 1,
+    "path_length": 0,
     "region_number": 1,
-    "jump": 1,
+    "jump": 0,
     "height_difference": 0,
     "info": "valid jump",
 }
 
 
 # test_map_17:
-# size: 3 * 1 * 6
+# size: 3 * 1 * 7
 # jump distance: 1
-# path length: 2
+# path length: 1
 # region number: 1
-# jump: 1
+# jump: 0
 # height difference: -1
-# info: valid jump
+# info: valid jump but not returnable, so we don't count the jump
 test_map_17 = {
     "name": "test_map_17",
     "map":[
@@ -798,7 +798,96 @@ test_map_17 = {
         [0, 0, 1]
     ]
 ],
-    "size": (3, 1, 6),
+    "size": (3, 1, 7),
+    "jump_distance": 1,
+    "path_length": 0,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": -1,
+    "info": "valid jump but not returnable, so we don't count the jump",
+}
+
+
+# test_map_18:
+# size: 3 * 1 * 8
+# jump distance: 1
+# path length: 1
+# region number: 1
+# jump: 0
+# height difference: 1
+# info: valid jump but not returnable, so we don't count the jump
+test_map_18 = {
+    "name": "test_map_18",
+    "map": [
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [1, 0, 0]
+        ],
+        [
+            [1, 0, 0]
+        ]
+    ],
+    "size": (3, 1, 8),
+    "jump_distance": 1,
+    "path_length": 0,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": 1,
+    "info": "valid jump but not returnable, so we don't count the jump",
+}
+
+
+# test_map_19:
+# size: 3 * 1 * 7
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: -1
+# info: valid jump
+test_map_19 = {
+    "name": "test_map_19",
+    "map": [
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ]
+    ],
+    "size": (3, 1, 7),
     "jump_distance": 1,
     "path_length": 1,
     "region_number": 1,
@@ -807,6 +896,91 @@ test_map_17 = {
     "info": "valid jump",
 }
 
+
+# test_map_20:
+# size: 3 * 1 * 7
+# jump distance: 1
+# path length: 1
+# region number: 1
+# jump: 0
+# height difference: 1
+# info: valid jump
+test_map_20 = {
+    "name": "test_map_20",
+    "map": [
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [0, 0, 1]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ]
+    ],
+    "size": (3, 1, 7),
+    "jump_distance": 1,
+    "path_length": 0,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": -1,
+    "info": "valid jump, but not returnable",
+}
+
+
+# test_map_21:
+# size: 3 * 1 * 7
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: 1
+# info: valid jump
+test_map_21 = {
+    "name": "test_map_20",
+    "map": [
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [1, 0, 1]
+        ],
+        [
+            [0, 0, 1]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ],
+        [
+            [0, 0, 0]
+        ]
+    ],
+    "size": (3, 1, 7),
+    "jump_distance": 1,
+    "path_length": 1,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 1,
+    "info": "valid jump",
+}
 # TODO: test map for falling distance > 1 and <= 3
 
 
@@ -825,6 +999,7 @@ def get_test_state(map, tile_types):
     num_regions = calc_num_regions(test_string_map, map_locations, ["AIR"])
     debug_path_coords = debug_path(path_coords, test_string_map, ["AIR"])
 
+    print("-------------------------")
     print(f"Testing on {map['name']}")
     print(
         f"longest path length: {path_length}, it should be {map['path_length']}, "
@@ -899,6 +1074,6 @@ if __name__=="__main__":
     # test the jumping logic
     # jumping distance: 1
     
-    for i in range(11, 18):
-        path_length, path_coords, num_regions = get_test_state(globals()[f"test_map_{11}"], tile_types)
+    for i in range(11, 22):
+        path_length, path_coords, num_regions = get_test_state(globals()[f"test_map_{i}"], tile_types)
 
