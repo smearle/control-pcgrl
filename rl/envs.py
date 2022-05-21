@@ -20,7 +20,6 @@ def make_env(cfg_dict):
     # Turn dictionary into an object with attributes instead of keys.
     cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
     crop_size = cfg.crop_size
-    cfg_dict.pop('crop_size')
 
     if cfg.representation == 'wide':
         env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)

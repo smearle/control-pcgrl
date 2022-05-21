@@ -20,15 +20,15 @@ class BinaryProblem(Problem):
 
         # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
         # beginning of a level-generation episode.
-        self._prob = {"empty": 0.5, "solid": 0.5}
+        self._prob = {"empty": 0, "solid": 1.0}
 
         self._border_tile = "solid"
 
         self._target_path = 20
-        self._random_probs = True 
+        self._random_probs = False
 
         self._reward_weights = {
-            "regions": 5,
+            "regions": 0,
             "path-length": 1
         }
 

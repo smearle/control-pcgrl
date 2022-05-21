@@ -10,6 +10,7 @@ from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
 from ray.rllib.utils import override
 from ray.rllib.utils.typing import ModelConfigDict, ModelWeights
 from torch import nn
+from torch.nn import Conv2d, Conv3d, Linear
 
 
 class CustomFeedForwardModel(TorchModelV2, nn.Module):
@@ -213,3 +214,59 @@ class WideModel3DSkip(WideModel3D, nn.Module):
         action_out = x
 
         return action_out, []
+
+
+def init_weights(m):
+    if type(m) == th.nn.Linear:
+        th.nn.init.xavier_uniform_(m.weight)
+        m.bias.data.fill_(0.01)
+
+    if type(m) == th.nn.Conv2d:
+        th.nn.init.orthogonal_(m.weight)
+
+
+
+class NCA(TorchModelV2, nn.Module):
+    """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
+
+    def __init__(self, obs_space, action_space, num_outputs, model_config,name):
+        nn.Module.__init__(self)
+        super().__init__(obs_space, action_space, num_outputs, model_config,
+                         name)
+        n_hid_1 = 32
+        n_in_chans = obs_space.shape[-1]
+        self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_1, n_in_chans, 1, 1, 0, bias=True)
+        self.value_branch = SlimFC(np.prod(obs_space.shape), 1)
+        # self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, input_dict, state, seq_lens):
+        x = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
+        x = self.l1(x)
+        x = th.relu(x)
+        x = self.l2(x)
+        x = th.relu(x)
+        x = self.l3(x)
+        # TODO: try softmax
+        x = th.relu(x)
+
+        # So that we flatten in a way that matches the dimensions of the observation space.
+        x = x.permute(0, 2, 3, 1)
+
+        x = x.reshape(x.size(0), -1)
+        self._features = x
+
+        # axis 0 is batch
+        # axis 1 is the tile-type (one-hot)
+        # axis 0,1 is the x value
+        # axis 0,2 is the y value
+
+        return x, []
+
+    @override(ModelV2)
+    def value_function(self):
+        assert self._features is not None, "must call forward() first"
+        vals = th.reshape(self.value_branch(self._features), [-1])
+        return vals

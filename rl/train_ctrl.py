@@ -10,7 +10,7 @@ import gym
 import numpy as np
 
 import gym_pcgrl
-from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip # noqa : F401
+from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, NCA # noqa : F401
 from args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
