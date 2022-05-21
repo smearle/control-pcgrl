@@ -11,7 +11,7 @@
 #SBATCH --mail-user=zj2086@nyu.edu
 #SBATCH --output=rl_runs/pcgrl_binary_ctrl_wide_NCA_vanilla_chng-1.0_testRlNCA_%j.out
 
-cd /scratch/zj2086/control-pcgrl
+## cd /scratch/zj2086/control-pcgrl
 
 ## Is this actually necessary?
 ## ZJ: I don't think so? Calling conda activate <env_name> twice will throw an warning (but won't crash)

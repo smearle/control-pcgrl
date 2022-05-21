@@ -13,12 +13,12 @@
 #SBATCH --mail-user=se2161@nyu.edu
 #SBATCH --output=evalevopcg_%j.out
 
-cd /scratch/se2161/evo-pcgrl
+## cd /scratch/se2161/evo-pcgrl
 
 ## Is this actually necessary?
-source activate
+## source activate
 
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate pcgrl
+## conda activate pcgrl
 
 python evolve.py -la 0

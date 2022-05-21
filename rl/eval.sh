@@ -13,10 +13,10 @@
 #SBATCH --mail-user=zj2086@nyu.edu
 #SBATCH --output=evalpcgrl_%j.out
 
-cd /scratch/zj2086/control-pcgrl || exit
+## cd /scratch/zj2086/control-pcgrl || exit
 
-source activate pcgrl
+## source activate pcgrl
 ## NOTE THIS ACTUALLY WORKS DONT LISTEN TO THE ERROR MESSAGE ???
-conda activate pcgrl
+## conda activate pcgrl
 
 python rl/evaluate_ctrl.py --load_args 0

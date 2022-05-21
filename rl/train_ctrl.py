@@ -70,9 +70,6 @@ def main(cfg):
         with open(os.path.join(log_dir, 'settings.json'), 'w', encoding='utf-8') as f:
             json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
 
-    # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
-    num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
-
     if not is_3D_env:
         # Using this simple feedforward model for now by default
         model_cls = globals()[cfg.model] if cfg.model else CustomFeedForwardModel
@@ -84,6 +81,9 @@ def main(cfg):
         else:
             model_cls = globals()[cfg.model] if cfg.model else CustomFeedForwardModel3D
             ModelCatalog.register_custom_model("feedforward", model_cls)
+
+    # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
+    num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {

@@ -58,6 +58,9 @@ configs/rl/auto/settings_*.json
 evopcgrl*.out
 evalevopcgrl*.out
 
+# Slurm logs
+*.out
+
 # VSCode
 .vscode/
 

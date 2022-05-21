@@ -248,7 +248,7 @@ if __name__ == "__main__":
         "-lr",
         "--learning_rate",
         type=float,
-        default=0.0001,
+        default=0.000005,
         help="Learning rate for rllib agent, default is 0.0001."
     )
     opts.add_argument(

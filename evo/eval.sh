@@ -13,16 +13,17 @@
 #SBATCH --mail-user=se2161@nyu.edu
 #SBATCH --output=evalevopcg_%j.out
 
-cd /scratch/se2161/control-pcgrl
+## cd /scratch/se2161/control-pcgrl
 
 
-# We try to activate the relevant conda environment below.
+## We try to activate the relevant conda environment below.
 
 ## Is this actually necessary?
-source activate
+## ZJ: No my friend.
+## source activate
 
 ## Is the error message here telling the truth?
-conda activate pcgrl
+## conda activate pcgrl
 
 
 python evo/evolve.py -la 2

@@ -190,7 +190,10 @@ def get_exp_name(cfg):
         exp_name += "_CAaction"
 
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
-        exp_name += "_ALPGMM"
+        exp_name += "_ALPGMM"    
+    
+    if cfg.lr:
+        exp_name += f"_lr-{cfg.lr:.1e}"
 
     return exp_name
 
