@@ -35,9 +35,12 @@ class Minecraft3DmazeProblem(Problem):
         self._target_path = 10
         self._random_probs = False 
 
+        self.n_jump = 0
+
         self._reward_weights = {
             "regions": 0,
-            "path-length": 1
+            "path-length": 1,
+            "n_jump": 1
         }
         self.static_trgs = {"regions": 1, "path-length": np.inf}
 
@@ -112,12 +115,13 @@ class Minecraft3DmazeProblem(Problem):
         self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
-        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
+        self.path_length, self.path_coords, self.n_jump = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
+        
         # print(f"minecraft path-finding time: {timer() - start_time}")
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             if not path_is_valid:
-                return None
+                raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
         # p_x, p_y, p_z = 0, 0, 0
         # dijkstra_p, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
@@ -138,6 +142,8 @@ class Minecraft3DmazeProblem(Problem):
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": self.path_length,
+            "path-coords": self.path_coords,
+            "n_jump": self.n_jump
         }
 
     """
@@ -154,11 +160,13 @@ class Minecraft3DmazeProblem(Problem):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
+            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
+            "n_jump": get_range_reward(new_stats["n_jump"], old_stats["n_jump"], np.inf, np.inf)
         }
         #calculate the total reward
         return rewards["regions"] * self._reward_weights["regions"] +\
-            rewards["path-length"] * self._reward_weights["path-length"]
+            rewards["path-length"] * self._reward_weights["path-length"] +\
+            rewards["n_jump"] * self._reward_weights["n_jump"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

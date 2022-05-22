@@ -234,10 +234,11 @@ class NCA(TorchModelV2, nn.Module):
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
         n_hid_1 = 32
+        n_hid_2 = 32
         n_in_chans = obs_space.shape[-1]
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
-        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(n_hid_1, n_in_chans, 1, 1, 0, bias=True)
+        self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
+        self.l3 = Conv2d(n_hid_2, n_in_chans, 1, 1, 0, bias=True)
         self.value_branch = SlimFC(np.prod(obs_space.shape), 1)
         # self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
@@ -270,3 +271,7 @@ class NCA(TorchModelV2, nn.Module):
         assert self._features is not None, "must call forward() first"
         vals = th.reshape(self.value_branch(self._features), [-1])
         return vals
+    
+
+# NEXT: change action space to allow multiple change at each step 
+# NEXT: add border into observations, start and end

@@ -32,6 +32,8 @@ class Minecraft3DZeldaProblem(Problem):
         self.path_length = 0
         self.path_coords = []
 
+        self.n_jump = 0
+
         self._max_chests = 1
 
         self._max_enemies = 5
@@ -119,6 +121,7 @@ class Minecraft3DZeldaProblem(Problem):
             "chests": calc_certain_tile(map_locations, ["CHEST"]),
             "enemies": calc_certain_tile(map_locations, ["SKULL", "PUMPKIN"]),
             "nearest-enemy": 0,
+            "n_jump": 0,
         }
         if map_stats["regions"] == 1:
             # entrance is fixed at the bottom of the maze house
@@ -128,7 +131,7 @@ class Minecraft3DZeldaProblem(Problem):
             enemies.extend(map_locations["SKULL"])
             enemies.extend(map_locations["PUMPKIN"])
             if len(enemies) > 0:
-                dijkstra, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                dijkstra, _, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
                 min_dist = self._width * self._height * self._length
                 for e_x, e_y, e_z in enemies:
                     if dijkstra[e_z][e_y][e_x] > 0 and dijkstra[e_z][e_y][e_x] < min_dist:
@@ -141,17 +144,20 @@ class Minecraft3DZeldaProblem(Problem):
                 d_x, d_y, d_z = len(map[0][0])-1, len(map[0])-1, len(map)-2
 
                 # start point is 0, 0, 0
-                dijkstra_c, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                dijkstra_c, _, jump_map = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
                 map_stats["path-length"] += dijkstra_c[c_z][c_y][c_x]
+                map_stats["n_jump"] += jump_map[c_z][c_y][c_x]
 
                 # start point is chests
-                dijkstra_d, _ = run_dijkstra(c_x, c_y, c_z, map, ["AIR"])
+                dijkstra_d, _, jump_map = run_dijkstra(c_x, c_y, c_z, map, ["AIR"])
                 map_stats["path-length"] += dijkstra_d[d_z][d_y][d_x]
+                map_stats["n_jump"] += jump_map[d_z][d_y][d_x]
                 if self.render_path:
                     self.path_coords = np.vstack((get_path_coords(dijkstra_c, c_x, c_y, c_z),
                                                   get_path_coords(dijkstra_d, d_x, d_y, d_z)))
 
         self.path_length = map_stats["path-length"]
+        self.n_jump = map_stats["n_jump"]
         return map_stats
 
     """

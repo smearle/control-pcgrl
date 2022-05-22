@@ -949,7 +949,7 @@ test_map_20 = {
 # height difference: 1
 # info: valid jump
 test_map_21 = {
-    "name": "test_map_20",
+    "name": "test_map_21",
     "map": [
         [
             [1, 0, 1]
@@ -983,31 +983,82 @@ test_map_21 = {
 }
 # TODO: test map for falling distance > 1 and <= 3
 
-
+# test_map_22:
+# size: 5 * 1 * 7
+# jump distance: 1
+# path length: 4
+# region number: 1
+# jump: 1
+# height difference: 0
+# info: valid jump
+test_map_22 = {
+    "name": "test_map_22",
+    "map": [
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ]
+    ],
+    "size": (5, 1, 7),
+    "jump_distance": 1,
+    "path_length": 4,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump",
+}
 
 
 """
 get the state of the test maps
 """
-def get_test_state(map, tile_types):
-    test_map = np.array(map["map"])
-    test_string_map = get_string_map(test_map, tile_types)
-    map_locations = get_tile_locations(test_string_map, tile_types)
+def get_test_state(map_list, tile_types):
+    all_pass_test = True
+    if len(map_list) == 0:
+        raise ValueError("test_map_list is empty")
+    for test_map_dict in map_list:
+        test_map = np.array(test_map_dict["map"])
+        test_string_map = get_string_map(test_map, tile_types)
+        map_locations = get_tile_locations(test_string_map, tile_types)
 
-    # get the state of the test map
-    path_length, path_coords = calc_longest_path(test_string_map, map_locations, ["AIR"], get_path=True)
-    num_regions = calc_num_regions(test_string_map, map_locations, ["AIR"])
-    debug_path_coords = debug_path(path_coords, test_string_map, ["AIR"])
+        # get the state of the test map
+        path_length, path_coords, n_jump = calc_longest_path(test_string_map, map_locations, ["AIR"], get_path=True)
+        num_regions = calc_num_regions(test_string_map, map_locations, ["AIR"])
+        debug_path_coords = debug_path(path_coords, test_string_map, ["AIR"])
 
-    print("-------------------------")
-    print(f"Testing on {map['name']}")
-    print(
-        f"longest path length: {path_length}, it should be {map['path_length']}, "
-        f"pass the test? {path_length == map['path_length']}")
-    print(
-        f"num_regions: {num_regions}, it should be {map['region_number']}, pass the test? {num_regions == map['region_number']}")
-    print(f"The path is valid? {debug_path_coords}") 
-    print(f"Test passed? -------> {path_length == map['path_length'] and num_regions == map['region_number'] and debug_path_coords}")
+        pass_test = path_length == test_map_dict["path_length"] and \
+                    num_regions == test_map_dict["region_number"] and \
+                    n_jump == test_map_dict["jump"] and \
+                    debug_path_coords
+
+        if not pass_test:
+            print("-------------------------")
+            print(f"Testing on {test_map_dict['name']}")
+            print(
+                f"longest path length: {path_length}, it should be {test_map_dict['path_length']}, "
+                f"pass the test? {path_length == test_map_dict['path_length']}")
+            print(
+                f"num_regions: {num_regions}, it should be {test_map_dict['region_number']}, pass the test? {num_regions == test_map_dict['region_number']}")
+            print(f"The path is valid? {debug_path_coords}") 
+        all_pass_test = all_pass_test and pass_test
+    print(f"All tests passed? {all_pass_test}")
     return path_length, path_coords, num_regions
 
 
@@ -1073,7 +1124,8 @@ if __name__=="__main__":
     ################################################################################
     # test the jumping logic
     # jumping distance: 1
-    
+    test_map_list = []
     for i in range(11, 22):
-        path_length, path_coords, num_regions = get_test_state(globals()[f"test_map_{i}"], tile_types)
+        test_map_list.append(globals()[f"test_map_{i}"])
+    path_length, path_coords, num_regions = get_test_state(test_map_list, tile_types)
 

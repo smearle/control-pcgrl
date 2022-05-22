@@ -229,18 +229,107 @@ test_map_4 = [
     ]
 ]
 
-test_maps = [np.array(tm) for tm in [test_map_2]]
+
+# test_map_16:
+# size: 3 * 1 * 7
+# jump distance: 1
+# path length: 2
+# region number: 1
+# jump: 1
+# height difference: 0
+# info: valid jump
+test_map_16 = {
+    "name": "test_map_16",
+    "map": [
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [1, 0, 1]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 0]
+    ],
+    [
+        [0, 0, 1]
+    ]
+],
+    "size": (3, 1, 7),
+    "jump_distance": 1,
+    "path_length": 0,
+    "region_number": 1,
+    "jump": 0,
+    "height_difference": 0,
+    "info": "valid jump",
+}
+
+# test_map_22:
+# size: 5 * 1 * 7
+# jump distance: 1
+# path length: 4
+# region number: 1
+# jump: 1
+# height difference: 0
+# info: valid jump
+test_map_22 = {
+    "name": "test_map_22",
+    "map": [
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ]
+    ],
+    "size": (5, 1, 7),
+    "jump_distance": 1,
+    "path_length": 4,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 0,
+    "info": "valid jump",
+}
+# test_maps = [np.array(tm) for tm in [test_map_2]]
+
+test_maps = [np.array(test_map_22["map"])]
 
 for int_map in test_maps:
     # FIXME: why does this seem to take so long? Path-finding is fast. Just creating the environment itself?
-    env_name = "minecraft_3D_maze_ctrl-cellular3D-v0"
+    prob = "minecraft_3D_maze_ctrl"
+    repr = "narrow3D"
+    env_name = f"{prob}-{repr}-v0"
     env = gym.make(env_name)
     env.adjust_param(render=True)
     env.unwrapped._rep._x = env.unwrapped._rep._y = 0
     env._rep._map = int_map
-    env.render()
+    # env.render()
     stats = env.unwrapped._prob.get_stats(
         get_string_map(int_map, env.unwrapped._prob.get_tile_types()),
     )
     print(stats)
-    env.render()
+    # env.render()
+
