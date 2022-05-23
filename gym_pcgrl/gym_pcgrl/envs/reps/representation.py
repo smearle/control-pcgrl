@@ -1,6 +1,12 @@
 from pdb import set_trace as TT
+from typing import List
+
+import numpy as np
+
 from gym.utils import seeding
 from gym_pcgrl.envs.helper import gen_random_map
+
+
 """
 The base class of all the representations
 """
@@ -8,10 +14,13 @@ class Representation:
     """
     The base constructor where all the representation variable are defined with default values
     """
-    def __init__(self):
-        self._random_start = True
-        self._map = None
-        self._old_map = None
+    def __init__(self, border_tile_index=1, empty_tile_index=0):
+        self._random_start: bool = True
+        self._map: List[List[int]] = None
+        self._bordered_map: List[List[int]] = None
+        self._old_map: List[List[int]] = None
+        self._border_tile = border_tile_index
+        self._empty_tile = empty_tile_index
 
         self.seed()
 
@@ -40,9 +49,18 @@ class Representation:
     def reset(self, width, height, prob):
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, width, height, prob)
+            self._bordered_map = np.empty((height + 2, width + 2), dtype=np.int)
+            self._bordered_map.fill(self._border_tile)
+            self._bordered_map[1:-1, 1:-1] = self._map
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
+
+    def dig_holes(self, start_xy, end_xy):
+        # TODO: Represent start/end differently to accomodate one-way paths.
+        self._bordered_map[start_xy[0], start_xy[1]] = self._empty_tile
+        self._bordered_map[end_xy[0], end_xy[1]] = self._empty_tile
+        
 
     """
     Adjust current representation parameter

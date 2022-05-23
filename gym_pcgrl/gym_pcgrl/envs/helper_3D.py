@@ -476,7 +476,6 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
     final_value = 0
-    final_jumps = 0
 
     # We'll iterate over all empty tiles. But checking against the visited_map means we only perform path-finding 
     # algorithms once per connected component. 
@@ -498,6 +497,8 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
         # Get furthest tile from current tile.
         (mz,my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
         # FIXME: Maybe n_jump should be counted here?(especially for the direct/unreturnable path)
+        # and potential bug: if there are two path with the same length and different n_jump, maybe something magic will 
+        # happen. Hope you never see this.
 
         # Search again from this furthest tile. This tile must belong to a longest shortest path within this connected 
         # component. Search again to find this path.
@@ -513,15 +514,13 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
             if get_path:
                 path_map = dijkstra_map
 
-        if n_jump > final_jumps:
-            final_jumps = n_jump
 
     path = []
 
     if get_path and final_value > 0:
         path = get_path_coords(path_map)
 
-    return final_value, path, final_jumps
+    return final_value, path, n_jump
 
 """
 Recover a shortest path (as list of coords) from a dijkstra map, 

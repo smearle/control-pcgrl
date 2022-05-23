@@ -19,6 +19,10 @@ class Problem:
         self._width = 9
         self._height = 9
         tiles = self.get_tile_types()
+
+        # FIXME: assumption, will overrule a similar declaration by the child.
+        self._empty_tile = tiles[0]
+
         self._prob = []
         for _ in range(len(tiles)):
             self._prob.append(1.0 / len(tiles))
@@ -33,6 +37,9 @@ class Problem:
             self.GVGAI_SPRITES = False
         self._graphics = None
         self.render_path = False
+
+    def gen_holes(self):
+        return None
 
     def is_continuous(self):
         return False
@@ -158,37 +165,42 @@ class Problem:
             self._graphics = {}
             for i in range(len(tiles)):
                 color = (i*255/len(tiles),i*255/len(tiles),i*255/len(tiles),255)
-                self._graphics[tile[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
+                self._graphics[tiles[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
             if render_path:
                 self._graphics["path"] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
 
-        full_width = len(map[0])+2*self._border_size[0]
-        full_height = len(map)+2*self._border_size[1]
+        # full_width = len(map[0])+2*self._border_size[0]
+        full_width = len(map[0])
+        # full_height = len(map)+2*self._border_size[1]
+        full_height = len(map)
         lvl_image = Image.new("RGBA", (full_width*self._tile_size, full_height*self._tile_size), (0,0,0,255))
         # Background floor everywhere
         for y in range(full_height):
             for x in range(full_width):
                 lvl_image.paste(self._graphics['empty'], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
-        # Borders
-        for y in range(full_height):
-            for x in range(self._border_size[0]):
-                lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
-                lvl_image.paste(self._graphics[self._border_tile], ((full_width-x-1)*self._tile_size, y*self._tile_size, (full_width-x)*self._tile_size, (y+1)*self._tile_size))
-        for x in range(full_width):
-            for y in range(self._border_size[1]):
-                lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
-                lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, (full_height-y-1)*self._tile_size, (x+1)*self._tile_size, (full_height-y)*self._tile_size))
+        # # Borders
+        # for y in range(full_height):
+        #     for x in range(self._border_size[0]):
+        #         lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
+        #         lvl_image.paste(self._graphics[self._border_tile], ((full_width-x-1)*self._tile_size, y*self._tile_size, (full_width-x)*self._tile_size, (y+1)*self._tile_size))
+        # for x in range(full_width):
+        #     for y in range(self._border_size[1]):
+        #         lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
+        #         lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, (full_height-y-1)*self._tile_size, (x+1)*self._tile_size, (full_height-y)*self._tile_size))
+
         # Map tiles
         for y in range(len(map)):
             for x in range(len(map[y])):
                 tile_image = self._graphics[map[y][x]]
-                lvl_image.paste(self._graphics[map[y][x]], ((x+self._border_size[0])*self._tile_size, (y+self._border_size[1])*self._tile_size, (x+self._border_size[0]+1)*self._tile_size, (y+self._border_size[1]+1)*self._tile_size), mask=tile_image)
+                # lvl_image.paste(self._graphics[map[y][x]], ((x+self._border_size[0])*self._tile_size, (y+self._border_size[1])*self._tile_size, (x+self._border_size[0]+1)*self._tile_size, (y+self._border_size[1]+1)*self._tile_size), mask=tile_image)
+                lvl_image.paste(self._graphics[map[y][x]], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size), mask=tile_image)
 
         # Path, if applicable
         if render_path is not None and self.render_path:
             tile_graphics = self._graphics["path"]
             for (y, x) in render_path:
-                lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)
+                # lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)
+                lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
             draw = ImageDraw.Draw(lvl_image)
             # font = ImageFont.truetype(<font-file>, <font-size>)
             font_size = 32

@@ -1,9 +1,12 @@
 import copy
 from pdb import set_trace as TT
 from re import S
+import time
 from gym_pcgrl.envs.probs import PROBLEMS
+from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
+from gym_pcgrl.envs.reps.representation import Representation
 import numpy as np
 import gym
 from gym import spaces
@@ -33,8 +36,11 @@ class PcgrlEnv(gym.Env):
         # Attach this function to the env, since it will be different for, e.g., 3D environments.
         self.get_string_map = get_string_map
 
-        self._prob = PROBLEMS[prob]()
-        self._rep = REPRESENTATIONS[rep]()
+        self._prob: Problem = PROBLEMS[prob]()
+        self._rep: Representation = REPRESENTATIONS[rep](
+            border_tile_index = self.get_border_tile(),
+            empty_tile_index = self.get_empty_tile(),
+            )
         self._rep_stats = None
         self.metrics = {}
         print('problem metrics trgs: {}'.format(self._prob.static_trgs))
@@ -113,11 +119,17 @@ class PcgrlEnv(gym.Env):
     def reset(self):
         self._changes = 0
         self._iteration = 0
-        self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+        self._rep.reset(
+            self._prob._width, 
+            self._prob._height, 
+            get_int_prob(self._prob._prob, self._prob.get_tile_types())
+        )
         continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
-        self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=continuous))
+        self._rep.dig_holes(*self._prob.gen_holes())
+        self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._bordered_map, self._prob.get_tile_types(), continuous=continuous))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
+
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         observation = self._rep.get_observation()
@@ -131,8 +143,11 @@ class PcgrlEnv(gym.Env):
     Returns:
         int: the tile number that can be used for padding
     """
-    def get_border_tile(self):
+    def get_border_tile(self) -> int:
         return self._prob.get_tile_types().index(self._prob._border_tile)
+
+    def get_empty_tile(self) -> int:
+        return self._prob.get_tile_types().index(self._prob._empty_tile)
 
     """
     Get the number of different type of tiles that are allowed in the observation
@@ -196,9 +211,8 @@ class PcgrlEnv(gym.Env):
         # update the current state to the new state based on the taken action
 
         change, map_coords = self._rep.update(action)
-        
-        # for rendering highlighted actions in Evocraft:
-        self._rep._new_coords = map_coords
+        # if 0 in map_coords:
+            # TT()
 
         if change > 0:
             self._changes += change
@@ -228,7 +242,7 @@ class PcgrlEnv(gym.Env):
         # Uncomment the below to use dense rewards (also need to modify the ParamRew wrapper).
         if change > 0:
         # if done or self.compute_stats:
-            self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types()))
+            self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._bordered_map, self._prob.get_tile_types()))
 
             if self._rep_stats is None:
                 raise Exception("self._rep_stats in pcgrl_env.py is None, what happened? Maybe you should check your path finding"
@@ -263,8 +277,8 @@ class PcgrlEnv(gym.Env):
     """
     def render(self, mode='human'):
         tile_size = 16
-        img = self._prob.render(self.get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
-        img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
+        img = self._prob.render(self.get_string_map(self._rep._bordered_map, self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
+        img = self._rep.render(img, self._prob._tile_size).convert("RGB")
 
         if mode == 'rgb_array':
             return img

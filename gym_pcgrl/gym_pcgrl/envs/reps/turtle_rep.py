@@ -13,8 +13,8 @@ class TurtleRepresentation(Representation):
     """
     Initialize all the parameters used by that representation
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._dirs = [(-1,0), (1,0), (0,-1), (0,1)]
         self._warp = True
 
@@ -74,8 +74,8 @@ class TurtleRepresentation(Representation):
     """
     def get_observation_space(self, width, height, num_tiles):
         return spaces.Dict({
-            "pos": spaces.Box(low=np.array([0, 0]), high=np.array([width-1, height-1]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
+            "pos": spaces.Box(low=np.array([1, 1]), high=np.array([width, height]), dtype=np.uint8),
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2))
         })
 
     """
@@ -88,7 +88,8 @@ class TurtleRepresentation(Representation):
     def get_observation(self):
         return OrderedDict({
             "pos": np.array([self._x, self._y], dtype=np.uint8),
-            "map": self._map.copy()
+            # "map": self._map.copy()
+            "map": self._bordered_map.copy()
         })
 
     """
@@ -128,6 +129,7 @@ class TurtleRepresentation(Representation):
         else:
             change = [0,1][self._map[self._y][self._x] != action - len(self._dirs)]
             self._map[self._y][self._x] = action - len(self._dirs)
+            self._bordered_map[self._y+1][self._x+1] = action - len(self._dirs)
         return change, [self._x, self._y]
 
     """

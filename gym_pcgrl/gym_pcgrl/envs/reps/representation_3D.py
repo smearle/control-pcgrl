@@ -1,6 +1,7 @@
 from pdb import set_trace as TT
 from gym.utils import seeding
 from gym_pcgrl.envs.helper_3D import gen_random_map
+import numpy as np
 """
 The base class of all the 3D representations
 
@@ -10,10 +11,11 @@ class Representation3D:
     """
     The base constructor where all the representation variable are defined with default values
     """
-    def __init__(self):
+    def __init__(self, border_tile=1):
         self._random_start = True
         self._map = None
         self._old_map = None
+        self._border_tile = border_tile
 
         self.seed()
 
@@ -43,6 +45,9 @@ class Representation3D:
     def reset(self, length, width, height, prob):
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, length, width, height, prob)
+            self._bordered_map = np.empty((length +2, width + 2, height + 2), dtype=np.int)
+            self._bordered_map.fill(self._border_tile)
+            self._bordered_map[1:-1, 1:-1, 1:-1] = self._map
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()

@@ -212,7 +212,7 @@ cfg.logging = True  # Always log
 
 cfg.map_width = get_map_width(cfg.problem)
 crop_size = cfg.crop_size
-crop_size = cfg.map_width * 2 if crop_size == -1 else crop_size
+crop_size = cfg.map_width * 2 + 1 if crop_size == -1 else crop_size
 cfg.crop_size = crop_size
 
 if __name__ == '__main__':

@@ -510,7 +510,7 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
             env = ActionMap(env)
             # Transform to one hot encoding if not binary
 
-            # if "binary" not in game and "RCT" not in game and "Micropolis" not in game:
+            # if "RCT" not in game and "Micropolis" not in game:
             env = OneHotEncoding(env, "map")
             # Final Wrapper has to be ToImage or ToFlat
             self.env = ToImage(env, flat_indices)

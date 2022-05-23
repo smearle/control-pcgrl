@@ -10,7 +10,11 @@ class BinaryCtrlProblem(BinaryProblem):
 #       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
 
         # default conditional targets
-        self.static_trgs = {"regions": 1, "path-length": self._max_path_length}
+        self.static_trgs = {
+            "regions": 1, 
+            "path-length": self._max_path_length, 
+            "connectivity": 1
+        }
 
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
@@ -30,6 +34,7 @@ class BinaryCtrlProblem(BinaryProblem):
             #   11111111
             #   10000000
             #   11111111
+            "connectivity": (0, 1)
         }
 
     # We do these things in the ParamRew wrapper (note that max change and iterations

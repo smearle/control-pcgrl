@@ -12,8 +12,8 @@ class CA3DRepresentation(Representation3D):
     """
     Initialize all the parameters used by that representation
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     """
     Gets the action space used by the cellular representation

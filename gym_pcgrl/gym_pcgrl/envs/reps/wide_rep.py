@@ -10,8 +10,8 @@ class WideRepresentation(Representation):
     """
     Initialize all the parameters used by that representation
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     """
     Gets the action space used by the wide representation
@@ -41,7 +41,7 @@ class WideRepresentation(Representation):
     """
     def get_observation_space(self, width, height, num_tiles):
         return spaces.Dict({
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2))
         })
 
     """
@@ -52,7 +52,8 @@ class WideRepresentation(Representation):
     """
     def get_observation(self):
         return {
-            "map": self._map.copy()
+            # "map": self._map.copy()
+            "map": self._bordered_map.copy()
         }
 
     """
@@ -67,4 +68,5 @@ class WideRepresentation(Representation):
     def update(self, action):
         change = [0,1][self._map[action[1]][action[0]] != action[2]]
         self._map[action[1]][action[0]] = action[2]
+        self._bordered_map[action[1]+1][action[0]+1] = action[2]
         return change, [action[0], action[1]]
