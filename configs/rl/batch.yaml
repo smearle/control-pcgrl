@@ -2,7 +2,8 @@
   "problems": [
     # "minecraft_3D_maze_ctrl",
 #   "minecraft_3D_zelda_ctrl",
-    "binary_ctrl",
+    # "binary_ctrl",
+    "binary_ctrl_holey",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
@@ -16,7 +17,8 @@
 #       ["wide3D", "WideModel3D"],
 #       ["wide3D", "WideModel3DSkip"],
 #       ["cellular3D", null],
-      ["narrow", null],
+#       ["narrow", null],
+        ["narrowholey", null],
 #       ["wide", null],
         # ["wide", NCA],
 #       ["cellular", null],
@@ -37,6 +39,13 @@
         # ["regions", "path-length"],
           # ['emptiness', 'path-length'],
           # ["symmetry", "path-length"]
+      ],
+      "binary_ctrl_holey": [
+            # ["regions"],
+            # ["path-length"],
+            # ["regions", "path-length"],
+            # ['emptiness', 'path-length'],
+            # ["symmetry", "path-length"]
       ],
       "zelda_ctrl": [
           ["nearest-enemy"],

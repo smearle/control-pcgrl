@@ -45,7 +45,6 @@ class NarrowMultiRepresentation(NarrowRepresentation):
             if x >= low_x and x < high_x and y >= low_y and y < high_y and action[i] > 0:
                 change += [0,1][self._map[y][x] != action[i]-1]
                 self._map[y][x] = action[i]-1
-                self._bordered_map[y+1][x+1] = action[i]-1
 
         if self._random_tile:
             self._x = self._random.randint(self._map.shape[1])

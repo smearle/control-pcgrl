@@ -1,6 +1,8 @@
 import copy
 from pdb import set_trace as TT
 from re import S
+import time
+from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
@@ -13,9 +15,10 @@ import PIL
 import collections
 
 """
-The PCGRL GYM Environment
+The PCGRL GYM Environment with borders added into obervations. 2 holes are digged on the borders to make entrance and 
+exit.
 """
-class PcgrlEnv(gym.Env):
+class PcgrlHoleyEnv(PcgrlCtrlEnv):
     """
     The type of supported rendering
     """
@@ -23,6 +26,7 @@ class PcgrlEnv(gym.Env):
 
     """
     Constructor for the interface.
+
     Parameters:
         prob (string): the current problem. This name has to be defined in PROBLEMS
         constant in gym_pcgrl.envs.probs.__init__.py file
@@ -30,80 +34,11 @@ class PcgrlEnv(gym.Env):
         constant in gym_pcgrl.envs.reps.__init__.py
     """
     def __init__(self, prob="binary", rep="narrow", **kwargs):
-
-        # Attach this function to the env, since it will be different for, e.g., 3D environments.
-        self.get_string_map = get_string_map
-
-        self._prob: Problem = PROBLEMS[prob]()
-        self._rep: Representation = REPRESENTATIONS[rep]()
-        self._rep_stats = None
-        self.metrics = {}
-        print('problem metrics trgs: {}'.format(self._prob.static_trgs))
-        for k in self._prob.static_trgs:
-            self.metrics[k] = None
-        print('env metrics: {}'.format(self.metrics))
-        self._iteration = 0
-        self._changes = 0
-        self.width = self._prob._width
-        self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
-        # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        self._max_iterations = self._prob._width * self._prob._height
-        self._heatmap = np.zeros((self._prob._height, self._prob._width))
-
-        self.seed()
-        self.viewer = None
-
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
-
-        # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
-        
-        self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)
-        self._reward_weights = self._prob._reward_weights
-#       self.param_bounds = self._prob.cond_bounds
-        self.compute_stats = False
-
-    def configure(self, map_width, **kwargs):  # , max_step=300):
-        self._prob._width = map_width
-        self._prob._height = map_width
-        self.width = map_width
-#       self._prob.max_step = max_step
-
-
-#   def get_param_bounds(self):
-#       return self.param_bounds
-
-#   def set_param_bounds(self, bounds):
-#       #TODO
-#       return len(bounds)
-
-    def set_params(self, trgs):
-        for k, v in trgs.items():
-            self.metric_trgs[k] = v
-
-    def display_metric_trgs(self):
-        pass
-
-    """
-    Seeding the used random variable to get the same result. If the seed is None,
-    it will seed it with random start.
-
-    Parameters:
-        seed (int): the starting seed, if it is None a random seed number is used.
-
-    Returns:
-        int[]: An array of 1 element (the used seed)
-    """
-    def seed(self, seed=None):
-        seed = self._rep.seed(seed)
-        self._prob.seed(seed)
-
-        return [seed]
-
-    def get_spaces(self):
-        return self.observation_space.spaces, self.action_space
-
+        super(PcgrlHoleyEnv, self).__init__(prob, rep, **kwargs)
+        self._rep: Representation = REPRESENTATIONS[rep](
+            border_tile_index = self.get_border_tile(),
+            empty_tile_index = self.get_empty_tile(),
+            )
     """
     Resets the environment to the start state
 
@@ -114,11 +49,17 @@ class PcgrlEnv(gym.Env):
     def reset(self):
         self._changes = 0
         self._iteration = 0
-        self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+        self._rep.reset(
+            self._prob._width, 
+            self._prob._height, 
+            get_int_prob(self._prob._prob, self._prob.get_tile_types())
+        )
         continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
-        self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=continuous))
+        self._rep.dig_holes(*self._prob.gen_holes())
+        self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._bordered_map, self._prob.get_tile_types(), continuous=continuous))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
+
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         observation = self._rep.get_observation()
@@ -126,45 +67,8 @@ class PcgrlEnv(gym.Env):
 
         return observation
 
-    """
-    Get the border tile that can be used for padding
-
-    Returns:
-        int: the tile number that can be used for padding
-    """
-    def get_border_tile(self) -> int:
-        return self._prob.get_tile_types().index(self._prob._border_tile)
-
-    """
-    Get the number of different type of tiles that are allowed in the observation
-
-    Returns:
-        int: the number of different tiles
-    """
-    def get_num_tiles(self):
-        return len(self._prob.get_tile_types())
-
-    """
-    Adjust the used parameters by the problem or representation
-
-    Parameters:
-        change_percentage (float): a value between 0 and 1 that determine the
-        percentage of tiles the algorithm is allowed to modify. Having small
-        values encourage the agent to learn to react to the input screen.
-        **kwargs (dict(string,any)): the defined parameters depend on the used
-        representation and the used problem
-    """
-    def adjust_param(self, **kwargs):
-        self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
-        if 'change_percentage' in kwargs:
-            percentage = min(1, max(0, kwargs.get('change_percentage')))
-            self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
-        # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        self._prob.adjust_param(**kwargs)
-        self._rep.adjust_param(**kwargs)
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
+    def get_empty_tile(self) -> int:
+        return self._prob.get_tile_types().index(self._prob._empty_tile)
 
 
     """
@@ -197,7 +101,7 @@ class PcgrlEnv(gym.Env):
         # update the current state to the new state based on the taken action
 
         change, map_coords = self._rep.update(action)
-        
+
         if change > 0:
             self._changes += change
 
@@ -226,7 +130,7 @@ class PcgrlEnv(gym.Env):
         # Uncomment the below to use dense rewards (also need to modify the ParamRew wrapper).
         if change > 0:
         # if done or self.compute_stats:
-            self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types()))
+            self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._bordered_map, self._prob.get_tile_types()))
 
             if self._rep_stats is None:
                 raise Exception("self._rep_stats in pcgrl_env.py is None, what happened? Maybe you should check your path finding"
@@ -261,8 +165,8 @@ class PcgrlEnv(gym.Env):
     """
     def render(self, mode='human'):
         tile_size = 16
-        img = self._prob.render(self.get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
-        img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
+        img = self._prob.render(self.get_string_map(self._rep._bordered_map, self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
+        img = self._rep.render(img, self._prob._tile_size).convert("RGB")
 
         if mode == 'rgb_array':
             return img
@@ -285,4 +189,3 @@ class PcgrlEnv(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
-            

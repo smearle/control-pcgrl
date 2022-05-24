@@ -5,3 +5,5 @@ from gym_pcgrl.envs.play_pcgrl_env import PlayPcgrlEnv
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 # for 3D envs
 from gym_pcgrl.envs.pcgrl_env_3D import PcgrlEnv3D
+# for holey envs
+from gym_pcgrl.envs.pcgrl_holey_env import PcgrlHoleyEnv

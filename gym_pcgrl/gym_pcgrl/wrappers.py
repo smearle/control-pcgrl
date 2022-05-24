@@ -28,14 +28,15 @@ def get_action(a):
 # Q: why don't we just use env.unwrapped?
 # unwrap all the environments and get the PcgrlEnv
 def get_pcgrl_env(env):
-    return (
-        env
-        if "PcgrlEnv" in str(type(env))
-        or "PcgrlCtrlEnv" in str(type(env))
-        or "Micropolis" in str(type(env))
-        or "RCT" in str(type(env))
-        else get_pcgrl_env(env.env)
-    )
+    # return (
+    #     env
+    #     if "PcgrlEnv" in str(type(env))
+    #     or "PcgrlCtrlEnv" in str(type(env))
+    #     or "Micropolis" in str(type(env))
+    #     or "RCT" in str(type(env))
+    #     else get_pcgrl_env(env.env)
+    # )
+    return env.unwrapped
 
 
 class MaxStep(gym.Wrapper):

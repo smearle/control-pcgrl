@@ -79,8 +79,8 @@ class Narrow3DRepresentation(Representation3D):
     """
     def get_observation_space(self, length, width, height, num_tiles):
         return spaces.Dict({
-            "pos": spaces.Box(low=np.array([1, 1, 1]), high=np.array([length, width, height]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2, length+2))
+            "pos": spaces.Box(low=np.array([0, 0, 0]), high=np.array([length-1, width-1, height-1]), dtype=np.uint8),
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width, length))
         })
 
     """
@@ -92,9 +92,8 @@ class Narrow3DRepresentation(Representation3D):
     """
     def get_observation(self):
         return OrderedDict({
-            "pos": np.array([self._x+1, self._y+1, self._z+1], dtype=np.uint8),
-            # "map": self._map.copy()
-            "map": self._bordered_map.copy()
+            "pos": np.array([self._x, self._y, self._z], dtype=np.uint8),
+            "map": self._map.copy()
         })
 
     """
@@ -122,7 +121,7 @@ class Narrow3DRepresentation(Representation3D):
         if action > 0:
             change += [0,1][self._map[self._z][self._y][self._x] != action-1]
             self._map[self._z][self._y][self._x] = action-1
-            self._bordered_map[self._z+1][self._y+1][self._x+1] = action-1
+            
         if self._random_tile:
             # If we've acted on all tiles, but the episode is not over, re-shuffle them and cycle through again.
             if self.n_step == len(self._act_coords):

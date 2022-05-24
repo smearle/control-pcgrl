@@ -79,8 +79,8 @@ class Turtle3DRepresentation(Representation3D):
     """
     def get_observation_space(self, length, width, height, num_tiles):
         return spaces.Dict({
-            "pos": spaces.Box(low=np.array([1, 1, 1]), high=np.array([length, width, height]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2, length+2))
+            "pos": spaces.Box(low=np.array([0, 0, 0]), high=np.array([length-1, width-1, height-1]), dtype=np.uint8),
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width, length))
         })
 
     """
@@ -92,9 +92,8 @@ class Turtle3DRepresentation(Representation3D):
     """
     def get_observation(self):
         return OrderedDict({
-            "pos": np.array([self._x+1, self._y+1, self._z+1], dtype=np.uint8),
-            # "map": self._map.copy()
-            "map": self._bordered_map.copy()
+            "pos": np.array([self._x, self._y, self._z], dtype=np.uint8),
+            "map": self._map.copy()
         })
 
     """
@@ -102,7 +101,7 @@ class Turtle3DRepresentation(Representation3D):
 
     Parameters:
         action: an action that is used to advance the environment (same as action space)
-
+        
     Returns:
         boolean: True if the action change the map, False if nothing changed
     """
@@ -147,7 +146,6 @@ class Turtle3DRepresentation(Representation3D):
         else:
             change = [0,1][self._map[self._z][self._y][self._x] != action - len(self._dirs)]
             self._map[self._z][self._y][self._x] = action - len(self._dirs)
-            self._bordered_map[self._z+1][self._y+1][self._x+1] = action - len(self._dirs)
         self._new_coords = [self._x, self._y, self._z]
         return change, [self._x, self._y, self._z]
 

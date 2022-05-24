@@ -1,51 +1,29 @@
-from gym_pcgrl.envs.reps.representation_3D import Representation3D
 from pdb import set_trace as TT
 from PIL import Image
 from gym import spaces
+from gym_pcgrl.envs.reps.wide_3D_rep import Wide3DRepresentation
 import numpy as np
 from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
 
 """
 The wide representation where the agent can pick the tile position and tile value at each update.
 """
-class Wide3DRepresentation(Representation3D):
-    """
-    Initialize all the parameters used by that representation
-    """
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._new_coords = [0, 0, 0]
-        self._old_coords = [0, 0, 0]
-
-    """
-    Gets the action space used by the wide representation
-
-    Parameters:
-        length: the current map length
-        width: the current map width
-        height: the current map height
-        num_tiles: the total number of the tile values
-
-    Returns:
-        MultiDiscrete: the action space used by that wide representation which
-        consists of the x position, y position, z position and the tile value
-    """
-    def get_action_space(self, length, width, height, num_tiles):
-        return spaces.MultiDiscrete([length, width, height, num_tiles])
-
+class Wide3DHoleyRepresentation(Wide3DRepresentation):
     """
     Get the observation space used by the wide representation
+
     Parameters:
         length: the current map length
         width: the current map width
         height: the current map height
         num_tiles: the total number of the tile values
+
     Returns:
         Box: the observation space used by that representation. A 3D array of tile numbers
     """
     def get_observation_space(self, length, width, height, num_tiles):
         return spaces.Dict({
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width, length))
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2, length+2))
         })
 
     """
@@ -56,7 +34,8 @@ class Wide3DRepresentation(Representation3D):
     """
     def get_observation(self):
         return {
-            "map": self._map.copy()
+            # "map": self._map.copy()
+            "map": self._bordered_map.copy()
         }
 
     """
@@ -71,14 +50,8 @@ class Wide3DRepresentation(Representation3D):
     def update(self, action):
         change = [0,1][self._map[action[2]][action[1]][action[0]] != action[3]]
         self._map[action[2]][action[1]][action[0]] = action[3]
+        self._bordered_map[action[2]+1][action[1]+1][action[0]+1] = action[3]
 
         self._new_coords = [action[0], action[1], action[2]]
 
         return change, [action[0], action[1], action[2]]
-
-    def render(self, map):
-        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
-        edit_3D_maze(map, x, y, z)
-        self._old_coords = self._new_coords
-
-        return 

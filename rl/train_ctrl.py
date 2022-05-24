@@ -34,7 +34,7 @@ best_mean_reward, n_steps = -np.inf, 0
 
 
 def main(cfg):
-    if (cfg.problem not in ["binary_ctrl", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
+    if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
         ("minecraft" not in cfg.problem):
         raise Exception(
             "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
@@ -212,7 +212,9 @@ cfg.logging = True  # Always log
 
 cfg.map_width = get_map_width(cfg.problem)
 crop_size = cfg.crop_size
-crop_size = cfg.map_width * 2 + 1 if crop_size == -1 else crop_size
+crop_size = cfg.map_width * 2 if crop_size == -1 else crop_size
+if "holey" in cfg.problem:
+    crop_size = cfg.map_width * 2 + 1 if crop_size == -1 else crop_size
 cfg.crop_size = crop_size
 
 if __name__ == '__main__':

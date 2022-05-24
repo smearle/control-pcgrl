@@ -31,7 +31,7 @@ def make_env(cfg_dict):
         # env = wrappers.CAWrapper(env_name, **kwargs)
         env = wrappers.CAactionWrapper(cfg.env_name, **cfg_dict)
 
-    elif cfg.representation in ['narrow', 'turtle']:
+    elif cfg.representation in ['narrow', 'turtle', 'narrowholey']:
         env = wrappers.CroppedImagePCGRLWrapper(cfg.env_name, **cfg_dict)
 
     elif cfg.representation in ['narrow3D', 'turtle3D']:

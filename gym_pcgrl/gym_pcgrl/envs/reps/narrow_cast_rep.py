@@ -39,7 +39,6 @@ class NarrowCastRepresentation(NarrowRepresentation):
         if type ==1 :
             change += [0,1][self._map[self._y][self._x] != value]
             self._map[self._y][self._x] = value
-            self._bordered_map[self._y+1][self._x+1] = value
         elif type == 2:
             low_y,high_y=max(self._y-1,0),min(self._y+2,self._map.shape[0])
             low_x,high_x=max(self._x-1,0),min(self._x+2,self._map.shape[1])
@@ -58,3 +57,4 @@ class NarrowCastRepresentation(NarrowRepresentation):
                 if self._y >= self._map.shape[0]:
                     self._y = 0
         return change, [self._x, self._y]
+        

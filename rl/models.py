@@ -274,4 +274,5 @@ class NCA(TorchModelV2, nn.Module):
     
 
 # NEXT: change action space to allow multiple change at each step 
-# NEXT: add border into observations, start and end
+# NEXT: add path length, connectivity, region num to tensorboard logs
+# NEXT: make all 3D envs holey (if we want 3D probs holey, we need to make pcgrl_env_3D a holey env for env register)

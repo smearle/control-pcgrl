@@ -71,8 +71,8 @@ class NarrowRepresentation(Representation):
     """
     def get_observation_space(self, width, height, num_tiles):
         return spaces.Dict({
-            "pos": spaces.Box(low=np.array([1, 1]), high=np.array([width, height]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height + 2, width + 2))
+            "pos": spaces.Box(low=np.array([0, 0]), high=np.array([width-1, height-1]), dtype=np.uint8),
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
         })
 
     """
@@ -84,9 +84,8 @@ class NarrowRepresentation(Representation):
     """
     def get_observation(self):
         return OrderedDict({
-            "pos": np.array([self._x+1, self._y+1], dtype=np.uint8),
-            "map": self._bordered_map.copy()
-            # "map": self._map.copy()
+            "pos": np.array([self._x, self._y], dtype=np.uint8),
+            "map": self._map.copy()
         })
 
     """
@@ -102,7 +101,6 @@ class NarrowRepresentation(Representation):
 
     """
     Update the narrow representation with the input action
-
     Parameters:
         action: an action that is used to advance the environment (same as action space)
 
@@ -114,7 +112,6 @@ class NarrowRepresentation(Representation):
         if action > 0:
             change += [0,1][self._map[self._y][self._x] != action-1]
             self._map[self._y][self._x] = action-1
-            self._bordered_map[self._y+1][self._x+1] = action-1
         if self._random_tile:
 #           self._x = self._random.randint(self._map.shape[1])
 #           self._y = self._random.randint(self._map.shape[0])
@@ -139,11 +136,11 @@ class NarrowRepresentation(Representation):
         lvl_image (img): the current level_image without modifications
         tile_size (int): the size of tiles in pixels used in the lvl_image
         border_size ((int,int)): an offeset in tiles if the borders are not part of the level
-
+        
     Returns:
         img: the modified level image
     """
-    def render(self, lvl_image, tile_size):
+    def render(self, lvl_image, tile_size, border_size):
         x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
         for x in range(tile_size):
             x_graphics.putpixel((0,x),(255,0,0,255))
@@ -155,8 +152,6 @@ class NarrowRepresentation(Representation):
             x_graphics.putpixel((y,1),(255,0,0,255))
             x_graphics.putpixel((y,tile_size-2),(255,0,0,255))
             x_graphics.putpixel((y,tile_size-1),(255,0,0,255))
-        # lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
-        #                                 (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
-        lvl_image.paste(x_graphics, ((self._x+1)*tile_size, (self._y+1)*tile_size,
-                                        (self._x+2)*tile_size,(self._y+2)*tile_size), x_graphics)
+        lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
+                                        (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image

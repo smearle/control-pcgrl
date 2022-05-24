@@ -476,6 +476,7 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
     final_value = 0
+    n_jump = 0
 
     # We'll iterate over all empty tiles. But checking against the visited_map means we only perform path-finding 
     # algorithms once per connected component. 
