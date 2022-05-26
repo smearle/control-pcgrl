@@ -53,111 +53,114 @@ def launch_batch(exp_name, collect_params=False):
         prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
         for rep, model in batch_config.representations_models:
-            for controls in prob_controls:
 
-#                   if controls != ["NONE"] and change_percentage != 1:
+            for model_cfg in batch_config.model_configs:
+                for controls in prob_controls:
 
-#                       continue
+    #                   if controls != ["NONE"] and change_percentage != 1:
 
-                for alp_gmm in batch_config.alp_gmms:
-                    for change_percentage in batch_config.change_percentages:
+    #                       continue
 
-                        if sum(['3D' in name for name in [prob, rep]]) == 1:
-                            print(f'Dimensions (2D or 3D) of Problem: {prob} and Representation: {rep} '
-                                     'do not match. Skipping experiment.')
-                            continue
+                    for alp_gmm in batch_config.alp_gmms:
+                        for change_percentage in batch_config.change_percentages:
 
-                        if alp_gmm and controls == ["NONE", "NONE"]:
-                            continue
+                            if sum(['3D' in name for name in [prob, rep]]) == 1:
+                                print(f'Dimensions (2D or 3D) of Problem: {prob} and Representation: {rep} '
+                                        'do not match. Skipping experiment.')
+                                continue
 
-#                       if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
-#                           # For now we're only looking at uniform-random target-sampling with both control metrics
-#                           continue
+                            if alp_gmm and controls == ["NONE", "NONE"]:
+                                continue
 
-                        # TODO: integrate evaluate with rllib
-                        if EVALUATE:
-                            py_script_name = "rl/evaluate_ctrl.py"
-                            sbatch_name = "rl/eval.sh"
-#                       elif opts.infer:
-#                           py_script_name = "infer_ctrl_sb2.py"
-                        else:
-                            py_script_name = "rl/train_ctrl.py"
-                            sbatch_name = "rl/train.sh"
-                        
-                        # Write the config file with the desired settings
-                        exp_config = copy.deepcopy(default_config)
+    #                       if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
+    #                           # For now we're only looking at uniform-random target-sampling with both control metrics
+    #                           continue
 
-                        # Supply the command-line arguments in args.py
-                        exp_config.update(
-                            {
-                                "n_cpu": opts.n_cpu,
-                                "n_gpu": opts.n_gpu,
-                                "problem": prob,
-                                "representation": rep,
-                                "model": model,
-                                "conditionals": controls,
-                                "change_percentage": change_percentage,
-                                "alp_gmm": alp_gmm,
-                                "experiment_id": exp_name,
-                                "render": opts.render,
-                                "load": opts.load or opts.infer,
-                                "infer": opts.infer,
-                                "overwrite": opts.overwrite,
-                                "lr": opts.learning_rate,
-                                "gamma": opts.gamma,
-                            }
-                        )
+                            # TODO: integrate evaluate with rllib
+                            if EVALUATE:
+                                py_script_name = "rl/evaluate_ctrl.py"
+                                sbatch_name = "rl/eval.sh"
+    #                       elif opts.infer:
+    #                           py_script_name = "infer_ctrl_sb2.py"
+                            else:
+                                py_script_name = "rl/train_ctrl.py"
+                                sbatch_name = "rl/train.sh"
+                            
+                            # Write the config file with the desired settings
+                            exp_config = copy.deepcopy(default_config)
 
-                        if EVALUATE:
+                            # Supply the command-line arguments in args.py
                             exp_config.update(
                                 {
-                                    "load": True,
-                                    "n_maps": n_maps,
-                                    "render": False,
-#                                   "render_levels": opts.render_levels,
-                                    "n_bins": (n_bins,),
-                                    "vis_only": opts.vis_only,
+                                    "n_cpu": opts.n_cpu,
+                                    "n_gpu": opts.n_gpu,
+                                    "problem": prob,
+                                    "representation": rep,
+                                    "model": model,
+                                    "conditionals": controls,
+                                    "change_percentage": change_percentage,
+                                    "alp_gmm": alp_gmm,
+                                    "experiment_id": exp_name,
+                                    "render": opts.render,
+                                    "load": opts.load or opts.infer,
+                                    "infer": opts.infer,
+                                    "overwrite": opts.overwrite,
+                                    "lr": opts.learning_rate,
+                                    "gamma": opts.gamma,
+                                    "model_cfg": model_cfg,
                                 }
                             )
-                        print(f"Saving experiment config:\n{exp_config}")
-                        
-                        # get the experiment name to name the config file
-                        # config_name = f"{prob}_{rep}_{exp_name}"
-                        configure_name = namedtuple('configure_name', exp_config.keys())(**exp_config)
-                        config_name = get_exp_name(configure_name)
-                        config_name += f"_{exp_name}"
-                        # Edit the sbatch file to load the correct config file
-                        if not opts.render:
-                            with open(sbatch_name, "r") as f:
-                                content = f.read()
 
-                                # Replace the ``python scriptname --cl_args`` line.
-                                content = re.sub(
-                                    "python .* --load_args .*",
-                                    f"python {py_script_name} --load_args {config_name}",
-                                    content,
+                            if EVALUATE:
+                                exp_config.update(
+                                    {
+                                        "load": True,
+                                        "n_maps": n_maps,
+                                        "render": False,
+    #                                   "render_levels": opts.render_levels,
+                                        "n_bins": (n_bins,),
+                                        "vis_only": opts.vis_only,
+                                    }
                                 )
+                            print(f"Saving experiment config:\n{exp_config}")
+                            
+                            # get the experiment name to name the config file
+                            # config_name = f"{prob}_{rep}_{exp_name}"
+                            configure_name = namedtuple('configure_name', exp_config.keys())(**exp_config)
+                            config_name = get_exp_name(configure_name)
+                            config_name += f"_{exp_name}"
+                            # Edit the sbatch file to load the correct config file
+                            if not opts.render:
+                                with open(sbatch_name, "r") as f:
+                                    content = f.read()
 
-                                # Replace the job name.
-                                content = re.sub(
-                                    "rl_runs/pcgrl_.*",
-                                    f"rl_runs/pcgrl_{config_name}_%j.out",
-                                    content
-                                )
-                            with open(sbatch_name, "w") as f:
-                                f.write(content)
-                        
-                        with open(f"configs/rl/auto/settings_{config_name}.json", "w") as f:
-                            json.dump(exp_config, f, ensure_ascii=False, indent=4)
-                        # Launch the experiment. It should load the saved settings
+                                    # Replace the ``python scriptname --cl_args`` line.
+                                    content = re.sub(
+                                        "python .* --load_args .*",
+                                        f"python {py_script_name} --load_args {config_name}",
+                                        content,
+                                    )
 
-                        if collect_params:
-                            settings_list.append(exp_config)
-                        elif LOCAL:
-                            os.system(f"python {py_script_name} --load_args {config_name}")
-                        else:
-                            os.system(f"sbatch {sbatch_name}")
-                        i += 1
+                                    # Replace the job name.
+                                    content = re.sub(
+                                        "rl_runs/pcgrl_.*",
+                                        f"rl_runs/pcgrl_{config_name}_%j.out",
+                                        content
+                                    )
+                                with open(sbatch_name, "w") as f:
+                                    f.write(content)
+                            
+                            with open(f"configs/rl/auto/settings_{config_name}.json", "w") as f:
+                                json.dump(exp_config, f, ensure_ascii=False, indent=4)
+                            # Launch the experiment. It should load the saved settings
+
+                            if collect_params:
+                                settings_list.append(exp_config)
+                            elif LOCAL:
+                                os.system(f"python {py_script_name} --load_args {config_name}")
+                            else:
+                                os.system(f"sbatch {sbatch_name}")
+                            i += 1
     if collect_params:
         return settings_list
 

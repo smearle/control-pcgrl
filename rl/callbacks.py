@@ -1,4 +1,3 @@
-from enum import unique
 from pdb import set_trace as TT
 from typing import Dict
 
@@ -9,11 +8,13 @@ from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
 from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.utils.typing import AgentID, PolicyID
+from ray.tune import Callback
 
 
 class StatsCallbacks(DefaultCallbacks):
     def __init__(self, cfg, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.metrics_callback = {}
 
     def on_episode_end(
         self,
@@ -41,21 +42,27 @@ class StatsCallbacks(DefaultCallbacks):
                 metrics for the episode.
             kwargs: Forward compatibility placeholder.
         """
-        # Check if there are multiple episodes in a batch, i.e.
-        # "batch_mode": "truncate_episodes".
-        if worker.policy_config["batch_mode"] == "truncate_episodes":
-            # Make sure this episode is really done.
-            assert episode.batch_builder.policy_collectors["policy_0"].batches[
-                -1
-            ]["dones"][-1], (
-                "ERROR: `on_episode_end()` should only be called "
-                "after episode is done!"
-            )
+        # path_lengths = []
+        # regions = []
+        # connectivities = []
+        # for env in base_env.get_sub_environments():
+        #     regions.append(env.unwrapped._rep_stats['regions'])
+        #     connectivities.append(env.unwrapped._rep_stats['connectivity'])
+        #     path_lengths.append(env.unwrapped._rep_stats['path-length'])
+        
+        # episode_stats = {
+        #     'regions': np.mean(regions),
+        #     'connectivity': np.mean(connectivities),
+        #     'path-length': np.mean(path_lengths),
+        # }
+        env = base_env.get_sub_environments()[env_index]
+        episode_stats = env.unwrapped._rep_stats
         
 
-        env.stats = []
-        assert len(world_stats) == 1
-        world_stats = world_stats[0]
+        # stats_list = ['regions', 'connectivity', 'path-length']
+        # write to tensorboard file (if enabled)
+        # episode.hist_data.update({k: [v] for k, v in episode_stats.items()})
+        episode.custom_metrics.update({k: [v] for k, v in episode_stats.items()})
 
-        # TODO: flatten QD stats (reshape them outside), so that it will be written to tensorboard automatically.
-        episode.hist_data.update({k: [v] for k, v in world_stats.items()})
+        # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
+        # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})

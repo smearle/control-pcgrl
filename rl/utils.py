@@ -191,6 +191,10 @@ def get_exp_name(cfg):
 
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
         exp_name += "_ALPGMM"    
+
+    if len(cfg.model_cfg) > 0:
+        exp_name += f"_{cfg.model_cfg['conv_filters']}-convSz" if cfg.model_cfg['conv_filters'] != 64 else ""
+        exp_name += f"_{cfg.model_cfg['fc_size']}-fcSz" if cfg.model_cfg['fc_size'] != 64 else ""
     
     if cfg.lr:
         exp_name += f"_lr-{cfg.lr:.1e}"

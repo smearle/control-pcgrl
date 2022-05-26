@@ -12,46 +12,42 @@ from gym_pcgrl.envs.probs.binary.binary_ctrl_prob import BinaryCtrlProblem
 class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
     def __init__(self):
         super(BinaryCtrlHoleyProblem, self).__init__()
-        # default conditional targets
-        self.static_trgs = {
-            "regions": 1, 
-            "path-length": self._max_path_length, 
-            "connectivity": 1
-        }
 
-        # boundaries for conditional inputs/targets
-        self.cond_bounds = {
-            # Upper bound: checkerboard
-            "regions": (0, self._width * np.ceil(self._height / 2)),
-            #     10101010
-            #     01010101
-            #     10101010
-            #     01010101
-            #     10101010
-            # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
-            # and "snake" along that one
-            # Upper bound: zig-zag
-            "path-length": (0, self._max_path_length),
-            #   11111111
-            #   00000001
-            #   11111111
-            #   10000000
-            #   11111111
-            "connectivity": (0, 1)
-        }
+        self.fixed_holes = True
 
         self._reward_weights = {
             "regions": 0,
             "path-length": 1,
-            "connectivity": self._max_path_length,
+            "connected-path-length": 1.2,
+            # "connectivity": 0,
+            # "connectivity": self._width,
+            # "connectivity": self._max_path_length,
         }
 
+        self.static_trgs.update({
+            # "connectivity": 1,
+            "path-length": self._max_path_length + 2,
+            "connected-path-length": self._max_path_length + 2,
+        })
+
+        # boundaries for conditional inputs/targets
+        self.cond_bounds.update({
+            # "connectivity": (0, 1),
+            "path-length": (0, self._max_path_length + 2),
+            "connected-path-length": (0, self._max_path_length + 2),
+        })
        
         dummy_bordered_map = np.zeros((self._width + 2, self._height + 2), dtype=np.uint8)
         # Fill in the borders with ones
         dummy_bordered_map[0, 1:-1] = dummy_bordered_map[-1, 1:-1] = 1
         dummy_bordered_map[1:-1, 0] = dummy_bordered_map[1:-1, -1] = 1
         self._border_idxs = np.argwhere(dummy_bordered_map == 1)
+
+
+    def adjust_param(self, **kwargs):
+        super(BinaryCtrlProblem, self).adjust_param(**kwargs)
+        # self.fixed_holes = kwargs.get('fixed_holes', False)
+
 
     def gen_holes(self):
         """Generate one entrance and one exit hole into/out of the map randomly. Ensure they will not necessarily result in 
@@ -61,13 +57,19 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
         x      0
         0      0
         """
-        idxs = np.random.choice(self._border_idxs.shape[0], size=4, replace=False)
-        self.start_xy = self._border_idxs[idxs[0]]
-        for i in range(1, 4):
-            xy = self._border_idxs[idxs[i]]
-            if np.max(np.abs(self.start_xy - xy)) != 1: 
-                self.end_xy = xy
-                return self.start_xy, self.end_xy
+        if self.fixed_holes:
+            self.start_xy = np.array([1, 0])
+            self.end_xy = np.array((self._width, self._height +1))
+
+        else:
+            idxs = np.random.choice(self._border_idxs.shape[0], size=4, replace=False)
+            self.start_xy = self._border_idxs[idxs[0]]
+            for i in range(1, 4):
+                xy = self._border_idxs[idxs[i]]
+                if np.max(np.abs(self.start_xy - xy)) != 1: 
+                    self.end_xy = xy
+        
+        return self.start_xy, self.end_xy
 
 
     """
@@ -81,23 +83,26 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
         map_locations = get_tile_locations(map, self.get_tile_types())
         # self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
         dijkstra,_ = run_dijkstra(self.start_xy[1], self.start_xy[0], map, ["empty"])
-        self.path_length = dijkstra[self.end_xy[0], self.end_xy[1]]
+        connected_path_length = dijkstra[self.end_xy[0], self.end_xy[1]]
+
+        max_start_path = np.max(dijkstra)
+        end_xy = np.argwhere(dijkstra == max_start_path)[0]
+        self.path_length = max_start_path
 
         # Give a consolation prize if start and end are not connected.
-        if self.path_length == -1:
+        if connected_path_length == -1:
             connectivity_bonus = 0
-            max_temp_path = np.max(dijkstra)
-            end_xy = np.argwhere(dijkstra == max_temp_path)[0]
-            self.path_length = max_temp_path
+            self.connected_path_length = 0
 
         # Otherwise, give a bonus (to guarantee we beat the loser above), plus the actual path length.
         else:
             connectivity_bonus = 1
             end_xy = self.end_xy
+            self.connected_path_length = connected_path_length
 
         if self.render_path:
             # FIXME: This is a hack to prevent weird path coord list of [[0,0]]
-            if self.path_length == 0:
+            if self.path_length < 1:
                 self.path_coords = []
             else:
                 self.path_coords = get_path_coords(dijkstra, init_coords=(end_xy[0], end_xy[1]))
@@ -105,8 +110,9 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
         return {
             "regions": calc_num_regions(map, map_locations, ["empty"]),
             "path-length": self.path_length,
-            "connectivity": connectivity_bonus,
-            "path-coords": self.path_coords,
+            "connected-path-length": self.connected_path_length,
+            # "connectivity": connectivity_bonus,
+            # "path-coords": self.path_coords,
         }
 
     """
@@ -164,7 +170,7 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
             # "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
-            "connectivity": new_stats["connectivity"],
+            # "connectivity": new_stats["connectivity"],
         }
 
 

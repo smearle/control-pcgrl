@@ -131,5 +131,5 @@ class Representation:
     Returns:
         img: the modified level image
     """
-    def render(self, lvl_image, tile_size, border_size):
+    def render(self, lvl_image, tile_size, border_size=None):
         return lvl_image

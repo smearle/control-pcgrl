@@ -14,7 +14,7 @@ class NarrowRepresentation(Representation):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._random_tile = True
+        self._random_tile = False
         self._act_coords = None
         self.n_step = 0
 

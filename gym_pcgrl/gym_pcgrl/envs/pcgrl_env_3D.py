@@ -42,10 +42,10 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
             self._prob._height, self._prob._width, self._prob._length))
 
         self.metrics = {}
-        print('problem static trgs: {}'.format(self._prob.static_trgs))
+        # print('problem static trgs: {}'.format(self._prob.static_trgs))
         for k in {**self._prob.static_trgs}:
             self.metrics[k] = None
-        print('env metrics: {}'.format(self.metrics))
+        # print('env metrics: {}'.format(self.metrics))
         self._reward_weights = self._prob._reward_weights
         self.cond_bounds = self._prob.cond_bounds
         self.static_trgs = self._prob.static_trgs

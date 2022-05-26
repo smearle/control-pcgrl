@@ -28,6 +28,7 @@ from ray.tune.logger import pretty_print
 from utils import (get_env_name, get_exp_name, get_map_width,
 #                  max_exp_idx
                    )
+from callbacks import StatsCallbacks
 
 n_steps = 0
 log_dir = '../'
@@ -74,14 +75,13 @@ def main(cfg):
     if not is_3D_env:
         # Using this simple feedforward model for now by default
         model_cls = globals()[cfg.model] if cfg.model else CustomFeedForwardModel
-        ModelCatalog.register_custom_model("feedforward", model_cls)
     else:
         if cfg.representation == "wide3D":
             model_cls = globals()[cfg.model] if cfg.model else WideModel3D
-            ModelCatalog.register_custom_model("feedforward", model_cls)
         else:
             model_cls = globals()[cfg.model] if cfg.model else CustomFeedForwardModel3D
-            ModelCatalog.register_custom_model("feedforward", model_cls)
+
+    ModelCatalog.register_custom_model("custom_model", model_cls)
 
     # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
     num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
@@ -98,7 +98,8 @@ def main(cfg):
         'lr': cfg.lr,
         'gamma': cfg.gamma,
         'model': {
-            'custom_model': 'feedforward',
+            'custom_model': 'custom_model',
+            'custom_model_config': cfg.model_cfg,
         },
         "evaluation_config": {
             "explore": True,
@@ -115,6 +116,7 @@ def main(cfg):
 #       "log_level": "INFO",
 #       "train_batch_size": 32,
 #       "sgd_minibatch_size": 32,
+        'callbacks': stats_callbacks,
     }
 
     register_env('pcgrl', make_env)
@@ -157,6 +159,7 @@ def main(cfg):
             while not done:
                 action = trainer.compute_single_action(obs)
                 obs, reward, done, info = env.step(action)
+                # print(env.unwrapped._rep_stats["path-length"])
                 print(env.unwrapped._rep_stats)
                 env.render()
 

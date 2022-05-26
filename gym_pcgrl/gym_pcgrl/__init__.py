@@ -37,4 +37,3 @@ for prob in PROBLEMS.keys():
             continue
 
 # print(registry.all())
-# TT()

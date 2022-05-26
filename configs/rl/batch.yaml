@@ -2,8 +2,8 @@
   "problems": [
     # "minecraft_3D_maze_ctrl",
 #   "minecraft_3D_zelda_ctrl",
-    # "binary_ctrl",
-    "binary_ctrl_holey",
+    "binary_ctrl",
+    # "binary_ctrl_holey",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
@@ -17,13 +17,20 @@
 #       ["wide3D", "WideModel3D"],
 #       ["wide3D", "WideModel3DSkip"],
 #       ["cellular3D", null],
-#       ["narrow", null],
-        ["narrowholey", null],
-#       ["wide", null],
+    #   ["narrow", null],
+        # ["narrowholey", null],
+      ["wide", null],
+    #   ["wideholey", null],
         # ["wide", NCA],
 #       ["cellular", null],
         # ["cellular", NCA],
     #   ['turtle', null],
+  ],
+
+  "model_configs":
+  [
+    #   {},
+      {'conv_filters': 128, 'fc_size': 128,},
   ],
 
   # TODO: incorporate formal (rather than only functional) metrics as controls

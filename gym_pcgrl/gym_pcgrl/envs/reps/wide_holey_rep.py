@@ -1,3 +1,5 @@
+from pdb import set_trace as TT
+
 from gym_pcgrl.envs.reps.representation import Representation
 from PIL import Image
 from gym import spaces

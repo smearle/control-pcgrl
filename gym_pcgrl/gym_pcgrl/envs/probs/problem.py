@@ -149,6 +149,12 @@ class Problem:
     def get_debug_info(self, new_stats, old_stats):
         raise NotImplementedError('get_debug_info is not implemented')
 
+    def process_observation(self, observation):
+        return observation
+
+    def get_observable_tile_types(self):
+        return self.get_tile_types()
+
     """
     Get an image on how the map will look like for a specific map
 

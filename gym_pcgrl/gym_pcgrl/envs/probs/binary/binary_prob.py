@@ -1,6 +1,9 @@
-import numpy as np
 import os
+from pdb import set_trace as TT
+
+import numpy as np
 from PIL import Image
+
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
@@ -20,7 +23,7 @@ class BinaryProblem(Problem):
 
         # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
         # beginning of a level-generation episode.
-        self._prob = {"empty": 0, "solid": 1.0}
+        self._prob = {"empty": 0.0, "solid": 1.0,}
 
         self._border_tile = "solid"
 
@@ -37,6 +40,19 @@ class BinaryProblem(Problem):
         self.render_path = False
         self.path_coords = []
         self.path_length = None
+        # self._path_idx = self.get_tile_types().index("path")
+        self._path_idx = len(self.get_tile_types())
+
+
+    # Take the path into observation
+    def get_observable_tile_types(self):
+        return self.get_tile_types() + ["path"]
+
+    def process_observation(self, observation):
+        if self.path_coords is None:
+            return observation
+        observation['map'][self.path_coords[:, 0], self.path_coords[:, 1]] = self._path_idx
+        return observation
 
     """
     Get a list of all the different tile names
@@ -93,7 +109,7 @@ class BinaryProblem(Problem):
     """
     def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
-        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
+        self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=True)
         return {
             "regions": calc_num_regions(map, map_locations, ["empty"]),
             "path-length": self.path_length,

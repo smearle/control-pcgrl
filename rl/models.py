@@ -64,7 +64,7 @@ class CustomFeedForwardModel3D(TorchModelV2, nn.Module):
                  num_outputs,
                  model_config,
                  name,
-                #  conv_filters=64,
+                 conv_filters=64,
                  fc_size=128,
                  ):
         nn.Module.__init__(self)
@@ -82,7 +82,7 @@ class CustomFeedForwardModel3D(TorchModelV2, nn.Module):
         self.pre_fc_size = 64 * obs_shape[-2] * obs_shape[-3] * obs_shape[-4]
 
         # Convolutinal layers.
-        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=64, kernel_size=3, stride=1, padding=1)  # 7 * 7 * 7
+        self.conv_1 = nn.Conv3d(obs_space.shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=1)  # 7 * 7 * 7
 #       self.conv_2 = nn.Conv3d(64, out_channels=128, kernel_size=3, stride=2, padding=1)  # 4 * 4 * 4
 #       self.conv_3 = nn.Conv3d(128, out_channels=128, kernel_size=3, stride=2, padding=1)  # 2 * 2 * 2
         # Fully connected layer.

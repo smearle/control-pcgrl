@@ -199,7 +199,13 @@ class OneHotEncoding(gym.Wrapper):
     Transform any object in the dictionary to one hot encoding
     can be stacked
     """
-    def __init__(self, game, name, **kwargs):
+    def __init__(self, game, name, padded: bool = False, **kwargs):
+        """
+        Args:
+            padded (bool): if True, the observation we are receiving from the wrapper below us has `0s` to represent 
+                padded tiles.
+        """
+        self.padded = padded
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -248,7 +254,15 @@ class OneHotEncoding(gym.Wrapper):
 
     def transform(self, obs):
         old = obs[self.name]
-        obs[self.name] = np.eye(self.dim)[old]
+        if self.padded:
+            # Replace out-of-bounds values with all-zeros.
+            new = np.eye(self.dim + 1)[old]
+            new = new[..., 1:]
+
+        else:
+            new = np.eye(self.dim)[old]
+
+        obs[self.name] = new
 
         return obs
 
@@ -261,7 +275,7 @@ class ActionMap(gym.Wrapper):
     """
     Transform the action input space to a 3D map of values where the argmax value will be applied can be stacked
     """
-    def __init__(self, game, **kwargs):
+    def __init__(self, game, bordered_observation=False, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -281,6 +295,11 @@ class ActionMap(gym.Wrapper):
         else:
             h, w = self.env.observation_space.spaces["map"].shape
             dim = self.env.observation_space.spaces["map"].high.max()
+
+        # it's getting the h and w from the observation space, which is different from the action space
+        if bordered_observation:
+            h -= 2
+            w -= 2
         self.h = self.unwrapped.h = h
         self.w = self.unwrapped.w = w
         self.dim = self.unwrapped.dim = self.env.get_num_tiles()
@@ -375,7 +394,7 @@ class Cropped(gym.Wrapper):
 
         for (k, s) in self.env.observation_space.spaces.items():
             self.observation_space.spaces[k] = s
-        high_value = self.observation_space[self.name].high.max()
+        high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
             low=0, high=high_value, shape=(crop_size, crop_size), dtype=np.uint8
         )
@@ -394,11 +413,13 @@ class Cropped(gym.Wrapper):
         return obs
 
     def transform(self, obs):
-        map = obs[self.name]
+        # Incrementing all tile indices by 1 to avoid 0s (out-of-bounds).
+        map = obs[self.name] + 1
         x, y = obs["pos"]
 
         # View Centering
-        padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        # padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
         cropped = padded[y : y + self.size, x : x + self.size]
         obs[self.name] = cropped
 
@@ -424,7 +445,7 @@ class Cropped3D(Cropped):
         self.observation_space = gym.spaces.Dict({})
         for (k,s) in self.env.observation_space.spaces.items():
             self.observation_space.spaces[k] = s
-        high_value = self.observation_space[self.name].high.max()
+        high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(low=0, high=high_value, shape=(crop_size, crop_size, crop_size), dtype=np.uint8)
 
     def transform(self, obs):
@@ -432,7 +453,8 @@ class Cropped3D(Cropped):
         x, y, z = obs['pos']
 
         #View Centering
-        padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        # padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
         cropped = padded[z:z+self.size, y:y+self.size, x:x+self.size]
         obs[self.name] = cropped
         return obs
@@ -463,7 +485,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
             # Transform to one hot encoding if not binary
 
             # if "binary" not in game:
-            env = OneHotEncoding(env, "map")
+            env = OneHotEncoding(env, "map", padded=True)
             # Indices for flatting
             flat_indices = ["map"]
             # Final Wrapper has to be ToImage or ToFlat
@@ -477,10 +499,9 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
         env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
-        # Transform to one hot encoding if not binary
-        if 'binary' not in game:
-            # ) or ('minecraft_2Dmaze' not in game)
-            env = OneHotEncoding(env, 'map')
+        env = OneHotEncoding(env, 'map', padded=True)
+        
+        # Now we one hot encode the observation for all probs including the binary
         # Indices for flatting
         flat_indices = ['map']
         # Final Wrapper has to be ToImage or ToFlat
@@ -507,12 +528,13 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
             # Indices for flatting
             flat_indices = ["map"]
             env = self.pcgrl_env
+
             # Add the action map wrapper
-            env = ActionMap(env)
+            env = ActionMap(env, **kwargs)
             # Transform to one hot encoding if not binary
 
             # if "RCT" not in game and "Micropolis" not in game:
-            env = OneHotEncoding(env, "map")
+            env = OneHotEncoding(env, "map", padded=False)
             # Final Wrapper has to be ToImage or ToFlat
             self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
@@ -530,7 +552,7 @@ class CAactionWrapper(gym.Wrapper):
         # Transform to one hot encoding if not binary
         # if 'binary' not in game:
             # ) or ('minecraft_2Dmaze' not in game)
-        env = OneHotEncoding(env, 'map')
+        env = OneHotEncoding(env, 'map', padded=False)
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
@@ -552,7 +574,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         # Transform to one hot encoding if not binary
 
         # we need the observation to be one-hot, so we can reliably separate map from control observations for NCA skip connection
-        env = OneHotEncoding(env, 'map')
+        env = OneHotEncoding(env, 'map', padded=False)
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)

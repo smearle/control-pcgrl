@@ -20,10 +20,12 @@ def make_env(cfg_dict):
     # Turn dictionary into an object with attributes instead of keys.
     cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
 
-    if cfg.representation == 'wide':
+    if cfg.representation in ['wide']:
         env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+    elif cfg.representation in ['wideholey']:
+        env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, **cfg_dict)
 
-    elif cfg.representation == 'wide3D':
+    elif cfg.representation in ['wide3D', 'wide3Dholey']:
         # raise NotImplementedError("3D wide representation not implemented")
         env = wrappers.ActionMap3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
 

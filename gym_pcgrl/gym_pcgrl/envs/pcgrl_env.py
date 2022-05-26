@@ -38,23 +38,23 @@ class PcgrlEnv(gym.Env):
         self._rep: Representation = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self.metrics = {}
-        print('problem metrics trgs: {}'.format(self._prob.static_trgs))
+        # print('problem metrics trgs: {}'.format(self._prob.static_trgs))
         for k in self._prob.static_trgs:
             self.metrics[k] = None
-        print('env metrics: {}'.format(self.metrics))
+        # print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
         self._changes = 0
         self.width = self._prob._width
         self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        self._max_iterations = self._prob._width * self._prob._height
+        self._max_iterations = self._prob._width * self._prob._height + 1
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         self.seed()
         self.viewer = None
 
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_observable_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
@@ -144,6 +144,9 @@ class PcgrlEnv(gym.Env):
     def get_num_tiles(self):
         return len(self._prob.get_tile_types())
 
+    def get_num_observable_tiles(self):
+        return len(self._prob.get_observable_tile_types())
+
     """
     Adjust the used parameters by the problem or representation
 
@@ -163,7 +166,7 @@ class PcgrlEnv(gym.Env):
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_observable_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
 
@@ -209,6 +212,7 @@ class PcgrlEnv(gym.Env):
 
         # Get the agent's observation of the map
         observation = self._rep.get_observation()
+        observation = self._prob.process_observation(observation)
 
         # observation["heatmap"] = self._heatmap.copy()
 

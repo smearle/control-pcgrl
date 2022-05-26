@@ -56,8 +56,8 @@ class ConditionalWrapper(gym.Wrapper):
         self.metrics = self.unwrapped.metrics
 
         # NB: self.metrics needs to be an OrderedDict
-        print("usable metrics for conditional wrapper:", self.ctrl_metrics)
-        print("unwrapped env's current metrics: {}".format(self.unwrapped.metrics))
+        # print("usable metrics for conditional wrapper:", self.ctrl_metrics)
+        # print("unwrapped env's current metrics: {}".format(self.unwrapped.metrics))
         self.last_metrics = copy.deepcopy(self.metrics)
         self.cond_bounds = self.unwrapped.cond_bounds
         self.param_ranges = {}
@@ -101,7 +101,7 @@ class ConditionalWrapper(gym.Wrapper):
         self.width = self.unwrapped.width
         self.observation_space = self.env.observation_space
         # FIXME: hack for gym-pcgrl
-        print("conditional wrapper, original observation space shape", self.observation_space.shape)
+        # print("conditional wrapper, original observation space shape", self.observation_space.shape)
         self.action_space = self.env.action_space
 
         # TODO: generalize this for 3D environments.
@@ -144,7 +144,7 @@ class ConditionalWrapper(gym.Wrapper):
             self.observation_space = gym.spaces.Box(low=low, high=high)
             # Yikes lol (this is to appease SB3)
             #       self.unwrapped.observation_space = self.observation_space
-        print("conditional observation space shape: {}".format(self.observation_space.shape))
+        # print("conditional observation space shape: {}".format(self.observation_space.shape))
         self.next_trgs = None
 
         if self.render_gui and self.conditional:
