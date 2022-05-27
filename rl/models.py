@@ -233,13 +233,20 @@ class NCA(TorchModelV2, nn.Module):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
-        n_hid_1 = 256
-        n_hid_2 = 256
+        conv_filters = model_config.get('custom_model_config').get('conv_filters', 128)
+        n_hid_1 = n_hid_2 = conv_filters
+        # n_hid_1 = 128
+        # n_hid_2 = 128
         n_in_chans = obs_space.shape[-1]
+        # TODO: have these supplied to `__init__`
+        n_out_chans = n_in_chans - 1  # assuming we observa path
+        w_out = obs_space.shape[0]  # assuming no observable border
+        h_out = obs_space.shape[1]
+
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(n_hid_2, n_in_chans, 1, 1, 0, bias=True)
-        self.value_branch = SlimFC(np.prod(obs_space.shape), 1)
+        self.l3 = Conv2d(n_hid_2, n_in_chans - 1, 1, 1, 0, bias=True)
+        self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
         # self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 

@@ -9,6 +9,14 @@ import sys
 import gym
 
 import numpy as np
+import ray
+from ray import tune
+from ray.rllib.agents import ppo
+from ray.tune.integration.wandb import WandbLogger
+from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
+from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
+from ray.rllib.models import ModelCatalog
+from ray.tune.registry import register_env
 
 import gym_pcgrl
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, NCA # noqa : F401
@@ -18,10 +26,6 @@ from envs import make_env
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
 #from model import (CustomPolicyBigMap, CustomPolicySmallMap,
 #                   FullyConvPolicyBigMap, FullyConvPolicySmallMap, CAPolicy)
-from ray.rllib.agents import ppo
-from ray.rllib.models import ModelCatalog
-from ray.tune.registry import register_env
-from ray.tune.logger import pretty_print
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 # from stable_baselines.results_plotter import load_results, ts2xy
 # import tensorflow as tf
@@ -31,8 +35,27 @@ from utils import (get_env_name, get_exp_name, get_map_width,
 from callbacks import StatsCallbacks
 
 n_steps = 0
-log_dir = '../'
+PROJ_DIR = Path(__file__).parent.parent
 best_mean_reward, n_steps = -np.inf, 0
+
+
+class PPOTrainer(RlLibPPOTrainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
+        # self.checkpoint_path_file = checkpoint_path_file
+
+    @classmethod
+    def get_default_config(cls):
+        def_cfg = RlLibPPOTrainer.get_default_config()
+        def_cfg.update({'checkpoint_path_file': None})
+        return def_cfg
+
+    def save(self, *args, **kwargs):
+        ckp_path = super().save(*args, **kwargs)
+        with open(self.checkpoint_path_file, 'w') as f:
+            f.write(ckp_path)
+        return ckp_path
 
 
 def main(cfg):
@@ -50,7 +73,7 @@ def main(cfg):
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.experiment_id}'
-    log_dir = f'rl_runs/{exp_name_id}_log'
+    log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
 
     if not cfg.load:
 
@@ -86,9 +109,13 @@ def main(cfg):
     # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
     num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
+    # dummy_env = make_env(vars(cfg))
+
+    checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
+        'env': 'pcgrl',
         'framework': 'torch',
         'num_workers': num_workers,
         'num_gpus': cfg.n_gpu,
@@ -99,7 +126,9 @@ def main(cfg):
         'gamma': cfg.gamma,
         'model': {
             'custom_model': 'custom_model',
-            'custom_model_config': cfg.model_cfg,
+            'custom_model_config': {
+                **cfg.model_cfg,
+            }
         },
         "evaluation_config": {
             "explore": True,
@@ -117,41 +146,55 @@ def main(cfg):
 #       "train_batch_size": 32,
 #       "sgd_minibatch_size": 32,
         'callbacks': stats_callbacks,
+
+        # `ray.tune` seems to need these spaces specified here.
+        # 'observation_space': dummy_env.observation_space,
+        # 'action_space': dummy_env.action_space,
+
+        # 'create_env_on_driver': True,
+        'checkpoint_path_file': checkpoint_path_file
     }
 
     register_env('pcgrl', make_env)
 
     # Log the trainer config, excluding overly verbose entries (i.e. Box observation space printouts).
     trainer_config_loggable = trainer_config.copy()
+    # trainer_config_loggable.pop('observation_space')
+    # trainer_config_loggable.pop('action_space')
     # trainer_config_loggable.pop('multiagent')
     print(f'Loading trainer with config:')
     print(pretty_print(trainer_config_loggable))
 
-    trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
-
-    checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
-
+    # NOTE: `ray.tune` now handles re-loading. Remove the below code when we're sure all the functionality has migrated
+    #   over successfully.
     # Super ad-hoc re-loading. Note that we reset the number of training steps to be executed. Need to clearn this up if
     # we were to use it in actual publication-worthy experiments. Good for debugging though, maybe.
-    if cfg.load:
-        with open(checkpoint_path_file, 'r') as f:
-            checkpoint_path = f.read()
+    # if cfg.load:
+    #     trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
+    #     with open(checkpoint_path_file, 'r') as f:
+    #         checkpoint_path = f.read()
 
-        # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
-        #  back up when reloading (see tensorboard logs).
-        trainer.load_checkpoint(checkpoint_path=checkpoint_path)
-        print(f"Loaded checkpoint from {checkpoint_path}.")
+    #     # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
+    #     #  back up when reloading (see tensorboard logs).
+    #     trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+    #     print(f"Loaded checkpoint from {checkpoint_path}.")
 
-    n_params = 0
-    param_dict = trainer.get_weights()['default_policy']
+    #     n_params = 0
+    #     param_dict = trainer.get_weights()['default_policy']
 
-    for v in param_dict.values():
-        n_params += np.prod(v.shape)
-    print(f'default_policy has {n_params} parameters.')
-    print('model overview: \n', trainer.get_policy('default_policy').model)
+    #     for v in param_dict.values():
+    #         n_params += np.prod(v.shape)
+    #     print(f'default_policy has {n_params} parameters.')
+    #     print('model overview: \n', trainer.get_policy('default_policy').model)
 
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer:
+        trainer = PPOTrainer(env='pcgrl', config=trainer_config)
+        with open(checkpoint_path_file, 'r') as f:
+            checkpoint_path = f.read()
+        trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+        print(f"Loaded checkpoint from {checkpoint_path}.")
+
         env = make_env(vars(cfg))
         for i in range(10000):
             obs = env.reset()
@@ -172,8 +215,12 @@ def main(cfg):
     # TODO: makes this controllable, i.e., by dividing the number of frames by the train_batch_size
     n_updates = 10000
 
-    # The training loop.
-    for i in range(n_updates):
+    # TODO: We've given the main loop over to `ray.tune`. Make sure we keep this functionality aroundn! In particular:
+    #   the printout is ugly and verbose. And it would be nice to log `fps`. (Probably just add to PPOTrainer subclass
+    #   and override the `train_step` or `print_result` methods?)
+    n# The training loop.
+    # for i in range(n_updates):
+    def train_fn(config={}):
         result = trainer.train()
         log_result = {k: v for k, v in result.items() if k in log_keys}
         log_result['info: learner:'] = result['info']['learner']
@@ -184,25 +231,43 @@ def main(cfg):
         print('-----------------------------------------')
         print(pretty_print(log_result))
 
-        # Intermittently save model checkpoints.
-        if i % 10 == 0:
-            checkpoint = trainer.save(checkpoint_dir=log_dir)
+        # NOTE: `ray.tune` does this better now.
+        # # Intermittently save model checkpoints.
+        # if i % 10 == 0:
+        #     checkpoint = trainer.save(checkpoint_dir=log_dir)
 
-            # Remove the old checkpoint file if it exists.
-            if os.path.isfile(checkpoint_path_file):
-                with open(checkpoint_path_file, 'r') as f:
-                    old_checkpoint = f.read()
+        #     # Remove the old checkpoint file if it exists.
+        #     if os.path.isfile(checkpoint_path_file):
+        #         with open(checkpoint_path_file, 'r') as f:
+        #             old_checkpoint = f.read()
 
-                # FIXME: sometimes this does not exist (when overwriting?)
-                shutil.rmtree(Path(old_checkpoint).parent)
+        #         # FIXME: sometimes this does not exist (when overwriting?)
+        #         shutil.rmtree(Path(old_checkpoint).parent)
             
-            # Record the path of the new checkpoint.
-            with open(checkpoint_path_file, 'w') as f:
-                f.write(checkpoint)
+        #     # Record the path of the new checkpoint.
+        #     with open(checkpoint_path_file, 'w') as f:
+        #         f.write(checkpoint)
 
-            print("checkpoint saved at", checkpoint)
-
-# tune.run(trainable, num_samples=2, local_dir="./results", name="test_experiment")
+        #     print("checkpoint saved at", checkpoint)
+    
+    ray.init()
+    analysis = tune.run(
+        # train_fn,
+        # "PPO",
+        PPOTrainer,
+        resume=cfg.load,
+        config={
+            **trainer_config,
+            # "wandb": {
+                # "project": "PCGRL",
+            # },
+        },
+        checkpoint_at_end=True,
+        checkpoint_freq=10,
+        keep_checkpoints_num=3,
+        local_dir=log_dir,
+        # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
+    )
 
 ################################## MAIN ########################################
 
