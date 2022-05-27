@@ -134,6 +134,10 @@ def main(cfg):
             "explore": True,
         },
         "logger_config": {
+                        "wandb": {
+                "project": "PCGRL",
+                # "api_key_file": "~/.wandb_api_key"
+            },
             "type": "ray.tune.logger.TBXLogger",
             # Optional: Custom logdir (do not define this here
             # for using ~/ray_results/...).
@@ -218,7 +222,7 @@ def main(cfg):
     # TODO: We've given the main loop over to `ray.tune`. Make sure we keep this functionality aroundn! In particular:
     #   the printout is ugly and verbose. And it would be nice to log `fps`. (Probably just add to PPOTrainer subclass
     #   and override the `train_step` or `print_result` methods?)
-    n# The training loop.
+    # The training loop.
     # for i in range(n_updates):
     def train_fn(config={}):
         result = trainer.train()
@@ -249,12 +253,12 @@ def main(cfg):
         #         f.write(checkpoint)
 
         #     print("checkpoint saved at", checkpoint)
+    tune.register_trainable("CustomPPO", PPOTrainer)
     
     ray.init()
+
     analysis = tune.run(
-        # train_fn,
-        # "PPO",
-        PPOTrainer,
+        "CustomPPO",
         resume=cfg.load,
         config={
             **trainer_config,
@@ -266,7 +270,9 @@ def main(cfg):
         checkpoint_freq=10,
         keep_checkpoints_num=3,
         local_dir=log_dir,
+        verbose=3,
         # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
+        loggers=[WandbLogger]
     )
 
 ################################## MAIN ########################################
