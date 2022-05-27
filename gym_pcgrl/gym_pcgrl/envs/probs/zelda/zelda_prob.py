@@ -124,8 +124,8 @@ class ZeldaProblem(Problem):
                 map_stats["path-length"] += dijkstra_d[d_y][d_x]
                 if self.render_path:
                                                                              # end point is key
-                    self.path = np.hstack((get_path_coords(dijkstra_k, init_coords=(k_x, k_y)),
-                                          get_path_coords(dijkstra_d, init_coords=(d_x, d_y))))
+                    self.path = np.hstack((get_path_coords(dijkstra_k, init_coords=(k_y, k_x)),
+                                          get_path_coords(dijkstra_d, init_coords=(d_y, d_x))))
                                                                              # end point is door
         self.path_length = map_stats["path-length"]
         return map_stats
