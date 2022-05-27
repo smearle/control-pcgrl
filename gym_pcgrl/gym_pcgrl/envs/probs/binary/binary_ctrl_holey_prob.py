@@ -46,16 +46,19 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
 
     def adjust_param(self, **kwargs):
         super(BinaryCtrlProblem, self).adjust_param(**kwargs)
-        # self.fixed_holes = kwargs.get('fixed_holes', False)
+        self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
 
     def gen_holes(self):
-        """Generate one entrance and one exit hole into/out of the map randomly. Ensure they will not necessarily result in 
-        trivial paths in/out of the map. E.g., the below are not valid holes:
+        """Generate one entrance and one exit hole into/out of the map randomly. Ensure they will not necessarily result
+         in trivial paths in/out of the map. E.g., the below are not valid holes:
         0 0    0 x  
         x      x
         x      0
         0      0
+
+        start_xy[0] : y
+        start_xy[1] : x
         """
         if self.fixed_holes:
             self.start_xy = np.array([1, 0])
@@ -89,12 +92,12 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
         end_xy = np.argwhere(dijkstra == max_start_path)[0]
         self.path_length = max_start_path
 
-        # Give a consolation prize if start and end are not connected.
+        # Give a consolation prize if start and end are NOT connected.
         if connected_path_length == -1:
             connectivity_bonus = 0
             self.connected_path_length = 0
 
-        # Otherwise, give a bonus (to guarantee we beat the loser above), plus the actual path length.
+        # Otherwise(Connected), give a bonus (to guarantee we beat the loser above), plus the actual path length.
         else:
             connectivity_bonus = 1
             end_xy = self.end_xy
@@ -104,9 +107,14 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
             # FIXME: This is a hack to prevent weird path coord list of [[0,0]]
             if self.path_length < 1:
                 self.path_coords = []
+                self.connected_path_coords = []
             else:
-                self.path_coords = get_path_coords(dijkstra, init_coords=(end_xy[0], end_xy[1]))
+                maxcoord = np.argwhere(dijkstra == np.max(dijkstra))[0]
+                self.path_coords = get_path_coords(dijkstra, init_coords=(maxcoord[1], maxcoord[0]))
+                self.connected_path_coords = get_path_coords(dijkstra, init_coords=(end_xy[1], end_xy[0]))
 
+        # print("Connected path length:", self.connected_path_length)
+        # print("connected_path_coords:", self.connected_path_coords)
         return {
             "regions": calc_num_regions(map, map_locations, ["empty"]),
             "path-length": self.path_length,
@@ -130,12 +138,14 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
         rewards = {
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
             "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], 125, 125),
-            "connectivity": get_range_reward(new_stats["connectivity"], old_stats["connectivity"], 1, 1),
+            "connected-path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], 125, 125),
+            # "connectivity": get_range_reward(new_stats["connectivity"], old_stats["connectivity"], 1, 1),
         }
         #calculate the total reward
         return rewards["regions"] * self._reward_weights["regions"] +\
             rewards["path-length"] * self._reward_weights["path-length"] +\
-            rewards["connectivity"] * self._reward_weights["connectivity"]
+            rewards["connected-path-length"] * self._reward_weights["connected-path-length"]
+            # rewards["connectivity"] * self._reward_weights["connectivity"]
 
 
     """
@@ -151,8 +161,8 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
     """
     def get_episode_over(self, new_stats, old_stats):
 #       return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
-        return new_stats["regions"] == 1 and new_stats["path-length"] == self._max_path_length and \
-            new_stats["connectivity"] == 1
+        return new_stats["regions"] == 1 and new_stats["path-length"] == self._max_path_length # and \
+            # new_stats["connectivity"] == 1
 
     """
     Get any debug information need to be printed
@@ -169,6 +179,7 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
         return {
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
+            "connected-path-length": new_stats["connected-path-length"],
             # "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
             # "connectivity": new_stats["connectivity"],
         }
@@ -199,6 +210,8 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
                     "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
                 }
         render_path=self.path_coords
+        # render_connected_path=self.connected_path_coords
+        # render_path=self.connected_path_coords
 
 
         ### modified render function from Problem class below ###
@@ -211,6 +224,8 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
                 self._graphics[tiles[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
             if render_path:
                 self._graphics["path"] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
+            # if render_connected_path:
+                # self._graphics["connected-path"] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
 
         # full_width = len(map[0])+2*self._border_size[0]
         full_width = len(map[0])

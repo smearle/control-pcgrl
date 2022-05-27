@@ -233,8 +233,8 @@ class NCA(TorchModelV2, nn.Module):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
-        n_hid_1 = 32
-        n_hid_2 = 32
+        n_hid_1 = 256
+        n_hid_2 = 256
         n_in_chans = obs_space.shape[-1]
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)

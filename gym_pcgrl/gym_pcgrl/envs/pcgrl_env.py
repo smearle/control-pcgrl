@@ -229,6 +229,7 @@ class PcgrlEnv(gym.Env):
         # Only get level stats at the end of the level, for sparse, loss-based reward.
         # Uncomment the below to use dense rewards (also need to modify the ParamRew wrapper).
         if change > 0:
+        # if done:
         # if done or self.compute_stats:
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types()))
 
