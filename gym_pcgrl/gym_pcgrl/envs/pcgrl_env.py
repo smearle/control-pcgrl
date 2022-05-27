@@ -45,7 +45,11 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._changes = 0
         self.width = self._prob._width
-        self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
+        self._change_percentage = 0.2
+
+        # Effectively a dummy variable if `change_percentage` is later set to `None`.
+        self._max_changes = max(int(self._change_percentage * self._prob._width * self._prob._height), 1)
+
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._max_iterations = self._prob._width * self._prob._height + 1
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
@@ -116,7 +120,7 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
-        self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types(), continuous=continuous))
+        self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types(), continuous=continuous))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
@@ -159,8 +163,9 @@ class PcgrlEnv(gym.Env):
     """
     def adjust_param(self, **kwargs):
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
-        if 'change_percentage' in kwargs:
-            percentage = min(1, max(0, kwargs.get('change_percentage')))
+        self._change_percentage = kwargs['change_percentage']
+        if self._change_percentage is not None:
+            percentage = min(1, max(0, self._change_percentage))
             self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
@@ -216,7 +221,7 @@ class PcgrlEnv(gym.Env):
 
         # observation["heatmap"] = self._heatmap.copy()
 
-        # NOTE: in control-pcgr, the ParamRew wrapper now handles rewards for all environments (even when not training a
+        # NOTE: in control-pcgrl, the ParamRew wrapper now handles rewards for all environments (even when not training a
         # "controllable" RL agent). Just need to specify the metrics of interest and their targets in __init__.
         reward = None
         # reward = self._prob.get_reward(self._rep_stats, old_stats)
@@ -224,14 +229,16 @@ class PcgrlEnv(gym.Env):
         # TODO: actually we do want to allow max_change_percentage to terminate the episode!
         # NOTE: not ending the episode if we reach targets in our metrics of interest for now.
         # done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
-        done = self._iteration >= self._max_iterations
+        done = self._iteration > self._max_iterations
+        if self._change_percentage is not None:
+            done = done or self._changes > self._max_changes
 
         # Only get level stats at the end of the level, for sparse, loss-based reward.
         # Uncomment the below to use dense rewards (also need to modify the ParamRew wrapper).
         if change > 0:
         # if done:
         # if done or self.compute_stats:
-            self._rep_stats = self._prob.get_stats(self.get_string_map(self._rep._map, self._prob.get_tile_types()))
+            self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))
 
             if self._rep_stats is None:
                 raise Exception("self._rep_stats in pcgrl_env.py is None, what happened? Maybe you should check your path finding"
@@ -254,6 +261,8 @@ class PcgrlEnv(gym.Env):
 
         return observation, reward, done, info
 
+    def _get_rep_map(self):
+        return self._rep._map
 
     """
     Render the current state of the environment

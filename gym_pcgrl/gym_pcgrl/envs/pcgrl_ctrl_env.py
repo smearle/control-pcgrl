@@ -31,8 +31,8 @@ class PcgrlCtrlEnv(PcgrlEnv):
 #       self.metrics = self._rep_stats
 #       return ret
 
-    def adjust_param(self, **kwargs):
-        super().adjust_param(**kwargs)
-        if kwargs.get('change_percentage') == -1:
-            self._max_changes = np.inf
+    # def adjust_param(self, **kwargs):
+        # super().adjust_param(**kwargs)
+        # if kwargs.get('change_percentage') == -1:
+            # self._max_changes = np.inf
 

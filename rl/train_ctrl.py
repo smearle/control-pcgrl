@@ -109,7 +109,10 @@ def main(cfg):
     # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
     num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
-    # dummy_env = make_env(vars(cfg))
+
+    # ray won't stfu about this anyway lol
+    dummy_env = make_env(vars(cfg))
+    ray.rllib.utils.check_env(dummy_env)
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
 
@@ -120,6 +123,9 @@ def main(cfg):
         'num_workers': num_workers,
         'num_gpus': cfg.n_gpu,
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
+        # 'env_config': {
+            # 'change_percentage': cfg.change_percentage,
+        # },
         'num_envs_per_worker': 20 if not cfg.infer else 1,
         'render_env': cfg.render,
         'lr': cfg.lr,
@@ -136,6 +142,8 @@ def main(cfg):
         "logger_config": {
                         "wandb": {
                 "project": "PCGRL",
+                "name": exp_name_id,
+                "id": exp_name_id,
                 # "api_key_file": "~/.wandb_api_key"
             },
             "type": "ray.tune.logger.TBXLogger",

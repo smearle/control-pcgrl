@@ -50,7 +50,7 @@ class BinaryProblem(Problem):
         return self.get_tile_types() + ["path"]
 
     def process_observation(self, observation):
-        if self.path_coords is None:
+        if self.path_coords == []:
             return observation
         observation['map'][self.path_coords[:, 0], self.path_coords[:, 1]] = self._path_idx
         return observation

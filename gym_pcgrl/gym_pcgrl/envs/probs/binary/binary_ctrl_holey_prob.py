@@ -13,7 +13,7 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
     def __init__(self):
         super(BinaryCtrlHoleyProblem, self).__init__()
 
-        self.fixed_holes = True
+        self.fixed_holes = False
 
         self._reward_weights = {
             "regions": 0,
@@ -97,7 +97,7 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
             connectivity_bonus = 0
             self.connected_path_length = 0
 
-        # Otherwise(Connected), give a bonus (to guarantee we beat the loser above), plus the actual path length.
+        # Otherwise (holes are connected), give a bonus (to guarantee we beat the loser above), plus the actual path length.
         else:
             connectivity_bonus = 1
             end_xy = self.end_xy
@@ -209,8 +209,10 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
                     "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
                     "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
                     "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
+                    "c_path" : Image.open(os.path.dirname(__file__) + "/binary/path_b.png").convert('RGBA'),
                 }
         render_path=self.path_coords
+        render_cnct_path=self.connected_path_coords
         # render_connected_path=self.connected_path_coords
         # render_path=self.connected_path_coords
 
@@ -259,6 +261,9 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
             tile_graphics = self._graphics["path"]
             for (y, x) in render_path:
                 # lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)
+                lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
+            tile_graphics = self._graphics["c_path"]
+            for (y, x) in render_cnct_path:
                 lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
             draw = ImageDraw.Draw(lvl_image)
             # font = ImageFont.truetype(<font-file>, <font-size>)

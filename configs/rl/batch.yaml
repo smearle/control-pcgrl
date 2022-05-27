@@ -31,6 +31,7 @@
   [
       {},
     #   {'conv_filters': 128, 'fc_size': 128,},
+    #   {'conv_filters': 256, 'fc_size': 256,},
   ],
 
   # TODO: incorporate formal (rather than only functional) metrics as controls
@@ -94,10 +95,19 @@
 
   # How much of the original level the generator-agent is allowed to change before episode termination.
   "change_percentages": [
-  #   0.2,
+    # 0.2,
   #   0.6,
-  #   0.8
-      1.0,
+    0.8
+    #   1.0,
+    # None,
   ],
+
+  "learning_rates": [
+    #   0.001,
+    #   0.0001,
+    #   0.00001,
+      0.000005,
+    #   0.000001,
+  ]
 
 }
