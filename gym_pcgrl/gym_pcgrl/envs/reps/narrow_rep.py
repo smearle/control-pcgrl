@@ -17,6 +17,7 @@ class NarrowRepresentation(Representation):
         self._random_tile = False
         self._act_coords = None
         self.n_step = 0
+        self._x , self._y = 0, 0
 
     """
     Resets the current representation where it resets the parent and the current

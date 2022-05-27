@@ -9,7 +9,7 @@
 #SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=rl_runs/pcgrl_binary_ctrl_holey_narrowholey_vanilla_chng-1.0_lr-5.0e-06_testSinglePairHoles_%j.out
+#SBATCH --output=rl_runs/pcgrl_binary_ctrl_holey_narrowholey_vanilla_chng-1.0_lr-5.0e-06_testesttttttt_%j.out
 
 ## cd /scratch/zj2086/control-pcgrl
 
@@ -21,7 +21,7 @@
 ## conda activate pcgrl
 
 start=$SECONDS
-python rl/train_ctrl.py --load_args binary_ctrl_holey_narrowholey_vanilla_chng-1.0_lr-5.0e-06_testSinglePairHoles
+python rl/train_ctrl.py --load_args binary_ctrl_holey_narrowholey_vanilla_chng-1.0_lr-5.0e-06_testesttttttt
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

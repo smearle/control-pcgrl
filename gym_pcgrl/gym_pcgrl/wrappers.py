@@ -211,6 +211,9 @@ class OneHotEncoding(gym.Wrapper):
         else:
             self.env = game
         get_pcgrl_env(self.env).adjust_param(**kwargs)
+        self._x = self.env.unwrapped._rep._x
+        self._y = self.env.unwrapped._rep._y
+
         gym.Wrapper.__init__(self, self.env)
 
         assert (
@@ -261,7 +264,8 @@ class OneHotEncoding(gym.Wrapper):
 
         else:
             new = np.eye(self.dim)[old]
-
+        
+        new[..., -1][self._y, self._x] = 1
         obs[self.name] = new
 
         return obs
@@ -418,7 +422,7 @@ class Cropped(gym.Wrapper):
         x, y = obs["pos"]
 
         # View Centering
-        # padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        # padded = np.pad(map, self.pad, constant_values=self.pad_value)   # previous padded value was wall
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
         cropped = padded[y : y + self.size, x : x + self.size]
         obs[self.name] = cropped
