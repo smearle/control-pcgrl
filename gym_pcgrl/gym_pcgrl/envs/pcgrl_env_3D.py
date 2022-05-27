@@ -1,8 +1,10 @@
 from pdb import set_trace as TT
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from gym_pcgrl.envs.probs import PROBLEMS
+from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper_3D import get_int_prob, get_string_map
+from gym_pcgrl.envs.reps.representation import Representation
 import numpy as np
 from gym import spaces
 
@@ -12,8 +14,8 @@ The 3D PCGRL GYM Environment
 class PcgrlEnv3D(PcgrlCtrlEnv):
     def __init__(self, prob="minecraft_3D_maze", rep="narrow3D"):
         self.get_string_map = get_string_map
-        self._prob = PROBLEMS[prob]()
-        self._rep = REPRESENTATIONS[rep]()
+        self._prob: Problem = PROBLEMS[prob]()
+        self._rep: Representation = REPRESENTATIONS[rep]()
 
         self._repr_name = rep
 

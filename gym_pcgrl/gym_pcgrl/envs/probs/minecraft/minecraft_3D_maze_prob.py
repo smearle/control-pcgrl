@@ -203,6 +203,13 @@ class Minecraft3DmazeProblem(Problem):
     def render(self, map, iteration_num, repr_name, render_matplotlib=False, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
 
+        # Render the border if we haven't yet already.
+        if not self._rendered_initial_maze:
+            spawn_3D_border(map, self._border_tile)
+            spawn_3D_maze(map)
+            self._rendered_initial_maze = True
+
+        # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
         # block_dict.update(get_3D_maze_blocks(map))
         # block_dict = {}
@@ -228,15 +235,6 @@ class Minecraft3DmazeProblem(Problem):
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
             erase_3D_path(path_to_erase)
 
-        # Render the border if we haven't yet already.
-        if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile)
-            spawn_3D_maze(map)
-            self._rendered_initial_maze = True
-
-        # block_dict.update(get_3D_maze_blocks(map))
-
-        if self.render_path:
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             spawn_3D_path(self.path_coords)
             # time.sleep(0.2)

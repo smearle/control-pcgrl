@@ -31,6 +31,7 @@ class Minecraft3DZeldaProblem(Problem):
 
         self.path_length = 0
         self.path_coords = []
+        self.old_path_coords = []
 
         self.n_jump = 0
 
@@ -40,6 +41,7 @@ class Minecraft3DZeldaProblem(Problem):
         self._target_enemy_dist = 4
 
         self.render_path = False 
+        self._rendered_initial_maze = False
 
         self._reward_weights = {
             "regions": 5,
@@ -95,6 +97,7 @@ class Minecraft3DZeldaProblem(Problem):
         start_stats (dict(string,any)): the first stats of the map
     """
     def reset(self, start_stats):
+        self._rendered_initial_maze = False
         super().reset(start_stats)
         if self._random_probs:
             self._prob["AIR"] = self._random.random()
@@ -114,6 +117,9 @@ class Minecraft3DZeldaProblem(Problem):
     """
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
+
+        self.old_path_coords = self.path_coords
+
         self.path_coords = []
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
@@ -224,17 +230,38 @@ class Minecraft3DZeldaProblem(Problem):
         }
 
     def render(self, map, iteration_num, repr_name):
-        if iteration_num == 0:
+        # Render the border if we haven't yet already.
+        if not self._rendered_initial_maze:
             spawn_3D_border(map, self._border_tile)
-        # if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
-        if repr_name == "narrow3D" or repr_name == "turtle3D":
-            if iteration_num == 0:
-                spawn_3D_maze(map, self._border_tile)
-        else:
-            spawn_3D_maze(map, self._border_tile)
+            spawn_3D_maze(map)
+            self._rendered_initial_maze = True
 
+        # render the path
+        old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        path_to_erase = set(old_path_coords)
+        for (x, y, z) in self.path_coords:
+            if (x, y, z) in path_to_erase:
+                path_to_erase.remove((x, y, z))
+        
         if self.render_path:
+            # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
+            erase_3D_path(path_to_erase)
+                
+            # block_dict.update(get_3D_path_blocks(self.path_coords))
             spawn_3D_path(self.path_coords)
             # time.sleep(0.2)
-            erase_3D_path(self.path_coords)
+         
+        # if iteration_num == 0:
+        #     spawn_3D_border(map, self._border_tile)
+        # # if the representation is narrow3D or turtle3D, we don't need to render all the map at each step 
+        # if repr_name == "narrow3D" or repr_name == "turtle3D":
+        #     if iteration_num == 0:
+        #         spawn_3D_maze(map, self._border_tile)
+        # else:
+        #     spawn_3D_maze(map, self._border_tile)
+
+        # if self.render_path:
+        #     spawn_3D_path(self.path_coords)
+        #     # time.sleep(0.2)
+        #     erase_3D_path(self.path_coords)
         return 
