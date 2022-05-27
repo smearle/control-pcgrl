@@ -110,8 +110,9 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
                 self.connected_path_coords = []
             else:
                 maxcoord = np.argwhere(dijkstra == np.max(dijkstra))[0]
-                self.path_coords = get_path_coords(dijkstra, init_coords=(maxcoord[1], maxcoord[0]))
-                self.connected_path_coords = get_path_coords(dijkstra, init_coords=(end_xy[1], end_xy[0]))
+                                                                            # y           x
+                self.path_coords = get_path_coords(dijkstra, init_coords=(maxcoord[0], maxcoord[1]))
+                self.connected_path_coords = get_path_coords(dijkstra, init_coords=(end_xy[0], end_xy[1]))
 
         # print("Connected path length:", self.connected_path_length)
         # print("connected_path_coords:", self.connected_path_coords)
