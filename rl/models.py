@@ -292,13 +292,10 @@ class NCA(TorchModelV2, nn.Module):
         w_out = obs_space.shape[0]  # assuming no observable border
         h_out = obs_space.shape[1]
 
-        self.l1 = Conv2d(n_in_chans + 2, n_hid_1, 3, 1, 1, bias=True)  # +2 for x, y coordinates at each tile
-        self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(n_hid_1, n_out_chans, 1, 1, 0, bias=True)
-        # self.l_vars = nn.Conv2d(n_hid_1, n_out_chans, 1, 1, 0, bias=True)
-        # self.l3 = Conv2d(n_hid_1, n_out_chans * 2, 1, 1, 0, bias=True)
-        # self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
-        self.value_branch = SlimFC(n_out_chans * w_out * h_out * 2, 1)
+        self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
+        # self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
+        # self.l3 = Conv2d(n_hid_2, n_in_chans - 1, 1, 1, 0, bias=True)
+        self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
         # self.layers = [self.l1, self.l2, self.l3]
         with th.no_grad():
             self.indices = (th.Tensor(np.indices((w_out, h_out)))[None,...] / max(w_out, h_out)) * 2 - 1
@@ -310,10 +307,10 @@ class NCA(TorchModelV2, nn.Module):
         x = th.cat([x0, th.tile(self.indices.to(device=x0.device), (x0.shape[0], 1, 1, 1))], dim=1)
         x = self.l1(x)
         x = th.relu(x)
-        x = self.l2(x)
-        x = th.relu(x)
-        # vars = self.l_vars(x)
-        x = self.l3(x)
+        # x = self.l2(x)
+        # x = th.relu(x)
+        # x = self.l3(x)
+        # TODO: try softmax
         x = th.relu(x)
         # x = th.softmax(x, dim=1)
         # mask = th.rand(size=(x.shape[0], 1, x.shape[2], x.shape[3]), device=x.device, dtype=x.dtype) < 0.1
