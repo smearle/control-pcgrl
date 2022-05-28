@@ -42,8 +42,8 @@ def make_env(cfg_dict):
     else:
         raise Exception('Unknown representation: {}'.format(cfg.representation))
     env.configure(**cfg_dict)
-    if cfg.max_step is not None:
-        env = wrappers.MaxStep(env, cfg.max_step)
+    # if cfg.max_step is not None:
+        # env = wrappers.MaxStep(env, cfg.max_step)
 #   if log_dir is not None and cfg.get('add_bootstrap', False):
 #       env = wrappers.EliteBootStrapping(env,
 #                                           os.path.join(log_dir, "bootstrap{}/".format(rank)))

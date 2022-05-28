@@ -142,7 +142,7 @@ class Minecraft3DmazeProblem(Problem):
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": self.path_length,
-            "path-coords": self.path_coords,
+            # "path-coords": self.path_coords,
             "n_jump": self.n_jump
         }
 

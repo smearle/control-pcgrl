@@ -14,11 +14,10 @@ import re
 from pdb import set_trace as TT
 from typing import List
 
-from evo.cross_eval import compile_results
 from evo.render_gifs import render_gifs
 
 
-GECCO_CROSS_EVAL = True
+GECCO_CROSS_EVAL = False
 
 with open("configs/evo/batch.yaml", "r") as f:
     batch_config = yaml.safe_load(f)
@@ -284,6 +283,7 @@ if __name__ == "__main__":
     RENDER_LEVELS = args.render_levels
 
     if args.cross_eval or args.gif:
+        from evo.cross_eval import compile_results
         settings_list = launch_batch(EXP_NAME, collect_params=True)
     if args.cross_eval:
         compile_results(settings_list, tex=args.tex)

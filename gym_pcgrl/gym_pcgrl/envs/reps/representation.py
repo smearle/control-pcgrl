@@ -56,12 +56,6 @@ class Representation:
         else:
             self._map = self._old_map.copy()
 
-    def dig_holes(self, start_xy, end_xy):
-        # TODO: Represent start/end differently to accomodate one-way paths.
-        self._bordered_map[start_xy[0], start_xy[1]] = self._empty_tile
-        self._bordered_map[end_xy[0], end_xy[1]] = self._empty_tile
-        
-
     """
     Adjust current representation parameter
 

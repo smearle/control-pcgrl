@@ -6,10 +6,10 @@
           2,
           3,
           4,
-          5,
+          # 5,
           6,
           7,
-          8,
+          # 8,
           9,
           10,
   ],
@@ -40,18 +40,18 @@
 #
 #
   "algos": [
-#     "CMAME",
+      "CMAME",
       "ME",
   ],
 
  "models": [
-#       "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-#       "NCA",
-#       "Decoder",
-#       "GenSin2CPPN2",
-#       "Sin2CPPN",
+        "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+        "NCA",
+        "Decoder",
+        "GenSin2CPPN2",
+        "Sin2CPPN",
 
-#       "GenCPPN2",
+        "GenCPPN2",
         "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
 
 #       "GenCPPN",
@@ -79,11 +79,11 @@
 
   # Standard deviation of a mutation in MAP-Elites. Initial step size in CMAME.
   "step_sizes": [
-#     5,
-#     1,
-#     0.5,
-#     0.1,
-#     0.05,
+      5,
+      1,
+      0.5,
+      0.1,
+      0.05,
       0.01,
   ],
 

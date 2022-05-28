@@ -1,3 +1,4 @@
+from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.representation import Representation
 from PIL import Image
@@ -9,7 +10,7 @@ from collections import OrderedDict
 The narrow representation where the agent is trying to modify the tile value of a certain
 selected position that is selected randomly or sequentially similar to cellular automata
 """
-class NarrowHoleyRepresentation(NarrowRepresentation):
+class NarrowHoleyRepresentation(HoleyRepresentation, NarrowRepresentation):
     """
     Get the observation space used by the narrow representation
 
@@ -27,6 +28,11 @@ class NarrowHoleyRepresentation(NarrowRepresentation):
             "pos": spaces.Box(low=np.array([1, 1]), high=np.array([width, height]), dtype=np.uint8),
             "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height + 2, width + 2))
         })
+
+    def reset(self, *args, **kwargs):
+        ret = NarrowRepresentation.reset(self, *args, **kwargs)
+        HoleyRepresentation.reset(self)
+        return ret
 
     """
     Get the current representation observation object at the current moment
@@ -76,7 +82,7 @@ class NarrowHoleyRepresentation(NarrowRepresentation):
     Returns:
         img: the modified level image
     """
-    def render(self, lvl_image, tile_size, **kwargs):
+    def render(self, lvl_image, tile_size, *args, **kwargs):
         x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
         for x in range(tile_size):
             x_graphics.putpixel((0,x),(255,0,0,255))

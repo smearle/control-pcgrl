@@ -9,6 +9,15 @@ import sys
 import gym
 
 import numpy as np
+import ray
+from ray import tune
+from ray.rllib.agents import ppo
+from ray.tune.integration.wandb import WandbLogger
+from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
+from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
+from ray.rllib.models import ModelCatalog
+from ray.tune import CLIReporter
+from ray.tune.registry import register_env
 
 import gym_pcgrl
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, NCA # noqa : F401
@@ -18,10 +27,6 @@ from envs import make_env
 #from model import CustomPolicyBigMap, CApolicy, WidePolicy
 #from model import (CustomPolicyBigMap, CustomPolicySmallMap,
 #                   FullyConvPolicyBigMap, FullyConvPolicySmallMap, CAPolicy)
-from ray.rllib.agents import ppo
-from ray.rllib.models import ModelCatalog
-from ray.tune.registry import register_env
-from ray.tune.logger import pretty_print
 #from stable_baselines3.common.results_plotter import load_results, ts2xy
 # from stable_baselines.results_plotter import load_results, ts2xy
 # import tensorflow as tf
@@ -31,8 +36,40 @@ from utils import (get_env_name, get_exp_name, get_map_width,
 from callbacks import StatsCallbacks
 
 n_steps = 0
-log_dir = '../'
+PROJ_DIR = Path(__file__).parent.parent
 best_mean_reward, n_steps = -np.inf, 0
+log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
+
+
+class PPOTrainer(RlLibPPOTrainer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
+        # self.checkpoint_path_file = checkpoint_path_file
+
+    @classmethod
+    def get_default_config(cls):
+        def_cfg = RlLibPPOTrainer.get_default_config()
+        def_cfg.update({'checkpoint_path_file': None})
+        return def_cfg
+
+    def save(self, *args, **kwargs):
+        ckp_path = super().save(*args, **kwargs)
+        with open(self.checkpoint_path_file, 'w') as f:
+            f.write(ckp_path)
+        return ckp_path
+
+    def train(self, *args, **kwargs):
+        result = super().train(*args, **kwargs)
+        log_result = {k: v for k, v in result.items() if k in log_keys}
+        log_result['info: learner:'] = result['info']['learner']
+
+        # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
+        result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
+
+        # print('-----------------------------------------')
+        # print(pretty_print(log_result))
+        return result
 
 
 def main(cfg):
@@ -50,7 +87,7 @@ def main(cfg):
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.experiment_id}'
-    log_dir = f'rl_runs/{exp_name_id}_log'
+    log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
 
     if not cfg.load:
 
@@ -87,24 +124,42 @@ def main(cfg):
     num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
+    # ray won't stfu about this anyway lol
+    dummy_env = make_env(vars(cfg))
+    ray.rllib.utils.check_env(dummy_env)
+
+    checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
+
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
+        'env': 'pcgrl',
         'framework': 'torch',
         'num_workers': num_workers,
         'num_gpus': cfg.n_gpu,
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
+        # 'env_config': {
+            # 'change_percentage': cfg.change_percentage,
+        # },
         'num_envs_per_worker': 20 if not cfg.infer else 1,
         'render_env': cfg.render,
         'lr': cfg.lr,
         'gamma': cfg.gamma,
         'model': {
             'custom_model': 'custom_model',
-            'custom_model_config': cfg.model_cfg,
+            'custom_model_config': {
+                **cfg.model_cfg,
+            }
         },
         "evaluation_config": {
             "explore": True,
         },
         "logger_config": {
+                        "wandb": {
+                "project": "PCGRL",
+                "name": exp_name_id,
+                "id": exp_name_id,
+                # "api_key_file": "~/.wandb_api_key"
+            },
             "type": "ray.tune.logger.TBXLogger",
             # Optional: Custom logdir (do not define this here
             # for using ~/ray_results/...).
@@ -117,41 +172,68 @@ def main(cfg):
 #       "train_batch_size": 32,
 #       "sgd_minibatch_size": 32,
         'callbacks': stats_callbacks,
+
+        # `ray.tune` seems to need these spaces specified here.
+        # 'observation_space': dummy_env.observation_space,
+        # 'action_space': dummy_env.action_space,
+
+        # 'create_env_on_driver': True,
+        'checkpoint_path_file': checkpoint_path_file,
+        # 'record_env': log_dir,
     }
 
     register_env('pcgrl', make_env)
 
     # Log the trainer config, excluding overly verbose entries (i.e. Box observation space printouts).
     trainer_config_loggable = trainer_config.copy()
+    # trainer_config_loggable.pop('observation_space')
+    # trainer_config_loggable.pop('action_space')
     # trainer_config_loggable.pop('multiagent')
     print(f'Loading trainer with config:')
     print(pretty_print(trainer_config_loggable))
 
-    trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
-
-    checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
-
+    # NOTE: `ray.tune` now handles re-loading. Remove the below code when we're sure all the functionality has migrated
+    #   over successfully.
     # Super ad-hoc re-loading. Note that we reset the number of training steps to be executed. Need to clearn this up if
     # we were to use it in actual publication-worthy experiments. Good for debugging though, maybe.
-    if cfg.load:
-        with open(checkpoint_path_file, 'r') as f:
-            checkpoint_path = f.read()
+    # if cfg.load:
+    #     trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
+    #     with open(checkpoint_path_file, 'r') as f:
+    #         checkpoint_path = f.read()
 
-        # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
-        #  back up when reloading (see tensorboard logs).
-        trainer.load_checkpoint(checkpoint_path=checkpoint_path)
-        print(f"Loaded checkpoint from {checkpoint_path}.")
+    #     # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
+    #     #  back up when reloading (see tensorboard logs).
+    #     trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+    #     print(f"Loaded checkpoint from {checkpoint_path}.")
 
-    n_params = 0
-    param_dict = trainer.get_weights()['default_policy']
+    #     n_params = 0
+    #     param_dict = trainer.get_weights()['default_policy']
 
-    for v in param_dict.values():
-        n_params += np.prod(v.shape)
-    print(f'default_policy has {n_params} parameters.')
-    print('model overview: \n', trainer.get_policy('default_policy').model)
+    #     for v in param_dict.values():
+    #         n_params += np.prod(v.shape)
+    #     print(f'default_policy has {n_params} parameters.')
+    #     print('model overview: \n', trainer.get_policy('default_policy').model)
 
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer:
+        trainer = PPOTrainer(env='pcgrl', config=trainer_config)
+        with open(checkpoint_path_file, 'r') as f:
+            checkpoint_path = f.read()
+        
+        # HACK (should probably be logging relative paths in the first place?)
+        checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
+        
+        trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+        print(f"Loaded checkpoint from {checkpoint_path}.")
+
+        n_params = 0
+        param_dict = trainer.get_weights()['default_policy']
+
+        for v in param_dict.values():
+            n_params += np.prod(v.shape)
+        print(f'default_policy has {n_params} parameters.')
+        print('model overview: \n', trainer.get_policy('default_policy').model)
+
         env = make_env(vars(cfg))
         for i in range(10000):
             obs = env.reset()
@@ -166,43 +248,100 @@ def main(cfg):
         # Quit the program before agent starts training.
         sys.exit()
 
-    log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
     best_mean_reward = -np.inf
 
     # TODO: makes this controllable, i.e., by dividing the number of frames by the train_batch_size
     n_updates = 10000
 
+    # TODO: We've given the main loop over to `ray.tune`. Make sure we keep this functionality aroundn! In particular:
+    #   the printout is ugly and verbose. And it would be nice to log `fps`. (Probably just add to PPOTrainer subclass
+    #   and override the `train_step` or `print_result` methods?)
     # The training loop.
-    for i in range(n_updates):
-        result = trainer.train()
-        log_result = {k: v for k, v in result.items() if k in log_keys}
-        log_result['info: learner:'] = result['info']['learner']
+    # for i in range(n_updates):
+    # def train_fn(config={}):
+    #     result = trainer.train()
+    #     log_result = {k: v for k, v in result.items() if k in log_keys}
+    #     log_result['info: learner:'] = result['info']['learner']
 
-        # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-        log_result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
+    #     # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
+    #     log_result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
 
-        print('-----------------------------------------')
-        print(pretty_print(log_result))
+    #     print('-----------------------------------------')
+    #     print(pretty_print(log_result))
 
-        # Intermittently save model checkpoints.
-        if i % 10 == 0:
-            checkpoint = trainer.save(checkpoint_dir=log_dir)
+        # NOTE: `ray.tune` does this better now.
+        # # Intermittently save model checkpoints.
+        # if i % 10 == 0:
+        #     checkpoint = trainer.save(checkpoint_dir=log_dir)
 
-            # Remove the old checkpoint file if it exists.
-            if os.path.isfile(checkpoint_path_file):
-                with open(checkpoint_path_file, 'r') as f:
-                    old_checkpoint = f.read()
+        #     # Remove the old checkpoint file if it exists.
+        #     if os.path.isfile(checkpoint_path_file):
+        #         with open(checkpoint_path_file, 'r') as f:
+        #             old_checkpoint = f.read()
 
-                # FIXME: sometimes this does not exist (when overwriting?)
-                shutil.rmtree(Path(old_checkpoint).parent)
+        #         # FIXME: sometimes this does not exist (when overwriting?)
+        #         shutil.rmtree(Path(old_checkpoint).parent)
             
-            # Record the path of the new checkpoint.
-            with open(checkpoint_path_file, 'w') as f:
-                f.write(checkpoint)
+        #     # Record the path of the new checkpoint.
+        #     with open(checkpoint_path_file, 'w') as f:
+        #         f.write(checkpoint)
 
-            print("checkpoint saved at", checkpoint)
+        #     print("checkpoint saved at", checkpoint)
+    tune.register_trainable("CustomPPO", PPOTrainer)
 
-# tune.run(trainable, num_samples=2, local_dir="./results", name="test_experiment")
+    class TrialProgressReporter(CLIReporter):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.num_timesteps = []
+
+        def should_report(self, trials, done=False):
+            """Reports only on trial termination events."""
+            old_num_timesteps = self.num_timesteps
+            self.num_timesteps = [t.last_result['timesteps_total'] if 'timesteps_total' in t.last_result else 0 for t in trials]
+            # self.num_terminated = len([t for t in trials if t.status == Trial.TERMINATED])
+            done = np.any(self.num_timesteps > old_num_timesteps)
+            return done
+
+    # Limit the number of rows.
+    reporter = TrialProgressReporter(
+        metric_columns={
+            # "training_iteration": "itr",
+            "timesteps_total": "timesteps",
+            "custom_metrics/path-length_mean": "path-length",
+            "custom_metrics/connected-path-length_mean": "cnct-path-length",
+            "custom_metrics/regions_mean": "regions",
+            "episode_reward_mean": "reward",
+            "fps": "fps",
+        },
+        max_progress_rows=10,
+        )
+    # Add a custom metric column, in addition to the default metrics.
+    # Note that this must be a metric that is returned in your training results.
+    # reporter.add_metric_column("custom_metrics/path-length_mean")
+    # reporter.add_metric_column("episode_reward_mean")
+    
+    ray.init()
+
+    # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
+    analysis = tune.run(
+        "CustomPPO",
+        resume=cfg.load,
+        config={
+            **trainer_config,
+            # "wandb": {
+                # "project": "PCGRL",
+            # },
+        },
+        checkpoint_score_attr="episode_reward_mean",
+        checkpoint_at_end=True,
+        checkpoint_freq=10,
+        keep_checkpoints_num=3,
+        local_dir=log_dir,
+        verbose=1,
+        # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
+        loggers=[WandbLogger],
+        progress_reporter=reporter,
+    )
 
 ################################## MAIN ########################################
 

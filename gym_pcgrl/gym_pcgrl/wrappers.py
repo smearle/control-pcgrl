@@ -39,41 +39,41 @@ def get_pcgrl_env(env):
     return env.unwrapped
 
 
-class MaxStep(gym.Wrapper):
-    """
-    Wrapper that resets environment only after a certain number of steps.
-    """
+# class MaxStep(gym.Wrapper):
+#     """
+#     Wrapper that resets environment only after a certain number of steps.
+#     """
 
-    def __init__(self, game, max_step):
-        if isinstance(game, str):
-            self.env = gym.make(game)
-        else:
-            self.env = game
+#     def __init__(self, game, max_step):
+#         if isinstance(game, str):
+#             self.env = gym.make(game)
+#         else:
+#             self.env = game
 
-        # get_pcgrl_env(self.env).adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
+#         # get_pcgrl_env(self.env).adjust_param(**kwargs)
+#         gym.Wrapper.__init__(self, self.env)
 
-        self.max_step = max_step
-        self.unwrapped.max_step = max_step
-        self.n_step = 0
-        gym.Wrapper.__init__(self, self.env)
+#         self.max_step = max_step
+#         self.unwrapped.max_step = max_step
+#         self.n_step = 0
+#         gym.Wrapper.__init__(self, self.env)
 
-    def step(self, action, **kwargs):
-        obs, reward, done, info = self.env.step(action, **kwargs)
-        self.n_step += 1
+#     def step(self, action, **kwargs):
+#         obs, reward, done, info = self.env.step(action, **kwargs)
+#         self.n_step += 1
 
-        if self.n_step == self.max_step:
-            done = True
-        # else:
-        #    done = False
+#         if self.n_step == self.max_step:
+#             done = True
+#         # else:
+#         #    done = False
 
-        return obs, reward, done, info
+#         return obs, reward, done, info
 
-    def reset(self):
-        obs = self.env.reset()
-        self.n_step = 0
+#     def reset(self):
+#         obs = self.env.reset()
+#         self.n_step = 0
 
-        return obs
+#         return obs
 
 
 class ToImage(gym.Wrapper):
@@ -480,16 +480,17 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
             self.pcgrl_env.adjust_param(**kwargs)
             # Cropping the map to the correct crop_size
             env = Cropped(
-                game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map"
+                game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map", 
+                **kwargs,
             )
             # Transform to one hot encoding if not binary
 
             # if "binary" not in game:
-            env = OneHotEncoding(env, "map", padded=True)
+            env = OneHotEncoding(env, "map", padded=True, **kwargs)
             # Indices for flatting
             flat_indices = ["map"]
             # Final Wrapper has to be ToImage or ToFlat
-            self.env = ToImage(env, flat_indices)
+            self.env = ToImage(env, flat_indices, **kwargs)
         gym.Wrapper.__init__(self, self.env)
 
 

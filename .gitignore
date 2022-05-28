@@ -75,3 +75,6 @@ discriminator.pt
 # Ignore LaTex build files
 *.log
 *.aux
+
+# Ignore wandb logs
+wandb/
