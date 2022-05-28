@@ -483,13 +483,17 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         else:
             self.pcgrl_env.adjust_param(**kwargs)
             # Cropping the map to the correct crop_size
+            # env = Cropped(
+            #     game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map"
+            # )
             env = Cropped(
-                game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map"
+                game=self.pcgrl_env, crop_size=0, pad_value=self.pcgrl_env.get_border_tile(), name="map"
             )
             # Transform to one hot encoding if not binary
 
             # if "binary" not in game:
-            env = OneHotEncoding(env, "map", padded=True)
+            env = OneHotEncoding(env, "map", padded=False)
+            # env = OneHotEncoding(env, "map", padded=True)
             # Indices for flatting
             flat_indices = ["map"]
             # Final Wrapper has to be ToImage or ToFlat
@@ -502,8 +506,10 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
-        env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
-        env = OneHotEncoding(env, 'map', padded=True)
+        env = Cropped3D(self.pcgrl_env, 0, self.pcgrl_env.get_border_tile(), 'map')
+        # env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
+        # env = OneHotEncoding(env, 'map', padded=True)
+        env = OneHotEncoding(env, 'map', padded=False)
         
         # Now we one hot encode the observation for all probs including the binary
         # Indices for flatting
