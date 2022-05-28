@@ -8,16 +8,17 @@ ribs
 numba
 psutil
 imageio
+gym
 graphviz
 grpc  # For rendering minecraft via Evocraft
 numpy==1.21  # numba requires this version or lower
 opencv-python
-gym
 # gym==0.19.0     # minerl will require 0.19.0
-tqdm
+pingouin
 ribs
 scikit-image
-pingouin
+tqdm
+wandb
 
 # git submodule update --init qdpy/       # add submodule first before python -m pip install -r requirements.txt
 # ./submodules/qdpy

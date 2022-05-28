@@ -85,34 +85,34 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
     def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
         # self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
-        dijkstra,_ = run_dijkstra(self.start_xy[1], self.start_xy[0], map, ["empty"])
+        dijkstra, _ = run_dijkstra(self.start_xy[1], self.start_xy[0], map, ["empty"])
         connected_path_length = dijkstra[self.end_xy[0], self.end_xy[1]]
 
         max_start_path = np.max(dijkstra)
-        end_xy = np.argwhere(dijkstra == max_start_path)[0]
         self.path_length = max_start_path
 
         # Give a consolation prize if start and end are NOT connected.
         if connected_path_length == -1:
-            connectivity_bonus = 0
+            # connectivity_bonus = 0
             self.connected_path_length = 0
+            self.connected_path_coords = []
 
         # Otherwise (holes are connected), give a bonus (to guarantee we beat the loser above), plus the actual path length.
         else:
-            connectivity_bonus = 1
-            end_xy = self.end_xy
+            # connectivity_bonus = 1
             self.connected_path_length = connected_path_length
+            self.connected_path_coords = get_path_coords(dijkstra, init_coords=(self.end_xy[0], self.end_xy[1]))
 
-        if self.render_path:
-            # FIXME: This is a hack to prevent weird path coord list of [[0,0]]
-            if self.path_length < 1:
-                self.path_coords = []
-                self.connected_path_coords = []
-            else:
-                maxcoord = np.argwhere(dijkstra == np.max(dijkstra))[0]
-                                                                            # y           x
-                self.path_coords = get_path_coords(dijkstra, init_coords=(maxcoord[0], maxcoord[1]))
-                self.connected_path_coords = get_path_coords(dijkstra, init_coords=(end_xy[0], end_xy[1]))
+        # if self.render_path:
+        # FIXME: This is a hack to prevent weird path coord list of [[0,0]]
+        if max_start_path < 1:
+            self.path_coords = []
+        else:
+            maxcoord = np.argwhere(dijkstra == max_start_path)[0]
+            #                                                             y           x
+            self.path_coords = get_path_coords(dijkstra, init_coords=(maxcoord[0], maxcoord[1]))
+
+            assert not (self.connected_path_length == 0 and len(self.connected_path_coords) > 0)
 
         # print("Connected path length:", self.connected_path_length)
         # print("connected_path_coords:", self.connected_path_coords)
@@ -123,6 +123,12 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
             # "connectivity": connectivity_bonus,
             # "path-coords": self.path_coords,
         }
+
+    def process_observation(self, observation):
+        if self.connected_path_coords == []:
+            return observation
+        observation['map'][self.connected_path_coords[:, 0], self.connected_path_coords[:, 1]] = self._path_idx
+        return observation
 
     """
     Get the current game reward between two stats
@@ -257,24 +263,24 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
                 lvl_image.paste(self._graphics[map[y][x]], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size), mask=tile_image)
 
         # Path, if applicable
-        if render_path is not None and self.render_path:
-            tile_graphics = self._graphics["path"]
-            for (y, x) in render_path:
-                # lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)
-                lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
-            tile_graphics = self._graphics["c_path"]
-            for (y, x) in render_cnct_path:
-                lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
-            draw = ImageDraw.Draw(lvl_image)
-            # font = ImageFont.truetype(<font-file>, <font-size>)
-            font_size = 32
+        # if render_path is not None and self.render_path:
+        tile_graphics = self._graphics["path"]
+        for (y, x) in render_path:
+            # lvl_image.paste(tile_graphics, ((x + self._border_size[0]) * self._tile_size, (y + self._border_size[1]) * self._tile_size, (x + self._border_size[0] + 1) * self._tile_size, (y + self._border_size[1] + 1) * self._tile_size), mask=tile_graphics)
+            lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
+        tile_graphics = self._graphics["c_path"]
+        for (y, x) in render_cnct_path:
+            lvl_image.paste(tile_graphics, (x * self._tile_size, y * self._tile_size, (x + 1) * self._tile_size, (y + 1) * self._tile_size), mask=tile_graphics)
+        draw = ImageDraw.Draw(lvl_image)
+        # font = ImageFont.truetype(<font-file>, <font-size>)
+        font_size = 32
+        try:
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except OSError:
             try:
-                font = ImageFont.truetype("arial.ttf", font_size)
+                font = ImageFont.truetype("LiberationMono-Regular.ttf", font_size)
             except OSError:
-                try:
-                    font = ImageFont.truetype("LiberationMono-Regular.ttf", font_size)
-                except OSError:
-                    font = ImageFont.truetype("SFNSMono.ttf", 32)
-            # draw.text((x, y),"Sample Text",(r,g,b))
-            draw.text(((full_width - 1) * self._tile_size / 2, 0),"{}".format(self.path_length),(255,255,255),font=font)
+                font = ImageFont.truetype("SFNSMono.ttf", 32)
+        # draw.text((x, y),"Sample Text",(r,g,b))
+        draw.text(((full_width - 1) * self._tile_size / 2, 0),"{}".format(self.path_length),(255,255,255),font=font)
         return lvl_image

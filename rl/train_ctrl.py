@@ -204,8 +204,20 @@ def main(cfg):
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
         with open(checkpoint_path_file, 'r') as f:
             checkpoint_path = f.read()
+        
+        # HACK (should probably be logging relative paths in the first place?)
+        checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
+        
         trainer.load_checkpoint(checkpoint_path=checkpoint_path)
         print(f"Loaded checkpoint from {checkpoint_path}.")
+
+        n_params = 0
+        param_dict = trainer.get_weights()['default_policy']
+
+        for v in param_dict.values():
+            n_params += np.prod(v.shape)
+        print(f'default_policy has {n_params} parameters.')
+        print('model overview: \n', trainer.get_policy('default_policy').model)
 
         env = make_env(vars(cfg))
         for i in range(10000):
