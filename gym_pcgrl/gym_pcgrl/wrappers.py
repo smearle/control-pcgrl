@@ -1,11 +1,11 @@
 from pdb import set_trace as TT
-from gym_pcgrl.envs.helper import get_int_prob, get_string_map
-from gym_pcgrl.envs import helper_3D
-
-import numpy as np
 
 import gym
+from gym import spaces
+import numpy as np
 
+from gym_pcgrl.envs import helper_3D
+from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 try:
     import gym_city
 except ImportError:
@@ -21,8 +21,8 @@ except ImportError:
 
 
 # clean the input action
-def get_action(a):
-    return a.item() if hasattr(a, "item") else a
+def get_action(a: np.ndarray):
+    return a.item() if a.shape == [1] else a
 
 
 # Q: why don't we just use env.unwrapped?
@@ -111,7 +111,7 @@ class ToImage(gym.Wrapper):
                 max_value = self.env.observation_space[n].high.max()
         self.names = names
 
-        self.observation_space = gym.spaces.Box(
+        self.observation_space = spaces.Box(
             low=0, high=max_value, shape=(*self.shape[:-1], depth)
         )
 
@@ -333,33 +333,13 @@ class ActionMap(gym.Wrapper):
         return obs, reward, done, info
 
 
+class CAMap(ActionMap):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.action_space = spaces.MultiDiscrete([self.dim] * self.h * self.w)
 
-class CAMap(gym.Wrapper):
-    def __init__(self, game, **kwargs):
-        if isinstance(game, str):
-            self.env = gym.make(game)
-        else:
-            self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
-
-        assert (
-                "map" in self.env.observation_space.spaces.keys()
-        ), "This wrapper only works if you have a map key"
-        self.old_obs = None
-        self.one_hot = len(self.env.observation_space.spaces["map"].shape) > 2
-        w, h, dim = 0, 0, 0
-
-        if self.one_hot:
-            h, w, dim = self.env.observation_space.spaces["map"].shape
-        else:
-            h, w = self.env.observation_space.spaces["map"].shape
-            dim = self.env.observation_space.spaces["map"].high.max()
-        self.h = self.unwrapped.h = h
-        self.w = self.unwrapped.w = w
-        self.dim = self.unwrapped.dim = self.env.get_num_tiles()
-        # self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
-        self.action_space = gym.spaces.MultiDiscrete([self.dim] * self.h * self.w)
+    def step(self, action, **kwargs):
+        return self.env.step(action, **kwargs)
 
 
 class Cropped(gym.Wrapper):
@@ -526,7 +506,7 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
             self.env = self.pcgrl_env
         else:
             self.pcgrl_env.adjust_param(**kwargs)
-            # Indices for flatting
+            # Indices for flattening
             flat_indices = ["map"]
             env = self.pcgrl_env
 
@@ -535,9 +515,9 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
             # Transform to one hot encoding if not binary
 
             # if "RCT" not in game and "Micropolis" not in game:
-            env = OneHotEncoding(env, "map", padded=False)
+            env = OneHotEncoding(env, "map", padded=False, **kwargs)
             # Final Wrapper has to be ToImage or ToFlat
-            self.env = ToImage(env, flat_indices)
+            self.env = ToImage(env, flat_indices, **kwargs)
         gym.Wrapper.__init__(self, self.env)
 
 # This precedes the ParamRew wrapper so we only worry about the map as observation
@@ -549,13 +529,13 @@ class CAactionWrapper(gym.Wrapper):
         flat_indices = ['map']
         env = self.pcgrl_env
         # Add the action map wrapper
-        env = ActionMap(env)
+        env = CAMap(env, **kwargs)
         # Transform to one hot encoding if not binary
         # if 'binary' not in game:
             # ) or ('minecraft_2Dmaze' not in game)
-        env = OneHotEncoding(env, 'map', padded=False)
+        env = OneHotEncoding(env, 'map', padded=False, **kwargs)
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indices)
+        self.env = ToImageCA(env, flat_indices, **kwargs)
         gym.Wrapper.__init__(self, self.env)
 
 

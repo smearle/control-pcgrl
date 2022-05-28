@@ -1,6 +1,7 @@
 from collections import namedtuple
 import os
 from pdb import set_trace as TT
+from typing import Dict
 
 from gym import spaces
 
@@ -9,10 +10,9 @@ from gym_pcgrl import wrappers, conditional_wrappers
 # from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 # from utils import RenderMonitor, get_map_width
 
-# def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
-def make_env(cfg_dict):
+def make_env(cfg_dict: Dict):
     """
-    Return a function that will initialize the environment when called.
+    Initialize and wrap the environment.
 
     Args:
         cfg_dict: dictionary of configuration parameters

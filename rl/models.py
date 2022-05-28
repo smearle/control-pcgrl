@@ -244,8 +244,8 @@ class NCA(TorchModelV2, nn.Module):
         h_out = obs_space.shape[1]
 
         self.l1 = Conv2d(n_in_chans, n_hid_1, 3, 1, 1, bias=True)
-        self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
-        self.l3 = Conv2d(n_hid_2, n_in_chans - 1, 1, 1, 0, bias=True)
+        # self.l2 = Conv2d(n_hid_1, n_hid_2, 1, 1, 0, bias=True)
+        # self.l3 = Conv2d(n_hid_2, n_in_chans - 1, 1, 1, 0, bias=True)
         self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
         # self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
@@ -254,9 +254,9 @@ class NCA(TorchModelV2, nn.Module):
         x = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = self.l1(x)
         x = th.relu(x)
-        x = self.l2(x)
-        x = th.relu(x)
-        x = self.l3(x)
+        # x = self.l2(x)
+        # x = th.relu(x)
+        # x = self.l3(x)
         # TODO: try softmax
         x = th.relu(x)
 

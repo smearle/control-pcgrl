@@ -1,6 +1,7 @@
 from pdb import set_trace as TT
 
 from gym_pcgrl.envs.reps.representation import Representation
+from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from PIL import Image
 from gym import spaces
 from gym_pcgrl.envs.reps.wide_rep import WideRepresentation
@@ -9,7 +10,7 @@ import numpy as np
 """
 The wide representation where the agent can pick the tile position and tile value at each update.
 """
-class WideHoleyRepresentation(WideRepresentation):
+class WideHoleyRepresentation(HoleyRepresentation, WideRepresentation):
     """
     Get the observation space used by the wide representation
     
@@ -52,3 +53,8 @@ class WideHoleyRepresentation(WideRepresentation):
         self._map[action[1]][action[0]] = action[2]
         self._bordered_map[action[1]+1][action[0]+1] = action[2]
         return change, [action[0], action[1]]
+
+    def reset(self, *args, **kwargs):
+        ret = WideRepresentation.reset(self, *args, **kwargs)
+        HoleyRepresentation.reset(self)
+        return ret
