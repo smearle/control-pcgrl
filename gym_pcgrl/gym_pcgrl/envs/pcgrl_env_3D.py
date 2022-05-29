@@ -1,3 +1,4 @@
+import collections
 from pdb import set_trace as TT
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from gym_pcgrl.envs.probs import PROBLEMS
@@ -12,7 +13,7 @@ from gym import spaces
 The 3D PCGRL GYM Environment
 """
 class PcgrlEnv3D(PcgrlCtrlEnv):
-    def __init__(self, prob="minecraft_3D_maze", rep="narrow3D"):
+    def __init__(self, prob="minecraft_3D_maze", rep="narrow3D", **kwargs):
         self.get_string_map = get_string_map
         self._prob: Problem = PROBLEMS[prob]()
         self._rep: Representation = REPRESENTATIONS[rep]()
@@ -20,14 +21,22 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         self._repr_name = rep
 
         self._rep_stats = None
+        self.metrics = {}
+        # print('problem static trgs: {}'.format(self._prob.static_trgs))
+        for k in {**self._prob.static_trgs}:
+            self.metrics[k] = None
+        # print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
         self._changes = 0
         
+        self._change_percentage = 0.2
         # NOTE: allow overfitting: can take as many steps as there are tiles in the maps, can change every tile on the map
-        self._max_changes = np.inf
+        # self._max_changes = np.inf
+
+        self._max_changes = max(int(self._change_percentage * self._prob._length * self._prob._width * self._prob._height), 1)
 #       self._max_changes = max(
 #           int(0.2 * self._prob._length * self._prob._width * self._prob._height), 1)
-        self._max_iterations = self._prob._length * self._prob._width * self._prob._height
+        self._max_iterations = self._prob._length * self._prob._width * self._prob._height + 1
 #       self._max_iterations = self._max_changes * \
 #           self._prob._length * self._prob._width * self._prob._height
         self._heatmap = np.zeros(
@@ -39,18 +48,17 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         self.action_space = self._rep.get_action_space(
             self._prob._length, self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
-            self._prob._length, self._prob._width, self._prob._height, self.get_num_tiles())
+            self._prob._length, self._prob._width, self._prob._height, self.get_num_observable_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(
             self._prob._height, self._prob._width, self._prob._length))
 
-        self.metrics = {}
-        # print('problem static trgs: {}'.format(self._prob.static_trgs))
-        for k in {**self._prob.static_trgs}:
-            self.metrics[k] = None
-        # print('env metrics: {}'.format(self.metrics))
+       
         self._reward_weights = self._prob._reward_weights
         self.cond_bounds = self._prob.cond_bounds
-        self.static_trgs = self._prob.static_trgs
+        self.compute_stats = False
+
+        self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)
+        # self.static_trgs = self._prob.static_trgs
         self.width = self._prob._width
     
     def reset(self):
@@ -59,7 +67,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         self._rep.reset(self._prob._length, self._prob._width, self._prob._height, get_int_prob(
                                                     self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(
-            get_string_map(self._rep._map, self._prob.get_tile_types()))
+            get_string_map(self._get_rep_map(), self._prob.get_tile_types()))
         # Check for invalid path
         if self._rep_stats is None:
             self.render()
@@ -73,18 +81,23 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         return observation
         
     def adjust_param(self, **kwargs):
-        if 'change_percentage' in kwargs:
-            percentage = min(1, max(0, kwargs.get('change_percentage')))
+        # TT()
+        self._change_percentage = kwargs['change_percentage']
+        if self._change_percentage is not None:
+            percentage = min(1, max(0, self._change_percentage))
+        # if 'change_percentage' in kwargs:
+        #     percentage = min(1, max(0, kwargs.get('change_percentage')))
             self._max_changes = max(
                 int(percentage * self._prob._length * self._prob._width * self._prob._height), 1)
 #       self._max_iterations = self._max_changes * \
 #           self._prob._length * self._prob._width * self._prob._height
+        self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(
             self._prob._length, self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
-            self._prob._length, self._prob._width, self._prob._height, self.get_num_tiles())
+            self._prob._length, self._prob._width, self._prob._height, self.get_num_observable_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(
             self._prob._height, self._prob._width, self._prob._length))
 

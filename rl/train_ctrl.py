@@ -125,8 +125,8 @@ def main(cfg):
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
     # ray won't stfu about this anyway lol
-    dummy_env = make_env(vars(cfg))
-    ray.rllib.utils.check_env(dummy_env)
+    # dummy_env = make_env(vars(cfg))
+    # ray.rllib.utils.check_env(dummy_env)
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
 
