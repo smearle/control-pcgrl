@@ -176,7 +176,7 @@ def get_exp_name(cfg):
 
     if hasattr(cfg, "conditional") and cfg.conditional:
         exp_name += "_conditional"
-        exp_name += "_" + "-".join(["ctrl"] + cfg.cond_metrics)
+        exp_name += "_" + "-".join(["ctrl"] + cfg.conditionals)
         if cfg.change_percentage != 1.0:
             exp_name += "_chng-{}".format(cfg.change_percentage)
     else:

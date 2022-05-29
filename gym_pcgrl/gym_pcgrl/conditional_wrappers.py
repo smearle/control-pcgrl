@@ -120,8 +120,7 @@ class ConditionalWrapper(gym.Wrapper):
             if self.SC_RCT:
                 self.CHAN_LAST = True
                 obs_shape = (
-                    orig_obs_shape[1],
-                    orig_obs_shape[2],
+                    *orig_obs_shape[1:],
                     orig_obs_shape[0] + n_new_obs,
                 )
                 low = self.observation_space.low.transpose(1, 2, 0)
@@ -129,18 +128,17 @@ class ConditionalWrapper(gym.Wrapper):
             else:
                 self.CHAN_LAST = False
                 obs_shape = (
-                    orig_obs_shape[0],
-                    orig_obs_shape[1],
-                    orig_obs_shape[2] + n_new_obs,
+                    *orig_obs_shape[:-1],
+                    orig_obs_shape[-1] + n_new_obs,
                 )
                 low = self.observation_space.low
                 high = self.observation_space.high
-            metrics_shape = (obs_shape[0], obs_shape[1], n_new_obs)
+            metrics_shape = (*obs_shape[:-1], n_new_obs)
             self.metrics_shape = metrics_shape
             metrics_low = np.full(metrics_shape, fill_value=0)
             metrics_high = np.full(metrics_shape, fill_value=1)
-            low = np.concatenate((metrics_low, low), axis=2)
-            high = np.concatenate((metrics_high, high), axis=2)
+            low = np.concatenate((metrics_low, low), axis=-1)
+            high = np.concatenate((metrics_high, high), axis=-1)
             self.observation_space = gym.spaces.Box(low=low, high=high)
             # Yikes lol (this is to appease SB3)
             #       self.unwrapped.observation_space = self.observation_space
@@ -236,8 +234,8 @@ class ConditionalWrapper(gym.Wrapper):
             # CA actions for RL agent are not implemented
             if self.CA_action:
                 #               metrics_ob[:, :, i] = (trg - metric) / trg_range
-                metrics_ob[:, :, i * 2] = trg / self.param_ranges[k]
-                metrics_ob[:, :, i * 2 + 1] = metric / self.param_ranges[k]
+                metrics_ob[..., i * 2] = trg / self.param_ranges[k]
+                metrics_ob[..., i * 2 + 1] = metric / self.param_ranges[k]
 
             else:
                 # Add channel layers filled with scalar values corresponding to the target values of metrics of interest.
@@ -253,7 +251,7 @@ class ConditionalWrapper(gym.Wrapper):
         #       print('metric trgs shape ', metrics_ob.shape)
         #       if self.CHAN_LAST:
         #           obs = obs.transpose(1, 2, 0)
-        obs = np.concatenate((metrics_ob, obs), axis=2)
+        obs = np.concatenate((metrics_ob, obs), axis=-1)
 
         return obs
 

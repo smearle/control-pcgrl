@@ -37,12 +37,39 @@ class Minecraft3DmazeProblem(Problem):
 
         self.n_jump = 0
 
+        n_floors = self._height // 3
+
+        # Max path length involves having a zig-zag pattern on each floor, connected by a set of stairs.
+        max_path_per_floor = np.ceil(self._width / 2) * (self._length) + np.floor(self._length/2)
+        self._max_path_length = n_floors * max_path_per_floor
+
+        # default conditional targets
+        self.static_trgs = {
+            "regions": 1, 
+            "path-length": self._max_path_length,
+            "n_jump": 5,
+        }
+
+        # boundaries for conditional inputs/targets
+        self.cond_bounds = {
+            # Upper bound: checkerboard
+            "regions": (0, np.ceil(self._width * self._length / 2 * self._height)),
+            #     10101010
+            #     01010101
+            #     10101010
+            #     01010101
+            #     10101010
+            # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
+            # and "snake" along that one
+            # Upper bound: zig-zag
+            "path-length": (0, self._max_path_length),
+            "n_jump": (0, self._max_path_length // 2),
+        }
         self._reward_weights = {
             "regions": 0,
             "path-length": 1,
-            "n_jump": 1
+            "n_jump": 0
         }
-        self.static_trgs = {"regions": 1, "path-length": np.inf}
 
         self.path_coords = []
         self.old_path_coords = []
@@ -156,17 +183,17 @@ class Minecraft3DmazeProblem(Problem):
     Returns:
         float: the current reward due to the change between the old map stats and the new map stats
     """
-    def get_reward(self, new_stats, old_stats):
-        #longer path is rewarded and less number of regions is rewarded
-        rewards = {
-            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
-            "n_jump": get_range_reward(new_stats["n_jump"], old_stats["n_jump"], np.inf, np.inf)
-        }
-        #calculate the total reward
-        return rewards["regions"] * self._reward_weights["regions"] +\
-            rewards["path-length"] * self._reward_weights["path-length"] +\
-            rewards["n_jump"] * self._reward_weights["n_jump"]
+    # def get_reward(self, new_stats, old_stats):
+    #     #longer path is rewarded and less number of regions is rewarded
+    #     rewards = {
+    #         "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+    #         "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
+    #         "n_jump": get_range_reward(new_stats["n_jump"], old_stats["n_jump"], np.inf, np.inf)
+    #     }
+    #     #calculate the total reward
+    #     return rewards["regions"] * self._reward_weights["regions"] +\
+    #         rewards["path-length"] * self._reward_weights["path-length"] +\
+    #         rewards["n_jump"] * self._reward_weights["n_jump"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -179,8 +206,8 @@ class Minecraft3DmazeProblem(Problem):
     Returns:
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
-    def get_episode_over(self, new_stats, old_stats):
-        return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
+    # def get_episode_over(self, new_stats, old_stats):
+        # return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
 
     """
     Get any debug information need to be printed
@@ -246,3 +273,11 @@ class Minecraft3DmazeProblem(Problem):
             plot_3D_path(self._length, self._width, self._height, self.path_coords)
 
         return 
+
+    def get_episode_over(self, new_stats, old_stats):
+        """ If the generator has reached its targets. (change percentage and max iterations handled in pcgrl_env)"""
+
+        return False
+
+    def get_reward(self, new_stats, old_stats):
+        return None
