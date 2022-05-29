@@ -14,25 +14,9 @@ The 3D PCGRL GYM Environment
 """
 class PcgrlEnv3D(PcgrlCtrlEnv):
     def __init__(self, prob="minecraft_3D_maze", rep="narrow3D", **kwargs):
-        self.get_string_map = get_string_map
-        self._prob: Problem = PROBLEMS[prob]()
-        self._rep: Representation = REPRESENTATIONS[rep]()
-
         self._repr_name = rep
-
-        self._rep_stats = None
-        self.metrics = {}
-        # print('problem static trgs: {}'.format(self._prob.static_trgs))
-        for k in {**self._prob.static_trgs}:
-            self.metrics[k] = None
-        # print('env metrics: {}'.format(self.metrics))
-        self._iteration = 0
-        self._changes = 0
-        
-        self._change_percentage = 0.2
-        # NOTE: allow overfitting: can take as many steps as there are tiles in the maps, can change every tile on the map
-        # self._max_changes = np.inf
-
+        super().__init__(prob=prob, rep=rep, **kwargs)
+        self.get_string_map = get_string_map
         self._max_changes = max(int(self._change_percentage * self._prob._length * self._prob._width * self._prob._height), 1)
 #       self._max_changes = max(
 #           int(0.2 * self._prob._length * self._prob._width * self._prob._height), 1)
@@ -41,25 +25,13 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
 #           self._prob._length * self._prob._width * self._prob._height
         self._heatmap = np.zeros(
             (self._prob._height, self._prob._width, self._prob._length))
-        
-        self.seed()
-        self.viewer = None
 
-        self.action_space = self._rep.get_action_space(
-            self._prob._length, self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(
-            self._prob._length, self._prob._width, self._prob._height, self.get_num_observable_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(
-            self._prob._height, self._prob._width, self._prob._length))
+    def get_map_dims(self):
+        return (self._prob._length, self._prob._width, self._prob._height, self.get_num_tiles())
 
-       
-        self._reward_weights = self._prob._reward_weights
-        self.cond_bounds = self._prob.cond_bounds
-        self.compute_stats = False
+    def get_observable_map_dims(self):
+        return (self._prob._length, self._prob._width, self._prob._height, self.get_num_observable_tiles())
 
-        self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)
-        # self.static_trgs = self._prob.static_trgs
-        self.width = self._prob._width
     
     def reset(self):
         self._changes = 0

@@ -57,16 +57,22 @@ class PcgrlEnv(gym.Env):
         self.seed()
         self.viewer = None
 
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_observable_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
+        self.action_space = self._rep.get_action_space(*self.get_map_dims())
+        self.observation_space = self._rep.get_observation_space(*self.get_observable_map_dims())
+        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
         
-        self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)
+        self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)  # FIXME: redundant??
         self._reward_weights = self._prob._reward_weights
 #       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
+
+    def get_map_dims(self):
+        return (self._prob._width, self._prob._height, self.get_num_tiles())
+
+    def get_observable_map_dims(self):
+        return (self._prob._width, self._prob._height, self.get_num_observable_tiles())
 
     def configure(self, map_width, **kwargs):  # , max_step=300):
         self._prob._width = map_width
