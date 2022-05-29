@@ -24,7 +24,7 @@ with open("configs/rl/batch.yaml", "r") as f:
     batch_config = yaml.safe_load(f)
 batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
 
-def launch_batch(exp_name, collect_params=False):
+def launch_batch(collect_params=False):
     if collect_params:
         settings_list = []
         assert not EVALUATE
@@ -52,9 +52,9 @@ def launch_batch(exp_name, collect_params=False):
 
     # Take product of lists
     exp_hypers = itertools.product(batch_config.problems, batch_config.representations_models, batch_config.model_configs,
-        batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates)
+        batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates, batch_config.exp_names)
 
-    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate) in exp_hypers:
+    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id) in exp_hypers:
         prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
         for controls in prob_controls:
@@ -97,7 +97,7 @@ def launch_batch(exp_name, collect_params=False):
                     "conditionals": controls,
                     "change_percentage": change_percentage,
                     "alp_gmm": alp_gmm,
-                    "experiment_id": exp_name,
+                    "experiment_id": exp_id,
                     "render": opts.render,
                     "load": opts.load or opts.infer,
                     "infer": opts.infer,
@@ -125,7 +125,7 @@ def launch_batch(exp_name, collect_params=False):
             # config_name = f"{prob}_{rep}_{exp_name}"
             configure_name = namedtuple('configure_name', exp_config.keys())(**exp_config)
             config_name = get_exp_name(configure_name)
-            config_name += f"_{exp_name}"
+            config_name += f"_{exp_id}"
             # Edit the sbatch file to load the correct config file
             if not opts.render:
                 with open(sbatch_name, "r") as f:
@@ -176,12 +176,12 @@ if __name__ == "__main__":
 #       action="store_true",
 #   )
 
-    opts.add_argument(
-        "-ex",
-        "--experiment_name",
-        help="A name to be shared by the batch of experiments.",
-        default="0",
-    )
+    # opts.add_argument(
+    #     "-ex",
+    #     "--experiment_name",
+    #     help="A name to be shared by the batch of experiments.",
+    #     default="0",
+    # )
     opts.add_argument(
         "-ev",
         "--evaluate",
@@ -262,11 +262,11 @@ if __name__ == "__main__":
     )
 
     opts = opts.parse_args()
-    EXP_NAME = opts.experiment_name
+    # EXP_NAME = opts.experiment_name
     EVALUATE = opts.evaluate
     LOCAL = opts.local
     if opts.cross_eval:
-        settings_list = launch_batch(EXP_NAME, collect_params=True)
+        settings_list = launch_batch(collect_params=True)
         compile_results(settings_list, no_plot=opts.no_plot)
     else:
-        launch_batch(EXP_NAME)
+        launch_batch()

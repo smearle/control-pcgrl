@@ -1,4 +1,10 @@
 {
+  "exp_names": [
+    0,
+    1,
+    2,
+  ],
+
   "problems": [
     "minecraft_3D_maze_ctrl",
 #   "minecraft_3D_zelda_ctrl",
@@ -82,8 +88,8 @@
       ],
       "minecraft_3D_maze_ctrl": [
   #       ["emptiness", "path-length"],
-        # [n_jump],
-        # [path-length],
+        [n_jump],
+        [path-length],
         [n_jump, path-length],
       ],
   },
@@ -98,10 +104,10 @@
 
   # How much of the original level the generator-agent is allowed to change before episode termination.
   "change_percentages": [
-    # 0.2,
-  #   0.6,
-    0.8
-    #   1.0,
+    0.2,
+    0.6,
+    0.8,
+    1.0,
     # null,
   ],
 
