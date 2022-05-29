@@ -189,7 +189,7 @@ def main(cfg):
         'callbacks': stats_callbacks,
 
         # To take random actions while changing all tiles at once seems to invite too much chaos.
-        'explore': False if cfg.model and 'NCA' in cfg.model else True,
+        'explore': True,
 
         # `ray.tune` seems to need these spaces specified here.
         # 'observation_space': dummy_env.observation_space,
