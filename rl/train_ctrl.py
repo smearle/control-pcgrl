@@ -21,7 +21,7 @@ from ray.tune import CLIReporter
 from ray.tune.registry import register_env
 
 import gym_pcgrl
-from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, NCA # noqa : F401
+from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, DenseNCA, NCA # noqa : F401
 from args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -180,9 +180,12 @@ def main(cfg):
 #           "type": "Curiosity",
 #       }
 #       "log_level": "INFO",
-#       "train_batch_size": 32,
-#       "sgd_minibatch_size": 32,
+        # "train_batch_size": 50,
+        # "sgd_minibatch_size": 50,
         'callbacks': stats_callbacks,
+
+        # To take random actions while changing all tiles at once seems to invite too much chaos.
+        'explore': False if 'NCA' in cfg.model else True,
 
         # `ray.tune` seems to need these spaces specified here.
         # 'observation_space': dummy_env.observation_space,

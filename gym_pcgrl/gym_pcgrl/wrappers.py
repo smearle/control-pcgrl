@@ -154,7 +154,10 @@ class ToImageCA(ToImage):
         super().__init__(game, name, **kwargs)
 
     def step(self, action, **kwargs):
-        action = action.reshape((self.h, self.w))
+        # action = action.reshape((self.dim-1, self.w, self.h))  # Assuming observable path(?)
+        action = action.reshape((self.dim, self.w, self.h))
+        # action = np.argmax(action, axis=0)
+        # obs, reward, done, info = self.env.step(action[:self.dim-1], **kwargs)
         obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
@@ -336,7 +339,8 @@ class ActionMap(gym.Wrapper):
 class CAMap(ActionMap):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.action_space = spaces.MultiDiscrete([self.dim] * self.h * self.w)
+        # self.action_space = spaces.MultiDiscrete([self.dim] * self.h * self.w)
+        self.action_space = spaces.Box(0, 1, shape=(self.dim * self.w * self.h,))
 
     def step(self, action, **kwargs):
         return self.env.step(action, **kwargs)

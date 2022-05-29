@@ -67,10 +67,10 @@ class CARepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action, continuous=False):
-        # if not continuous and False:
-            # next_map = action.argmax(axis=0)
-        # else:
-        next_map = action
+        if not continuous:
+            next_map = action.argmax(axis=0)
+        else:
+            next_map = action
         if self._map is None:
             # This is the case when using an actual latent seed (so we do only one pass through the generator and have
             # no need to set an initial map in the environment).

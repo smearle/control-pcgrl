@@ -51,7 +51,8 @@ class PcgrlEnv(gym.Env):
         self._max_changes = max(int(self._change_percentage * self._prob._width * self._prob._height), 1)
 
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        self._max_iterations = self._prob._width * self._prob._height + 1
+        # self._max_iterations = self._prob._width * self._prob._height + 1
+        self._max_iterations = 50
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         self.seed()

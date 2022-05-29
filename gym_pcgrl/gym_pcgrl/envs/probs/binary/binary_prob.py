@@ -23,7 +23,7 @@ class BinaryProblem(Problem):
 
         # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
         # beginning of a level-generation episode.
-        self._prob = {"empty": 0.0, "solid": 1.0,}
+        self._prob = {"empty": 0.5, "solid": 0.5,}
 
         self._border_tile = "solid"
 
@@ -46,14 +46,14 @@ class BinaryProblem(Problem):
 
 
     # Take the path into observation
-    def get_observable_tile_types(self):
-        return self.get_tile_types() + ["path"]
+    # def get_observable_tile_types(self):
+        # return self.get_tile_types() + ["path"]
 
-    def process_observation(self, observation):
-        if self.path_coords == []:
-            return observation
-        observation['map'][self.path_coords[:, 0], self.path_coords[:, 1]] = self._path_idx
-        return observation
+    # def process_observation(self, observation):
+        # if self.path_coords == []:
+            # return observation
+        # observation['map'][self.path_coords[:, 0], self.path_coords[:, 1]] = self._path_idx
+        # return observation
 
     """
     Get a list of all the different tile names
