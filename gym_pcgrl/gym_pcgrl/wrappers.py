@@ -499,14 +499,14 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
-        env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
-        env = OneHotEncoding(env, 'map', padded=True)
+        env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map', **kwargs)
+        env = OneHotEncoding(env, 'map', padded=True, **kwargs)
         
         # Now we one hot encode the observation for all probs including the binary
         # Indices for flatting
         flat_indices = ['map']
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indices)
+        self.env = ToImage(env, flat_indices, **kwargs)
         gym.Wrapper.__init__(self, self.env)
 
 

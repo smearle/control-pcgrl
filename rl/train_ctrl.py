@@ -16,6 +16,7 @@ from ray.tune.integration.wandb import WandbLogger
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
 from ray.rllib.models import ModelCatalog
+from ray.rllib.utils import check_env
 from ray.tune import CLIReporter
 from ray.tune.registry import register_env
 
@@ -125,8 +126,9 @@ def main(cfg):
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
     # ray won't stfu about this anyway lol
-    # dummy_env = make_env(vars(cfg))
-    # ray.rllib.utils.check_env(dummy_env)
+    dummy_env = make_env(vars(cfg))
+    check_env(dummy_env)
+    # TT()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
 
