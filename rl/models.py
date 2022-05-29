@@ -371,6 +371,77 @@ class DenseNCA(TorchModelV2, nn.Module):
         return vals
     
 
-# NEXT: change action space to allow multiple change at each step 
-# NEXT: add path length, connectivity, region num to tensorboard logs
-# NEXT: make all 3D envs holey (if we want 3D probs holey, we need to make pcgrl_env_3D a holey env for env register)
+class BlindDecoder(TorchModelV2, nn.Module):
+    """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
+
+    def __init__(self, obs_space, action_space, num_outputs, model_config,name):
+        nn.Module.__init__(self)
+        super().__init__(obs_space, action_space, num_outputs, model_config,
+                         name)
+        # conv_filters = model_config.get('custom_model_config').get('conv_filters', 128)
+        fc_size = model_config.get('custom_model_config').get('fc_size', 128)
+        # n_hid_1 = 128
+        # n_hid_2 = 128
+        n_in_chans = obs_space.shape[-1]
+        # TODO: have these supplied to `__init__`
+        # n_out_chans = n_in_chans - 1  # assuming we observa path
+        n_out_chans = n_in_chans
+        w_out = w_in = obs_space.shape[0]  # assuming no observable border
+        h_out = h_in = obs_space.shape[1]
+
+        # self.l1 = SlimFC(n_in_chans * w_in * h_in, fc_size)
+        # self.l2 = SlimFC(fc_size, fc_size)
+        # self.l3 = SlimFC(fc_size, n_out_chans * w_out * h_out)
+        self.l1 = SlimFC(1, 2 * n_out_chans * w_out * h_out)
+        # self.l_vars = nn.Conv2d(n_hid_1, n_out_chans, 1, 1, 0, bias=True)
+        # self.l3 = Conv2d(n_hid_1, n_out_chans * 2, 1, 1, 0, bias=True)
+        # self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
+        self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
+        # self.layers = [self.l1, self.l2, self.l3]
+        self.apply(init_weights)
+
+    def forward(self, input_dict, state, seq_lens):
+        x0 = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
+        x = x0.reshape(x0.size(0), -1)
+        x = th.zeros(x.shape[0], 1)
+        x = self.l1(x)
+        vars = x[:, x.shape[1] // 2:]
+        x = x[:, :x.shape[1] // 2]
+        # x = th.relu(x)
+        # x = self.l2(x)
+        # x = th.relu(x)
+        # vars = self.l_vars(x)
+        # x = self.l3(x)
+        # x = th.relu(x)
+        # x = th.softmax(x, dim=1)
+        # mask = th.rand(size=(x.shape[0], 1, x.shape[2], x.shape[3]), device=x.device, dtype=x.dtype) < 0.1
+        # x = x * mask
+        # vars = vars * mask
+        # x = 0.5 * x + 0.5 * x0[:,:2] * ~mask  # assume binary, maybe observable path
+        # x = x * mask + x0 * ~mask  # assume binary, maybe observable path
+
+        # So that we flatten in a way that matches the dimensions of the observation space.
+        # x = x.permute(0, 2, 3, 1)
+
+        # x = x.reshape(x.size(0), -1)
+        # vars = vars.reshape(vars.size(0), -1) - 5
+
+        self._features = x
+        # x = x0[:, :2].reshape(x.size(0), -1)
+        # vars = th.empty_like(x).fill_(0)
+        x = th.cat([x, vars], dim=1)
+
+
+        # axis 0 is batch
+        # axis 1 is the tile-type (one-hot)
+        # axis 0,1 is the x value
+        # axis 0,2 is the y value
+
+        return x, []
+
+    @override(ModelV2)
+    def value_function(self):
+        assert self._features is not None, "must call forward() first"
+        vals = th.reshape(self.value_branch(self._features), [-1])
+        return vals
+
