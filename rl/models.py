@@ -331,6 +331,8 @@ class DenseNCA(TorchModelV2, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         x0 = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = x0.reshape(x0.size(0), -1)
+        with th.no_grad():
+            x.fill_(1.0)
         x = self.l1(x)
         x = th.relu(x)
         x = self.l2(x)
@@ -371,7 +373,7 @@ class DenseNCA(TorchModelV2, nn.Module):
         return vals
     
 
-class BlindDecoder(TorchModelV2, nn.Module):
+class Decoder(TorchModelV2, nn.Module):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, obs_space, action_space, num_outputs, model_config,name):
@@ -403,7 +405,7 @@ class BlindDecoder(TorchModelV2, nn.Module):
     def forward(self, input_dict, state, seq_lens):
         x0 = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = x0.reshape(x0.size(0), -1)
-        x = th.zeros(x.shape[0], 1)
+        x = th.zeros((x.shape[0], 1), device=x.device, dtype=x.dtype)
         x = self.l1(x)
         vars = x[:, x.shape[1] // 2:]
         x = x[:, :x.shape[1] // 2]

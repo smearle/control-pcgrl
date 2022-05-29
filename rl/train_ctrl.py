@@ -6,6 +6,7 @@ from pathlib import Path
 from pdb import set_trace as TT
 import shutil
 import sys
+import time
 import gym
 
 import numpy as np
@@ -21,7 +22,7 @@ from ray.tune import CLIReporter
 from ray.tune.registry import register_env
 
 import gym_pcgrl
-from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, DenseNCA, NCA # noqa : F401
+from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, NCA # noqa : F401
 from args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -252,8 +253,9 @@ def main(cfg):
         for i in range(10000):
             obs = env.reset()
             done = False
+            time.sleep(0.5)
             while not done:
-                action = trainer.compute_single_action(obs)
+                action = trainer.compute_single_action(obs, explore=True)
                 obs, reward, done, info = env.step(action)
                 # print(env.unwrapped._rep_stats["path-length"])
                 print(env.unwrapped._rep_stats)
