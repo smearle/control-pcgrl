@@ -175,10 +175,11 @@ class PcgrlEnv(gym.Env):
             percentage = min(1, max(0, self._change_percentage))
             self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        if 'Decoder' in kwargs['model']:
-            self._max_iterations = 1
-        else:
-            self._max_iterations = self._prob._width * self._prob._height + 1
+        if kwargs["model"]:
+            if 'Decoder' in kwargs['model']:
+                self._max_iterations = 1
+            else:
+                self._max_iterations = self._prob._width * self._prob._height + 1
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
