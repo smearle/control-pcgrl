@@ -16,13 +16,16 @@ from ray.rllib.agents import ppo
 from ray.tune.integration.wandb import WandbLogger
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
+# from ray.rllib.agents.a3c import A2CTrainer
+# from ray.rllib.agents.impala import ImpalaTrainer
 from ray.rllib.models import ModelCatalog
 from ray.rllib.utils import check_env
 from ray.tune import CLIReporter
 from ray.tune.registry import register_env
 
 import gym_pcgrl
-from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, NCA # noqa : F401
+from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
+    NCA, SeqNCA # noqa : F401
 from args import parse_args
 from envs import make_env
 #from stable_baselines3.common.policies import ActorCriticCnnPolicy
@@ -51,7 +54,7 @@ class PPOTrainer(RlLibPPOTrainer):
 
     @classmethod
     def get_default_config(cls):
-        def_cfg = RlLibPPOTrainer.get_default_config()
+        def_cfg = super().get_default_config()
         def_cfg.update({'checkpoint_path_file': None})
         return def_cfg
 
@@ -186,7 +189,7 @@ def main(cfg):
         'callbacks': stats_callbacks,
 
         # To take random actions while changing all tiles at once seems to invite too much chaos.
-        'explore': False if 'NCA' in cfg.model else True,
+        'explore': False if cfg.model and 'NCA' in cfg.model else True,
 
         # `ray.tune` seems to need these spaces specified here.
         # 'observation_space': dummy_env.observation_space,
@@ -212,7 +215,7 @@ def main(cfg):
     # Super ad-hoc re-loading. Note that we reset the number of training steps to be executed. Need to clearn this up if
     # we were to use it in actual publication-worthy experiments. Good for debugging though, maybe.
     # if cfg.load:
-    #     trainer = ppo.PPOTrainer(env='pcgrl', config=trainer_config)
+    #     trainer = Trainer(env='pcgrl', config=trainer_config)
     #     with open(checkpoint_path_file, 'r') as f:
     #         checkpoint_path = f.read()
 
@@ -231,6 +234,10 @@ def main(cfg):
 
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer:
+        trainer_config.update({
+            'record_env': log_dir,
+            'explore': False,
+        })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
         with open(checkpoint_path_file, 'r') as f:
             checkpoint_path = f.read()
@@ -249,17 +256,20 @@ def main(cfg):
         print(f'default_policy has {n_params} parameters.')
         print('model overview: \n', trainer.get_policy('default_policy').model)
 
-        env = make_env(vars(cfg))
-        for i in range(10000):
-            obs = env.reset()
-            done = False
-            time.sleep(0.5)
-            while not done:
-                action = trainer.compute_single_action(obs, explore=True)
-                obs, reward, done, info = env.step(action)
-                # print(env.unwrapped._rep_stats["path-length"])
-                print(env.unwrapped._rep_stats)
-                env.render()
+        trainer.evaluate()
+        # TT()
+
+        # env = make_env(vars(cfg))
+        # for i in range(10000):
+        #     obs = env.reset()
+        #     done = False
+        #     time.sleep(0.5)
+        #     while not done:
+        #         action = trainer.compute_single_action(obs, explore=False)
+        #         obs, reward, done, info = env.step(action)
+        #         # print(env.unwrapped._rep_stats["path-length"])
+        #         print(env.unwrapped._rep_stats)
+        #         env.render()
 
         # Quit the program before agent starts training.
         sys.exit()

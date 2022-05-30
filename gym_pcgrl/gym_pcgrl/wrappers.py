@@ -22,6 +22,8 @@ except ImportError:
 
 # clean the input action
 def get_action(a: np.ndarray):
+    if isinstance(a, int):
+        return a
     return a.item() if a.shape == [1] else a
 
 

@@ -52,7 +52,7 @@ class PcgrlEnv(gym.Env):
 
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         # self._max_iterations = self._prob._width * self._prob._height + 1
-        self._max_iterations = 1
+        self._max_iterations = 700
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         self.seed()
@@ -175,12 +175,13 @@ class PcgrlEnv(gym.Env):
             percentage = min(1, max(0, self._change_percentage))
             self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        if 'NCA' in kwargs['model']:
-            self._max_iterations = 1
-        elif 'Decoder' in kwargs['model']:
-            self._max_iterations = 1
-        else:
-            self._max_iterations = self._prob._width * self._prob._height + 1
+        if kwargs["model"]:
+            if 'NCA' in kwargs['model']:
+                self._max_iterations = 1
+            elif 'Decoder' in kwargs['model']:
+                self._max_iterations = 1
+            else:
+                self._max_iterations = self._prob._width * self._prob._height + 1
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
@@ -292,8 +293,8 @@ class PcgrlEnv(gym.Env):
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
         if mode == 'rgb_array':
-            # return np.array(img)
-            return img
+            return np.array(img)
+            # return img
         elif mode == 'human':
             from gym.envs.classic_control import rendering
 
