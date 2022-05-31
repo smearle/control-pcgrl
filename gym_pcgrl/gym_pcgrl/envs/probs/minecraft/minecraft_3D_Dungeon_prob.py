@@ -40,8 +40,12 @@ class Minecraft3DDungeonProblem(Problem):
         self._max_enemies = 5
         self._target_enemy_dist = 4
 
-        self.render_path = False 
+        self.render_path = True
         self._rendered_initial_maze = False
+
+        self._max_nearest_enemy = np.ceil(self._width / 2 + 1) * (self._length) * n_floors
+
+        self._path_idx = len(self.get_tile_types())
 
         # self._reward_weights = {
         #     "regions": 5,
@@ -60,8 +64,10 @@ class Minecraft3DDungeonProblem(Problem):
 
         # default conditional targets
         self.static_trgs = {
+            "enemies": (2, self._max_enemies),
             "regions": 1, 
             "path-length": self._max_path_length, 
+            "nearest-enemy": (5, self._max_nearest_enemy),
             "chests": 1,
             "n_jump": 3
         }
@@ -80,18 +86,32 @@ class Minecraft3DDungeonProblem(Problem):
             # and "snake" along that one
             # Upper bound: zig-zag
             "path-length": (0, self._max_path_length),
-            "chests": (0, self._width * self._length * self._height),
+            "chests": (0, self._width * self._length * self._height - 2 ),
             "n_jump": (0, self._max_path_length // 2),
+            "nearest-enemy": (0, self._max_nearest_enemy),
+            "enemies": (0, self._width * self._length, self._height - 2),
         }
 
         self._reward_weights = {
             "regions": 1, 
             "path-length": 1, 
             "chests": 1, 
-            "n_jump": 1
+            "n_jump": 1,
+            "enemies": 1,
+            "nearest-enemy": 1,
+            "key": 1,
+
         }
 # NEXT: add use NCA repre / RL agent to train a Zelda
 # NEXT: add a easy render 3D pillow option
+
+    def process_observation(self, observation):
+        if self.connected_path_coords == []:
+            return observation
+        observation['map'][self.connected_path_coords[:, 0], 
+                            self.connected_path_coords[:, 1], 
+                            self.connected_path_coords[:, 2]] = self._path_idx
+        return observation
 
     """
     Get a list of all the different tile names

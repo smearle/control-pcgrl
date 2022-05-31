@@ -28,9 +28,9 @@ class Wide3DHoleyRepresentation(Wide3DRepresentation, HoleyRepresentation3D):
         })
 
     def reset(self, *args, **kwargs):
-            ret = Wide3DRepresentation.reset(self, *args, **kwargs)
-            HoleyRepresentation3D.reset(self)
-            return ret   
+        ret = Wide3DRepresentation.reset(self, *args, **kwargs)
+        HoleyRepresentation3D.reset(self)
+        return ret   
 
     """
     Get the current representation observation object at the current moment

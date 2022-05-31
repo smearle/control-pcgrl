@@ -42,15 +42,15 @@ class ZeldaCtrlProblem(ZeldaProblem):
             "door": 1,
         }
         # conditional inputs/targets ( just a default we don't use in the ParamRew wrapper)
-        self.cond_trgs = {
-            "player": 1,
-            "key": 1,
-            "door": 1,
-            "regions": 1,
-            "enemies": 5,
-            "nearest-enemy": 7,
-            "path-length": 100,
-        }
+        # self.cond_trgs = {
+        #     "player": 1,
+        #     "key": 1,
+        #     "door": 1,
+        #     "regions": 1,
+        #     "enemies": 5,
+        #     "nearest-enemy": 7,
+        #     "path-length": 100,
+        # }
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
             "nearest-enemy": (0, self._max_nearest_enemy),

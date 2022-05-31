@@ -12,11 +12,12 @@ class Representation3D:
     """
     The base constructor where all the representation variable are defined with default values
     """
-    def __init__(self, border_tile=1):
+    def __init__(self, border_tile_index=1, empty_tile_index=0):
         self._random_start = True
         self._map = None
         self._old_map = None
-        self._border_tile = border_tile
+        self._border_tile_index = border_tile_index
+        self._empty_tile_index = empty_tile_index
 
         self.seed()
 
@@ -44,14 +45,14 @@ class Representation3D:
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, length, width, height, prob):
+        self._bordered_map = np.empty((length +2, width + 2, height + 2), dtype=np.int)
+        self._bordered_map.fill(self._border_tile_index)
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, length, width, height, prob)
-            self._bordered_map = np.empty((length +2, width + 2, height + 2), dtype=np.int)
-            self._bordered_map.fill(self._border_tile)
-            self._bordered_map[1:-1, 1:-1, 1:-1] = self._map
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
+        self._bordered_map[1:-1, 1:-1, 1:-1] = self._map
 
     """
     Adjust current representation parameter

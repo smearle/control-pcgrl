@@ -32,9 +32,9 @@ class Turtle3DHoleyRepresentation(Turtle3DRepresentation, HoleyRepresentation3D)
         })
 
     def reset(self, *args, **kwargs):
-            ret = Turtle3DRepresentation.reset(self, *args, **kwargs)
-            HoleyRepresentation3D.reset(self)
-            return ret   
+        ret = Turtle3DRepresentation.reset(self, *args, **kwargs)
+        HoleyRepresentation3D.reset(self)
+        return ret   
 
     """
     Get the current representation observation object at the current moment

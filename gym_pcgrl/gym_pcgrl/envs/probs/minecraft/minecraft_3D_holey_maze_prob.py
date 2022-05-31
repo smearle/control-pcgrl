@@ -7,6 +7,7 @@ can also move up and down stairs in any of these directions, if the stairs are o
 vertical blocks available on the lower step (and two vertical blocks available on the taller step).
 """
 from pdb import set_trace as TT
+from tkinter import W
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_ctrl_prob import Minecraft3DmazeCtrlProblem
 
 import numpy as np
@@ -69,7 +70,6 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         dummy_bordered_map[1:-2, 1:-1, -1] = 1
         dummy_bordered_map[1:-2, 0, 1:-1] = 1
         dummy_bordered_map[1:-2, -1, 1:-1] = 1
-        TT()
         self._border_idxs = np.argwhere(dummy_bordered_map == 1)
 
     def adjust_param(self, **kwargs):
@@ -97,7 +97,6 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
             self.end_xyz = np.array(((self._height -1 , self._width, self._length + 1),
                                      (self._height, self._width, self._length + 1)))
-            TT()
             return
 
         else:
@@ -122,13 +121,13 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
             # that was considered in the very beginning, but excluding them is just the trade-off you know :)
             for i in range(1, potential):
                 xyz = self._border_idxs[idxs[i]]
-                if np.max((np.abs(self.start_xyz[0] - xyz)), np.sum(np.abs(self.start_xyz[1] - xyz))) != 1: 
+                if np.max((np.abs(self.start_xyz[0] - xyz), np.abs(self.start_xyz[1] - xyz))) != 1: 
                     self.end_xyz[0] = xyz
                     self.end_xyz[1] = xyz + np.array([1, 0, 0])
                     break
                 
         
-        return self.start_xy, self.end_xy
+        return self.start_xyz, self.end_xyz
    
    
 
@@ -151,6 +150,22 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         # start_time = timer()
         self.path_length, self.path_coords, self.n_jump = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
         
+        dijkstra_map, _, _ = run_dijkstra(self.start_xyz[0][2], self.start_xyz[0][1], self.start_xyz[0][0], map, ["AIR"])
+        connected_path_length = dijkstra_map[self.end_xyz[0][2], self.end_xyz[0][1], self.end_xyz[0][0]]
+
+        # Give a consolation prize if start and end are NOT connected.
+        if connected_path_length == -1:
+            # connectivity_bonus = 0
+            self.connected_path_length = 0
+            self.connected_path_coords = []
+
+        # Otherwise (holes are connected), give a bonus (to guarantee we beat the loser above), plus the actual path length.
+        else:
+            # connectivity_bonus = 1
+            self.connected_path_length = connected_path_length
+            self.connected_path_coords = get_path_coords(dijkstra_map, init_coords=(self.end_xy[0], self.end_xy[1]))
+
+        assert not (self.connected_path_length == 0 and len(self.connected_path_coords) > 0)
         # print(f"minecraft path-finding time: {timer() - start_time}")
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
@@ -176,14 +191,19 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         return {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": self.path_length,
+            "connected-path-length": self.connected_path_length,
             # "path-coords": self.path_coords,
             "n_jump": self.n_jump
         }
+
     def process_observation(self, observation):
         if self.connected_path_coords == []:
             return observation
-        observation['map'][self.connected_path_coords[:, 0], self.connected_path_coords[:, 1]] = self._path_idx
+        observation['map'][self.connected_path_coords[:, 0], 
+                            self.connected_path_coords[:, 1], 
+                            self.connected_path_coords[:, 2]] = self._path_idx
         return observation
+        
     """
     This func is handled by the conditional wrapper
 

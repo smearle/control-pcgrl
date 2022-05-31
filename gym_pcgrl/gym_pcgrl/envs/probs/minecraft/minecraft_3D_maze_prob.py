@@ -74,8 +74,9 @@ class Minecraft3DmazeProblem(Problem):
         self.path_coords = []
         self.old_path_coords = []
         self.path_length = None
-        self.render_path = False
+        self.render_path = True
         self._rendered_initial_maze = False
+        self._path_idx = len(self.get_tile_types())
 
     """
     Get a list of all the different tile names

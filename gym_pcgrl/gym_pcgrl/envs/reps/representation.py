@@ -19,7 +19,7 @@ class Representation:
         self._map: List[List[int]] = None
         self._bordered_map: List[List[int]] = None
         self._old_map: List[List[int]] = None
-        self._border_tile = border_tile_index
+        self._border_tile_index = border_tile_index
         self._empty_tile = empty_tile_index
 
         self.seed()
@@ -50,7 +50,7 @@ class Representation:
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, width, height, prob)
             self._bordered_map = np.empty((height + 2, width + 2), dtype=np.int)
-            self._bordered_map.fill(self._border_tile)
+            self._bordered_map.fill(self._border_tile_index)
             self._bordered_map[1:-1, 1:-1] = self._map
             self._old_map = self._map.copy()
         else:

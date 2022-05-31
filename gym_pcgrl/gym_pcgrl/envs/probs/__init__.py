@@ -18,9 +18,10 @@ from gym_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructu
 from gym_pcgrl.envs.probs.minecraft.minecraft_2D_maze_prob import Minecraft2DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_ctrl_prob import Minecraft3DmazeCtrlProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_prob import Minecraft3DDungeonProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_ctrl_prob import Minecraft3DDungeonCtrlProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_Dungeon_ctrl_prob import Minecraft3DholeyDungeonCtrlProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_Dungeon_prob import Minecraft3DholeyDungeonCtrlProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_prob import Minecraft3DParkourProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_ctrl_prob import Minecraft3DParkourCtrlProblem
 
@@ -46,6 +47,7 @@ PROBLEMS = {
     "minecraft_2D_maze": Minecraft2DmazeProblem,
     "minecraft_3D_maze": Minecraft3DmazeProblem,
     "minecraft_3D_maze_ctrl": Minecraft3DmazeCtrlProblem,
+    "minecraft_3D_holey_maze": Minecraft3DholeymazeProblem,
     "minecraft_3D_dungeon": Minecraft3DDungeonProblem,
     "minecraft_3D_dungeon_ctrl": Minecraft3DDungeonCtrlProblem,
     "minecraft_3D_dungeon_ctrl_holey": Minecraft3DholeyDungeonCtrlProblem,

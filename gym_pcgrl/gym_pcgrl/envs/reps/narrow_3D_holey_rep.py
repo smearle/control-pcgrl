@@ -12,7 +12,7 @@ from pdb import set_trace as TT
 The narrow representation where the agent is trying to modify the tile value of a certain
 selected position that is selected randomly or sequentially similar to cellular automata
 """
-class Narrow3DHoleyRepresentation(Narrow3DRepresentation, HoleyRepresentation3D):
+class Narrow3DHoleyRepresentation(HoleyRepresentation3D, Narrow3DRepresentation):
     """
     Get the observation space used by the narrow representation
 
@@ -33,9 +33,9 @@ class Narrow3DHoleyRepresentation(Narrow3DRepresentation, HoleyRepresentation3D)
         })
 
     def reset(self, *args, **kwargs):
-            ret = Narrow3DRepresentation.reset(self, *args, **kwargs)
-            HoleyRepresentation3D.reset(self)
-            return ret   
+        ret = Narrow3DRepresentation.reset(self, *args, **kwargs)
+        HoleyRepresentation3D.reset(self)
+        return ret   
 
     """
     Get the current representation observation object at the current moment

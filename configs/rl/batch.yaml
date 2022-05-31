@@ -1,36 +1,41 @@
 {
   "exp_names": [
     0,
-    1,
-    2,
+    # 1,
+    # 2,
   ],
 
   "problems": [
-    "minecraft_3D_maze_ctrl",
-#   "minecraft_3D_zelda_ctrl",
     # "binary_ctrl",
     # "binary_ctrl_holey",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
 #   'smb_ctrl',
+#   "minecraft_3D_maze_ctrl",
+    "minecraft_3D_holey_maze",
+#   "minecraft_3D_dungeon_ctrl",
+#   "minecraft_3D_dungeon_ctrl_holey",
   ],
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-        ["narrow3D", null],
-#       ["turtle3D", null],
-#       ["wide3D", "WideModel3D"],
-#       ["wide3D", "WideModel3DSkip"],
-#       ["cellular3D", null],
       # ["narrow", null],
         # ["narrowholey", null],
+        # ["narrow3D", null],
+        ["narrow3Dholey", null],
+    #   ['turtle', null],
+#       ["turtle3D", null],
+#       ["turtle3Dholey", null],
     #   ["wide", null],
-    #   ["wideholey", null],
         # ["wide", NCA],
+    #   ["wideholey", null],
+#       ["wide3D", "WideModel3D"],
+#       ["wide3D", "WideModel3DSkip"],
+#       ["wide3Dholey", null],
+#       ["cellular3D", null],
 #       ["cellular", null],
         # ["cellular", NCA],
-    #   ['turtle', null],
   ],
 
   "model_configs":
@@ -83,7 +88,7 @@
       "RCT": [
           # ['income'],
       ],
-      "minecraft_3D_zelda_ctrl": [
+      "minecraft_3D_dungeon_ctrl": [
   #       ["emptiness", "path-length"],
       ],
       "minecraft_3D_maze_ctrl": [
@@ -91,6 +96,17 @@
         [n_jump],
         [path-length],
         [n_jump, path-length],
+      ],
+      "minecraft_3D_holey_maze": [
+        [n_jump],
+        # [path-length],
+        # [n_jump, path-length],
+      ],
+      "minecraft_3D_dungeon_ctrl_holey": [
+  #       ["emptiness", "path-length"],
+        [n_jump],
+        [path-length],
+        [n_jump, path-length],       
       ],
   },
 
@@ -104,11 +120,11 @@
 
   # How much of the original level the generator-agent is allowed to change before episode termination.
   "change_percentages": [
-    0.2,
-    0.6,
-    0.8,
-    1.0,
-    # null,
+    # 0.2,
+    # 0.6,
+    # 0.8,
+    # 1.0,
+    null,
   ],
 
   "learning_rates": [
