@@ -1,4 +1,5 @@
 
+import copy
 from functools import partial
 import json
 import os
@@ -8,12 +9,14 @@ import shutil
 import sys
 import time
 import gym
+from matplotlib import pyplot as plt
+from typing import Dict
 
 import numpy as np
 import ray
 from ray import tune
 from ray.rllib.agents import ppo
-from ray.tune.integration.wandb import WandbLogger
+from ray.tune.integration.wandb import WandbLoggerCallback
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
 # from ray.rllib.agents.a3c import A2CTrainer
@@ -21,9 +24,11 @@ from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
 from ray.rllib.models import ModelCatalog
 from ray.rllib.utils import check_env
 from ray.tune import CLIReporter
+from ray.tune.integration.wandb import wandb_mixin, WandbTrainableMixin
 from ray.tune.registry import register_env
 
 import gym_pcgrl
+import wandb
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
     NCA, SeqNCA # noqa : F401
 from args import parse_args
@@ -46,16 +51,41 @@ best_mean_reward, n_steps = -np.inf, 0
 log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
 
 
+# class CustomWandbLogger(WandbLogger):
+#     def on_result(self, result: Dict):
+#         res = super().on_result(result)
+#         if 'custom_plots' in result:
+#             for k, v in result['custom_plots'].items():
+#                 wandb.log({k: v}, step=result['training_iteration'])
+
+
 class PPOTrainer(RlLibPPOTrainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # wandb.init(**self.config['wandb'])
         self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
+        self.ctrl_metrics = self.config['env_config']['conditionals']
+        cond_bounds = self.workers.foreach_env(lambda env: env.unwrapped.cond_bounds)[0][0]
+        self.metric_ranges = {k: v[1] - v[0] for k, v in cond_bounds.items()}
         # self.checkpoint_path_file = checkpoint_path_file
+
+    # def setup(self, config):
+        # ret = super().setup(config)
+        # wandb.init(**self.config['wandb'])
+        # return ret
 
     @classmethod
     def get_default_config(cls):
-        def_cfg = super().get_default_config()
-        def_cfg.update({'checkpoint_path_file': None})
+        # def_cfg = super().get_default_config()
+        def_cfg = RlLibPPOTrainer.get_default_config()
+        def_cfg.update({
+            'checkpoint_path_file': None,
+            'wandb': {
+                'project': 'PCGRL',
+                'name': 'default_name',
+                'id': 'default_id',
+            },
+        })
         return def_cfg
 
     def save(self, *args, **kwargs):
@@ -64,6 +94,7 @@ class PPOTrainer(RlLibPPOTrainer):
             f.write(ckp_path)
         return ckp_path
 
+    # @wandb_mixin
     def train(self, *args, **kwargs):
         result = super().train(*args, **kwargs)
         log_result = {k: v for k, v in result.items() if k in log_keys}
@@ -71,6 +102,58 @@ class PPOTrainer(RlLibPPOTrainer):
 
         # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
         result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
+
+        # TODO: Send a heatmap to tb/wandb representing success reaching various control targets?
+        if len(result['custom_metrics']) > 0:
+            n_bins = 20
+            result['custom_plots'] = {}
+            for metric in self.ctrl_metrics:
+
+                # Scatter plots via wandb
+                # trgs = result['hist_stats'][f'{metric}-trg']
+                # vals = result['hist_stats'][f'{metric}-val']
+                # data = [[x, y] for (x, y) in zip(trgs, vals)]
+                # table = wandb.Table(data=data, columns=['trg', 'val'])
+                # scatter = wandb.plot.scatter(table, "trg", "val", title=f"{metric}-trg-val")
+                # result['custom_plots']["scatter_{}".format(metric)] = scatter
+                # scatter.save(f"{metric}-trg-val.png")
+                # wandb.log({f'{metric}-scc': scatter}, step=self.iteration)
+
+                # Spoofed histograms
+                # FIXME: weird interpolation behavior here???
+                bin_size = self.metric_ranges[metric] / n_bins  # 30 is the default number of tensorboard histogram bins (HACK)
+                trg_dict = {}
+
+                for i, trg in enumerate(result['hist_stats'][f'{metric}-trg']):
+                    val = result['hist_stats'][f'{metric}-val'][i]
+                    scc = 1 - abs(val - trg) / self.metric_ranges[metric]
+                    trg_bin = trg // bin_size
+                    if trg not in trg_dict:
+                        trg_dict[trg_bin] = [scc]
+                    else:
+                        trg_dict[trg_bin] += [scc]
+                # Get average success rate in meeting each target.
+                trg_dict = {k: np.mean(v) for k, v in trg_dict.items()}
+                # Repeat each target based on how successful we were in reaching it. (Appears at least once if sampled)
+                spoof_data = [[trg * bin_size] * (1 + int(20 * scc)) for trg, scc in trg_dict.items()]
+                spoof_data = [e for ee in spoof_data for e in ee]  # flatten the list
+                result['hist_stats'][f'{metric}-scc'] = spoof_data
+
+                # Make a heatmap.
+                # ax, fig = plt.subplots(figsize=(10, 10))
+                # data = np.zeros(n_bins)
+                # for trg, scc in trg_dict.items():
+                    # data[trg] = scc
+                # wandb.log({f'{metric}-scc': wandb.Histogram(data, n_bins=n_bins)})
+
+                # plt.imshow(data, cmap='hot')
+                # plt.savefig(f'{metric}.png')
+
+            
+
+        # for k, v in result['hist_stats'].items():
+            # if '-trg' in k or '-val' in k:
+                # result['custom_metrics'][k] = [v]
 
         # print('-----------------------------------------')
         # print(pretty_print(log_result))
@@ -93,6 +176,9 @@ def main(cfg):
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.experiment_id}'
     log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
+
+    # TODO: make this a hyperparameter?
+    cfg.max_board_scans = 1
 
     if not cfg.load:
 
@@ -129,7 +215,6 @@ def main(cfg):
     num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
-    # ray won't stfu about this anyway lol
     dummy_env = make_env(vars(cfg))
     check_env(dummy_env)
 
@@ -163,18 +248,19 @@ def main(cfg):
             'custom_model': 'custom_model',
             'custom_model_config': {
                 **cfg.model_cfg,
+                'orig_obs_space': copy.copy(dummy_env.observation_space),
             }
         },
         "evaluation_config": {
             "explore": True,
         },
         "logger_config": {
-                        "wandb": {
-                "project": "PCGRL",
-                "name": exp_name_id,
-                "id": exp_name_id,
-                # "api_key_file": "~/.wandb_api_key"
-            },
+                # "wandb": {
+                    # "project": "PCGRL",
+                    # "name": exp_name_id,
+                    # "id": exp_name_id,
+                    # "api_key_file": "~/.wandb_api_key"
+            # },
             "type": "ray.tune.logger.TBXLogger",
             # Optional: Custom logdir (do not define this here
             # for using ~/ray_results/...).
@@ -192,12 +278,14 @@ def main(cfg):
         'explore': True,
 
         # `ray.tune` seems to need these spaces specified here.
-        # 'observation_space': dummy_env.observation_space,
+        'observation_space': dummy_env.observation_space,
         # 'action_space': dummy_env.action_space,
 
         # 'create_env_on_driver': True,
         'checkpoint_path_file': checkpoint_path_file,
         # 'record_env': log_dir,
+        # 'stfu': True,
+        'disable_env_checking': True,
     }
 
     register_env('pcgrl', make_env)
@@ -256,8 +344,8 @@ def main(cfg):
         print(f'default_policy has {n_params} parameters.')
         print('model overview: \n', trainer.get_policy('default_policy').model)
 
-        trainer.evaluate()
-        # TT()
+        for _ in range(100):
+            trainer.evaluate()
 
         # env = make_env(vars(cfg))
         # for i in range(10000):
@@ -347,6 +435,13 @@ def main(cfg):
     # reporter.add_metric_column("episode_reward_mean")
     
     ray.init()
+    # loggers_dict = {'loggers': [WandbLoggerCallback]} if cfg.wandb else {}
+    # loggers_dict = {'loggers': [CustomWandbLogger]} if cfg.wandb else {}
+    callbacks_dict = {'callbacks': [WandbLoggerCallback(
+        project="PCGRL",
+        name=exp_name_id,
+        id=exp_name_id,
+    )]} if cfg.wandb else {}
 
     # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
     analysis = tune.run(
@@ -354,9 +449,6 @@ def main(cfg):
         resume=cfg.load,
         config={
             **trainer_config,
-            # "wandb": {
-                # "project": "PCGRL",
-            # },
         },
         checkpoint_score_attr="episode_reward_mean",
         checkpoint_at_end=True,
@@ -365,7 +457,8 @@ def main(cfg):
         local_dir=log_dir,
         verbose=1,
         # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
-        loggers=[WandbLogger],
+        # **loggers_dict,
+        **callbacks_dict,
         progress_reporter=reporter,
     )
 

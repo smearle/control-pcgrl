@@ -105,6 +105,8 @@ def launch_batch(collect_params=False):
                     "lr": learning_rate,
                     "gamma": opts.gamma,
                     "model_cfg": model_cfg,
+                    "record_env": opts.record_env,
+                    "wandb": opts.wandb,
                 }
             )
 
@@ -259,6 +261,18 @@ if __name__ == "__main__":
         type=float,
         default=0.99,
         help="Discount factor of the MDP."
+    )
+    opts.add_argument(
+        '--wandb',
+        help='Whether to use wandb for logging.',
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    opts.add_argument(
+        '--record_env',
+        help='Whether to record the environment during inference.',
+        action=argparse.BooleanOptionalAction,
+        default=False,
     )
 
     opts = opts.parse_args()

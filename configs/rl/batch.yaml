@@ -1,5 +1,9 @@
 {
   "exp_names": [
+    # test,
+    test1,
+    # test2,
+    # test3,
     # 0,
     # 1,
     # 2,
@@ -67,8 +71,8 @@
 
   "local_controls": {
       "binary_ctrl": [
-        ["regions"],
-        # ["path-length"],
+        # ["regions"],
+        ["path-length"],
         # ["regions", "path-length"],
           # ['emptiness', 'path-length'],
           # ["symmetry", "path-length"]

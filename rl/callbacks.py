@@ -7,6 +7,7 @@ from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
 from ray.rllib.policy.sample_batch import SampleBatch
+from ray.rllib.agents.trainer import Trainer
 from ray.rllib.utils.typing import AgentID, PolicyID
 from ray.tune import Callback
 
@@ -15,6 +16,28 @@ class StatsCallbacks(DefaultCallbacks):
     def __init__(self, cfg, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.metrics_callback = {}
+
+    def on_episode_start(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        # Make sure this episode has just been started (only initial obs
+        # logged so far).
+        assert episode.length == 0, (
+            "ERROR: `on_episode_start()` callback should be called right "
+            "after env reset!"
+        )
+        for k in base_env.get_sub_environments()[env_index].ctrl_metrics:
+            episode.hist_data.update({
+                f'{k}-trg': None,
+                f'{k}-val': None,
+            })
 
     def on_episode_end(
         self,
@@ -63,6 +86,14 @@ class StatsCallbacks(DefaultCallbacks):
         # write to tensorboard file (if enabled)
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items()})
         episode.custom_metrics.update({k: [v] for k, v in episode_stats.items()})
+
+        # TODO: log ctrl targets and success rate as heatmap: x is timestep, y is ctrl target, heatmap is success rate
+
+        for k in env.ctrl_metrics:
+            # episode.ctrl_metrics = {f'ctrl-{k}': {env.metric_trgs[k]: env.metrics[k]}}
+            episode.hist_data.update({
+                f'{k}-trg': [env.metric_trgs[k]],  # rllib needs these values to be lists :)
+                f'{k}-val': [env.metrics[k]],})
 
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})

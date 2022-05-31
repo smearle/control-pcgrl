@@ -34,7 +34,7 @@ class PcgrlEnv(gym.Env):
         # Attach this function to the env, since it will be different for, e.g., 3D environments.
         self.get_string_map = get_string_map
 
-        self._prob: Problem = PROBLEMS[prob]()
+        self._prob: Problem = PROBLEMS[prob](**kwargs)
         self._rep: Representation = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self.metrics = {}
@@ -65,7 +65,15 @@ class PcgrlEnv(gym.Env):
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
         
         self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)  # FIXME: redundant??
-        self._reward_weights = self._prob._reward_weights
+
+        # Normalize reward weights w.r.t. bounds of each metric.
+        self._reward_weights = {
+            k: v * 1 / (self._prob.cond_bounds[k][1] - self._prob.cond_bounds[k][0]) for k, v in self._prob._reward_weights.items()
+        }
+        self._ctrl_reward_weights = {
+            k: v * 1 / (self._prob.cond_bounds[k][1] - self._prob.cond_bounds[k][0]) for k, v in self._prob._ctrl_reward_weights.items()
+        }
+
 #       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
 
@@ -179,7 +187,8 @@ class PcgrlEnv(gym.Env):
             if 'Decoder' in kwargs['model']:
                 self._max_iterations = 1
             else:
-                self._max_iterations = self._prob._width * self._prob._height + 1
+                max_board_scans = kwargs.get('max_board_scans')
+                self._max_iterations = (self._prob._width * self._prob._height) * max_board_scans + 1
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())

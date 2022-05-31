@@ -85,10 +85,12 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         return observation
         
     def adjust_param(self, **kwargs):
-        # TT()
         self._change_percentage = kwargs['change_percentage']
         if self._change_percentage is not None:
-            percentage = min(1, max(0, self._change_percentage))
+            # percentage = min(1, max(0, self._change_percentage))
+            # Allow, e.g., 200% change
+            percentage = max(0, self._change_percentage)
+
         # if 'change_percentage' in kwargs:
         #     percentage = min(1, max(0, kwargs.get('change_percentage')))
             self._max_changes = max(

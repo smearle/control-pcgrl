@@ -72,16 +72,22 @@ class SeqNCA(TorchModelV2, nn.Module):
                          name)
 
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        obs_shape = obs_space.shape
-        self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters
+        # obs_shape = obs_space.shape
+        orig_obs_space = model_config['custom_model_config']['orig_obs_space']
+        obs_shape = orig_obs_space['map'].shape
+        metrics_size = orig_obs_space['ctrl_metrics'].shape \
+            if 'ctrl_metrics' in orig_obs_space.spaces else (0,)
+        assert len(metrics_size) == 1
+        metrics_size = metrics_size[0]
+        self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters + metrics_size
         self.fc_size = fc_size
 
         # TODO: use more convolutions here? Change and check that we can still overfit on binary problem.
-        self.conv_1 = nn.Conv2d(obs_space.shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
+        self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
 
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
         self.action_branch = nn.Sequential(
-            SlimFC(3 * 3 * conv_filters, self.fc_size),
+            SlimFC(3 * 3 * conv_filters + metrics_size, self.fc_size),
             nn.ReLU(),
             SlimFC(self.fc_size, num_outputs),)
         self.value_branch = SlimFC(self.fc_size, 1)
@@ -94,10 +100,16 @@ class SeqNCA(TorchModelV2, nn.Module):
         return th.reshape(self.value_branch(self._features), [-1])
 
     def forward(self, input_dict, state, seq_lens):
-        input = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
-        x = nn.functional.relu(self.conv_1(input.float()))
-        x_act = x[:, :, x.shape[2] // 2 - 1:x.shape[2] // 2 + 2, x.shape[3] // 2 - 1:x.shape[3] // 2 + 2].reshape(x.shape[0], -1)
+        input = input_dict['obs']
+        map = input['map'].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
+        x = nn.functional.relu(self.conv_1(map.float()))
+        #NOTE: assuming that the input is padded, and centered at the agent!
+        x_act = x[:, :, x.shape[2] // 2 - 1:x.shape[2] // 2 + 2, x.shape[3] // 2 - 1:x.shape[3] // 2 + 2]
+        x_act = x_act.reshape(x.shape[0], -1)
+        ctrl_metrics = input['ctrl_metrics']
+        x_act = th.cat((x_act, ctrl_metrics), dim=1)
         x = x.reshape(x.size(0), -1)
+        x = th.cat((x, ctrl_metrics), dim=1)
         x = nn.functional.relu(self.fc_1(x))
         self._features = x
         action_out = self.action_branch(x_act)

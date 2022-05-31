@@ -188,5 +188,17 @@ def get_args():
         help="Whether to use CUDA (GPU) or not.",
         action="store_true",
     )
+    args.add_argument(
+        '--wandb',
+        help='Whether to use wandb for logging.',
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    args.add_argument(
+        '--record_env',
+        help='Whether to record the environment during inference.',
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
 
     return args

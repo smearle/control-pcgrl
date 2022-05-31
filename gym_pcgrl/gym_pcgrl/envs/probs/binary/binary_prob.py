@@ -16,7 +16,7 @@ class BinaryProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
         self._width = 16
         self._height = 16
@@ -30,11 +30,17 @@ class BinaryProblem(Problem):
         self._target_path = 20
         self._random_probs = False
         # self._random_probs = True
-        self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
+        self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2) + 1
 
         self._reward_weights = {
             "regions": 0,
-            "path-length": 1
+            "path-length": 100,
+        }
+        # # Weights for each component of the reward *if* it is being controlled.
+        self._ctrl_reward_weights = {
+            "regions": 100,
+            "path-length": 100,
+
         }
 
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
