@@ -71,6 +71,7 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
                 xy = self._border_idxs[idxs[i]]
                 if np.max(np.abs(self.start_xy - xy)) != 1: 
                     self.end_xy = xy
+                    break
         
         return self.start_xy, self.end_xy
 

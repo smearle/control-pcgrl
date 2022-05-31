@@ -6,7 +6,10 @@ from gym_pcgrl.envs.reps import REPRESENTATIONS
 # Register all the problems with every different representation for the OpenAI GYM
 for prob in PROBLEMS.keys():
     if "holey" in prob:
-        entry_point = "gym_pcgrl.envs:PcgrlHoleyEnv"
+        if "3D" in prob:
+            entry_point = "gym_pcgrl.envs:PcgrlHoleyEnv3D"
+        else:
+            entry_point = "gym_pcgrl.envs:PcgrlHoleyEnv"
     elif "play" in prob:
         entry_point= "gym_pcgrl.envs:PlayPcgrlEnv"
     # NOTE: we assume 3D envs are controllable and manually copy over certain __init__ logic into the 3D env

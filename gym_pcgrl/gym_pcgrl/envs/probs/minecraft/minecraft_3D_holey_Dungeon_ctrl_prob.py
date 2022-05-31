@@ -1,11 +1,12 @@
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_ctrl_prob import Minecraft3DDungeonCtrlProblem
 import numpy as np
 
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Zelda_prob import Minecraft3DZeldaProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_prob import Minecraft3DDungeonProblem
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
-class Minecraft3DZeldaCtrlProblem(Minecraft3DZeldaProblem):
+class Minecraft3DholeyDungeonCtrlProblem(Minecraft3DDungeonCtrlProblem):
     def __init__(self):
         super().__init__()
         n_floors = self._height // 3

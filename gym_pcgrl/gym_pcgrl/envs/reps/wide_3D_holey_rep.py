@@ -1,6 +1,7 @@
 from pdb import set_trace as TT
 from PIL import Image
 from gym import spaces
+from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
 from gym_pcgrl.envs.reps.wide_3D_rep import Wide3DRepresentation
 import numpy as np
 from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
@@ -8,7 +9,7 @@ from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
 """
 The wide representation where the agent can pick the tile position and tile value at each update.
 """
-class Wide3DHoleyRepresentation(Wide3DRepresentation):
+class Wide3DHoleyRepresentation(Wide3DRepresentation, HoleyRepresentation3D):
     """
     Get the observation space used by the wide representation
 
@@ -25,6 +26,11 @@ class Wide3DHoleyRepresentation(Wide3DRepresentation):
         return spaces.Dict({
             "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2, length+2))
         })
+
+    def reset(self, *args, **kwargs):
+            ret = Wide3DRepresentation.reset(self, *args, **kwargs)
+            HoleyRepresentation3D.reset(self)
+            return ret   
 
     """
     Get the current representation observation object at the current moment

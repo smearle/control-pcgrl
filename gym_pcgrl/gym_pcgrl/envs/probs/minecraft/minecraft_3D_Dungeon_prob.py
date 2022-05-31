@@ -13,7 +13,7 @@ from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maz
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
-class Minecraft3DZeldaProblem(Problem):
+class Minecraft3DDungeonProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
     """
@@ -43,17 +43,55 @@ class Minecraft3DZeldaProblem(Problem):
         self.render_path = False 
         self._rendered_initial_maze = False
 
+        # self._reward_weights = {
+        #     "regions": 5,
+        #     "path-length": 1,
+        #     "chests": 3,
+        #     "enemies": 1,
+        #     "nearest-enemy":2
+        # }
+        
+        n_floors = self._height // 3
+        max_path_per_floor = np.ceil(self._width / 2) * (self._length) + np.floor(self._length/2)
+        self._max_path_length = n_floors * max_path_per_floor
+        # change floor by stairs require 6 path_length for each floor
+
+#       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
+
+        # default conditional targets
+        self.static_trgs = {
+            "regions": 1, 
+            "path-length": self._max_path_length, 
+            "chests": 1,
+            "n_jump": 3
+        }
+
+        # boundaries for conditional inputs/targets
+        self.cond_bounds = {
+            # Upper bound: checkerboard
+            "regions": (0, np.ceil(self._width * self._length / 2 * self._height)),
+            # (assume these are stacked in the 3rd dimension aka height)
+            #     10101010
+            #     01010101
+            #     10101010
+            #     01010101
+            #     10101010
+            # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
+            # and "snake" along that one
+            # Upper bound: zig-zag
+            "path-length": (0, self._max_path_length),
+            "chests": (0, self._width * self._length * self._height),
+            "n_jump": (0, self._max_path_length // 2),
+        }
+
         self._reward_weights = {
-            "regions": 5,
-            "path-length": 1,
-            "chests": 3,
-            "enemies": 1,
-            "nearest-enemy":2
+            "regions": 1, 
+            "path-length": 1, 
+            "chests": 1, 
+            "n_jump": 1
         }
 # NEXT: add use NCA repre / RL agent to train a Zelda
 # NEXT: add a easy render 3D pillow option
-# NEXT: add a jumping game (for platform games)
-# NEXT: try 3 things to solve the plateau problem
 
     """
     Get a list of all the different tile names
@@ -176,21 +214,21 @@ class Minecraft3DZeldaProblem(Problem):
     Returns:
         float: the current reward due to the change between the old map stats and the new map stats
     """
-    def get_reward(self, new_stats, old_stats):
-        #longer path is rewarded and less number of regions is rewarded
-        rewards = {
-            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
-            "chests": get_range_reward(new_stats["chests"], old_stats["chests"], 1, 1),
-            "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
-            "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
-        }
-        #calculate the total reward
-        return rewards["regions"] * self._reward_weights["regions"] +\
-            rewards["path-length"] * self._reward_weights["path-length"] +\
-            rewards["chests"] * self._reward_weights["chests"] +\
-            rewards["enemies"] * self._reward_weights["enemies"] +\
-            rewards["nearest-enemy"] * self._reward_weights["nearest-enemy"]
+    # def get_reward(self, new_stats, old_stats):
+    #     #longer path is rewarded and less number of regions is rewarded
+    #     rewards = {
+    #         "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+    #         "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf),
+    #         "chests": get_range_reward(new_stats["chests"], old_stats["chests"], 1, 1),
+    #         "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
+    #         "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
+    #     }
+    #     #calculate the total reward
+    #     return rewards["regions"] * self._reward_weights["regions"] +\
+    #         rewards["path-length"] * self._reward_weights["path-length"] +\
+    #         rewards["chests"] * self._reward_weights["chests"] +\
+    #         rewards["enemies"] * self._reward_weights["enemies"] +\
+    #         rewards["nearest-enemy"] * self._reward_weights["nearest-enemy"]
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -201,12 +239,12 @@ class Minecraft3DZeldaProblem(Problem):
         old_stats (dict(string,any)): the old stats before taking an action
 
     Returns:
-        boolean: True if the level reached satisfying quality based on the stats and False otherwise
-    """
-    def get_episode_over(self, new_stats, old_stats):
-        return (new_stats["regions"] == 1 and
-              new_stats["nearest-enemy"] >= self._target_enemy_dist and
-              new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path)
+    #     boolean: True if the level reached satisfying quality based on the stats and False otherwise
+    # """
+    # def get_episode_over(self, new_stats, old_stats):
+    #     return (new_stats["regions"] == 1 and
+    #           new_stats["nearest-enemy"] >= self._target_enemy_dist and
+    #           new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path)
 
     """
     Get any debug information need to be printed
@@ -227,12 +265,13 @@ class Minecraft3DZeldaProblem(Problem):
             "chests": new_stats["chests"],
             "enemies": new_stats["enemies"],
             "nearest-enemy": new_stats["nearest-enemy"],
+            "n_jump": new_stats["n_jump"],
         }
 
-    def render(self, map, iteration_num, repr_name):
+    def render(self, map, iteration_num, repr_name, **kwargs):
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile)
+            spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
             spawn_3D_maze(map)
             self._rendered_initial_maze = True
 

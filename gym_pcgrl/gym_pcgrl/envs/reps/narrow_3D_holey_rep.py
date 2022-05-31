@@ -1,3 +1,4 @@
+from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
 from gym_pcgrl.envs.reps.narrow_3D_rep import Narrow3DRepresentation
 from PIL import Image
 from gym import spaces
@@ -11,7 +12,7 @@ from pdb import set_trace as TT
 The narrow representation where the agent is trying to modify the tile value of a certain
 selected position that is selected randomly or sequentially similar to cellular automata
 """
-class Narrow3DHoleyRepresentation(Narrow3DRepresentation):
+class Narrow3DHoleyRepresentation(Narrow3DRepresentation, HoleyRepresentation3D):
     """
     Get the observation space used by the narrow representation
 
@@ -30,6 +31,11 @@ class Narrow3DHoleyRepresentation(Narrow3DRepresentation):
             "pos": spaces.Box(low=np.array([1, 1, 1]), high=np.array([length, width, height]), dtype=np.uint8),
             "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height+2, width+2, length+2))
         })
+
+    def reset(self, *args, **kwargs):
+            ret = Narrow3DRepresentation.reset(self, *args, **kwargs)
+            HoleyRepresentation3D.reset(self)
+            return ret   
 
     """
     Get the current representation observation object at the current moment

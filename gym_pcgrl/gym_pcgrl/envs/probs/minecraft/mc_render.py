@@ -127,7 +127,7 @@ def spawn_2D_path(path=None, base_pos=5, item=LEAVES):
 
 
 def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
-                    boundary_size=3, backgroud_type=QUARTZ_BLOCK):
+                    boundary_size=3, start_xyz=None, end_xyz=None, backgroud_type=QUARTZ_BLOCK):
     '''
     Spawn the border of the maze
     The boundary contains five sides of the cube except the base
@@ -171,24 +171,43 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
     ))
 
     # render the entrance's door on the border 
-    CLIENT.fillCube(FillCubeRequest(
-        cube=Cube(
-            min=Point(x=-border_size[0], y=base_pos, z=0),
-            max=Point(x=-1,y=base_pos+1, z=0)
-        ),
-        type=AIR
-    ))
-    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=GOLD_BLOCK, orientation=NORTH)]))
+    # start_xyz and end_xyz are (z,y,x), the coordinates of Evocraft is (x,z,y)
+    if start_xyz:
+        CLIENT.fillCube(FillCubeRequest(
+            cube=Cube(
+                min=Point(x=start_xyz[0][2], y=start_xyz[0][0], z=start_xyz[0][1]),
+                max=Point(x=start_xyz[1][2], y=start_xyz[1][0], z=start_xyz[1][1])
+            ),
+            type=AIR
+        ))
+    else:
+        CLIENT.fillCube(FillCubeRequest(
+            cube=Cube(
+                min=Point(x=-border_size[0], y=base_pos, z=0),
+                max=Point(x=-1,y=base_pos+1, z=0)
+            ),
+            type=AIR
+        ))
+        CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=GOLD_BLOCK, orientation=NORTH)]))
 
     # render the exit on the border
-    CLIENT.fillCube(FillCubeRequest(
-        cube=Cube(
-            min=Point(x=i, y=base_pos+k-2, z=j-1), 
-            max=Point(x=i+border_size[0]-1, y=base_pos+k-1, z=j-1)
-        ),
-        type=AIR
-    ))
-    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=base_pos+k-3, z=j-1),type=DIAMOND_BLOCK, orientation=NORTH)]))
+    if end_xyz:
+        CLIENT.fillCube(FillCubeRequest(
+            cube=Cube(
+                min=Point(x=start_xyz[0][2], y=start_xyz[0][0], z=start_xyz[0][1]),
+                max=Point(x=start_xyz[1][2], y=start_xyz[1][0], z=start_xyz[1][1])
+            ),
+            type=AIR
+        ))
+    else:
+        CLIENT.fillCube(FillCubeRequest(
+            cube=Cube(
+                min=Point(x=i, y=base_pos+k-2, z=j-1), 
+                max=Point(x=i+border_size[0]-1, y=base_pos+k-1, z=j-1)
+            ),
+            type=AIR
+        ))
+        CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=base_pos+k-3, z=j-1),type=DIAMOND_BLOCK, orientation=NORTH)]))
 
     return
 
