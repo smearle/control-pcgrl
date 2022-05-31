@@ -1,9 +1,11 @@
 {
   "exp_names": [
-    # test,
+    # test0,
     test1,
     # test2,
     # test3,
+    # test4,
+    # test5,
     # 0,
     # 1,
     # 2,
@@ -13,8 +15,8 @@
   "problems": [
     # "minecraft_3D_maze_ctrl",
 #   "minecraft_3D_zelda_ctrl",
-    "binary_ctrl",
-    # "binary_ctrl_holey",
+    # "binary_ctrl",
+    "binary_ctrl_holey",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
@@ -42,7 +44,8 @@
 #       ["wide3Dholey", null],
 #       ["cellular3D", null],
       # ["narrow", null],
-      ["narrow", SeqNCA],
+      # ["narrow", SeqNCA],
+      [narrowholey, SeqNCA],
         # ["narrowholey", null],
     #   ["wide", null],
     #   ["wideholey", null],
@@ -56,8 +59,8 @@
 
   "model_configs":
   [
-      # {},
-      {'conv_filters': 64, 'fc_size': 64},
+      {},
+      # {'conv_filters': 64, 'fc_size': 64},
       # {'conv_filters': 128, 'fc_size': 128,},
       # {'conv_filters': 256, 'fc_size': 256,},
       # {'conv_filters': 512, 'fc_size': 512,},
@@ -65,7 +68,7 @@
 
   # TODO: incorporate formal (rather than only functional) metrics as controls
   "global_controls": [
-        # ["NONE", "NONE"],
+        ["NONE", "NONE"],
       # ['emptiness', 'symmetry'],
   ],
 
@@ -155,6 +158,12 @@
       # 0.000005,
       # 0.000001,
       # 1e-7,
-  ]
+  ],
 
+"max_board_scans": [
+  # 1,
+  # 2,
+  3,
+  # 5,
+],
 }

@@ -65,7 +65,9 @@ class PPOTrainer(RlLibPPOTrainer):
         # wandb.init(**self.config['wandb'])
         self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
         self.ctrl_metrics = self.config['env_config']['conditionals']
-        cond_bounds = self.workers.foreach_env(lambda env: env.unwrapped.cond_bounds)[0][0]
+        cbs = self.workers.foreach_env(lambda env: env.unwrapped.cond_bounds)
+        cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
+        cond_bounds = cbs[0]
         self.metric_ranges = {k: v[1] - v[0] for k, v in cond_bounds.items()}
         # self.checkpoint_path_file = checkpoint_path_file
 
@@ -177,9 +179,6 @@ def main(cfg):
     exp_name_id = f'{exp_name}_{cfg.experiment_id}'
     log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
 
-    # TODO: make this a hyperparameter?
-    cfg.max_board_scans = 1
-
     if not cfg.load:
 
         if not cfg.overwrite:
@@ -215,7 +214,9 @@ def main(cfg):
     num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
-    dummy_env = make_env(vars(cfg))
+    dummy_cfg = copy.copy(vars(cfg))
+    dummy_cfg['render'] = False
+    dummy_env = make_env(dummy_cfg)
     check_env(dummy_env)
 
     # ### DEBUG ###

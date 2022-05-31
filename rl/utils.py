@@ -175,13 +175,12 @@ def get_exp_name(cfg):
         exp_name += "_" + cfg.model
 
     if hasattr(cfg, "conditional") and cfg.conditional:
-        exp_name += "_conditional"
         exp_name += "_" + "-".join(["ctrl"] + cfg.conditionals)
-        if cfg.change_percentage != 1.0:
-            exp_name += "_chng-{}".format(cfg.change_percentage)
-    else:
-        exp_name += "_vanilla"
+    if cfg.change_percentage is not None:
         exp_name += "_chng-{}".format(cfg.change_percentage)
+
+    if cfg.max_board_scans != 1:
+        exp_name += "_{}-scans".format(cfg.max_board_scans)
 
     if hasattr(cfg, "midep_trgs") and cfg.midep_trgs:
         exp_name += "_midEpTrgs"

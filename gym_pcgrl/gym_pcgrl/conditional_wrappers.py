@@ -120,6 +120,7 @@ class ConditionalWrapper(gym.Wrapper):
             #           n_new_obs = 1 * len(self.ctrl_metrics)
             # else:
                 # n_new_obs = 1 * len(self.ctrl_metrics)
+            self.n_new_obs = n_new_obs = len(self.ctrl_metrics) * 2
 
             if self.SC_RCT:
                 pass
@@ -132,34 +133,30 @@ class ConditionalWrapper(gym.Wrapper):
                 # high = self.observation_space.high.transpose(1, 2, 0)
             else:
                 self.CHAN_LAST = False
-                # obs_shape = (
-                    # *orig_obs_shape[:-1],
-                    # orig_obs_shape[-1] + n_new_obs,
-                # )
-                # low = self.observation_space.low
-                # high = self.observation_space.high
-            self.n_new_obs = len(self.ctrl_metrics) * 2
-            # metrics_shape = (*obs_shape[:-1], n_new_obs)
-            # self.metrics_shape = metrics_shape
-            # metrics_low = np.full(metrics_shape, fill_value=0)
-            # metrics_high = np.full(metrics_shape, fill_value=1)
-            # low = np.concatenate((metrics_low, low), axis=-1)
-            # high = np.concatenate((metrics_high, high), axis=-1)
-            # self.observation_space = gym.spaces.Box(low=low, high=high)
-            if not isinstance(self.observation_space, gym.spaces.Dict):
-                # self.observation_space = gym.spaces.Tuple(
-                obs_space = gym.spaces.Dict(
-                map=self.observation_space,
-                ctrl_metrics=gym.spaces.Box(
-                        low=0, high=1, shape=(self.n_new_obs,), dtype=np.float32))
-                # obs_space.dtype = np.float32
-                obs_space.dtype = collections.OrderedDict
-                self.observation_space = obs_space
-            else:
-                raise Exception
-            # Yikes lol (this is to appease SB3)
-            #       self.unwrapped.observation_space = self.observation_space
-        # print("conditional observation space shape: {}".format(self.observation_space.shape))
+                obs_shape = (
+                    *orig_obs_shape[:-1],
+                    orig_obs_shape[-1] + n_new_obs,
+                )
+                low = self.observation_space.low
+                high = self.observation_space.high
+            metrics_shape = (*obs_shape[:-1], n_new_obs)
+            self.metrics_shape = metrics_shape
+            metrics_low = np.full(metrics_shape, fill_value=0)
+            metrics_high = np.full(metrics_shape, fill_value=1)
+            low = np.concatenate((metrics_low, low), axis=-1)
+            high = np.concatenate((metrics_high, high), axis=-1)
+            self.observation_space = gym.spaces.Box(low=low, high=high)
+
+            # if not isinstance(self.observation_space, gym.spaces.Dict):
+            #     obs_space = gym.spaces.Dict(
+            #     map=self.observation_space,
+            #     ctrl_metrics=gym.spaces.Box(
+            #             low=0, high=1, shape=(self.n_new_obs,), dtype=np.float32))
+            #     obs_space.dtype = collections.OrderedDict
+            #     self.observation_space = obs_space
+            # else:
+            #     raise Exception
+
         self.next_trgs = None
 
         if self.render_gui and self.conditional:
@@ -233,7 +230,9 @@ class ConditionalWrapper(gym.Wrapper):
         return ob
 
     def observe_metric_trgs(self, obs):
-        metrics_ob = np.zeros(self.n_new_obs)
+        # metrics_ob = np.zeros(self.n_new_obs)
+        metrics_ob = np.zeros(self.metrics_shape)
+
         i = 0
 
         for k in self.ctrl_metrics:
@@ -249,32 +248,32 @@ class ConditionalWrapper(gym.Wrapper):
                 trg = (trg[0] + trg[1]) / 2
 
             # CA actions for RL agent are not implemented
-            if self.CA_action:
+            # if self.CA_action:
                 #               metrics_ob[:, :, i] = (trg - metric) / trg_range
-                pass
-                # metrics_ob[..., i * 2] = trg / self.param_ranges[k]
-                # metrics_ob[..., i * 2 + 1] = metric / self.param_ranges[k]
+                # pass
+            # metrics_ob[..., i * 2] = trg / self.param_ranges[k]
+            # metrics_ob[..., i * 2 + 1] = metric / self.param_ranges[k]
 
-            else:
-                # Add channel layers filled with scalar values corresponding to the target values of metrics of interest.
-                metrics_ob[i * 2] = trg / trg_range
-                metrics_ob[i * 2 + 1] = metric / trg_range
+            # else:
+            # metrics_ob[i] = trg / trg_range
+            # metrics_ob[i * 2 + 1] = metric / trg_range
 
                 # Formerly was showing the direction of desired change with current values updated at each step.
                 # metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
 
-            #           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
-            #           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
+            # Add channel layers filled with scalar values corresponding to the target values of metrics of interest.
+            metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
+            metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
         #       print('param rew obs shape ', obs.shape)
         #       print('metric trgs shape ', metrics_ob.shape)
         #       if self.CHAN_LAST:
         #           obs = obs.transpose(1, 2, 0)
-        # obs = np.concatenate((metrics_ob, obs), axis=-1)
+        obs = np.concatenate((metrics_ob, obs), axis=-1)
 
         # TODO: support dictionary observations?
         # assert isinstance(obs, np.ndarray)
-        obs = {'map': obs, 'ctrl_metrics': metrics_ob}
+        # obs = {'map': obs, 'ctrl_metrics': metrics_ob}
         return obs
 
     def step(self, action, **kwargs):

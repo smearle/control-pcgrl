@@ -52,9 +52,10 @@ def launch_batch(collect_params=False):
 
     # Take product of lists
     exp_hypers = itertools.product(batch_config.problems, batch_config.representations_models, batch_config.model_configs,
-        batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates, batch_config.exp_names)
+        batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates, batch_config.exp_names,
+        batch_config.max_board_scans)
 
-    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id) in exp_hypers:
+    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id, max_board_scans) in exp_hypers:
         prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
         for controls in prob_controls:
@@ -101,6 +102,7 @@ def launch_batch(collect_params=False):
                     "render": opts.render,
                     "load": opts.load or opts.infer,
                     "infer": opts.infer,
+                    "max_board_scans": max_board_scans,
                     "overwrite": opts.overwrite,
                     "lr": learning_rate,
                     "gamma": opts.gamma,
@@ -273,6 +275,12 @@ if __name__ == "__main__":
         help='Whether to record the environment during inference.',
         action=argparse.BooleanOptionalAction,
         default=False,
+    )
+    opts.add_argument(
+        '--max_board_scans',
+        help='Number of max iterations in terms of maximum number of times the board can be scanned by the agent.',
+        type=int,
+        default=1,
     )
 
     opts = opts.parse_args()

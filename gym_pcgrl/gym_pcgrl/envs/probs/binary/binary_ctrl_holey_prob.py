@@ -17,8 +17,8 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
 
         self._reward_weights = {
             "regions": 0,
-            "path-length": 1,
-            "connected-path-length": 1.2,
+            "path-length": 0,
+            "connected-path-length": 100,
             # "connectivity": 0,
             # "connectivity": self._width,
             # "connectivity": self._max_path_length,

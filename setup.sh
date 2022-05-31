@@ -15,3 +15,7 @@ conda install pytorch torchvision torchaudio -c pytorch
 
 # for 3090
 # conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+
+
+# GUI libraries for rendering (and controlling) controllable agents.
+conda install -c conda-forge pygobject gtk3
