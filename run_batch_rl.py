@@ -55,8 +55,8 @@ def launch_batch(collect_params=False):
         batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates, batch_config.exp_names,
         batch_config.max_board_scans, batch_config.n_aux_tiles,)
 
-    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id, max_board_scans, n_aux_tiles
-        ) in exp_hypers:
+    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id, max_board_scans, n_aux_tiles) in exp_hypers:
+
         prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
         for controls in prob_controls:

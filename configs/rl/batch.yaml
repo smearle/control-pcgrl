@@ -3,6 +3,7 @@
     # test0,
     testAux,
     # test1,
+    test1,
     # test2,
     # test3,
     # test4,
@@ -172,5 +173,5 @@
     # 0,
     4,
     # 8,
-  ]
+ , ]
 }

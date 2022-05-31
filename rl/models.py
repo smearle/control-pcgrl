@@ -92,8 +92,7 @@ class SeqNCA(TorchModelV2, nn.Module):
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
         self.action_branch = nn.Sequential(
             # SlimFC(3 * 3 * conv_filters + metrics_size, self.fc_size),
-            # SlimFC(3 * 3 * (conv_filters + n_aux_chan), self.fc_size),
-            SlimFC(3 * 3 * (conv_filters), self.fc_size),
+            SlimFC(3 * 3 * conv_filters, self.fc_size),
             nn.ReLU(),
             SlimFC(self.fc_size, num_outputs),)
         self.value_branch = nn.Sequential(
