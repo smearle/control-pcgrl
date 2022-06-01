@@ -182,8 +182,10 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             connected_path_is_valid = debug_path(self.connected_path_coords, map, ["AIR"])
             if not path_is_valid:
+                TT()
                 raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
             if not connected_path_is_valid:
+                TT()
                 raise ValueError("The connected path is not valid, may have some where unstandable"
                                 "for a 2-tile high agent")
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively

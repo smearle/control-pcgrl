@@ -7,6 +7,7 @@ can also move up and down stairs in any of these directions, if the stairs are o
 vertical blocks available on the lower step (and two vertical blocks available on the taller step).
 """
 from pdb import set_trace as TT
+import time
 
 import numpy as np
 from timeit import default_timer as timer
@@ -163,7 +164,8 @@ class Minecraft3DmazeProblem(Problem):
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             if not path_is_valid:
-                raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
+                TT()
+                # raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
         # p_x, p_y, p_z = 0, 0, 0
         # dijkstra_p, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
@@ -260,8 +262,8 @@ class Minecraft3DmazeProblem(Problem):
         # know if the agent's edit action has disrupted the old path, so we won't delete blocks in the
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
-        old_path_coords = [tuple(coords) for coords in self.old_path_coords]
-        path_to_erase = set(old_path_coords)
+        # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        path_to_erase = self.old_path_coords
         path_to_render = []
         for (x, y, z) in self.path_coords:
             if (x, y, z) in path_to_erase:
@@ -275,10 +277,13 @@ class Minecraft3DmazeProblem(Problem):
 
         if self.render_path:
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
+
             erase_3D_path(path_to_erase)
+            time.sleep(2)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             spawn_3D_path(self.path_coords)
+            time.sleep(2)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)

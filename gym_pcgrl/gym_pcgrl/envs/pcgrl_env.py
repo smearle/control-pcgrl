@@ -227,7 +227,6 @@ class PcgrlEnv(gym.Env):
         # update the current state to the new state based on the taken action
 
         change, map_coords = self._rep.update(action)
-        
         if change > 0:
             self._changes += change
 

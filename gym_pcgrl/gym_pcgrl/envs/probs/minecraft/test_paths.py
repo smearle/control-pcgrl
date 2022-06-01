@@ -323,13 +323,15 @@ for int_map in test_maps:
     repr = "narrow3D"
     env_name = f"{prob}-{repr}-v0"
     env = gym.make(env_name)
-    env.adjust_param(render=True)
-    env.unwrapped._rep._x = env.unwrapped._rep._y = 0
+    env.adjust_param(render=True, change_percentage=None)
+    # env.unwrapped._rep._x = env.unwrapped._rep._y = 0
+    env.unwrapped._rep._old_coords = env.unwrapped._rep._new_coords = (0, 0, 0)
     env._rep._map = int_map
-    # env.render()
+    env.render()
     stats = env.unwrapped._prob.get_stats(
         get_string_map(int_map, env.unwrapped._prob.get_tile_types()),
     )
     print(stats)
-    # env.render()
+    env.render()
+    TT()
 

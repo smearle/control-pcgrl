@@ -111,13 +111,24 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
     def render(self, mode='human'):
         # Render the agent's edit action.
         self._rep.render(get_string_map(
-            self._rep._map, self._prob.get_tile_types()))
+            self._get_rep_map(), self._prob.get_tile_types()))
 
         # Render the resulting path.
         self._prob.render(get_string_map(
-            self._rep._map, self._prob.get_tile_types()), self._iteration, self._repr_name)
-
+            self._get_rep_map(), self._prob.get_tile_types()), self._iteration, self._repr_name)
         # print(get_string_map(
         #     self._rep._map, self._prob.get_tile_types()))
         return
+
+
+    def step(self, action):
+
+
+        old_path_coords = set([tuple(e) for e in self._prob.old_path_coords])
+        last_build_coords = tuple(self._rep._old_coords)
+        if last_build_coords in set([tuple(e) for e in self._prob.old_path_coords]):
+            old_path_coords.remove(last_build_coords)
+            self._prob.old_path_coords = old_path_coords
+            print("DDFDFDF")
+        return super().step(action)
 

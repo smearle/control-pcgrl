@@ -119,9 +119,11 @@ class Narrow3DRepresentation(Representation3D):
     """
     def update(self, action):
         change = 0
-        if action > 0:
-            change += [0,1][self._map[self._z][self._y][self._x] != action-1]
-            self._map[self._z][self._y][self._x] = action-1
+        change += [0,1][self._map[self._z][self._y][self._x] != action]
+        self._map[self._z][self._y][self._x] = action
+        # if action > 0:
+            # change += [0,1][self._map[self._z][self._y][self._x] != action-1]
+            # self._map[self._z][self._y][self._x] = action-1
             
         if self._random_tile:
             # If we've acted on all tiles, but the episode is not over, re-shuffle them and cycle through again.
@@ -148,7 +150,6 @@ class Narrow3DRepresentation(Representation3D):
 
     def render(self, map):
         x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
-        # TT()
         edit_3D_maze(map, x, y, z)
         self._old_coords = self._new_coords
 

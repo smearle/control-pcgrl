@@ -213,7 +213,7 @@ Return:
 '''
 def _passable(map, x, y, z, n_j, passable_values):
 
-    passable_tiles = []
+    passable_tiles = {}
 
     # Check 4 adjacent directions: forward, back, left, right. For each, it is passable if we can move to it while
     # moving up/down-stairs or staying level.
@@ -225,6 +225,7 @@ def _passable(map, x, y, z, n_j, passable_values):
         if (nx < 0 or ny < 0 or nx >= len(map[z][y]) or ny >= len(map[z])):
             continue
         
+        # Check whether we can walk forward (at the same height).
         if (
             # nz+1 < len(map) and  # Head-room at our next position is guaranteed if our current position is valid.
             (nz == 0 or  # Either we are on the bottom of the map...
@@ -234,7 +235,8 @@ def _passable(map, x, y, z, n_j, passable_values):
             # Head-room at our next position.
             and map[nz+1][ny][nx] in passable_values
         ):
-            passable_tiles.append((nx, ny, nz, n_j))
+            # passable_tiles.append((nx, ny, nz, n_j))
+            passable_tiles[(nx, ny, nz, n_j)] = None
 
 
         # Check whether we can go down a step.
@@ -246,7 +248,8 @@ def _passable(map, x, y, z, n_j, passable_values):
             and map[nz][ny][nx] in passable_values  # Head-room at the lower stair.
             and map[nz+1][ny][nx] in passable_values  # Extra head-room at the lower (next) stair.
         ):
-            passable_tiles.append((nx, ny, nz-1, n_j))
+            # passable_tiles.append((nx, ny, nz-1, n_j))
+            passable_tiles[(nx, ny, nz-1, n_j)] = [(nx, ny, nz)]
 
 
         # Check whether can stay at the same level.
@@ -259,7 +262,8 @@ def _passable(map, x, y, z, n_j, passable_values):
             and map[nz+2][ny][nx] in passable_values  # Head-room at the higher stair.
             and map[nz+2][y][x] in passable_values  # Extra head-room at the lower (current) stair.
         ):
-            passable_tiles.append((nx, ny, nz+1, n_j))
+            # passable_tiles.append((nx, ny, nz+1, n_j))
+            passable_tiles[(nx, ny, nz+1, n_j)] = [(x, y, nz+1)]
 
         # TODO: Check for ladder:  (ladder tiles are passable)
             # if current tile is ladder, then check if extra head-room above(or still ladder above). If so, can move up.
@@ -288,21 +292,24 @@ def _passable(map, x, y, z, n_j, passable_values):
                 and map[jz][jy][jx] in passable_values                              # foot room at the foothold
                 and map[jz-1][jy][jx] not in passable_values                        # the solid foothold
             ):
-                passable_tiles.append((jx, jy, jz, n_j+1))
+                # passable_tiles.append((jx, jy, jz, n_j+1))
+                passable_tiles[(jx, jy, jz, n_j+1)] = [(nx, ny, nz)]
             elif (# the height difference is 1 (jump up)
                 jz+3 < len(map) and map[jz+3][jy][jx] in passable_values            # extra head room at the foothold
                 and map[jz+2][jy][jx] in passable_values                            # head room at the foothold 
                 and map[jz+1][jy][jx] in passable_values                            # foot room at the foothold
                 and map[jz][jy][jx] not in passable_values                          # the solid foothold
             ):
-                passable_tiles.append((jx, jy, jz+1, n_j+1))
+                # passable_tiles.append((jx, jy, jz+1, n_j+1))
+                passable_tiles[(jx, jy, jz+1, n_j+1)] = [(nx, ny, nz), (nx, ny, nz+1)]
             elif (# the height difference is -1
                 map[jz][jy][jx] in passable_values                                  # head room at the foothold 
                 and map[jz+1][jy][jx] in passable_values                            # extra head room at the foothold
                 and map[jz-1][jy][jx] in passable_values                            # foot room at the foothold
                 and map[jz-2][jy][jx] not in passable_values                        # the solid foothold 
             ):
-                passable_tiles.append((jx, jy, jz-1, n_j+1))
+                # passable_tiles.append((jx, jy, jz-1, n_j+1))
+                passable_tiles[(jx, jy, jz-1, n_j+1)] = [(nx, ny, nz), (nx, ny, nz-1)]
 
 
         else:
@@ -443,8 +450,19 @@ def run_dijkstra(x, y, z, map, passable_values):
         # Call passable, which will return, (x, y, z) coordinates of tiles to which the player can travel from here
         # not for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
         # but for (nx,ny,nz) in stairring logic:
-        for (nx, ny, nz, n_j) in _passable(map, cx, cy, cz, n_jump_map[cz][cy][cx], passable_values):
+        for foothold, traversed in _passable(map, cx, cy, cz, n_jump_map[cz][cy][cx], passable_values).items():
+            n_traversed = 1
+            if traversed is not None:
+                for (dx, dy, dz) in traversed:
+                    new_distance = l_path + n_traversed
+                    old_distance = dijkstra_map[dz][dy][dx]
+                    if old_distance == -1 or new_distance <= old_distance:
+                        dijkstra_map[dz][dy][dx] = new_distance 
+                    else:  # otherwise we have found some more efficient path through this tile
+                        pass
+                    n_traversed += 1
 
+            (nx, ny, nz, n_j) = foothold
 #           # Check that the new tiles are in the bounds of the level
 #           nx,ny,nz=cx+dx,cy+dy,cz+dz
 #           if nx < 0 or ny < 0 or nz <0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >=len(map):
@@ -453,7 +471,7 @@ def run_dijkstra(x, y, z, map, passable_values):
 #               continue
 
             # Add the new tile to the frontier
-            queue.append((nx, ny, nz, l_path + 1, n_j))
+            queue.append((nx, ny, nz, l_path + n_traversed, n_j))
 #           if cz == 3:
 #               print(f"**********current place: {cx},{cy},{cz}**********")
 #               print("queue in run_dijkstra: ", queue)
@@ -537,15 +555,15 @@ Returns:
     list: the longest path's coordinates (in x, y, z form)
 """
 
-# ADJ_FILTER = np.array([[[0,1,0],
-#                         [1,0,1],
-#                         [0,1,0]],
-#                        [[0,1,0],
-#                         [1,0,1],
-#                         [0,1,0]],
-#                        [[0,1,0],
-#                         [1,0,1],
-#                         [0,1,0]]])
+ADJ_FILTER = np.array([[[0,0,0],
+                        [0,1,0],
+                        [0,0,0]],
+                       [[0,1,0],
+                        [1,0,1],
+                        [0,1,0]],
+                       [[0,0,0],
+                        [0,1,0],
+                        [0,0,0]]])
 
 # ADJ_FILTER = np.ones((9,9,9))
 
@@ -561,7 +579,7 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
         max_cell = pad_path_map.max()
         curr = np.array(np.where(pad_path_map == max_cell))
     else:
-        curr = np.array([(z, y, x)], dtype=np.int32).T + 1
+        curr = np.array([(z, y, x)], dtype=np.uint8).T + 1
         max_cell = pad_path_map[curr[0][0], curr[1][0], curr[2][0]]
     zi, yi, xi = curr[:, 0]
     # print("curr: ", curr)
@@ -574,32 +592,37 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
         path[i, :] = [xi - 1, yi - 1, zi -1]
         pad_path_map[zi, yi, xi] = -1
         max_cell -= 1
-        # x0, x1 = xi - ADJ_FILTER.shape[2]//2, xi + ADJ_FILTER.shape[2]//2 + 1
-        # y0, y1 = yi - ADJ_FILTER.shape[1]//2, yi + ADJ_FILTER.shape[1]//2 + 1
-        # z0, z1 = zi - ADJ_FILTER.shape[0]//2, zi + ADJ_FILTER.shape[0]//2 + 1
+        x0, x1 = xi - ADJ_FILTER.shape[2]//2, xi + ADJ_FILTER.shape[2]//2 + 1
+        y0, y1 = yi - ADJ_FILTER.shape[1]//2, yi + ADJ_FILTER.shape[1]//2 + 1
+        z0, z1 = zi - ADJ_FILTER.shape[0]//2, zi + ADJ_FILTER.shape[0]//2 + 1
 
-        # adj_mask = np.zeros(shape=(max(height, ADJ_FILTER.shape[0]) + 2, max(width, ADJ_FILTER.shape[1]) + 2, 
-        #                                 max(length, ADJ_FILTER.shape[2]) + 2), dtype=np.int32)
-        # adj_mask[z0: z1, y0: y1, x0: x1] = ADJ_FILTER
+        adj_mask = np.zeros(shape=(max(height, ADJ_FILTER.shape[0]) + 2, max(width, ADJ_FILTER.shape[1]) + 2, 
+                                        max(length, ADJ_FILTER.shape[2]) + 2), dtype=np.int32)
+        adj_mask[z0: z1, y0: y1, x0: x1] = ADJ_FILTER
         # print("curr: ", curr)
         # print("zi, yi, xi is curr[:, 0]: ", zi, yi, xi)     
         # print("max_cell: ", max_cell)
-        # curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
+        curr = np.array(np.where(adj_mask * pad_path_map == max_cell))
 
-        # Note: actually the mask is unessary, because we already know the max_cell value, so all we need to do is find
+        # Note: actually the mask is unnecessary, because we already know the max_cell value, so all we need to do is find
         #  the next max_cell based on the max value. If there is multiple max_cell values, we'll just pick the first 
         #  one.(or arbitrary one since all of them have the same path length). The time complexity will rise 
         #  significantly (to n * n * n), so no I'd better use the mask (constant time complexity). Sorry about 
         #  bullshitting you. But the mask we used is not decreasing the time complexity. A better kind of mask is to 
         #  just get a slice of the map, and then find the max value and the relative position between last coord and new
         #  coord. FIXME: Need more hacky way to do this.
-        curr = np.array(np.where(pad_path_map == max_cell))
+
+
+        ## Totally wrong, without the mask the path coords will fly around the map as free as it can.
+        # curr = np.array(np.where(pad_path_map == max_cell))
         
         # print("curr is changed to: ", curr)
         # For example, curr is changed to:  [[0 0 0 0 0 0 0 0]
         #                                    [0 0 0 1 1 2 2 2]
         #                                    [0 1 2 0 2 0 1 2]]  if we have duplicates, we just pick the first one.
         # print("pad_path_map is : ", pad_path_map)
+        if curr.shape[1] == 0:
+            TT()
         zi, yi, xi = curr[:, 0]
         i += 1
     if i > 0:
@@ -612,6 +635,8 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
                 continue
             else:
                 if path[i][0] == path[i-1][0] and path[i][1] == path[i-1][1]:
+                    # if first path is higher than
+                    # TODO: use einops
                     if path[i-1][2] > path[i][2]:
                         path[i-1, :] = [-1, -1, -1]
                     else:
@@ -637,9 +662,9 @@ def debug_path(path, map, passable_values):
             print(f'Something in position {x}, {y}, {z+1} blocks my head!!!!!!!!!!!!!!!!!!!!!!!!!!')
             return False 
         # checking if I am floating
-        if z - 1 > 0 and map[z-1][y][x] in passable_values:
-            print(f"I am floating illegally!!!!!!!!! My position is {x}, {y}, {z}")
-            return False
+        # if z - 1 > 0 and map[z-1][y][x] in passable_values:
+            # print(f"I am floating illegally!!!!!!!!! My position is {x}, {y}, {z}")
+            # return False
     return True
 
 """
