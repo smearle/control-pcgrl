@@ -67,8 +67,12 @@ class Minecraft3DmazeProblem(Problem):
         }
         self._reward_weights = {
             "regions": 0,
-            "path-length": 1,
+            "path-length": 100,
             "n_jump": 0
+        }
+        self._ctrl_reward_weights = {
+            "n_jump": 100,
+            "path-length": 100,
         }
 
         self.path_coords = []
@@ -88,6 +92,14 @@ class Minecraft3DmazeProblem(Problem):
     """
     def get_tile_types(self):
         return ["AIR", "DIRT"]
+
+    def process_observation(self, observation):
+        if self.path_coords == []:
+            return observation
+        observation['map'][self.path_coords[:, 0], 
+                            self.path_coords[:, 1], 
+                            self.path_coords[:, 2]] = self._path_idx
+        return observation
 
     """
     Adjust the parameters for the current problem

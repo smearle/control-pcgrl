@@ -30,7 +30,7 @@ from ray.tune.registry import register_env
 import gym_pcgrl
 import wandb
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
-    NCA, SeqNCA # noqa : F401
+    NCA, SeqNCA, SeqNCA3D # noqa : F401
 from args import parse_args
 from envs import make_env
 from utils import get_env_name, get_exp_name, get_map_width
@@ -323,7 +323,7 @@ def main(cfg):
     if cfg.infer:
         trainer_config.update({
             'record_env': log_dir,
-            'explore': False,
+            'explore': True,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
         with open(checkpoint_path_file, 'r') as f:

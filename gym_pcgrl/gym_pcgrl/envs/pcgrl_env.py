@@ -48,12 +48,12 @@ class PcgrlEnv(gym.Env):
         self._change_percentage = 0.2
 
         # Effectively a dummy variable if `change_percentage` is later set to `None`.
-        self._max_changes = max(int(self._change_percentage * self._prob._width * self._prob._height), 1)
+        self._max_changes = max(int(self._change_percentage * np.prod(self.get_map_dims()[:-1])), 1)
 
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         # self._max_iterations = self._prob._width * self._prob._height + 1
         self._max_iterations = 700
-        self._heatmap = np.zeros((self._prob._height, self._prob._width))
+        self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
         self.seed()
         self.viewer = None
@@ -133,12 +133,12 @@ class PcgrlEnv(gym.Env):
     def reset(self):
         self._changes = 0
         self._iteration = 0
-        self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
-        continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
-        self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types(), continuous=continuous))
+        self._rep.reset(*self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+        # continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
+        self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
-        self._heatmap = np.zeros((self._prob._height, self._prob._width))
+        self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
@@ -181,19 +181,19 @@ class PcgrlEnv(gym.Env):
         self._change_percentage = kwargs['change_percentage']
         if self._change_percentage is not None:
             percentage = min(1, max(0, self._change_percentage))
-            self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
+            self._max_changes = max(int(percentage * np.prod(self.get_map_dims()[:-1])), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         if kwargs["model"]:
             if 'Decoder' in kwargs['model']:
                 self._max_iterations = 1
             else:
                 max_board_scans = kwargs.get('max_board_scans')
-                self._max_iterations = (self._prob._width * self._prob._height) * max_board_scans + 1
+                self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_observable_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
+        self.action_space = self._rep.get_action_space(*self.get_map_dims()[:-1], self.get_num_tiles())
+        self.observation_space = self._rep.get_observation_space(*self.get_map_dims()[:-1], self.get_num_observable_tiles())
+        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
 
     """

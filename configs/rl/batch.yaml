@@ -1,7 +1,8 @@
 {
   "exp_names": [
+    testSeq3D,
     # test0,
-    testAux,
+    # testAux,
     # test1,
     test1,
     # test2,
@@ -11,30 +12,33 @@
     # 0,
     # 1,
     # 2,
-    "testholey3D",
+    # "testholey3D",
   ],
 
   "problems": [
-    # "minecraft_3D_maze_ctrl",
+    "minecraft_3D_maze_ctrl",
 #   "minecraft_3D_zelda_ctrl",
     # "binary_ctrl",
-    "binary_ctrl_holey",
+    # "binary_ctrl_holey",
 #   "zelda_ctrl",
 #   "sokoban_ctrl",
 #   'simcity',
 #   'smb_ctrl',
 #   "minecraft_3D_maze_ctrl",
-    "minecraft_3D_holey_maze",
+    # "minecraft_3D_holey_maze",
 #   "minecraft_3D_dungeon_ctrl",
   # "minecraft_3D_dungeon_ctrl_holey",
   ],
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
+      # ["narrow", SeqNCA],
       # ["narrow", null],
+      # [narrowholey, SeqNCA],
         # ["narrowholey", null],
         # ["narrow3D", null],
-        ["narrow3Dholey", null],
+        [narrow3D, SeqNCA3D],
+        # ["narrow3Dholey", null],
     #   ['turtle', null],
 #       ["turtle3D", null],
 #       ["turtle3Dholey", null],
@@ -46,8 +50,6 @@
 #       ["wide3Dholey", null],
 #       ["cellular3D", null],
       # ["narrow", null],
-      # ["narrow", SeqNCA],
-      [narrowholey, SeqNCA],
         # ["narrowholey", null],
     #   ["wide", null],
     #   ["wideholey", null],
@@ -77,7 +79,7 @@
   "local_controls": {
       "binary_ctrl": [
         # ["regions"],
-        ["path-length"],
+        # ["path-length"],
         # ["regions", "path-length"],
           # ['emptiness', 'path-length'],
           # ["symmetry", "path-length"]
@@ -98,8 +100,8 @@
       ],
       "sokoban_ctrl": [
           # ["crate"],
-          ["sol-length"],
-          ["crate", "sol-length"],
+          # ["sol-length"],
+          # ["crate", "sol-length"],
           # ["emptiness", "sol-length"],
           # ["symmetry", "sol-length"],
       ],
@@ -116,18 +118,18 @@
       ],
       "minecraft_3D_maze_ctrl": [
   #       ["emptiness", "path-length"],
-        [n_jump],
-        [path-length],
-        [n_jump, path-length],
+        # [n_jump],
+        # [path-length],
+        # [n_jump, path-length],
       ],
       "minecraft_3D_holey_maze": [
-        [n_jump],
+        # [n_jump],
         # [path-length],
         # [n_jump, path-length],
       ],
       "minecraft_3D_dungeon_ctrl_holey": [
   #       ["emptiness", "path-length"],
-        [n_jump],
+        # [n_jump],
         # [path-length],
         # [n_jump, path-length],       
       ],
@@ -170,8 +172,8 @@
 ],
 
   "n_aux_tiles": [
-    # 0,
-    4,
+    0,
+    # 4,
     # 8,
  , ]
 }
