@@ -236,7 +236,7 @@ def _passable(map, x, y, z, n_j, passable_values):
             and map[nz+1][ny][nx] in passable_values
         ):
             # passable_tiles.append((nx, ny, nz, n_j))
-            passable_tiles[(nx, ny, nz, n_j)] = None
+            passable_tiles[(nx, ny, nz, n_j)] = []
 
 
         # Check whether we can go down a step.
@@ -451,20 +451,27 @@ def run_dijkstra(x, y, z, map, passable_values):
         # not for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
         # but for (nx,ny,nz) in stairring logic:
         for foothold, traversed in _passable(map, cx, cy, cz, n_jump_map[cz][cy][cx], passable_values).items():
-            n_traversed = 1
-            if traversed is not None:
-                for (dx, dy, dz) in traversed:
-                    new_distance = l_path + n_traversed
-                    old_distance = dijkstra_map[dz][dy][dx]
-                    if old_distance == -1:
-                        dijkstra_map[dz][dy][dx] = new_distance 
-                    
-                        #  or new_distance <= old_distance:
-                    else:  # otherwise we have found some more efficient path through this tile
-                        pass
-                    n_traversed += 1
-
             (nx, ny, nz, n_j) = foothold
+
+            # Pre-emptively reject footholds to which we have better paths to already. (Prevents 
+            # traversible tiles overwriting values from previous paths.) NOTE: this will become obsolete if we use a 
+            # dictionary of reached tiles to paths used to get there instead.
+            if dijkstra_map[nz][ny][nx] >= 0 and dijkstra_map[nz][ny][nx] <= l_path + len(traversed):
+                continue
+
+            n_traversed = 1
+            for (dx, dy, dz) in traversed:
+                new_distance = l_path + n_traversed
+                old_distance = dijkstra_map[dz][dy][dx]
+                if old_distance == -1 or new_distance <= old_distance:
+                    dijkstra_map[dz][dy][dx] = new_distance 
+                
+                else:  # otherwise we have found some more efficient path through this tile
+                    # FIXME
+                    TT()
+                    pass
+                n_traversed += 1
+
 #           # Check that the new tiles are in the bounds of the level
 #           nx,ny,nz=cx+dx,cy+dy,cz+dz
 #           if nx < 0 or ny < 0 or nz <0 or nx >= len(map[0][0]) or ny >= len(map[0]) or nz >=len(map):
@@ -509,6 +516,10 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
         # check for headroom.
         if z+1 == len(map) or map[z+1][y][x] not in passable_values:
             final_visited_map[z][y][x] = 1
+            continue
+
+        # Need something to stand on.
+        if z - 1 < 0 or map[z-1][y][x] in passable_values:
             continue
 
         # Calculate the distance from the current tile to all other (reachable) tiles.

@@ -37,6 +37,7 @@ class Problem:
             self.GVGAI_SPRITES = False
         self._graphics = None
         self.render_path = False
+        self.path_to_erase = set({})  # FIXME: only 3D really needs this.
 
     def gen_holes(self):
         return None

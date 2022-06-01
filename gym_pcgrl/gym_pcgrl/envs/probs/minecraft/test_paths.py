@@ -313,9 +313,65 @@ test_map_22 = {
     "height_difference": 0,
     "info": "valid jump",
 }
-# test_maps = [np.array(tm) for tm in [test_map_2]]
 
-test_maps = [np.array(test_map_22["map"])]
+# Here we have a path in the shape of a loop, at a high level. The player needs to jump over the same chasm twice to 
+# reach the end.
+test_map_crossjump = {
+    "name": "test_map_22",
+    "map": [
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+        [
+            [0, 0, 1, 0, 0],
+            [0, 0, 1, 0, 0],
+            [1, 1, 0, 1, 1],
+            [0, 0, 1, 0, 1],
+            [0, 0, 1, 1, 1],
+        ],
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ],
+    ],
+    "size": (5, 5, 6),
+    "jump_distance": 2,
+    "path_length": 13,
+    "region_number": 1,
+    "jump": 2,
+    "height_difference": 0,
+    "info": "valid jump",
+}
+
+test_maps = [np.array(test_map_crossjump["map"])]
 
 for int_map in test_maps:
     # FIXME: why does this seem to take so long? Path-finding is fast. Just creating the environment itself?
