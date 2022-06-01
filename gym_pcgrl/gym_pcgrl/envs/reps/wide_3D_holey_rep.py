@@ -4,7 +4,7 @@ from gym import spaces
 from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
 from gym_pcgrl.envs.reps.wide_3D_rep import Wide3DRepresentation
 import numpy as np
-from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, edit_bordered_3D_maze
 
 """
 The wide representation where the agent can pick the tile position and tile value at each update.
@@ -61,3 +61,10 @@ class Wide3DHoleyRepresentation(Wide3DRepresentation, HoleyRepresentation3D):
         self._new_coords = [action[0], action[1], action[2]]
 
         return change, [action[0], action[1], action[2]]
+
+    def render(self, map):
+        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        edit_bordered_3D_maze(map, x, y, z)
+        self._old_coords = self._new_coords
+
+        return

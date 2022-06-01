@@ -77,8 +77,8 @@ class Minecraft3DholeyDungeonCtrlProblem(Minecraft3DDungeonCtrlProblem):
 
         if self.fixed_holes:
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
-            self.end_xyz = np.array(((self._height -1 , self._width, self._length + 1),
-                                     (self._height, self._width, self._length + 1)))
+            self.end_xyz = np.array(((1, self._width, self._length + 1),
+                                     (2, self._width, self._length + 1)))
             return
 
         else:

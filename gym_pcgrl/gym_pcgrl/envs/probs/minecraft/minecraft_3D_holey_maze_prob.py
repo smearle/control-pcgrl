@@ -95,8 +95,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
 
         if self.fixed_holes:
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
-            self.end_xyz = np.array(((self._height -1 , self._width, self._length + 1),
-                                     (self._height, self._width, self._length + 1)))
+            self.end_xyz = np.array(((1 , self._width, self._length + 1),
+                                     (2, self._width, self._length + 1)))
 
         else:
             self.start_xyz = np.ones((2, 3), dtype=np.uint8)  
@@ -280,8 +280,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
             # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
-            # spawn_3D_maze(map)
-            spawn_3D_bordered_map(map)
+            spawn_3D_maze(map)
+            # spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))

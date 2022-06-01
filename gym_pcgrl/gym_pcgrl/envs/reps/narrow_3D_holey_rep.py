@@ -5,7 +5,7 @@ from gym import spaces
 import numpy as np
 from collections import OrderedDict
 from gym_pcgrl.envs.helper_3D import gen_random_map
-from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, edit_bordered_3D_maze
 from pdb import set_trace as TT
 
 """
@@ -88,3 +88,10 @@ class Narrow3DHoleyRepresentation(HoleyRepresentation3D, Narrow3DRepresentation)
         self.n_step += 1
         self._new_coords = [self._x, self._y, self._z]
         return change, [self._x, self._y, self._z]
+    
+    def render(self, map):
+        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        edit_bordered_3D_maze(map, x, y, z)
+        self._old_coords = self._new_coords
+
+        return

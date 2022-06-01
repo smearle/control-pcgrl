@@ -4,7 +4,7 @@ from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
 from gym_pcgrl.envs.reps.turtle_3D_rep import Turtle3DRepresentation
 import numpy as np
 from collections import OrderedDict
-from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, edit_bordered_3D_maze
 
 """
 The turtle representation where the agent is trying to modify the position of the
@@ -103,3 +103,10 @@ class Turtle3DHoleyRepresentation(Turtle3DRepresentation, HoleyRepresentation3D)
             self._bordered_map[self._z+1][self._y+1][self._x+1] = action - len(self._dirs)
         self._new_coords = [self._x, self._y, self._z]
         return change, [self._x, self._y, self._z]
+        
+    def render(self, map):
+        x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        edit_bordered_3D_maze(map, x, y, z)
+        self._old_coords = self._new_coords
+
+        return

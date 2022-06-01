@@ -145,8 +145,8 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
     # render the base
     CLIENT.fillCube(FillCubeRequest(
         cube=Cube(
-            min=Point(x=-boundary_size-border_size[0] + 2, y=base_pos -
-                      1, z=-boundary_size-border_size[1] + 2),
+            min=Point(x=-boundary_size-border_size[0] + 2, 
+                      y=base_pos - 2, z=-boundary_size-border_size[1] + 2),
             max=Point(x=i + boundary_size + border_size[0] - 3,
                       y=base_pos - 1, z=j + boundary_size + border_size[1] - 3)
         ),
@@ -246,7 +246,9 @@ def spawn_3D_bordered_map(map, base_pos=5):
                 #  second arguement from inside the problem.
                 blocks.append(Block(position=Point(x=i-1, y=k+4,  z=j-1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
                                     type=item, orientation=NORTH))
+    # TT()
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    # TT()
     return
 
 
@@ -301,8 +303,26 @@ def edit_3D_maze(map, i, j, k, base_pos=5):
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
     # time.sleep(0.2)
     item = get_tile(map[k][j][i])
-    TT()
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
+                                            type=item, orientation=NORTH)]))
+    return
+
+def edit_bordered_3D_maze(map, i, j, k, base_pos=5):
+    '''
+    Render function for high-lighting the action
+
+    Parameters:
+        map (string[][][]): the current game map
+        base_pos (int): the vertical height of the bottom of the maze
+        i (int) : the x position that the action take place
+        j (int) : the y position that the action take place
+        k (int) : the z position that the action take place
+    '''
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i+1, y=k+base_pos+1, z=j+1),
+                                            type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
+    # time.sleep(0.2)
+    item = get_tile(map[k][j][i])
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i+1, y=k+base_pos+1, z=j+1),
                                             type=item, orientation=NORTH)]))
     return
 
