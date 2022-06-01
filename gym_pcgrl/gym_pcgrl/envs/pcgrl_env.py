@@ -31,6 +31,7 @@ class PcgrlEnv(gym.Env):
     """
     def __init__(self, prob="binary", rep="narrow", **kwargs):
 
+        self._repr_name = rep
         # Attach this function to the env, since it will be different for, e.g., 3D environments.
         self.get_string_map = get_string_map
 
