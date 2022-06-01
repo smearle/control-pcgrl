@@ -9,7 +9,7 @@
 #SBATCH --job-name=pcgrl_3D
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=zj2086@nyu.edu
-#SBATCH --output=rl_runs/pcgrl_minecraft_3D_holey_maze_narrow3Dholey_vanilla_chng-None_lr-5.0e-06_0_%j.out
+#SBATCH --output=rl_runs/pcgrl_minecraft_3D_holey_maze_narrow3Dholey_vanilla_chng-None_lr-5.0e-06_testholey3D_%j.out
 
 ## cd /scratch/zj2086/control-pcgrl
 
@@ -21,7 +21,7 @@
 ## conda activate pcgrl
 
 start=$SECONDS
-python rl/train_ctrl.py --load_args minecraft_3D_holey_maze_narrow3Dholey_vanilla_chng-None_lr-5.0e-06_0
+python rl/train_ctrl.py --load_args minecraft_3D_holey_maze_narrow3Dholey_vanilla_chng-None_lr-5.0e-06_testholey3D
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

@@ -104,7 +104,6 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
             self.connected_path_length = connected_path_length
             self.connected_path_coords = get_path_coords(dijkstra, init_coords=(self.end_xy[0], self.end_xy[1]))
 
-        # if self.render_path:
         # FIXME: This is a hack to prevent weird path coord list of [[0,0]]
         if max_start_path < 1:
             self.path_coords = []

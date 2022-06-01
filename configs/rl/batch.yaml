@@ -1,8 +1,9 @@
 {
   "exp_names": [
-    0,
+    # 0,
     # 1,
     # 2,
+    "testholey3D",
   ],
 
   "problems": [
@@ -15,7 +16,7 @@
 #   "minecraft_3D_maze_ctrl",
     "minecraft_3D_holey_maze",
 #   "minecraft_3D_dungeon_ctrl",
-#   "minecraft_3D_dungeon_ctrl_holey",
+  # "minecraft_3D_dungeon_ctrl_holey",
   ],
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
@@ -105,8 +106,8 @@
       "minecraft_3D_dungeon_ctrl_holey": [
   #       ["emptiness", "path-length"],
         [n_jump],
-        [path-length],
-        [n_jump, path-length],       
+        # [path-length],
+        # [n_jump, path-length],       
       ],
   },
 

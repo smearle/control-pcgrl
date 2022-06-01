@@ -42,6 +42,7 @@ class Minecraft3DDungeonProblem(Problem):
 
         self.render_path = True
         self._rendered_initial_maze = False
+        n_floors = self._height // 3
 
         self._max_nearest_enemy = np.ceil(self._width / 2 + 1) * (self._length) * n_floors
 
@@ -55,7 +56,6 @@ class Minecraft3DDungeonProblem(Problem):
         #     "nearest-enemy":2
         # }
         
-        n_floors = self._height // 3
         max_path_per_floor = np.ceil(self._width / 2) * (self._length) + np.floor(self._length/2)
         self._max_path_length = n_floors * max_path_per_floor
         # change floor by stairs require 6 path_length for each floor
@@ -106,11 +106,11 @@ class Minecraft3DDungeonProblem(Problem):
 # NEXT: add a easy render 3D pillow option
 
     def process_observation(self, observation):
-        if self.connected_path_coords == []:
+        if self.path_coords == []:
             return observation
-        observation['map'][self.connected_path_coords[:, 0], 
-                            self.connected_path_coords[:, 1], 
-                            self.connected_path_coords[:, 2]] = self._path_idx
+        observation['map'][self.path_coords[:, 0], 
+                            self.path_coords[:, 1], 
+                            self.path_coords[:, 2]] = self._path_idx
         return observation
 
     """

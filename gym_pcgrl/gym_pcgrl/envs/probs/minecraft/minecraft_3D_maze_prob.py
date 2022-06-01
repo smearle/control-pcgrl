@@ -28,7 +28,7 @@ class Minecraft3DmazeProblem(Problem):
         self._length = 7
         self._width = 7
         self._height = 7
-        self._prob = {"AIR": 0.0, "DIRT": 1.0}
+        self._prob = {"AIR": 1.0, "DIRT": 0.0}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
 
@@ -73,6 +73,8 @@ class Minecraft3DmazeProblem(Problem):
 
         self.path_coords = []
         self.old_path_coords = []
+        self.connected_path_coords = []
+        self.old_connected_path_coords = []
         self.path_length = None
         self.render_path = True
         self._rendered_initial_maze = False

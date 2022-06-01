@@ -37,7 +37,8 @@ class Narrow3DRepresentation(Representation3D):
         if self._act_coords is None:
             act_coords = np.meshgrid(np.arange(self._map.shape[2]), np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
             self._act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 3))
-        np.random.shuffle(self._act_coords)
+        if self._random_tile:
+            np.random.shuffle(self._act_coords)
         self._x, self._y, self._z = self._act_coords[self.n_step]
         # self._x = self._random.randint(length)
         # self._y = self._random.randint(width)
@@ -147,6 +148,7 @@ class Narrow3DRepresentation(Representation3D):
 
     def render(self, map):
         x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
+        # TT()
         edit_3D_maze(map, x, y, z)
         self._old_coords = self._new_coords
 

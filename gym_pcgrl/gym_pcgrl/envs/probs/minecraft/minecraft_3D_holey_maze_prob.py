@@ -15,7 +15,7 @@ from timeit import default_timer as timer
 
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
+from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
 # from gym_pcgrl.test3D import plot_3d_map
 
@@ -27,7 +27,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
     def __init__(self):
         super().__init__()
        
-        self.fixed_holes = False
+        self.fixed_holes = True
 
         self._reward_weights.update({
             "regions": 0,
@@ -97,7 +97,6 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
             self.end_xyz = np.array(((self._height -1 , self._width, self._length + 1),
                                      (self._height, self._width, self._length + 1)))
-            return
 
         else:
             self.start_xyz = np.ones((2, 3), dtype=np.uint8)  
@@ -128,8 +127,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
                 
         
         return self.start_xyz, self.end_xyz
-   
-   
+      
 
     """
     Get the current stats of the map
@@ -144,14 +142,24 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         # for earsing the path of the previous iteration in Minecraft
         # new path coords are updated in the render function
         self.old_path_coords = self.path_coords
+        self.old_connected_path_coords = self.connected_path_coords
 
-        self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
-        self.path_length, self.path_coords, self.n_jump = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
         
-        dijkstra_map, _, _ = run_dijkstra(self.start_xyz[0][2], self.start_xyz[0][1], self.start_xyz[0][0], map, ["AIR"])
-        connected_path_length = dijkstra_map[self.end_xyz[0][2], self.end_xyz[0][1], self.end_xyz[0][0]]
+        dijkstra_map, _, jump_map = run_dijkstra(self.start_xyz[0][2], self.start_xyz[0][1], self.start_xyz[0][0], map, ["AIR"])
+        connected_path_length = dijkstra_map[self.end_xyz[0][0], self.end_xyz[0][1], self.end_xyz[0][2]]
+
+        self.n_jump = 0
+        max_start_path = np.max(dijkstra_map)
+        self.path_length = max_start_path
+
+        if max_start_path < 1:
+            self.path_coords = []
+        else:
+            maxcoord = np.argwhere(dijkstra_map == max_start_path)[0]
+            self.path_coords = get_path_coords(dijkstra_map, x=maxcoord[2], y=maxcoord[1], z=maxcoord[0])
+
 
         # Give a consolation prize if start and end are NOT connected.
         if connected_path_length == -1:
@@ -163,14 +171,21 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         else:
             # connectivity_bonus = 1
             self.connected_path_length = connected_path_length
-            self.connected_path_coords = get_path_coords(dijkstra_map, init_coords=(self.end_xy[0], self.end_xy[1]))
+            self.connected_path_coords = get_path_coords(dijkstra_map, 
+                                x = self.end_xyz[0][2], y = self.end_xyz[0][1], z = self.end_xyz[0][0])
+            self.n_jump = jump_map[self.end_xyz[0][0], self.end_xyz[0][1], self.end_xyz[0][2]]
 
         assert not (self.connected_path_length == 0 and len(self.connected_path_coords) > 0)
         # print(f"minecraft path-finding time: {timer() - start_time}")
+        
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
+            connected_path_is_valid = debug_path(self.connected_path_coords, map, ["AIR"])
             if not path_is_valid:
                 raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
+            if not connected_path_is_valid:
+                raise ValueError("The connected path is not valid, may have some where unstandable"
+                                "for a 2-tile high agent")
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
         # p_x, p_y, p_z = 0, 0, 0
         # dijkstra_p, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
@@ -264,8 +279,9 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
 
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile, start_xyz=self._start_xyz, end_xyz=self._end_xyz)
-            spawn_3D_maze(map)
+            # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+            # spawn_3D_maze(map)
+            spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))
@@ -278,11 +294,18 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
         old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        old_connected_path_coords = [tuple(coords) for coords in self.old_connected_path_coords]
+
         path_to_erase = set(old_path_coords)
+        connected_path_to_erase = set(old_connected_path_coords)
+        
         path_to_render = []
         for (x, y, z) in self.path_coords:
             if (x, y, z) in path_to_erase:
                 path_to_erase.remove((x, y, z))
+        for (x, y, z) in self.connected_path_coords:
+            if (x, y, z) in path_to_erase:
+                connected_path_to_erase.remove((x, y, z))
             # else:
                 # path_to_render.append((x, y, z))
 #       print(self.path_coords)
@@ -293,9 +316,11 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         if self.render_path:
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
             erase_3D_path(path_to_erase)
+            erase_3D_path(connected_path_to_erase)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
-            spawn_3D_path(self.path_coords)
+            # spawn_3D_path(self.path_coords)
+            spawn_3D_path(self.connected_path_coords)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)

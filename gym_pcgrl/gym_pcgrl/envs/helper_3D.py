@@ -428,7 +428,7 @@ def run_dijkstra(x, y, z, map, passable_values):
         if dijkstra_map[cz][cy][cx] >= 0 and dijkstra_map[cz][cy][cx] <= l_path:
             continue
 
-        # Zelda (and other games maybe) calls this function directly without calling calc_longest_path, so we need to 
+        # Zelda(Dungeon) (and other games maybe) calls this function directly without calling calc_longest_path, so we need to 
         # add this check here.
         if cz+1 == len(map) or map[cz+1][cy][cx] not in passable_values:
             visited_map[cz][cy][cx] = 1

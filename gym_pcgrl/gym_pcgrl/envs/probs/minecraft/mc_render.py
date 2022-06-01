@@ -172,7 +172,7 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
 
     # render the entrance's door on the border 
     # start_xyz and end_xyz are (z,y,x), the coordinates of Evocraft is (x,z,y)
-    if start_xyz:
+    if start_xyz is not None:
         CLIENT.fillCube(FillCubeRequest(
             cube=Cube(
                 min=Point(x=start_xyz[0][2], y=start_xyz[0][0], z=start_xyz[0][1]),
@@ -191,7 +191,7 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
         CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=GOLD_BLOCK, orientation=NORTH)]))
 
     # render the exit on the border
-    if end_xyz:
+    if end_xyz is not None:
         CLIENT.fillCube(FillCubeRequest(
             cube=Cube(
                 min=Point(x=start_xyz[0][2], y=start_xyz[0][0], z=start_xyz[0][1]),
@@ -232,6 +232,19 @@ def spawn_3D_maze(map, base_pos=5):
                 # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
                 #  second arguement from inside the problem.
                 blocks.append(Block(position=Point(x=i, y=k+5,  z=j),   
+                                    type=item, orientation=NORTH))
+    CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    return
+
+def spawn_3D_bordered_map(map, base_pos=5):
+    blocks = []
+    for k in range(len(map)):
+        for j in range(len(map[k])):
+            for i in range(len(map[k][j])):
+                item = get_tile(map[k][j][i])
+                # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
+                #  second arguement from inside the problem.
+                blocks.append(Block(position=Point(x=i-1, y=k+4,  z=j-1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -288,6 +301,7 @@ def edit_3D_maze(map, i, j, k, base_pos=5):
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
     # time.sleep(0.2)
     item = get_tile(map[k][j][i])
+    TT()
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=item, orientation=NORTH)]))
     return

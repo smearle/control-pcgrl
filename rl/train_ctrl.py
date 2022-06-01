@@ -128,6 +128,15 @@ def main(cfg):
     # ray won't stfu about this anyway lol
     dummy_env = make_env(vars(cfg))
     check_env(dummy_env)
+
+    ### DEBUG ###
+    for _ in range(10):
+        obs = dummy_env.reset()
+        for _ in range(300):
+        #    act = dummy_env.action_space.sample()
+           act = 0
+           dummy_env.step(act)
+           dummy_env.render()
     # TT()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')

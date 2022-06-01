@@ -45,7 +45,7 @@ class Representation3D:
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, length, width, height, prob):
-        self._bordered_map = np.empty((length +2, width + 2, height + 2), dtype=np.int)
+        self._bordered_map = np.empty((height + 2, width + 2, length + 2), dtype=np.int)
         self._bordered_map.fill(self._border_tile_index)
         if self._random_start or self._old_map is None:
             self._map = gen_random_map(self._random, length, width, height, prob)

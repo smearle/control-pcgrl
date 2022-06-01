@@ -1,5 +1,5 @@
-from gym_pcgrl.envs.helper_3D import plot_3D_path
-from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_maze, spawn_3D_path
+from gym_pcgrl.envs.helper_3D import calc_certain_tile, calc_num_regions, get_path_coords, get_tile_locations, plot_3D_path, run_dijkstra
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_path
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_ctrl_prob import Minecraft3DDungeonCtrlProblem
 import numpy as np
 
@@ -17,7 +17,6 @@ class Minecraft3DholeyDungeonCtrlProblem(Minecraft3DDungeonCtrlProblem):
         self._reward_weights.update({
             "regions": 0,
             "path-length": 1,
-            "connected-path-length": 1.2,
             "n_jump": 1,
             # "connectivity": 0,
             # "connectivity": self._width,
@@ -27,7 +26,6 @@ class Minecraft3DholeyDungeonCtrlProblem(Minecraft3DDungeonCtrlProblem):
         self.static_trgs.update({
             # "connectivity": 1,
             "path-length": self._max_path_length + 2,
-            "connected-path-length": self._max_path_length + 2,
             "n_jump": 5,
         })
 
@@ -35,7 +33,6 @@ class Minecraft3DholeyDungeonCtrlProblem(Minecraft3DDungeonCtrlProblem):
         self.cond_bounds.update({
             # "connectivity": (0, 1),
             "path-length": (0, self._max_path_length + 2),
-            "connected-path-length": (0, self._max_path_length + 2),
             "n_jump": (0, self._max_path_length // 2),
         })
 
@@ -113,29 +110,93 @@ class Minecraft3DholeyDungeonCtrlProblem(Minecraft3DDungeonCtrlProblem):
                 
         
         return self.start_xyz, self.end_xyz
-   
+
+
+    def get_stats(self, map):
+        map_locations = get_tile_locations(map, self.get_tile_types())
+
+        self.old_path_coords = self.path_coords
+
+        self.path_coords = []
+
+        map_stats = {
+            "regions": calc_num_regions(map, map_locations, ["AIR"]),
+            "path-length": 0,
+            "chests": calc_certain_tile(map_locations, ["CHEST"]),
+            "enemies": calc_certain_tile(map_locations, ["SKULL", "PUMPKIN"]),
+            "nearest-enemy": 0,
+            "n_jump": 0,
+        }
+        
+        if map_stats["regions"] == 1:
+            # entrance is self.start_xyz, a hole on the border(we use the foot room for path finding), in the form of (z, y, x)
+            p_z, p_y, p_x = self.start_xyz[0]
+
+            enemies = []
+            enemies.extend(map_locations["SKULL"])
+            enemies.extend(map_locations["PUMPKIN"])
+            if len(enemies) > 0:
+                dijkstra, _, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                min_dist = self._width * self._height * self._length
+                for e_x, e_y, e_z in enemies:
+                    if dijkstra[e_z][e_y][e_x] > 0 and dijkstra[e_z][e_y][e_x] < min_dist:
+                        min_dist = dijkstra[e_z][e_y][e_x]
+                map_stats["nearest-enemy"] = min_dist
+
+
+            if map_stats["chests"] == 1:
+                c_x, c_y, c_z = map_locations["CHEST"][0]
+
+                # exit is self.end_xyz, a hole on the border(we use the foot room the find the path), in the form of (z, y, x)
+                d_z, d_y, d_x = self.end_xyz[0]
+
+                # start point is self.start_xyz 
+                dijkstra_c, _, jump_map = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                map_stats["path-length"] += dijkstra_c[c_z][c_y][c_x]
+                map_stats["n_jump"] += jump_map[c_z][c_y][c_x]
+
+                # start point is chests
+                dijkstra_d, _, jump_map = run_dijkstra(c_x, c_y, c_z, map, ["AIR"])
+                map_stats["path-length"] += dijkstra_d[d_z][d_y][d_x]
+                map_stats["n_jump"] += jump_map[d_z][d_y][d_x]
+                if self.render_path:
+                    self.path_coords = np.vstack((get_path_coords(dijkstra_c, c_x, c_y, c_z),
+                                                  get_path_coords(dijkstra_d, d_x, d_y, d_z)))
+
+        self.path_length = map_stats["path-length"]
+        self.n_jump = map_stats["n_jump"]
+        return map_stats
+
+
     def process_observation(self, observation):
-        if self.connected_path_coords == []:
+        if self.path_coords == []:
             return observation
-        observation['map'][self.connected_path_coords[:, 0], 
-                            self.connected_path_coords[:, 1], 
-                            self.connected_path_coords[:, 2]] = self._path_idx
+        observation['map'][self.path_coords[:, 0], 
+                            self.path_coords[:, 1], 
+                            self.path_coords[:, 2]] = self._path_idx
         return observation
+
+
     def get_debug_info(self, new_stats, old_stats):
         return {
             "regions": new_stats["regions"],
             "path-length": new_stats["path-length"],
-            "path-imp": new_stats["path-length"] - self._start_stats["path-length"],
+            # "path-imp": new_stats["path-length"] - self._start_stats["path-length"],
             "n_jump": new_stats["n_jump"], 
-            
+            "chests": new_stats["chests"],
+            "enemies": new_stats["enemies"],
+            "nearest-enemy": new_stats["nearest-enemy"],
         }
+
+
     def render(self, map, iteration_num, repr_name, render_matplotlib=False, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
 
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile, start_xyz=self._start_xyz, end_xyz=self._end_xyz)
-            spawn_3D_maze(map)
+            # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+            # spawn_3D_maze(map)
+            spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))

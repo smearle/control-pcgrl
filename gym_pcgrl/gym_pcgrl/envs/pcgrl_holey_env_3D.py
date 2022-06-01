@@ -6,7 +6,7 @@ from gym_pcgrl.envs.pcgrl_env_3D import PcgrlEnv3D
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
-from gym_pcgrl.envs.helper import get_int_prob, get_string_map
+from gym_pcgrl.envs.helper_3D import get_int_prob, get_string_map
 from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from gym_pcgrl.envs.reps.representation import Representation
 import numpy as np
@@ -52,10 +52,17 @@ class PcgrlHoleyEnv3D(PcgrlEnv3D):
     def _get_rep_map(self):
         return self._rep._bordered_map
 
-    """
-    Close the environment
-    """
-    def close(self):
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
+
+    def render(self, mode='human'):
+        # Render the agent's edit action.
+        self._rep.render(get_string_map(
+            self._rep._map, self._prob.get_tile_types()))
+        
+        # Render the resulting path.
+        self._prob.render(get_string_map(
+            self._rep._bordered_map, self._prob.get_tile_types()), self._iteration, self._repr_name)
+
+        # print(get_string_map(
+        #     self._rep._map, self._prob.get_tile_types()))
+        return
+
