@@ -301,11 +301,11 @@ def edit_3D_maze(map, i, j, k, base_pos=5):
     '''
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
-    time.sleep(2)
+    # time.sleep(2)
     item = get_tile(map[k][j][i])
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=k+base_pos, z=j),
                                             type=item, orientation=NORTH)]))
-    time.sleep(2)
+    # time.sleep(2)
     return
 
 def edit_bordered_3D_maze(map, i, j, k, base_pos=5):

@@ -456,8 +456,10 @@ def run_dijkstra(x, y, z, map, passable_values):
                 for (dx, dy, dz) in traversed:
                     new_distance = l_path + n_traversed
                     old_distance = dijkstra_map[dz][dy][dx]
-                    if old_distance == -1 or new_distance <= old_distance:
+                    if old_distance == -1:
                         dijkstra_map[dz][dy][dx] = new_distance 
+                    
+                        #  or new_distance <= old_distance:
                     else:  # otherwise we have found some more efficient path through this tile
                         pass
                     n_traversed += 1

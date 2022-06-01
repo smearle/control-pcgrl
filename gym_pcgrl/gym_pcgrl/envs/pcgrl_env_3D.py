@@ -121,14 +121,4 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         return
 
 
-    def step(self, action):
-
-
-        old_path_coords = set([tuple(e) for e in self._prob.old_path_coords])
-        last_build_coords = tuple(self._rep._old_coords)
-        if last_build_coords in set([tuple(e) for e in self._prob.old_path_coords]):
-            old_path_coords.remove(last_build_coords)
-            self._prob.old_path_coords = old_path_coords
-            print("DDFDFDF")
-        return super().step(action)
 

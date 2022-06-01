@@ -136,6 +136,7 @@ class Minecraft3DmazeProblem(Problem):
     """
     def reset(self, start_stats):
         self._rendered_initial_maze = False
+        self.path_to_erase = set({})
         super().reset(start_stats)
         if self._random_probs:
             self._prob["AIR"] = self._random.random()
@@ -263,7 +264,7 @@ class Minecraft3DmazeProblem(Problem):
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
         # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
-        path_to_erase = self.old_path_coords
+        path_to_erase = self.path_to_erase
         path_to_render = []
         for (x, y, z) in self.path_coords:
             if (x, y, z) in path_to_erase:
@@ -276,15 +277,15 @@ class Minecraft3DmazeProblem(Problem):
 #       print(len(self.path_coords))
 
         if self.render_path:
+            pass
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
 
-            erase_3D_path(path_to_erase)
-            time.sleep(2)
+            # erase_3D_path(path_to_erase)
+            # time.sleep(2)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             spawn_3D_path(self.path_coords)
-            time.sleep(2)
-            # time.sleep(0.2)
+            # time.sleep(2)
 
         # render_blocks(block_dict)
 

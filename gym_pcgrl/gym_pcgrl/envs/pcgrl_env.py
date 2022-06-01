@@ -259,6 +259,13 @@ class PcgrlEnv(gym.Env):
         if change > 0:
         # if done:
         # if done or self.compute_stats:
+
+            # old_path_coords = set([tuple(e) for e in self._prob.old_path_coords])
+            # last_build_coords = tuple(self._rep._new_coords)
+            # if last_build_coords in old_path_coords:
+            #     old_path_coords.remove(last_build_coords)
+            #     self._prob.path_to_erase = old_path_coords
+            #     print("DDFDFDF")
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))
 
             if self._rep_stats is None:

@@ -4,7 +4,7 @@ from gym import spaces
 import numpy as np
 from collections import OrderedDict
 from gym_pcgrl.envs.helper_3D import gen_random_map
-from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze
+from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, spawn_3D_maze
 from pdb import set_trace as TT
 
 """
@@ -63,7 +63,7 @@ class Narrow3DRepresentation(Representation3D):
         correspond to which value for each tile type
     """
     def get_action_space(self, length, width, height, num_tiles):
-        return spaces.Discrete(num_tiles + 1)
+        return spaces.Discrete(num_tiles)
 
     """
     Get the observation space used by the narrow representation
@@ -150,7 +150,8 @@ class Narrow3DRepresentation(Representation3D):
 
     def render(self, map):
         x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
-        edit_3D_maze(map, x, y, z)
+        # edit_3D_maze(map, x, y, z)
+        spawn_3D_maze(map)
         self._old_coords = self._new_coords
 
         return
