@@ -33,16 +33,7 @@ from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D
     NCA, SeqNCA # noqa : F401
 from args import parse_args
 from envs import make_env
-#from stable_baselines3.common.policies import ActorCriticCnnPolicy
-#from model import CustomPolicyBigMap, CApolicy, WidePolicy
-#from model import (CustomPolicyBigMap, CustomPolicySmallMap,
-#                   FullyConvPolicyBigMap, FullyConvPolicySmallMap, CAPolicy)
-#from stable_baselines3.common.results_plotter import load_results, ts2xy
-# from stable_baselines.results_plotter import load_results, ts2xy
-# import tensorflow as tf
-from utils import (get_env_name, get_exp_name, get_map_width,
-#                  max_exp_idx
-                   )
+from utils import get_env_name, get_exp_name, get_map_width
 from callbacks import StatsCallbacks
 
 n_steps = 0
@@ -51,6 +42,7 @@ best_mean_reward, n_steps = -np.inf, 0
 log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
 
 
+# TODO: Render this bloody scatter plot of control targets/vals!
 # class CustomWandbLogger(WandbLogger):
 #     def on_result(self, result: Dict):
 #         res = super().on_result(result)
@@ -71,10 +63,16 @@ class PPOTrainer(RlLibPPOTrainer):
         self.metric_ranges = {k: v[1] - v[0] for k, v in cond_bounds.items()}
         # self.checkpoint_path_file = checkpoint_path_file
 
-    # def setup(self, config):
-        # ret = super().setup(config)
-        # wandb.init(**self.config['wandb'])
-        # return ret
+    def setup(self, config):
+        ret = super().setup(config)
+        n_params = 0
+        param_dict = self.get_weights()['default_policy']
+
+        for v in param_dict.values():
+            n_params += np.prod(v.shape)
+        print(f'default_policy has {n_params} parameters.')
+        print('model overview: \n', self.get_policy('default_policy').model)
+        return ret
 
     @classmethod
     def get_default_config(cls):
@@ -336,14 +334,6 @@ def main(cfg):
         
         trainer.load_checkpoint(checkpoint_path=checkpoint_path)
         print(f"Loaded checkpoint from {checkpoint_path}.")
-
-        n_params = 0
-        param_dict = trainer.get_weights()['default_policy']
-
-        for v in param_dict.values():
-            n_params += np.prod(v.shape)
-        print(f'default_policy has {n_params} parameters.')
-        print('model overview: \n', trainer.get_policy('default_policy').model)
 
         for _ in range(100):
             trainer.evaluate()

@@ -194,6 +194,9 @@ def get_exp_name(cfg):
     if len(cfg.model_cfg) > 0:
         exp_name += f"_{cfg.model_cfg['conv_filters']}-convSz" if cfg.model_cfg['conv_filters'] != 64 else ""
         exp_name += f"_{cfg.model_cfg['fc_size']}-fcSz" if cfg.model_cfg['fc_size'] != 64 and cfg.model != 'NCA' else ""
+
+    if cfg.n_aux_tiles > 0:
+        exp_name += f"_{cfg.n_aux_tiles}-aux"
     
     if cfg.lr:
         exp_name += f"_lr-{cfg.lr:.1e}"

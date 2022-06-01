@@ -108,6 +108,7 @@ class AuxTiles(gym.Wrapper):
     def step(self, action):
         self._write_to_aux(self.pos, action['aux'])
         obs, reward, done, info = self.env.step(action['action'])
+        self.pos = obs['pos']
         obs['aux'] = self.aux_map
         return obs, reward, done, info
 
