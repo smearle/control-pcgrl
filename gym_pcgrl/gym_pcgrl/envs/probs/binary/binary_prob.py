@@ -28,8 +28,8 @@ class BinaryProblem(Problem):
         self._border_tile = "solid"
 
         self._target_path = 20
-        self._random_probs = False
-        # self._random_probs = True
+        # self._random_probs = False
+        self._random_probs = True
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2) + 1
 
         self._reward_weights = {

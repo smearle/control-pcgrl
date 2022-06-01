@@ -66,11 +66,13 @@ class SeqNCA(TorchModelV2, nn.Module):
                  name,
                  conv_filters=64,
                  fc_size=64,
+                #  n_aux_chan=0,
                  ):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
-
+        # self.n_aux_chan = n_aux_chan
+        self.conv_filters = conv_filters
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
         obs_shape = obs_space.shape
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
@@ -84,12 +86,14 @@ class SeqNCA(TorchModelV2, nn.Module):
         self.fc_size = fc_size
 
         # TODO: use more convolutions here? Change and check that we can still overfit on binary problem.
+        # self.conv_1 = nn.Conv2d(obs_shape[-1] + n_aux_chan, out_channels=conv_filters + n_aux_chan, kernel_size=3, stride=1, padding=0)
         self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
 
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
         self.action_branch = nn.Sequential(
             # SlimFC(3 * 3 * conv_filters + metrics_size, self.fc_size),
-            SlimFC(3 * 3 * conv_filters, self.fc_size),
+            # SlimFC(3 * 3 * (conv_filters + n_aux_chan), self.fc_size),
+            SlimFC(3 * 3 * (conv_filters), self.fc_size),
             nn.ReLU(),
             SlimFC(self.fc_size, num_outputs),)
         self.value_branch = nn.Sequential(
@@ -107,9 +111,10 @@ class SeqNCA(TorchModelV2, nn.Module):
 
     def forward(self, input_dict, state, seq_lens):
         input = input_dict['obs'].permute(0, 3, 1, 2)
+        # input = th.cat([input, self._last_aux_activ], dim=1)
         x = nn.functional.relu(self.conv_1(input.float()))
         #NOTE: assuming that the input is padded, and centered at the agent!
-        x_act = x[:, :, x.shape[2] // 2 - 1:x.shape[2] // 2 + 2, x.shape[3] // 2 - 1:x.shape[3] // 2 + 2].reshape(x.size(0), -1)
+        x_act = x[:, :, x.shape[2] // 2 - 1: x.shape[2] // 2 + 2, x.shape[3] // 2 - 1: x.shape[3] // 2 + 2].reshape(x.size(0), -1)
         x = x.reshape(x.size(0), -1)
 
         # input = input_dict['obs']

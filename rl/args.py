@@ -206,5 +206,11 @@ def get_args():
         type=int,
         default=1,
     )
+    args.add_argument(
+        '--n_aux_tiles',
+        help='Number of auxiliary tiles to use (for the agent to leave itself messages for later).',
+        type=int,
+        default=0,
+    )
 
     return args

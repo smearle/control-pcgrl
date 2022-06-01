@@ -21,7 +21,7 @@ except ImportError:
 
 
 # clean the input action
-def get_action(a: np.ndarray):
+def get_action(a):
     if isinstance(a, int):
         return a
     return a.item() if a.shape == [1] else a
@@ -78,6 +78,48 @@ def get_pcgrl_env(env):
 #         return obs
 
 
+class AuxTiles(gym.Wrapper):
+    def __init__(self, game, n_aux_tiles, **kwargs):
+        self.n_aux_tiles = n_aux_tiles
+        self.env = game
+        super().__init__(self.env)
+        map_obs_space = self.env.observation_space.spaces['map']
+        # map_obs_space = self.env.observation_space
+        self.env.observation_space.spaces['aux'] =spaces.Box(
+            shape=(*map_obs_space.shape[:-1], n_aux_tiles),
+            low = 0,
+            high = 1,
+            dtype=np.float32,
+        )
+        # self.env.observation_space.dtype = np.float32
+        self.action_space = spaces.Dict(
+            action=self.env.action_space, 
+            aux=spaces.Box(low=0, high=1, shape=(n_aux_tiles,), dtype=np.float32),
+        )
+
+    def reset(self):
+        obs = self.env.reset()
+        self.pos = obs['pos']
+        aux = np.zeros((*self.env.observation_space.spaces['map'].shape[:-1], self.n_aux_tiles), dtype=np.float32)
+        obs['aux'] = aux
+        self.aux_map = aux
+        return obs
+
+    def step(self, action):
+        self._write_to_aux(self.pos, action['aux'])
+        obs, reward, done, info = self.env.step(action['action'])
+        obs['aux'] = self.aux_map
+        return obs, reward, done, info
+
+    def _write_to_aux(self, pos, aux):
+        self.aux_map[pos[0], pos[1]] = aux
+
+
+class AuxTiles3D(gym.Wrapper):
+    def _write_to_aux(self, pos, aux):
+        self.aux_map[pos[0], pos[1], pos[2]] = aux
+
+
 class ToImage(gym.Wrapper):
     """
     Return a Box instead of dictionary by stacking different similar objects
@@ -103,10 +145,15 @@ class ToImage(gym.Wrapper):
             if self.shape is None:
                 self.shape = self.env.observation_space.spaces[n].shape
             new_shape = self.env.observation_space.spaces[n].shape
-            depth += 1 if len(new_shape) <= 2 else new_shape[-1]
+            if len(new_shape) <= 2:
+                depth += 1
+                n_cat_dims = len(new_shape)
+            else:
+                depth += new_shape[-1]
+                n_cat_dims = len(new_shape) - 1
             assert (
                 # self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1]
-                np.all([self.shape[i] == new_shape[i] for i in range(len(self.shape))])
+                np.all([self.shape[i] == new_shape[i] for i in range(n_cat_dims)])
             ), "This wrapper only works when all objects have same width, height, length..."
 
             if self.env.observation_space[n].high.max() > max_value:
@@ -117,8 +164,10 @@ class ToImage(gym.Wrapper):
             low=0, high=max_value, shape=(*self.shape[:-1], depth)
         )
 
+
     def step(self, action, **kwargs):
-        action = get_action(action)
+        if not isinstance(action, dict):
+            action = get_action(action)
         obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
@@ -452,7 +501,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
     """
     The wrappers we use for narrow and turtle experiments
     """
-    def __init__(self, game, crop_size, **kwargs):
+    def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
         self.pcgrl_env = gym.make(game)
         # These envs don't use a lot of PCGRL conventions and are wide be default
 
@@ -469,14 +518,19 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
                 game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map", 
                 **kwargs,
             )
-            # Transform to one hot encoding if not binary
-
-            # if "binary" not in game:
-            env = OneHotEncoding(env, "map", padded=True, **kwargs)
             # Indices for flatting
             flat_indices = ["map"]
-            # Final Wrapper has to be ToImage or ToFlat
-            self.env = ToImage(env, flat_indices, **kwargs)
+            # Transform to one hot encoding
+            env = OneHotEncoding(env, "map", padded=True, **kwargs)
+
+            if n_aux_tiles > 0:
+                flat_indices += ["aux"]
+                env = AuxTiles(env, n_aux_tiles=n_aux_tiles, **kwargs)
+
+            # Final Wrapper has to be ToImage or ToFljat
+            env = ToImage(env, flat_indices, **kwargs)
+
+            self.env = env
         gym.Wrapper.__init__(self, self.env)
 
 

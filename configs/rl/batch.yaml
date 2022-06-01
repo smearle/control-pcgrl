@@ -1,7 +1,8 @@
 {
   "exp_names": [
     # test0,
-    test1,
+    testAux,
+    # test1,
     # test2,
     # test3,
     # test4,
@@ -166,4 +167,10 @@
   3,
   # 5,
 ],
+
+  "n_aux_tiles": [
+    # 0,
+    4,
+    # 8,
+  ]
 }

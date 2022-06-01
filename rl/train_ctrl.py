@@ -249,7 +249,7 @@ def main(cfg):
             'custom_model': 'custom_model',
             'custom_model_config': {
                 **cfg.model_cfg,
-                'orig_obs_space': copy.copy(dummy_env.observation_space),
+                # 'orig_obs_space': copy.copy(dummy_env.observation_space),
             }
         },
         "evaluation_config": {
@@ -279,7 +279,7 @@ def main(cfg):
         'explore': True,
 
         # `ray.tune` seems to need these spaces specified here.
-        'observation_space': dummy_env.observation_space,
+        # 'observation_space': dummy_env.observation_space,
         # 'action_space': dummy_env.action_space,
 
         # 'create_env_on_driver': True,
