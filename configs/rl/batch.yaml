@@ -1,8 +1,8 @@
 {
   "exp_names": [
     0,
-    # 1,
-    # 2,
+    1,
+    2,
 
     # testSeq3D,
     # test0,
@@ -17,8 +17,8 @@
   ],
 
   "problems": [
-    "minecraft_3D_maze",
-    # "minecraft_3D_holey_maze",
+    # "minecraft_3D_maze",
+    "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
@@ -33,8 +33,8 @@
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-        ["narrow3D", SeqNCA],
-        # ["narrow3Dholey", SeqNCA],
+        # ["narrow3D", SeqNCA3D],
+        ["narrow3Dholey", SeqNCA3D],
         # ["narrow3D", null],
         # ["narrow3Dholey", null],
 
@@ -160,9 +160,9 @@
     # 0.01,
       # 0.001,
       # 0.0001,
-      0.00001,
+      # 0.00001,
       # 0.000005,
-      # 0.000001,
+      0.000001,
       # 1e-7,
   ],
 
@@ -174,8 +174,8 @@
 ],
 
   "n_aux_tiles": [
-    # 0,
+    0,
     4,
-    # 8,
+    8,
  ],
 }

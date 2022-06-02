@@ -218,16 +218,16 @@ def main(cfg):
     # check_env(dummy_env)
 
     # DEBUG ###
-    for _ in range(10):
-        obs = dummy_env.reset()
-        for i in range(300):
-            if i > 3:
-                act = dummy_env.action_space.sample()
-            else:
-                act = 0
-            dummy_env.step(act)
-            print(dummy_env.unwrapped._rep_stats)
-            dummy_env.render()
+    # for _ in range(10):
+    #     obs = dummy_env.reset()
+    #     for i in range(300):
+    #         if i > 3:
+    #             act = dummy_env.action_space.sample()
+    #         else:
+    #             act = 0
+    #         dummy_env.step(act)
+    #         print(dummy_env.unwrapped._rep_stats)
+    #         dummy_env.render()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
 
@@ -431,7 +431,7 @@ def main(cfg):
     # loggers_dict = {'loggers': [WandbLoggerCallback]} if cfg.wandb else {}
     # loggers_dict = {'loggers': [CustomWandbLogger]} if cfg.wandb else {}
     callbacks_dict = {'callbacks': [WandbLoggerCallback(
-        project="PCGRL",
+        project="PCGRL_AIIDE",
         name=exp_name_id,
         id=exp_name_id,
     )]} if cfg.wandb else {}
