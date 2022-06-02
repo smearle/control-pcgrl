@@ -161,10 +161,10 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
-    if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
-        ("minecraft" not in cfg.problem):
-        raise Exception(
-            "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
+    # if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
+        # ("minecraft" not in cfg.problem):
+        # raise Exception(
+            # "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
 
     is_3D_env = False
     if "3D" in cfg.problem:
