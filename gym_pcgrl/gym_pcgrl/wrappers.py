@@ -4,20 +4,18 @@ import gym
 from gym import spaces
 import numpy as np
 
-from gym_pcgrl.envs import helper_3D
-from gym_pcgrl.envs.helper import get_int_prob, get_string_map
-try:
-    import gym_city
-except ImportError:
-    print(
-        "gym-city module not installed, cannot use SimCity RL environment. You can install from  source at: https://github.com/smearle/gym-city"
-    )
-try:
-    import micro_rct
-except ImportError:
-    print(
-        "micro-rct module not installed, cannot use micro-RollerCoaster Tycoon RL environment. You can install from  source at: https://github.com/smearle/micro-rct"
-    )
+# try:
+#     import gym_city
+# except ImportError:
+#     print(
+#         "gym-city module not installed, cannot use SimCity RL environment. You can install from  source at: https://github.com/smearle/gym-city"
+#     )
+# try:
+#     import micro_rct
+# except ImportError:
+#     print(
+#         "micro-rct module not installed, cannot use micro-RollerCoaster Tycoon RL environment. You can install from  source at: https://github.com/smearle/micro-rct"
+#     )
 
 
 # clean the input action

@@ -420,57 +420,60 @@ Returns:
     int[][][]: returns the dijkstra map after running the dijkstra algorithm
 """
 def run_dijkstra(x, y, z, map, passable_values):
-    dijkstra_map = np.full((len(map), len(map[0]), len(map[0][0])), -1)
-    visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
-    n_jump_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
+    # dijkstra_map = np.full((len(map), len(map[0]), len(map[0][0])), -1)
+    # visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
+    paths = {}
+    visited = set({})
+    jumps = {}
 
-    # Initialize the queue with [(x, y, z, path_length=0, n_jump=0)]
-    queue = [(x, y, z, 0, 0)]
+    # Initialize the queue with [(x, y, z, path, n_jump=0)]
+    queue = [(x, y, z, [(x, y, z)], 0)]
 
     while len(queue) > 0:
         # Looking at a new tile
-        (cx,cy,cz,l_path,n_jump) = queue.pop(0)
+        (cx,cy,cz,path,n_jump) = queue.pop(0)
 
         # Skip tile if we've already visited it
-        if dijkstra_map[cz][cy][cx] >= 0 and dijkstra_map[cz][cy][cx] <= l_path:
+        old_len = len(paths[(cx, cy, cz)]) if (cx, cy, cz) in paths else -1
+        old_path = paths.get((cx, cy, cz), [])
+        if len(old_path) > 0 and len(old_path) <= len(path):
             continue
 
         # Zelda(Dungeon) (and other games maybe) calls this function directly without calling calc_longest_path, so we need to 
         # add this check here.
         if cz+1 == len(map) or map[cz+1][cy][cx] not in passable_values:
-            visited_map[cz][cy][cx] = 1
+            visited.add((cx, cy, cz))
             continue
 
-
         # Count the tile as visited and record its distance 
-        visited_map[cz][cy][cx] = 1
-        dijkstra_map[cz][cy][cx] = l_path
-        n_jump_map[cz][cy][cx] = n_jump
+        visited.add((cx, cy, cz))
+        paths[(cx, cy, cz)] = path
+        jumps[(cx, cy, cz)] = n_jump
 
         # Call passable, which will return, (x, y, z) coordinates of tiles to which the player can travel from here
         # not for (dx,dy,dz) in [(-1, 0, 0), (1, 0, 0), (0, -1, 0), (0, 1, 0), (0, 0, -1), (0, 0, 1)]:
         # but for (nx,ny,nz) in stairring logic:
-        for foothold, traversed in _passable(map, cx, cy, cz, n_jump_map[cz][cy][cx], passable_values).items():
+        for foothold, traversed in _passable(map, cx, cy, cz, jumps[(cx, cy, cz)], passable_values).items():
             (nx, ny, nz, n_j) = foothold
 
             # Pre-emptively reject footholds to which we have better paths to already. (Prevents 
             # traversible tiles overwriting values from previous paths.) NOTE: this will become obsolete if we use a 
             # dictionary of reached tiles to paths used to get there instead.
-            if dijkstra_map[nz][ny][nx] >= 0 and dijkstra_map[nz][ny][nx] <= l_path + len(traversed):
-                continue
+            # if dijkstra_map[nz][ny][nx] >= 0 and dijkstra_map[nz][ny][nx] <= l_path + len(traversed):
+                # continue
 
-            n_traversed = 1
-            for (dx, dy, dz) in traversed:
-                new_distance = l_path + n_traversed
-                old_distance = dijkstra_map[dz][dy][dx]
-                if old_distance == -1 or new_distance <= old_distance:
-                    dijkstra_map[dz][dy][dx] = new_distance 
+            # n_traversed = 1
+            # for (dx, dy, dz) in traversed:
+                # new_distance = l_path + n_traversed
+                # old_distance = dijkstra_map[dz][dy][dx]
+                # if old_distance == -1 or new_distance <= old_distance:
+                    # dijkstra_map[dz][dy][dx] = new_distance 
                 
-                else:  # otherwise we have found some more efficient path through this tile
+                # else:  # otherwise we have found some more efficient path through this tile
                     # FIXME
-                    TT()
-                    pass
-                n_traversed += 1
+                    # TT()
+                    # pass
+                # n_traversed += 1
 
 #           # Check that the new tiles are in the bounds of the level
 #           nx,ny,nz=cx+dx,cy+dy,cz+dz
@@ -480,13 +483,13 @@ def run_dijkstra(x, y, z, map, passable_values):
 #               continue
 
             # Add the new tile to the frontier
-            queue.append((nx, ny, nz, l_path + n_traversed, n_j))
+            queue.append((nx, ny, nz, path + traversed + [(nx, ny, nz)], n_j))
 #           if cz == 3:
 #               print(f"**********current place: {cx},{cy},{cz}**********")
 #               print("queue in run_dijkstra: ", queue)
 #               print("dijkstra_map in run_dijkstra: ", dijkstra_map)
 
-    return dijkstra_map, visited_map, n_jump_map
+    return paths, visited, jumps
 
 """
 Calculate the longest path on the map
@@ -501,7 +504,9 @@ Returns:
 """
 def calc_longest_path(map, map_locations, passable_values, get_path=False):
     empty_tiles = _get_certain_tiles(map_locations, passable_values)
-    final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])))
+    final_visited_map = np.zeros((len(map), len(map[0]), len(map[0][0])), dtype=bool)
+    visited_map = np.zeros_like(final_visited_map)
+    max_path = []
     final_value = 0
     n_jump = 0
 
@@ -523,36 +528,41 @@ def calc_longest_path(map, map_locations, passable_values, get_path=False):
             continue
 
         # Calculate the distance from the current tile to all other (reachable) tiles.
-        dijkstra_map, visited_map, _ = run_dijkstra(x, y, z, map, passable_values)
-        final_visited_map += visited_map
+        paths, visited, _ = run_dijkstra(x, y, z, map, passable_values)
+        visited_map.fill(0)
+        visited_map[np.array(list(paths.keys()))] = 1
+
+        final_visited_map = visited_map | final_visited_map
+        # final_visited_map += visited
 
         # Get furthest tile from current tile.
-        (mz,my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
+        # (mz,my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
+        tiles_dists = [((x,y,z), len(paths[(x,y,z)])) for (x,y,z) in paths]
+        max_tile_id = np.argmax([d for (_,d) in tiles_dists])
+
+        (mx, my, mz), max_dist = tiles_dists[max_tile_id]        
         # FIXME: Maybe n_jump should be counted here?(especially for the direct/unreturnable path)
         # and potential bug: if there are two path with the same length and different n_jump, maybe something magic will 
         # happen. Hope you never see this.
 
         # Search again from this furthest tile. This tile must belong to a longest shortest path within this connected 
         # component. Search again to find this path.
-        dijkstra_map, _, jump_map = run_dijkstra(mx, my, mz, map, passable_values)
-        max_value = np.max(dijkstra_map)
-        (mz,my,mx) = np.unravel_index(np.argmax(dijkstra_map, axis=None), dijkstra_map.shape)
-        n_jump = jump_map[mz][my][mx]
+        paths, visited, jumps = run_dijkstra(mx, my, mz, map, passable_values)
+        tiles_dists = [((x,y,z), len(paths[(x,y,z)])) for (x,y,z) in paths]
+        max_tile_id = np.argmax([d for (_,d) in tiles_dists])
+
+        (mx, my, mz), max_dist = tiles_dists[max_tile_id]        
+        n_jump = jumps[(mx, my, mz)]
+        # max_value = np.max(dijkstra_map)
+        # n_jump = jump_map[mz][my][mx]
 
         # Store this path/length if it is the longest of all connected components visited thus far.
-        if max_value > final_value:
-            final_value = max_value
-
-            if get_path:
-                path_map = dijkstra_map
+        if max_dist > final_value:
+            final_value = max_dist
+            max_path = paths[(mx, my, mz)]
 
 
-    path = []
-
-    if get_path and final_value > 0:
-        path = get_path_coords(path_map)
-
-    return final_value, path, n_jump
+    return final_value, max_path, n_jump
 
 """
 Recover a shortest path (as list of coords) from a dijkstra map, 
