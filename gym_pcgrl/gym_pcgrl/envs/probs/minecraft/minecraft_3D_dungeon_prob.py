@@ -103,7 +103,14 @@ class Minecraft3DDungeonProblem(Problem):
             "enemies": 100,
             "nearest-enemy": 200,
         }
-        self._ctrl_reward_weights = self._reward_weights
+        self._reward_weights = {
+            "regions": 0, 
+            "path-length": 100, 
+            "chests": 300, 
+            "n_jump": 100,
+            "enemies": 100,
+            "nearest-enemy": 200,
+        }
 
 # NEXT: add a easy render 3D pillow option
 
