@@ -277,19 +277,19 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         # know if the agent's edit action has disrupted the old path, so we won't delete blocks in the
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
-        old_path_coords = [tuple(coords) for coords in self.old_path_coords]
-        old_connected_path_coords = [tuple(coords) for coords in self.old_connected_path_coords]
+        # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        # old_connected_path_coords = [tuple(coords) for coords in self.old_connected_path_coords]
 
-        path_to_erase = set(old_path_coords)
-        connected_path_to_erase = set(old_connected_path_coords)
+        # path_to_erase = set(old_path_coords)
+        # connected_path_to_erase = set(old_connected_path_coords)
         
-        path_to_render = []
-        for (x, y, z) in self.path_coords:
-            if (x, y, z) in path_to_erase:
-                path_to_erase.remove((x, y, z))
-        for (x, y, z) in self.connected_path_coords:
-            if (x, y, z) in path_to_erase:
-                connected_path_to_erase.remove((x, y, z))
+        # path_to_render = []
+        # for (x, y, z) in self.path_coords:
+        #     if (x, y, z) in path_to_erase:
+        #         path_to_erase.remove((x, y, z))
+        # for (x, y, z) in self.connected_path_coords:
+        #     if (x, y, z) in path_to_erase:
+        #         connected_path_to_erase.remove((x, y, z))
             # else:
                 # path_to_render.append((x, y, z))
 #       print(self.path_coords)
