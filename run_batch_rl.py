@@ -101,6 +101,7 @@ def launch_batch(collect_params=False):
                     "problem": prob,
                     "representation": rep,
                     "model": model,
+                    "conditional": controls != ["NONE", "NONE"],  # HAAAACK
                     "conditionals": controls,
                     "change_percentage": change_percentage,
                     "alp_gmm": alp_gmm,
