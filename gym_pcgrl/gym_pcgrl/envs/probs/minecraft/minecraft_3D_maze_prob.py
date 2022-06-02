@@ -95,11 +95,12 @@ class Minecraft3DmazeProblem(Problem):
         return ["AIR", "DIRT"]
 
     def process_observation(self, observation):
+        path_coords = np.array(self.path_coords)
         if self.path_coords == []:
             return observation
-        observation['map'][self.path_coords[:, 0], 
-                            self.path_coords[:, 1], 
-                            self.path_coords[:, 2]] = self._path_idx
+        observation['map'][path_coords[:, 0], 
+                           path_coords[:, 1], 
+                           path_coords[:, 2]] = self._path_idx
         return observation
 
     """
