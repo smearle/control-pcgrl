@@ -18,14 +18,14 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3Dholey
         Minecraft3DholeymazeProblem.__init__(self)
         Minecraft3DDungeonProblem.__init__(self)
        
-        self._reward_weights.update({
-            "regions": 0,
-            "path-length": 1,
-            "n_jump": 1,
-            # "connectivity": 0,
-            # "connectivity": self._width,
-            # "connectivity": self._max_path_length,
-        })
+        # self._reward_weights.update({
+        #     "regions": 0,
+        #     "path-length": 1,
+        #     "n_jump": 1,
+        #     # "connectivity": 0,
+        #     # "connectivity": self._width,
+        #     # "connectivity": self._max_path_length,
+        # })
 
         self.static_trgs.update({
             # "connectivity": 1,
