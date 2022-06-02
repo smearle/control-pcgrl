@@ -1,6 +1,10 @@
 {
   "exp_names": [
-    testSeq3D,
+    0,
+    # 1,
+    # 2,
+
+    # testSeq3D,
     # test0,
     # testAux,
     # test1,
@@ -9,14 +13,14 @@
     # test3,
     # test4,
     # test5,
-    # 0,
-    # 1,
-    # 2,
     # "testholey3D",
   ],
 
   "problems": [
-    # "minecraft_3D_maze",
+    "minecraft_3D_maze",
+    # "minecraft_3D_holey_maze",
+    # "minecraft_3D_dungeon_holey",
+
 #   "minecraft_3D_zelda,
     # "binary",
     # "binary_holey",
@@ -24,20 +28,20 @@
 #   "sokoban",
 #   'simcity',
 #   'smb',
-  # "minecraft_3D_maze",
-    # "minecraft_3D_holey_maze",
   # "minecraft_3D_dungeon",  # nope
-  "minecraft_3D_dungeon_holey",
   ],
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
+        ["narrow3D", SeqNCA],
+        # ["narrow3Dholey", SeqNCA],
+        # ["narrow3D", null],
+        # ["narrow3Dholey", null],
+
       # ["narrow", SeqNCA],
       # ["narrow", null],
       # [narrowholey, SeqNCA],
         # ["narrowholey", null],
-        # ["narrow3D", null],
-        ["narrow3Dholey", null],
     #   ['turtle', null],
 #       ["turtle3D", null],
 #       ["turtle3Dholey", null],
@@ -76,6 +80,22 @@
   ],
 
   "local_controls": {
+      "minecraft_3D_maze": [
+        # [n_jump],
+        # [path-length],
+        # [n_jump, path-length],
+      ],
+      "minecraft_3D_holey_maze": [
+        # [n_jump],
+        # [path-length],
+        # [n_jump, path-length],
+      ],
+      "minecraft_3D_dungeon_holey": [
+  #       ["emptiness", "path-length"],
+        # [n_jump],
+        # [path-length],
+        # [n_jump, path-length],       
+      ],
       "binary": [
         # ["regions"],
         # ["path-length"],
@@ -114,23 +134,6 @@
       ],
       "minecraft_3D_dungeon": [
   #       ["emptiness", "path-length"],
-      ],
-      "minecraft_3D_maze": [
-  #       ["emptiness", "path-length"],
-        # [n_jump],
-        # [path-length],
-        # [n_jump, path-length],
-      ],
-      "minecraft_3D_holey_maze": [
-        # [n_jump],
-        # [path-length],
-        # [n_jump, path-length],
-      ],
-      "minecraft_3D_dungeon_holey": [
-  #       ["emptiness", "path-length"],
-        # [n_jump],
-        # [path-length],
-        # [n_jump, path-length],       
       ],
   },
 
