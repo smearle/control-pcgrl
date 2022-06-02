@@ -62,10 +62,9 @@ class Narrow3DHoleyRepresentation(HoleyRepresentation3D, Narrow3DRepresentation)
     """
     def update(self, action):
         change = 0
-        if action > 0:
-            change += [0,1][self._map[self._z][self._y][self._x] != action-1]
-            self._map[self._z][self._y][self._x] = action-1
-            self._bordered_map[self._z+1][self._y+1][self._x+1] = action-1
+        change += [0,1][self._map[self._z][self._y][self._x] != action]
+        self._map[self._z][self._y][self._x] = action
+        self._bordered_map[self._z+1][self._y+1][self._x+1] = action
         if self._random_tile:
             # If we've acted on all tiles, but the episode is not over, re-shuffle them and cycle through again.
             if self.n_step == len(self._act_coords):

@@ -17,6 +17,7 @@ from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile
     calc_longest_path, debug_path, plot_3D_path, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
+from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES
 # from gym_pcgrl.test3D import plot_3d_map
 
 
@@ -147,33 +148,16 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
         
-        dijkstra_map, _, jump_map = run_dijkstra(self.start_xyz[0][2], self.start_xyz[0][1], self.start_xyz[0][0], map, ["AIR"])
-        connected_path_length = dijkstra_map[self.end_xyz[0][0], self.end_xyz[0][1], self.end_xyz[0][2]]
-
-        self.n_jump = 0
-        max_start_path = np.max(dijkstra_map)
-        self.path_length = max_start_path
-
-        if max_start_path < 1:
-            self.path_coords = []
-        else:
-            maxcoord = np.argwhere(dijkstra_map == max_start_path)[0]
-            self.path_coords = get_path_coords(dijkstra_map, x=maxcoord[2], y=maxcoord[1], z=maxcoord[0])
-
-
-        # Give a consolation prize if start and end are NOT connected.
-        if connected_path_length == -1:
-            # connectivity_bonus = 0
-            self.connected_path_length = 0
-            self.connected_path_coords = []
-
-        # Otherwise (holes are connected), give a bonus (to guarantee we beat the loser above), plus the actual path length.
-        else:
-            # connectivity_bonus = 1
-            self.connected_path_length = connected_path_length
-            self.connected_path_coords = get_path_coords(dijkstra_map, 
-                                x = self.end_xyz[0][2], y = self.end_xyz[0][1], z = self.end_xyz[0][0])
-            self.n_jump = jump_map[self.end_xyz[0][0], self.end_xyz[0][1], self.end_xyz[0][2]]
+        paths, _, jumps = run_dijkstra(self.start_xyz[0][2], self.start_xyz[0][1], self.start_xyz[0][0], map, ["AIR"])
+        # connected_path_length = dijkstra_map[self.end_xyz[0][0], self.end_xyz[0][1], self.end_xyz[0][2]]
+        end_xyz = tuple(self.end_xyz[0][::-1])  # lol ... why?
+        self.connected_path_length = len(paths[end_xyz]) if end_xyz in paths else -1
+        self.connected_path_coords = np.array(paths[end_xyz]) if end_xyz in paths else []
+        self.n_jump = jumps[end_xyz] if end_xyz in jumps else 0
+        tiles_paths = [(tile, path) for tile, path in paths.items()]
+        max_id = np.argmax(np.array([len(p) for (_,p) in tiles_paths]))
+        max_tile, self.path_coords = tiles_paths[max_id]
+        self.path_length = len(self.path_coords)
 
         assert not (self.connected_path_length == 0 and len(self.connected_path_coords) > 0)
         # print(f"minecraft path-finding time: {timer() - start_time}")
@@ -317,12 +301,14 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
 
         if self.render_path:
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
-            erase_3D_path(path_to_erase)
-            erase_3D_path(connected_path_to_erase)
+            # erase_3D_path(path_to_erase)
+            # erase_3D_path(connected_path_to_erase)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             # spawn_3D_path(self.path_coords)
-            spawn_3D_path(self.connected_path_coords)
+            spawn_3D_maze(map)
+            spawn_3D_path(self.connected_path_coords, item=LEAVES)
+            spawn_3D_path(self.path_coords)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)

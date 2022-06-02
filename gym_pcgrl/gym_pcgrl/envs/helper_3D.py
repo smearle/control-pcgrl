@@ -471,7 +471,6 @@ def run_dijkstra(x, y, z, map, passable_values):
                 
                 # else:  # otherwise we have found some more efficient path through this tile
                     # FIXME
-                    # TT()
                     # pass
                 # n_traversed += 1
 
@@ -645,7 +644,7 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
         #                                    [0 1 2 0 2 0 1 2]]  if we have duplicates, we just pick the first one.
         # print("pad_path_map is : ", pad_path_map)
         if curr.shape[1] == 0:
-            TT()
+            raise Exception
         zi, yi, xi = curr[:, 0]
         i += 1
     if i > 0:
