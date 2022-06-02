@@ -60,47 +60,47 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3Dholey
             "n_jump": 0,
         }
         
-        if map_stats["regions"] == 1:
-            # entrance is self.start_xyz, a hole on the border(we use the foot room for path finding), in the form of (z, y, x)
-            p_z, p_y, p_x = self.start_xyz[0]
+        # if map_stats["regions"] == 1:
+        # entrance is self.start_xyz, a hole on the border(we use the foot room for path finding), in the form of (z, y, x)
+        p_z, p_y, p_x = self.start_xyz[0]
 
-            enemies = []
-            enemies.extend(map_locations["SKULL"])
-            enemies.extend(map_locations["PUMPKIN"])
-            if len(enemies) > 0:
-                paths_e, _, _ = run_dijkstra(p_x, p_y, p_z, map, self._passable)
-                min_dist = self._width * self._height * self._length
-                for e_x, e_y, e_z in enemies:  # wtf
-                    e_path = paths_e.get((e_x, e_y, e_z), [])
-                    e_dist = len(e_path)
-                    if e_dist > 0 and e_dist < min_dist:
-                        min_dist = e_dist
-                        self.min_e_path = e_path
-                map_stats["nearest-enemy"] = min_dist
+        enemies = []
+        enemies.extend(map_locations["SKULL"])
+        enemies.extend(map_locations["PUMPKIN"])
+        if len(enemies) > 0:
+            paths_e, _, _ = run_dijkstra(p_x, p_y, p_z, map, self._passable)
+            min_dist = self._width * self._height * self._length
+            for e_x, e_y, e_z in enemies:  # wtf
+                e_path = paths_e.get((e_x, e_y, e_z), [])
+                e_dist = len(e_path)
+                if e_dist > 0 and e_dist < min_dist:
+                    min_dist = e_dist
+                    self.min_e_path = e_path
+            map_stats["nearest-enemy"] = min_dist
 
 
-            if map_stats["chests"] == 1:
-                c_xyz = map_locations["CHEST"][0]
+        if map_stats["chests"] > 0:
+            c_xyz = map_locations["CHEST"][0]
 
-                # exit is self.end_xyz, a hole on the border(we use the foot room the find the path), in the form of (z, y, x)
-                d_xyz = tuple(self.end_xyz[0][::-1])  # lol
+            # exit is self.end_xyz, a hole on the border(we use the foot room the find the path), in the form of (z, y, x)
+            d_xyz = tuple(self.end_xyz[0][::-1])  # lol
 
-                # start point is player
-                paths_c, _, jumps_c = run_dijkstra(p_x, p_y, p_z, map, self._passable)
-                path_c = paths_c.get(c_xyz, [])
-                map_stats["path-length"] += len(path_c)
-                map_stats["n_jump"] += jumps_c.get(c_xyz, 0)
+            # start point is player
+            paths_c, _, jumps_c = run_dijkstra(p_x, p_y, p_z, map, self._passable)
+            path_c = paths_c.get(c_xyz, [])
+            map_stats["path-length"] += len(path_c)
+            map_stats["n_jump"] += jumps_c.get(c_xyz, 0)
 
-                # start point is chests
-                paths_d, _, jumps_d = run_dijkstra(*c_xyz, map, self._passable)
-                path_d = paths_d.get(d_xyz, [])
-                map_stats["path-length"] +=  len(path_d) 
-                map_stats["n_jump"] += jumps_d.get(d_xyz, 0)
-                # if self.render_path:
-                    # self.path_coords = np.vstack((get_path_coords(paths_c, c_x, c_y, c_z),
-                                                #   get_path_coords(pathd_d, d_x, d_y, d_z)))
-                self.path_coords = path_c + path_d
-                # self.path_coords = np.vstack((path_c, path_d))
+            # start point is chests
+            paths_d, _, jumps_d = run_dijkstra(*c_xyz, map, self._passable)
+            path_d = paths_d.get(d_xyz, [])
+            map_stats["path-length"] +=  len(path_d) 
+            map_stats["n_jump"] += jumps_d.get(d_xyz, 0)
+            # if self.render_path:
+                # self.path_coords = np.vstack((get_path_coords(paths_c, c_x, c_y, c_z),
+                                            #   get_path_coords(pathd_d, d_x, d_y, d_z)))
+            self.path_coords = path_c + path_d
+            # self.path_coords = np.vstack((path_c, path_d))
 
         self.path_length = map_stats["path-length"]
         self.n_jump = map_stats["n_jump"]
