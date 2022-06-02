@@ -7,11 +7,11 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, run_dijkstra
-from gym_pcgrl.envs.probs.binary.binary_ctrl_prob import BinaryCtrlProblem
+from gym_pcgrl.envs.probs.binary.binary_prob import BinaryProblem
 
-class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
+class BinaryHoleyProblem(BinaryProblem):
     def __init__(self):
-        super(BinaryCtrlHoleyProblem, self).__init__()
+        super(BinaryHoleyProblem, self).__init__()
 
         self.fixed_holes = False
 
@@ -45,7 +45,7 @@ class BinaryCtrlHoleyProblem(BinaryCtrlProblem):
 
 
     def adjust_param(self, **kwargs):
-        super(BinaryCtrlProblem, self).adjust_param(**kwargs)
+        super(BinaryProblem, self).adjust_param(**kwargs)
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
 

@@ -11,7 +11,7 @@ from pdb import set_trace as TT
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-b_map = [AIR, STAINED_GLASS, CHEST, SKULL, PUMPKIN]
+b_map = [AIR, STAINED_GLASS, CHEST, PUMPKIN, PUMPKIN]
 string_map = ["AIR", "DIRT","CHEST", "SKULL", "PUMPKIN"]
 
 # map string map entries into Minecraft item type
@@ -246,9 +246,7 @@ def spawn_3D_bordered_map(map, base_pos=5):
                 #  second arguement from inside the problem.
                 blocks.append(Block(position=Point(x=i-1, y=k+4,  z=j-1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
                                     type=item, orientation=NORTH))
-    # TT()
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
-    # TT()
     return
 
 

@@ -16,18 +16,18 @@
   ],
 
   "problems": [
-    "minecraft_3D_maze_ctrl",
-#   "minecraft_3D_zelda_ctrl",
-    # "binary_ctrl",
-    # "binary_ctrl_holey",
-#   "zelda_ctrl",
-#   "sokoban_ctrl",
+    # "minecraft_3D_maze",
+#   "minecraft_3D_zelda,
+    # "binary",
+    # "binary_holey",
+#   "zelda",
+#   "sokoban",
 #   'simcity',
-#   'smb_ctrl',
-#   "minecraft_3D_maze_ctrl",
+#   'smb',
+  # "minecraft_3D_maze",
     # "minecraft_3D_holey_maze",
-#   "minecraft_3D_dungeon_ctrl",
-  # "minecraft_3D_dungeon_ctrl_holey",
+  # "minecraft_3D_dungeon",  # nope
+  "minecraft_3D_dungeon_holey",
   ],
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
@@ -36,8 +36,8 @@
       # ["narrow", null],
       # [narrowholey, SeqNCA],
         # ["narrowholey", null],
-        ["narrow3D", null],
-        # ["narrow3Dholey", null],
+        # ["narrow3D", null],
+        ["narrow3Dholey", null],
     #   ['turtle', null],
 #       ["turtle3D", null],
 #       ["turtle3Dholey", null],
@@ -76,35 +76,35 @@
   ],
 
   "local_controls": {
-      "binary_ctrl": [
+      "binary": [
         # ["regions"],
         # ["path-length"],
         # ["regions", "path-length"],
           # ['emptiness', 'path-length'],
           # ["symmetry", "path-length"]
       ],
-      "binary_ctrl_holey": [
+      "binary_holey": [
             # ["regions"],
             # ["path-length"],
             # ["regions", "path-length"],
             # ['emptiness', 'path-length'],
             # ["symmetry", "path-length"]
       ],
-      "zelda_ctrl": [
+      "zelda": [
           ["nearest-enemy"],
           ["path-length"],
           ["nearest-enemy", "path-length"],
           # ["emptiness", "path-length"],
           # ["symmetry", "path-length"],
       ],
-      "sokoban_ctrl": [
+      "sokoban": [
           # ["crate"],
           # ["sol-length"],
           # ["crate", "sol-length"],
           # ["emptiness", "sol-length"],
           # ["symmetry", "sol-length"],
       ],
-      "smb_ctrl": [
+      "smb": [
           # ['enemies', 'jumps'],
           # ["emptiness", "jumps"],
           # ["symmetry", "jumps"],
@@ -112,10 +112,10 @@
       "RCT": [
           # ['income'],
       ],
-      "minecraft_3D_dungeon_ctrl": [
+      "minecraft_3D_dungeon": [
   #       ["emptiness", "path-length"],
       ],
-      "minecraft_3D_maze_ctrl": [
+      "minecraft_3D_maze": [
   #       ["emptiness", "path-length"],
         # [n_jump],
         # [path-length],
@@ -126,7 +126,7 @@
         # [path-length],
         # [n_jump, path-length],
       ],
-      "minecraft_3D_dungeon_ctrl_holey": [
+      "minecraft_3D_dungeon_holey": [
   #       ["emptiness", "path-length"],
         # [n_jump],
         # [path-length],
@@ -171,8 +171,8 @@
 ],
 
   "n_aux_tiles": [
-    0,
-    # 4,
+    # 0,
+    4,
     # 8,
  ],
 }

@@ -166,8 +166,7 @@ class Minecraft3DmazeProblem(Problem):
         if self.render:
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             if not path_is_valid:
-                TT()
-                # raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
+                raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
         # p_x, p_y, p_z = 0, 0, 0
         # dijkstra_p, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])

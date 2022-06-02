@@ -8,7 +8,6 @@ vertical blocks available on the lower step (and two vertical blocks available o
 """
 from pdb import set_trace as TT
 from tkinter import W
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_ctrl_prob import Minecraft3DmazeCtrlProblem
 
 import numpy as np
 from timeit import default_timer as timer
@@ -17,18 +16,19 @@ from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile
     calc_longest_path, debug_path, plot_3D_path, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
-from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES, TRAPDOOR
 # from gym_pcgrl.test3D import plot_3d_map
 
 
-class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
+class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
     """
     The constructor is responsible of initializing all the game parameters
     """
     def __init__(self):
         super().__init__()
        
-        self.fixed_holes = True
+        self.fixed_holes = False
 
         self._reward_weights.update({
             "regions": 0,
@@ -78,6 +78,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
 
+
     def gen_holes(self):
         """Generate one entrance and one exit hole into/out of the map randomly. Ensure they will not necessarily result
          in trivial paths in/out of the map. E.g., the below are not valid holes:
@@ -96,8 +97,9 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
 
         if self.fixed_holes:
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
-            self.end_xyz = np.array(((1 , self._width, self._length + 1),
+            self.end_xyz = np.array(((1, self._width, self._length + 1),
                                      (2, self._width, self._length + 1)))
+            return self.start_xyz, self.end_xyz
 
         else:
             self.start_xyz = np.ones((2, 3), dtype=np.uint8)  
@@ -111,23 +113,21 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
 
             self.end_xyz = np.ones((2, 3), dtype=np.uint8)
             # select the exit
-            # I know some cases are excluded, for example:
+            # NOTE: Some valid cases are excluded, e.g.:
             #
             #     0
             #     0 0
             #       0
             #
-            # This kind of entrance exit pair is actually valid
-            # that was considered in the very beginning, but excluding them is just the trade-off you know :)
             for i in range(1, potential):
                 xyz = self._border_idxs[idxs[i]]
                 if np.max((np.abs(self.start_xyz[0] - xyz), np.abs(self.start_xyz[1] - xyz))) != 1: 
                     self.end_xyz[0] = xyz
                     self.end_xyz[1] = xyz + np.array([1, 0, 0])
                     break
-                
         
         return self.start_xyz, self.end_xyz
+
       
 
     """
@@ -166,10 +166,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
             path_is_valid = debug_path(self.path_coords, map, ["AIR"])
             connected_path_is_valid = debug_path(self.connected_path_coords, map, ["AIR"])
             if not path_is_valid:
-                TT()
                 raise ValueError("The path is not valid, may have some where unstandable for a 2-tile high agent")
             if not connected_path_is_valid:
-                TT()
                 raise ValueError("The connected path is not valid, may have some where unstandable"
                                 "for a 2-tile high agent")
         # # fix the positions of entrance and exit at the bottom and diagonal top, respectively
@@ -307,8 +305,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeCtrlProblem):
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             # spawn_3D_path(self.path_coords)
             spawn_3D_maze(map)
-            spawn_3D_path(self.connected_path_coords, item=LEAVES)
-            spawn_3D_path(self.path_coords)
+            spawn_3D_path(self.connected_path_coords, item=TRAPDOOR)
+            spawn_3D_path(self.path_coords, item=LEAVES)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)

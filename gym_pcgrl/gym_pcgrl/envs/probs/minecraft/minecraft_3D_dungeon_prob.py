@@ -8,7 +8,7 @@ from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import (get_range_reward, get_tile_locations, calc_num_regions, get_path_coords,
     calc_certain_tile, run_dijkstra)
-from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_2D_maze, spawn_3D_maze, spawn_3D_border, spawn_3D_path
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -19,10 +19,12 @@ class Minecraft3DDungeonProblem(Problem):
     """
     def __init__(self):
         super().__init__()
+        self._passable = ["AIR", "CHEST", "SKULL", "PUMPKIN"]
         self._length = 7
         self._width = 7
         self._height = 7
         self._prob = {"AIR": 0.5, "DIRT":0.35, "CHEST":0.05, "SKULL":0.05, "PUMPKIN":0.05}
+        self._prob = {"AIR": 1.5, "DIRT":0., "CHEST":0.0, "SKULL":0.0, "PUMPKIN":0.0}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
 
@@ -89,29 +91,23 @@ class Minecraft3DDungeonProblem(Problem):
             "chests": (0, self._width * self._length * self._height - 2 ),
             "n_jump": (0, self._max_path_length // 2),
             "nearest-enemy": (0, self._max_nearest_enemy),
-            "enemies": (0, self._width * self._length, self._height - 2),
+            "enemies": (0, self._width * self._length * self._height - 2),
+            "key": (0, self._width * self._length * self._height - 2),
         }
 
         self._reward_weights = {
-            "regions": 1, 
-            "path-length": 1, 
-            "chests": 1, 
-            "n_jump": 1,
-            "enemies": 1,
-            "nearest-enemy": 1,
-            "key": 1,
+            "regions": 100, 
+            "path-length": 100, 
+            "chests": 100, 
+            "n_jump": 100,
+            "enemies": 100,
+            "nearest-enemy": 100,
+            "key": 100,
 
         }
-# NEXT: add use NCA repre / RL agent to train a Zelda
-# NEXT: add a easy render 3D pillow option
+        self._ctrl_reward_weights = self._reward_weights
 
-    def process_observation(self, observation):
-        if self.path_coords == []:
-            return observation
-        observation['map'][self.path_coords[:, 0], 
-                            self.path_coords[:, 1], 
-                            self.path_coords[:, 2]] = self._path_idx
-        return observation
+# NEXT: add a easy render 3D pillow option
 
     """
     Get a list of all the different tile names
@@ -155,6 +151,7 @@ class Minecraft3DDungeonProblem(Problem):
         start_stats (dict(string,any)): the first stats of the map
     """
     def reset(self, start_stats):
+        self.min_e_path = []
         self._rendered_initial_maze = False
         super().reset(start_stats)
         if self._random_probs:
@@ -195,7 +192,7 @@ class Minecraft3DDungeonProblem(Problem):
             enemies.extend(map_locations["SKULL"])
             enemies.extend(map_locations["PUMPKIN"])
             if len(enemies) > 0:
-                dijkstra, _, _ = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                dijkstra, _, _ = run_dijkstra(p_x, p_y, p_z, map, self._passable_tiles)
                 min_dist = self._width * self._height * self._length
                 for e_x, e_y, e_z in enemies:
                     if dijkstra[e_z][e_y][e_x] > 0 and dijkstra[e_z][e_y][e_x] < min_dist:
@@ -208,12 +205,12 @@ class Minecraft3DDungeonProblem(Problem):
                 d_x, d_y, d_z = len(map[0][0])-1, len(map[0])-1, len(map)-2
 
                 # start point is 0, 0, 0
-                dijkstra_c, _, jump_map = run_dijkstra(p_x, p_y, p_z, map, ["AIR"])
+                dijkstra_c, _, jump_map = run_dijkstra(p_x, p_y, p_z, map, self._passable_tiles)
                 map_stats["path-length"] += dijkstra_c[c_z][c_y][c_x]
                 map_stats["n_jump"] += jump_map[c_z][c_y][c_x]
 
                 # start point is chests
-                dijkstra_d, _, jump_map = run_dijkstra(c_x, c_y, c_z, map, ["AIR"])
+                dijkstra_d, _, jump_map = run_dijkstra(c_x, c_y, c_z, map, self._passable_tiles)
                 map_stats["path-length"] += dijkstra_d[d_z][d_y][d_x]
                 map_stats["n_jump"] += jump_map[d_z][d_y][d_x]
                 if self.render_path:
@@ -291,8 +288,8 @@ class Minecraft3DDungeonProblem(Problem):
     def render(self, map, iteration_num, repr_name, **kwargs):
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
-            spawn_3D_maze(map)
+            # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+            # spawn_3D_maze(map)
             self._rendered_initial_maze = True
 
         # render the path
@@ -304,9 +301,10 @@ class Minecraft3DDungeonProblem(Problem):
         
         if self.render_path:
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
-            erase_3D_path(path_to_erase)
+            # erase_3D_path(path_to_erase)
                 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
+            spawn_3D_maze(map)
             spawn_3D_path(self.path_coords)
             # time.sleep(0.2)
          

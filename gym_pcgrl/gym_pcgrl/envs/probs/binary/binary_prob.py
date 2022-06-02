@@ -51,6 +51,37 @@ class BinaryProblem(Problem):
         self._path_idx = len(self.get_tile_types())
 
 
+        # default conditional targets
+        self.static_trgs = {
+            "regions": 1, 
+            "path-length": self._max_path_length, 
+            # "connectivity": 1
+        }
+
+        # boundaries for conditional inputs/targets
+        self.cond_bounds = {
+            # Upper bound: checkerboard
+            "regions": (0, self._width * np.ceil(self._height / 2)),
+            #     10101010
+            #     01010101
+            #     10101010
+            #     01010101
+            #     10101010
+            # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
+            # and "snake" along that one
+            # Upper bound: zig-zag
+            "path-length": (0, self._max_path_length),
+            #   11111111
+            #   00000001
+            #   11111111
+            #   10000000
+            #   11111111
+            # "connectivity": (0, 1)
+        }
+
+    # We do these things in the ParamRew wrapper (note that max change and iterations
+
+
     # Take the path into observation
     # def get_observable_tile_types(self):
         # return self.get_tile_types() + ["path"]

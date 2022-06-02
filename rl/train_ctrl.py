@@ -217,15 +217,17 @@ def main(cfg):
     dummy_env = make_env(dummy_cfg)
     # check_env(dummy_env)
 
-    # ### DEBUG ###
-    # for _ in range(10):
-    #     obs = dummy_env.reset()
-    #     for _ in range(300):
-    #     #    act = dummy_env.action_space.sample()
-    #        act = 0
-    #        dummy_env.step(act)
-    #        dummy_env.render()
-    # # TT()
+    # DEBUG ###
+    for _ in range(10):
+        obs = dummy_env.reset()
+        for i in range(300):
+            if i > 3:
+                act = dummy_env.action_space.sample()
+            else:
+                act = 0
+            dummy_env.step(act)
+            print(dummy_env.unwrapped._rep_stats)
+            dummy_env.render()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
 

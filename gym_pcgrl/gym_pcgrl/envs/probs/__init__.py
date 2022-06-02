@@ -1,6 +1,5 @@
 from gym_pcgrl.envs.probs.binary.binary_prob import BinaryProblem
-from gym_pcgrl.envs.probs.binary.binary_ctrl_prob import BinaryCtrlProblem
-from gym_pcgrl.envs.probs.binary.binary_ctrl_holey_prob import BinaryCtrlHoleyProblem
+from gym_pcgrl.envs.probs.binary.binary_holey_prob import BinaryHoleyProblem
 from gym_pcgrl.envs.probs.ddave.ddave_prob import DDaveProblem
 from gym_pcgrl.envs.probs.mdungeon.mdungeon_prob import MDungeonProblem
 from gym_pcgrl.envs.probs.sokoban.sokoban_prob import SokobanProblem
@@ -17,19 +16,17 @@ from gym_pcgrl.envs.probs.face_prob import FaceProblem
 from gym_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructureProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_2D_maze_prob import Minecraft2DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_ctrl_prob import Minecraft3DmazeCtrlProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_prob import Minecraft3DDungeonProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Dungeon_ctrl_prob import Minecraft3DDungeonCtrlProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_Dungeon_prob import Minecraft3DholeyDungeonCtrlProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_dungeon_prob import Minecraft3DDungeonProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_dungeon_prob import Minecraft3DholeyDungeonProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_prob import Minecraft3DParkourProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_ctrl_prob import Minecraft3DParkourCtrlProblem
 
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
     "binary": BinaryProblem,
-    "binary_ctrl": BinaryCtrlProblem,
-    "binary_ctrl_holey": BinaryCtrlHoleyProblem,
+    "binary_ctrl": BinaryProblem,
+    "binary_ctrl_holey": BinaryHoleyProblem,
     "ddave": DDaveProblem,
     "mdungeon": MDungeonProblem,
     "sokoban": SokobanProblem,
@@ -46,11 +43,9 @@ PROBLEMS = {
     "microstructure": MicroStructureProblem,
     "minecraft_2D_maze": Minecraft2DmazeProblem,
     "minecraft_3D_maze": Minecraft3DmazeProblem,
-    "minecraft_3D_maze_ctrl": Minecraft3DmazeCtrlProblem,
     "minecraft_3D_holey_maze": Minecraft3DholeymazeProblem,
     "minecraft_3D_dungeon": Minecraft3DDungeonProblem,
-    "minecraft_3D_dungeon_ctrl": Minecraft3DDungeonCtrlProblem,
-    "minecraft_3D_dungeon_ctrl_holey": Minecraft3DholeyDungeonCtrlProblem,
+    "minecraft_3D_dungeon_holey": Minecraft3DholeyDungeonProblem,
     "minecraft_3D_parkour": Minecraft3DParkourProblem,
     "minecraft_3D_parkour_ctrl": Minecraft3DParkourCtrlProblem,
 }

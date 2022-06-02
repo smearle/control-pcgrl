@@ -39,8 +39,8 @@ class Problem:
         self.render_path = False
         self.path_to_erase = set({})  # FIXME: only 3D really needs this.
 
-    def gen_holes(self):
-        return None
+    # def gen_holes(self):
+        # return None
 
     def is_continuous(self):
         return False
@@ -119,8 +119,8 @@ class Problem:
     Returns:
         float: the current reward due to the change between the old map stats and the new map stats
     """
-    def get_reward(self, new_stats, old_stats):
-        raise NotImplementedError('get_reward is not implemented')
+    # def get_reward(self, new_stats, old_stats):
+    #     raise NotImplementedError('get_reward is not implemented')
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
@@ -133,8 +133,8 @@ class Problem:
     Returns:
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
-    def get_episode_over(self, new_stats, old_stats):
-        raise NotImplementedError('get_graphics is not implemented')
+    # def get_episode_over(self, new_stats, old_stats):
+    #     raise NotImplementedError('get_graphics is not implemented')
 
     """
     Get any debug information need to be printed
@@ -216,3 +216,11 @@ class Problem:
             # draw.text((x, y),"Sample Text",(r,g,b))
             draw.text(((full_width - 1) * self._tile_size / 2, 0),"{}".format(self.path_length),(255,255,255),font=font)
         return lvl_image
+
+    def get_episode_over(self, new_stats, old_stats):
+        """ If the generator has reached its targets. (change percentage and max iterations handled in pcgrl_env)"""
+
+        return False
+
+    def get_reward(self, new_stats, old_stats):
+        return None

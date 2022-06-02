@@ -55,8 +55,8 @@ class PcgrlHoleyEnv3D(PcgrlEnv3D):
 
     def render(self, mode='human'):
         # Render the agent's edit action.
-        self._rep.render(get_string_map(
-            self._get_rep_map(), self._prob.get_tile_types()))
+        # self._rep.render(get_string_map(
+            # self._get_rep_map(), self._prob.get_tile_types()))
 
         # Render the resulting path.
         self._prob.render(get_string_map(
