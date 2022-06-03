@@ -2,8 +2,8 @@ from pdb import set_trace as TT
 
 from sklearn.utils import check_X_y
 
-from gym_pcgrl.envs.helper_3D import calc_certain_tile, calc_num_regions, get_path_coords, get_tile_locations, plot_3D_path, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_path
+from gym_pcgrl.envs.helper_3D import calc_certain_tile, calc_num_regions, get_path_coords, get_tile_locations, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_path, spawn_base
 import numpy as np
 
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_dungeon_prob import Minecraft3DDungeonProblem
@@ -165,10 +165,15 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3Dholey
             # erase_3D_path(path_to_erase)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
+        spawn_base(map)
         spawn_3D_maze(map)
-        render_path_coords = [tuple(coords) for coords in self.path_coords if map[coords[0]][coords[1]][coords[2]] == 'AIR']
+        render_path_coords = self.path_coords
+        render_path_coords = remove_stacked_path_tiles(render_path_coords)
+        render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
         spawn_3D_path(render_path_coords)
-        render_path_e_coords = [tuple(coords) for coords in self.min_e_path if map[coords[0]][coords[1]][coords[2]] == 'AIR']
+        render_path_e_coords = self.min_e_path
+        render_path_e_coords = remove_stacked_path_tiles(render_path_e_coords)
+        render_path_e_coords = [tuple(coords) for coords in render_path_e_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
         spawn_3D_path(render_path_e_coords, item=LEAVES)
             # time.sleep(0.2)
 

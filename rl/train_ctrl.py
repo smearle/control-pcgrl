@@ -325,7 +325,7 @@ def main(cfg):
     if cfg.infer:
         trainer_config.update({
             'record_env': log_dir,
-            'explore': False,
+            'explore': True,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
         with open(checkpoint_path_file, 'r') as f:
@@ -447,6 +447,7 @@ def main(cfg):
             **trainer_config,
         },
         checkpoint_score_attr="episode_reward_mean",
+        
         checkpoint_at_end=True,
         checkpoint_freq=10,
         keep_checkpoints_num=3,
