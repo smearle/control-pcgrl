@@ -306,7 +306,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             spawn_3D_maze(map)
             render_path_coords = self.connected_path_coords
             render_path_coords = remove_stacked_path_tiles(render_path_coords)
-            render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']            spawn_3D_path(render_path_coords, item=TRAPDOOR)
+            render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
             spawn_3D_path(render_path_coords, item=TRAPDOOR)
 
             # spawn_3D_path(self.path_coords, item=LEAVES)
