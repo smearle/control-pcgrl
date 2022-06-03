@@ -325,7 +325,7 @@ def main(cfg):
     if cfg.infer:
         trainer_config.update({
             'record_env': log_dir,
-            'explore': True,
+            'explore': False,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
         with open(checkpoint_path_file, 'r') as f:
@@ -334,6 +334,9 @@ def main(cfg):
         # HACK (should probably be logging relative paths in the first place?)
         checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
         
+        if not os.path.exists(checkpoint_path):
+            assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
+            checkpoint_path = checkpoint_path[:-1]
         trainer.load_checkpoint(checkpoint_path=checkpoint_path)
         print(f"Loaded checkpoint from {checkpoint_path}.")
 

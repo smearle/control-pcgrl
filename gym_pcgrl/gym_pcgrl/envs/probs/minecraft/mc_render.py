@@ -125,6 +125,19 @@ def spawn_2D_path(path=None, base_pos=5, item=LEAVES):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
+def spawn_base(map, border_size=(1, 1, 1), base_pos=5,\
+                    boundary_size=3, backgroud_type=QUARTZ_BLOCK):
+    i, k, j = len(map[0][0]), len(map), len(map[0])
+    # render the base
+    CLIENT.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=-boundary_size-border_size[0] + 2, 
+                      y=base_pos - 2, z=-boundary_size-border_size[1] + 2),
+            max=Point(x=i + boundary_size + border_size[0] - 3,
+                      y=base_pos - 1, z=j + boundary_size + border_size[1] - 3)
+        ),
+        type=backgroud_type
+    ))
 
 def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
                     boundary_size=3, start_xyz=None, end_xyz=None, backgroud_type=QUARTZ_BLOCK):
@@ -142,16 +155,7 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
     item = get_tile(border_tile)
     i, k, j = len(map[0][0]), len(map), len(map[0])
 
-    # render the base
-    CLIENT.fillCube(FillCubeRequest(
-        cube=Cube(
-            min=Point(x=-boundary_size-border_size[0] + 2, 
-                      y=base_pos - 2, z=-boundary_size-border_size[1] + 2),
-            max=Point(x=i + boundary_size + border_size[0] - 3,
-                      y=base_pos - 1, z=j + boundary_size + border_size[1] - 3)
-        ),
-        type=backgroud_type
-    ))
+    spawn_base(map, border_size, base_pos, boundary_size, backgroud_type)
 
     # render the border
     CLIENT.fillCube(FillCubeRequest(
@@ -180,15 +184,15 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
             ),
             type=AIR
         ))
-    else:
-        CLIENT.fillCube(FillCubeRequest(
-            cube=Cube(
-                min=Point(x=-border_size[0], y=base_pos, z=0),
-                max=Point(x=-1,y=base_pos+1, z=0)
-            ),
-            type=AIR
-        ))
-        CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=GOLD_BLOCK, orientation=NORTH)]))
+    # else:
+    #     CLIENT.fillCube(FillCubeRequest(
+    #         cube=Cube(
+    #             min=Point(x=-border_size[0], y=base_pos, z=0),
+    #             max=Point(x=-1,y=base_pos+1, z=0)
+    #         ),
+    #         type=AIR
+    #     ))                                                             # Change to GOLD_BLOCK to highlight the entrance
+        # CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=item, orientation=NORTH)]))
 
     # render the exit on the border
     if end_xyz is not None:
@@ -199,15 +203,15 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
             ),
             type=AIR
         ))
-    else:
-        CLIENT.fillCube(FillCubeRequest(
-            cube=Cube(
-                min=Point(x=i, y=base_pos+k-2, z=j-1), 
-                max=Point(x=i+border_size[0]-1, y=base_pos+k-1, z=j-1)
-            ),
-            type=AIR
-        ))
-        CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=base_pos+k-3, z=j-1),type=DIAMOND_BLOCK, orientation=NORTH)]))
+    # else:
+    #     CLIENT.fillCube(FillCubeRequest(
+    #         cube=Cube(
+    #             min=Point(x=i, y=base_pos+k-2, z=j-1), 
+    #             max=Point(x=i+border_size[0]-1, y=base_pos+k-1, z=j-1)
+    #         ),
+    #         type=AIR
+    #     ))                                                              # Change to DIOMAND_BLOCK to highlight the exit
+        # CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i, y=base_pos+k-3, z=j-1),type=item, orientation=NORTH)]))
 
     return
 
@@ -326,18 +330,18 @@ def edit_bordered_3D_maze(map, i, j, k, base_pos=5):
     return
 
 if __name__ == '__main__':
-    clear(20,20)
+    # clear(20,20)
     CLIENT.fillCube(FillCubeRequest(
         cube=Cube(
-            min=Point(x=-5, y=3, z=-5),
-            max=Point(x=30, y=3, z=30)
+            min=Point(x=-50, y=3, z=-50),
+            max=Point(x=50, y=3, z=50)
         ),
-        type=DIRT
+        type=GRASS
     ))
     CLIENT.fillCube(FillCubeRequest(
         cube=Cube(
-            min=Point(x=-5, y=4, z=-5),
-            max=Point(x=30, y=10, z=30)
+            min=Point(x=-10, y=4, z=-10),
+            max=Point(x=10, y=15, z=10)
         ),
         type=AIR
     ))

@@ -99,14 +99,6 @@ class Minecraft3DDungeonProblem(Problem):
             "regions": 0, 
             "path-length": 100, 
             "chests": 300, 
-            "n_jump": 0,
-            "enemies": 100,
-            "nearest-enemy": 200,
-        }
-        self._reward_weights = {
-            "regions": 0, 
-            "path-length": 100, 
-            "chests": 300, 
             "n_jump": 100,
             "enemies": 100,
             "nearest-enemy": 200,

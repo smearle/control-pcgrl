@@ -14,7 +14,7 @@ from timeit import default_timer as timer
 
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
-    calc_longest_path, debug_path, plot_3D_path, run_dijkstra
+    calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
 # from gym_pcgrl.test3D import plot_3d_map
@@ -94,9 +94,9 @@ class Minecraft3DmazeProblem(Problem):
     def get_tile_types(self):
         return ["AIR", "DIRT"]
 
-    def process_observation(self, observation):
-        path_coords = np.array(self.path_coords)
-        if self.path_coords == []:
+    def process_observation(self, observation, path_coords):
+        path_coords = np.array(path_coords)
+        if path_coords.shape == (0,):
             return observation
         observation['map'][path_coords[:, 0], 
                            path_coords[:, 1], 
@@ -161,6 +161,7 @@ class Minecraft3DmazeProblem(Problem):
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
         self.path_length, self.path_coords, self.n_jump = calc_longest_path(map, map_locations, ["AIR"], get_path=self.render_path)
+        self.path_coords = remove_stacked_path_tiles(self.path_coords)
         
         # print(f"minecraft path-finding time: {timer() - start_time}")
         if self.render:
@@ -285,7 +286,7 @@ class Minecraft3DmazeProblem(Problem):
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             spawn_3D_path(self.path_coords)
-            # time.sleep(2)
+            # time.sleep(0.2)
 
         # render_blocks(block_dict)
 

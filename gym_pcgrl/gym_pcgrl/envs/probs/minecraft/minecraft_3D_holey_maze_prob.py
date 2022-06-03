@@ -13,9 +13,9 @@ import numpy as np
 from timeit import default_timer as timer
 
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
-    calc_longest_path, debug_path, plot_3D_path, run_dijkstra
+    calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
-    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
+    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES, TRAPDOOR
 # from gym_pcgrl.test3D import plot_3d_map
@@ -153,11 +153,13 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         end_xyz = tuple(self.end_xyz[0][::-1])  # lol ... why?
         self.connected_path_length = len(paths[end_xyz]) if end_xyz in paths else -1
         self.connected_path_coords = np.array(paths[end_xyz]) if end_xyz in paths else []
+        self.connected_path_coords = remove_stacked_path_tiles(self.connected_path_coords)
         self.n_jump = jumps[end_xyz] if end_xyz in jumps else 0
         tiles_paths = [(tile, path) for tile, path in paths.items()]
         max_id = np.argmax(np.array([len(p) for (_,p) in tiles_paths]))
         max_tile, self.path_coords = tiles_paths[max_id]
         self.path_length = len(self.path_coords)
+        self.path_coords = remove_stacked_path_tiles(self.path_coords)
 
         assert not (self.connected_path_length == 0 and len(self.connected_path_coords) > 0)
         # print(f"minecraft path-finding time: {timer() - start_time}")
@@ -196,12 +198,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         }
 
     def process_observation(self, observation):
-        if self.connected_path_coords == []:
-            return observation
-        observation['map'][self.connected_path_coords[:, 0], 
-                            self.connected_path_coords[:, 1], 
-                            self.connected_path_coords[:, 2]] = self._path_idx
-        return observation
+        return super().process_observation(observation, self.connected_path_coords)
         
     """
     This func is handled by the conditional wrapper
@@ -264,6 +261,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
             # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+            spawn_base(map)
             spawn_3D_maze(map)
             # spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True
@@ -306,7 +304,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             # spawn_3D_path(self.path_coords)
             spawn_3D_maze(map)
             spawn_3D_path(self.connected_path_coords, item=TRAPDOOR)
-            spawn_3D_path(self.path_coords, item=LEAVES)
+            # spawn_3D_path(self.path_coords, item=LEAVES)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)
