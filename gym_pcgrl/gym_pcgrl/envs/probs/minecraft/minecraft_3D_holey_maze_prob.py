@@ -303,7 +303,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             # spawn_3D_path(self.path_coords)
             spawn_3D_maze(map)
-            spawn_3D_path(self.connected_path_coords, item=TRAPDOOR)
+            render_path_coords = [tuple(coords) for coords in self.connected_path_coords if map[coords[0], coords[1], coords[2]] == 'AIR']
+            spawn_3D_path(render_path_coords, item=TRAPDOOR)
             # spawn_3D_path(self.path_coords, item=LEAVES)
             # time.sleep(0.2)
 

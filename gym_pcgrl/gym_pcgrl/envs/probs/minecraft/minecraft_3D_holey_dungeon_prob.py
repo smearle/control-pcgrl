@@ -166,8 +166,10 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3Dholey
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
         spawn_3D_maze(map)
-        spawn_3D_path(self.path_coords)
-        spawn_3D_path(self.min_e_path, item=LEAVES)
+        render_path_coords = [tuple(coords) for coords in self.path_coords if map[coords[0]][coords[1]][coords[2]] == 'AIR']
+        spawn_3D_path(render_path_coords)
+        render_path_e_coords = [tuple(coords) for coords in self.min_e_path if map[coords[0]][coords[1]][coords[2]] == 'AIR']
+        spawn_3D_path(render_path_e_coords, item=LEAVES)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)

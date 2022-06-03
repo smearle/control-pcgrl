@@ -94,7 +94,8 @@ class Minecraft3DmazeProblem(Problem):
     def get_tile_types(self):
         return ["AIR", "DIRT"]
 
-    def process_observation(self, observation, path_coords):
+    def process_observation(self, observation, path_coords=None):
+        path_coords = self.path_coords if path_coords is None else path_coords
         path_coords = np.array(path_coords)
         if path_coords.shape == (0,):
             return observation
