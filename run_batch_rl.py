@@ -108,7 +108,7 @@ def launch_batch(collect_params=False):
                     "experiment_id": exp_id,
                     "evaluate": EVALUATE,
                     "render": opts.render,
-                    "load": opts.load or opts.infer,
+                    "load": opts.load,
                     "infer": opts.infer,
                     "max_board_scans": max_board_scans,
                     "n_aux_tiles": n_aux_tiles,
@@ -121,17 +121,17 @@ def launch_batch(collect_params=False):
                 }
             )
 
-            if EVALUATE:
-                exp_config.update(
-                    {
-                        "load": True,
-                        "n_maps": n_maps,
-                        # "render": False,
-#                                   "render_levels": opts.render_levels,
-                        "n_bins": (n_bins,),
-                        "vis_only": opts.vis_only,
-                    }
-                )
+#             if EVALUATE:
+#                 exp_config.update(
+#                     {
+#                         # "load": True,
+#                         "n_maps": n_maps,
+#                         # "render": False,
+# #                                   "render_levels": opts.render_levels,
+#                         "n_bins": (n_bins,),
+#                         "vis_only": opts.vis_only,
+#                     }
+                # )
             print(f"Saving experiment config:\n{exp_config}")
             
             # get the experiment name to name the config file
@@ -176,7 +176,7 @@ def launch_batch(collect_params=False):
             elif LOCAL:
                 full_cmd = f"python {py_script_name} --load_args {config_name}"
                 print(f"Running command:\n{full_cmd}")
-                os.system(full_cmd)
+                # os.system(full_cmd)
             else:
                 os.system(f"sbatch {sbatch_name}")
             i += 1

@@ -255,7 +255,7 @@ def main(cfg):
             }
         },
         "evaluation_duration": 1,
-        "evaluation_unit": "episodes",
+        "evaluation_duration_unit": "episodes",
         "evaluation_config": {
             "explore": True if cfg.infer else False,
         },
@@ -333,19 +333,20 @@ def main(cfg):
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
 
-        with open(checkpoint_path_file, 'r') as f:
-            checkpoint_path = f.read()
+        if cfg.load:
+            with open(checkpoint_path_file, 'r') as f:
+                checkpoint_path = f.read()
         
-        # HACK (should probably be logging relative paths in the first place?)
-        checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
+            # HACK (should probably be logging relative paths in the first place?)
+            checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
         
-        # HACK wtf (if u edit the checkpoint path some funkiness lol)
-        if not os.path.exists(checkpoint_path):
-            assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
-            checkpoint_path = checkpoint_path[:-1]
+            # HACK wtf (if u edit the checkpoint path some funkiness lol)
+            if not os.path.exists(checkpoint_path):
+                assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
+                checkpoint_path = checkpoint_path[:-1]
 
-        trainer.load_checkpoint(checkpoint_path=checkpoint_path)
-        print(f"Loaded checkpoint from {checkpoint_path}.")
+            trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+            print(f"Loaded checkpoint from {checkpoint_path}.")
 
         if cfg.evaluate:
             # Set controls
@@ -358,9 +359,9 @@ def main(cfg):
                 envs = [env for worker_env in envs for env in worker_env]
 
                 [env.unwrapped._prob.queue_holes(holes) for env, holes in zip(envs, env_holes)]
+                TT()
                 for _ in range(100):
                     result = trainer.evaluate()
-                    TT()
                 # TT()
                 # print([e.unwrapped._prob.hole_queue for e in envs])
 
