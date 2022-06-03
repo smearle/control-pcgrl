@@ -27,17 +27,23 @@ class StatsCallbacks(DefaultCallbacks):
         env_index: int,
         **kwargs
     ):
+        env = base_env.get_sub_environments()[env_index]
         # Make sure this episode has just been started (only initial obs
         # logged so far).
         assert episode.length == 0, (
             "ERROR: `on_episode_start()` callback should be called right "
             "after env reset!"
         )
-        for k in base_env.get_sub_environments()[env_index].ctrl_metrics:
+        for k in env.ctrl_metrics:
             episode.hist_data.update({
                 f'{k}-trg': None,
-                f'{k}-val': None,
             })
+        for k in env.metrics:
+            episode.hist_data.update({f'{k}-val': None,
+        })
+        episode.hist_data.update({
+            'holes_start_end': None,
+        })
 
     def on_episode_end(
         self,
@@ -93,7 +99,14 @@ class StatsCallbacks(DefaultCallbacks):
             # episode.ctrl_metrics = {f'ctrl-{k}': {env.metric_trgs[k]: env.metrics[k]}}
             episode.hist_data.update({
                 f'{k}-trg': [env.metric_trgs[k]],  # rllib needs these values to be lists :)
-                f'{k}-val': [env.metrics[k]],})
+            })
+        for k in env.metrics:
+            episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
 
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
+
+        if hasattr(env.unwrapped._prob, '_hole_queue'):
+            episode.hist_data.update({
+                'holes_start_end': (env.unwrapped._prob.start_xyz, env.unwrapped._prob.end_xyz),
+            })

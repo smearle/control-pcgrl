@@ -175,8 +175,10 @@ def launch_batch(collect_params=False):
                 settings_list.append(exp_config)
             elif LOCAL:
                 full_cmd = f"python {py_script_name} --load_args {config_name}"
+                # Printout for convenience: when debugging on a Mac calling this from a script will break `set_trace()`
+                # so we print the command here to be entered-in manually.
                 print(f"Running command:\n{full_cmd}")
-                # os.system(full_cmd)
+                os.system(full_cmd)
             else:
                 os.system(f"sbatch {sbatch_name}")
             i += 1

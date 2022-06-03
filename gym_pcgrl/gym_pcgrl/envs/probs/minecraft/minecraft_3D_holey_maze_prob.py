@@ -107,7 +107,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         assert self._height > 2 
 
         if len(self._hole_queue) > 0:
-            self.start_xyz, self.end_xyz = self._hole_queue.pop()
+            (self.start_xyz, self.end_xyz), self._hole_queue = self._hole_queue[0], self._hole_queue[1:]
+            # print(f"Setting holes: {self.start_xyz, self.end_xyz}")
 
         elif self.fixed_holes:
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))

@@ -231,7 +231,7 @@ def main(cfg):
     sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
-    num_envs_per_worker = 20
+    num_envs_per_worker = 20 if not cfg.infer else 1
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
@@ -354,16 +354,21 @@ def main(cfg):
                 all_holes = dummy_env.unwrapped._prob.gen_all_holes()
                 n_envs = max(1, num_workers) * num_envs_per_worker
                 env_hole_int = len(all_holes) // n_envs
-                env_holes = [all_holes[:env_hole_int * (i + 1)] for i in range(n_envs)]
+                env_holes = [all_holes[env_hole_int * i:env_hole_int * (i + 1)] for i in range(n_envs)]
                 envs = trainer.workers.foreach_env(lambda env: env)
                 envs = [env for worker_env in envs for env in worker_env]
+                hole_stats = {}
 
                 [env.unwrapped._prob.queue_holes(holes) for env, holes in zip(envs, env_holes)]
-                TT()
-                for _ in range(100):
+                while len(hole_stats) < len(all_holes):
                     result = trainer.evaluate()
-                # TT()
+                    hist_stats = result['evaluation']['hist_stats']
+                    if 'holes_start_end' in hist_stats:
+                        for hole, path_len in zip(hist_stats['holes_start_end'], hist_stats['connected-path-length-val']):
+                            hole_stats[tuple([tuple(h) for h in hole])] = path_len
+                        print(f"{len(hole_stats)} out of {len(all_holes)} hole stats collected")
                 # print([e.unwrapped._prob.hole_queue for e in envs])
+                sys.exit()
 
         for _ in range(100):
             trainer.evaluate()
