@@ -32,18 +32,19 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
 
         self._reward_weights.update({
             "regions": 0,
-            "path-length": 1,
-            "connected-path-length": 1.2,
-            "n_jump": 1,
+            "path-length": 100,
+            "connected-path-length": 120,
+            "n_jump": 150,
             # "connectivity": 0,
             # "connectivity": self._width,
             # "connectivity": self._max_path_length,
         })
+        self._ctrl_reward_weights = self._reward_weights
 
         self.static_trgs.update({
             # "connectivity": 1,
-            "path-length": self._max_path_length + 2,
-            "connected-path-length": self._max_path_length + 2,
+            "path-length": 10 * self._max_path_length,
+            "connected-path-length": 10 * self._max_path_length,
             "n_jump": 5,
         })
 

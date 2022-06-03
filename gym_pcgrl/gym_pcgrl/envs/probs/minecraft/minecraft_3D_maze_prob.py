@@ -42,12 +42,13 @@ class Minecraft3DmazeProblem(Problem):
 
         # Max path length involves having a zig-zag pattern on each floor, connected by a set of stairs.
         max_path_per_floor = np.ceil(self._width / 2) * (self._length) + np.floor(self._length/2)
-        self._max_path_length = n_floors * max_path_per_floor
+        self._max_path_length = 2 * n_floors * max_path_per_floor
 
         # default conditional targets
         self.static_trgs = {
             "regions": 1, 
-            "path-length": self._max_path_length,
+            # "path-length": self._max_path_length,
+            "path-length": 10 * self._max_path_length,
             "n_jump": 5,
         }
 
@@ -55,26 +56,15 @@ class Minecraft3DmazeProblem(Problem):
         self.cond_bounds = {
             # Upper bound: checkerboard
             "regions": (0, np.ceil(self._width * self._length / 2 * self._height)),
-            #     10101010
-            #     01010101
-            #     10101010
-            #     01010101
-            #     10101010
-            # FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
-            # and "snake" along that one
-            # Upper bound: zig-zag
             "path-length": (0, self._max_path_length),
             "n_jump": (0, self._max_path_length // 2),
         }
         self._reward_weights = {
             "regions": 0,
             "path-length": 100,
-            "n_jump": 0
-        }
-        self._ctrl_reward_weights = {
             "n_jump": 100,
-            "path-length": 100,
         }
+        self._ctrl_reward_weights = self._reward_weights
 
         self.path_coords = []
         self.old_path_coords = []

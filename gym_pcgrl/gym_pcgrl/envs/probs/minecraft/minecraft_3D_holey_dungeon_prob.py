@@ -6,43 +6,79 @@ from gym_pcgrl.envs.helper_3D import calc_certain_tile, calc_num_regions, get_pa
 from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_path, spawn_base
 import numpy as np
 
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_dungeon_prob import Minecraft3DDungeonProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
-class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3DholeymazeProblem):
+class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
     def __init__(self):
         Minecraft3DholeymazeProblem.__init__(self)
-        Minecraft3DDungeonProblem.__init__(self)
-       
-        # self._reward_weights.update({
-        #     "regions": 0,
-        #     "path-length": 1,
-        #     "n_jump": 1,
-        #     # "connectivity": 0,
-        #     # "connectivity": self._width,
-        #     # "connectivity": self._max_path_length,
-        # })
+        self._passable = ["AIR", "CHEST", "SKULL", "PUMPKIN"]
+        # self._prob = {"AIR": 0.5, "DIRT":0.35, "CHEST":0.05, "SKULL":0.05, "PUMPKIN":0.05}
+        self._prob = {"AIR": 1.0, "DIRT":0., "CHEST":0.0, "SKULL":0.0, "PUMPKIN":0.0}
+        # self._border_tile = "DIRT"
+        # self._border_size = (1, 1, 1)
 
-        self.static_trgs.update({
-            # "connectivity": 1,
-            "path-length": self._max_path_length + 2,
-            "n_jump": 5,
-        })
+        # An upper bound on the maximum number of any (1-tile-big) tile types on the map. Used for setting controllable
+        # bounds and also (as a result) normalizing static rewards.
+        self._max_any_tile = self._width * self._height * self._length // 4
+
+        self._random_probs = False
+
+        # self.path_length = 0
+        # self.path_coords = []
+        # self.old_path_coords = []
+
+        # self.n_jump = 0
+
+        self._max_chests = 1
+
+        self._max_enemies = 5
+        self._target_enemy_dist = 4
+
+        # self.render_path = True
+        # self._rendered_initial_maze = False
+        # n_floors = self._height // 3
+
+        self._max_nearest_enemy = self._max_path_length // 2
+
+        # change floor by stairs require 6 path_length for each floor
+
+#       self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
+
+        # default conditional targets
+        self.static_trgs = {
+            "enemies": (2, self._max_enemies),
+            "regions": 1, 
+            "path-length": 10 * self._max_path_length, 
+            "nearest-enemy": (5, self._max_nearest_enemy),
+            "chests": 1,
+            "n_jump": (2, 5),
+        }
 
         # boundaries for conditional inputs/targets
-        self.cond_bounds.update({
-            # "connectivity": (0, 1),
-            "path-length": (0, self._max_path_length + 2),
+        self.cond_bounds = {
+            "regions": (0, np.ceil(self._width * self._length / 2 * self._height)),
+            "path-length": (0, self._max_path_length),
+            "chests": (0, self._max_any_tile),
             "n_jump": (0, self._max_path_length // 2),
-        })
+            "nearest-enemy": (0, self._max_nearest_enemy),
+            "enemies": (0, self._max_any_tile),
+            "chests": (0, self._max_any_tile),
+        }
 
-    def adjust_param(self, **kwargs):
-        super().adjust_param(**kwargs)
-        self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
+        self._reward_weights = {
+            "regions": 0, 
+            "path-length": 100, 
+            "chests": 300, 
+            "n_jump": 100,
+            "enemies": 100,
+            "nearest-enemy": 200,
+        }
+        self._ctrl_reward_weights = self._reward_weights
+
 
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
@@ -67,13 +103,14 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3Dholey
         enemies = []
         enemies.extend(map_locations["SKULL"])
         enemies.extend(map_locations["PUMPKIN"])
+        self.min_e_path = []
         if len(enemies) > 0:
             paths_e, _, _ = run_dijkstra(p_x, p_y, p_z, map, self._passable)
-            min_dist = self._width * self._height * self._length
+            min_dist = 0
             for e_x, e_y, e_z in enemies:  # wtf
                 e_path = paths_e.get((e_x, e_y, e_z), [])
                 e_dist = len(e_path)
-                if e_dist > 0 and e_dist < min_dist:
+                if e_dist > 0 and (e_dist < min_dist or min_dist == 0):
                     min_dist = e_dist
                     self.min_e_path = e_path
             map_stats["nearest-enemy"] = min_dist
@@ -184,3 +221,32 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DDungeonProblem, Minecraft3Dholey
             plot_3D_path(self._length, self._width, self._height, self.path_coords)
 
         return 
+
+    """
+    Resets the problem to the initial state and save the start_stats from the starting map.
+    Also, it can be used to change values between different environment resets
+
+    Parameters:
+        start_stats (dict(string,any)): the first stats of the map
+    """
+    def reset(self, start_stats):
+        self.min_e_path = []
+        self._rendered_initial_maze = False
+        super().reset(start_stats)
+        if self._random_probs:
+            self._prob["AIR"] = self._random.random()
+            self._prob["DIRT"] = self._random.random()
+            
+            self._prob["PUMPKIN"] = self._random.random()
+            self._prob["SKULL"] = self._random.random()
+
+            self._prob["CHEST"] = 1 - self._prob["AIR"] - self._prob["DIRT"] - self._prob["SKULL"] - self._prob["PUMPKIN"]
+
+    """
+    Get a list of all the different tile names
+
+    Returns:
+        string[]: that contains all the tile names
+    """
+    def get_tile_types(self):
+        return ["AIR", "DIRT", "CHEST", "SKULL", "PUMPKIN"]
