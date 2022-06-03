@@ -1,10 +1,13 @@
+# dungeon: 3, null model, 1e-6, 1 scan, 0 aux
+
 {
   "exp_names": [
-    0,
-    1,
-    2,
+    # 0,
+    # 1,
+    # 2,
+    3,
 
-    # testSeq3D,
+    # testSeq,
     # test0,
     # testAux,
     # test1,
@@ -18,8 +21,8 @@
 
   "problems": [
     # "minecraft_3D_maze",
-    "minecraft_3D_holey_maze",
-    # "minecraft_3D_dungeon_holey",
+    # "minecraft_3D_holey_maze",
+    "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
     # "binary",
@@ -34,9 +37,9 @@
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
         # ["narrow3D", SeqNCA3D],
-        ["narrow3Dholey", SeqNCA3D],
         # ["narrow3D", null],
-        # ["narrow3Dholey", null],
+        # ["narrow3Dholey", SeqNCA3D],
+        ["narrow3Dholey", null],
 
       # ["narrow", SeqNCA],
       # ["narrow", null],
@@ -81,7 +84,7 @@
 
   "local_controls": {
       "minecraft_3D_maze": [
-        # [n_jump],
+        [n_jump],
         # [path-length],
         # [n_jump, path-length],
       ],
@@ -167,15 +170,15 @@
   ],
 
 "max_board_scans": [
-  # 1,
+  1,
   # 2,
-  3,
+  # 3,
   # 5,
 ],
 
   "n_aux_tiles": [
     0,
-    4,
-    8,
+    # 4,
+    # 8,
  ],
 }
