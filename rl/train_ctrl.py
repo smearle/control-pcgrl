@@ -434,7 +434,7 @@ def main(cfg):
     # loggers_dict = {'loggers': [WandbLoggerCallback]} if cfg.wandb else {}
     # loggers_dict = {'loggers': [CustomWandbLogger]} if cfg.wandb else {}
     callbacks_dict = {'callbacks': [WandbLoggerCallback(
-        project="PCGRL_AIIDE",
+        project="PCGRL_AIIDE_0",
         name=exp_name_id,
         id=exp_name_id,
     )]} if cfg.wandb else {}
