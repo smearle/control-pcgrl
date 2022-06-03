@@ -81,15 +81,14 @@ def launch_batch(collect_params=False):
 #                           continue
 
             # TODO: integrate evaluate with rllib
+#             if EVALUATE:
+#                 py_script_name = "rl/evaluate_ctrl.py"
+#                 sbatch_name = "rl/eval.sh"
+# #                       elif opts.infer:
+# #                           py_script_name = "infer_ctrl_sb2.py"
+            # else:
             py_script_name = "rl/train_ctrl.py"
-            if EVALUATE:
-                # py_script_name = "rl/evaluate_ctrl.py"
-                sbatch_name = "rl/eval.sh"
-#                       elif opts.infer:
-#                           py_script_name = "infer_ctrl_sb2.py"
-            else:
-                if not LOCAL:
-                    sbatch_name = "rl/train.sh"
+            sbatch_name = "rl/train.sh"
             
             # Write the config file with the desired settings
             exp_config = copy.deepcopy(default_config)
@@ -107,6 +106,7 @@ def launch_batch(collect_params=False):
                     "change_percentage": change_percentage,
                     "alp_gmm": alp_gmm,
                     "experiment_id": exp_id,
+                    "evaluate": EVALUATE,
                     "render": opts.render,
                     "load": opts.load or opts.infer,
                     "infer": opts.infer,
@@ -126,7 +126,7 @@ def launch_batch(collect_params=False):
                     {
                         "load": True,
                         "n_maps": n_maps,
-                        "render": False,
+                        # "render": False,
 #                                   "render_levels": opts.render_levels,
                         "n_bins": (n_bins,),
                         "vis_only": opts.vis_only,

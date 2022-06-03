@@ -1,30 +1,18 @@
 # dungeon: 3, null model, 1e-6, 1 scan, 0 aux
+# holey: 2, SeqNCA3D, 3-scans, 1e-6, 0 aux
 
 {
   "exp_names": [
+    # test,
     # 0,
     # 1,
-    # 2,
-    # 10,
-    # 11,
-    # 12,
-
-    testRender,
-    # testSeq,
-    # test0,
-    # testAux,
-    # test1,
-    # test1,
-    # test2,
-    # test3,
-    # test4,
-    # test5,
-    # "testholey3D",
+    2,
+    # 3,
   ],
 
   "problems": [
-    "minecraft_3D_maze",
-    # "minecraft_3D_holey_maze",
+    # "minecraft_3D_maze",
+    "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
@@ -41,8 +29,7 @@
   "representations_models": [
         ["narrow3D", SeqNCA3D],
         # ["narrow3D", null],
-
-        # ["narrow3Dholey", SeqNCA3D],
+        ["narrow3Dholey", SeqNCA3D],
         # ["narrow3Dholey", null],
 
       # ["narrow", SeqNCA],
@@ -94,8 +81,8 @@
       ],
       "minecraft_3D_holey_maze": [
         # [n_jump],
-        # [path-length],
-        # [n_jump, path-length],
+        # [connected-path-length],
+        # [n_jump, connected-path-length],
       ],
       "minecraft_3D_dungeon_holey": [
   #       ["emptiness", "path-length"],

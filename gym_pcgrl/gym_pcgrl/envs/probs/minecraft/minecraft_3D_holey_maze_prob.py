@@ -6,6 +6,7 @@ four cardinal directions, provided there are two blocks available vertically (fo
 can also move up and down stairs in any of these directions, if the stairs are one block high, and there are three 
 vertical blocks available on the lower step (and two vertical blocks available on the taller step).
 """
+import itertools
 from pdb import set_trace as TT
 from tkinter import W
 
@@ -29,6 +30,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         super().__init__()
        
         self.fixed_holes = False
+
+        self._hole_queue = []
 
         self._reward_weights.update({
             "regions": 0,
@@ -78,7 +81,14 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         super().adjust_param(**kwargs)
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
+    def queue_holes(self, hole_queue):
+        self._hole_queue = hole_queue
 
+    def gen_all_holes(self):
+        hole_pairs = list(itertools.product(self._border_idxs, self._border_idxs))
+        hole_pairs = [pair for pair in hole_pairs if Minecraft3DholeymazeProblem._valid_holes((pair[0], pair[1] + np.array([1, 0, 0])), pair[1])]
+        hole_pairs = [((pair[0], pair[0] + np.array([1, 0, 0])), (pair[1], pair[1] + np.array([1,0,0]))) for pair in hole_pairs]
+        return hole_pairs
 
     def gen_holes(self):
         """Generate one entrance and one exit hole into/out of the map randomly. Ensure they will not necessarily result
@@ -96,11 +106,13 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         # assert the map is not too small
         assert self._height > 2 
 
-        if self.fixed_holes:
+        if len(self._hole_queue) > 0:
+            self.start_xyz, self.end_xyz = self._hole_queue.pop()
+
+        elif self.fixed_holes:
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
             self.end_xyz = np.array(((1, self._width, self._length + 1),
                                      (2, self._width, self._length + 1)))
-            return self.start_xyz, self.end_xyz
 
         else:
             self.start_xyz = np.ones((2, 3), dtype=np.uint8)  
@@ -122,14 +134,20 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             #
             for i in range(1, potential):
                 xyz = self._border_idxs[idxs[i]]
-                if np.max((np.abs(self.start_xyz[0] - xyz), np.abs(self.start_xyz[1] - xyz))) != 1: 
+                if Minecraft3DholeymazeProblem._valid_holes(self.start_xyz, xyz):
                     self.end_xyz[0] = xyz
                     self.end_xyz[1] = xyz + np.array([1, 0, 0])
                     break
         
         return self.start_xyz, self.end_xyz
 
-      
+    def _valid_holes(start_xyz, end_xyz) -> bool:      
+        """
+        Args:
+            start_xyz: a tuple with the foot/head tiles of the entrance
+            end_xyz: the foot tile of the exit
+        """
+        return np.max((np.abs(start_xyz[0] - end_xyz), np.abs(start_xyz[1] - end_xyz))) > 1
 
     """
     Get the current stats of the map

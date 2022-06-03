@@ -29,6 +29,7 @@ from ray.tune.registry import register_env
 
 import gym_pcgrl
 import wandb
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
     NCA, SeqNCA, SeqNCA3D # noqa : F401
 from args import parse_args
@@ -230,6 +231,7 @@ def main(cfg):
     sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
+    num_envs_per_worker = 20
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
@@ -241,7 +243,7 @@ def main(cfg):
         # 'env_config': {
             # 'change_percentage': cfg.change_percentage,
         # },
-        'num_envs_per_worker': 20 if not cfg.infer else 1,
+        'num_envs_per_worker': num_envs_per_worker if not cfg.infer else 1,
         'render_env': cfg.render,
         'lr': cfg.lr,
         'gamma': cfg.gamma,
@@ -252,8 +254,10 @@ def main(cfg):
                 # 'orig_obs_space': copy.copy(dummy_env.observation_space),
             }
         },
+        "evaluation_duration": 1,
+        "evaluation_unit": "episodes",
         "evaluation_config": {
-            "explore": True,
+            "explore": True if cfg.infer else False,
         },
         "logger_config": {
                 # "wandb": {
@@ -322,23 +326,43 @@ def main(cfg):
     #     print('model overview: \n', trainer.get_policy('default_policy').model)
 
     # Do inference, i.e., observe agent behavior for many episodes.
-    if cfg.infer:
+    if cfg.infer or cfg.evaluate:
         trainer_config.update({
-            'record_env': log_dir,
+            'record_env': log_dir if cfg.record_env else None,
             'explore': True,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
+
         with open(checkpoint_path_file, 'r') as f:
             checkpoint_path = f.read()
         
         # HACK (should probably be logging relative paths in the first place?)
         checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
         
+        # HACK wtf (if u edit the checkpoint path some funkiness lol)
         if not os.path.exists(checkpoint_path):
             assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
             checkpoint_path = checkpoint_path[:-1]
+
         trainer.load_checkpoint(checkpoint_path=checkpoint_path)
         print(f"Loaded checkpoint from {checkpoint_path}.")
+
+        if cfg.evaluate:
+            # Set controls
+            if 'holey' in cfg.env_name:
+                all_holes = dummy_env.unwrapped._prob.gen_all_holes()
+                n_envs = max(1, num_workers) * num_envs_per_worker
+                env_hole_int = len(all_holes) // n_envs
+                env_holes = [all_holes[:env_hole_int * (i + 1)] for i in range(n_envs)]
+                envs = trainer.workers.foreach_env(lambda env: env)
+                envs = [env for worker_env in envs for env in worker_env]
+
+                [env.unwrapped._prob.queue_holes(holes) for env, holes in zip(envs, env_holes)]
+                for _ in range(100):
+                    result = trainer.evaluate()
+                    TT()
+                # TT()
+                # print([e.unwrapped._prob.hole_queue for e in envs])
 
         for _ in range(100):
             trainer.evaluate()
@@ -463,7 +487,6 @@ def main(cfg):
 
 cfg = parse_args()
 
-cfg.evaluate = False  # TODO: implement evaluation
 cfg.ca_actions = False  # Not using NCA-type actions.
 cfg.logging = True  # Always log
 
