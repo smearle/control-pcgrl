@@ -156,6 +156,12 @@ def launch_batch(collect_params=False):
                         f"rl_runs/pcgrl_{config_name}_%j.out",
                         content
                     )
+
+                    content = re.sub(
+                        "--job-name=.*",
+                        f"--job-name={config_name}.out",
+                        content
+                    )
                 with open(sbatch_name, "w") as f:
                     f.write(content)
             
