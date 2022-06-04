@@ -82,8 +82,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         super().adjust_param(**kwargs)
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
-    def queue_holes(self, env_hole_queues, idx_counter):
-        # self._hole_queue = env_hole_queues[self.env_index]
+    def queue_holes(self, idx_counter):
         self._hole_queue = ray.get(idx_counter.get.remote(hash(self)))
 
     def gen_all_holes(self):

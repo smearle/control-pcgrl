@@ -11,6 +11,7 @@ import numpy as np
 
 # from opensimplex import OpenSimplex
 from gym_pcgrl.envs.helper import get_range_reward
+import ray
 
 
 #FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
@@ -158,6 +159,7 @@ class ConditionalWrapper(gym.Wrapper):
             #     raise Exception
 
         self.next_trgs = None
+        self._ctrl_trg_queue = []
 
         if self.render_gui and self.conditional:
             screen_width = 200
@@ -200,6 +202,9 @@ class ConditionalWrapper(gym.Wrapper):
 
         return scalars
 
+    def queue_control_trgs(self, idx_counter):
+        self._ctrl_trg_queue = ray.get(idx_counter.get.remote(hash(self)))
+
     def set_trgs(self, trgs):
         self.next_trgs = trgs
 
@@ -217,6 +222,8 @@ class ConditionalWrapper(gym.Wrapper):
         self.display_metric_trgs()
 
     def reset(self):
+        if len(self._ctrl_trg_queue) > 0:
+            self.next_trgs, self._ctrl_trg_queue = self._ctrl_trg_queue[0], self._ctrl_trg_queue[1:]
         if self.next_trgs:
             self.do_set_trgs()
         ob = super().reset()

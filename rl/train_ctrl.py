@@ -391,7 +391,7 @@ def main(cfg):
                     # trainer.workers.foreach_worker(
                         # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
 
-                    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_controls(idx_counter))
+                    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_holes(idx_counter))
 
                     while len(ctrl_stats) < len(all_holes):
                         result = trainer.evaluate()
