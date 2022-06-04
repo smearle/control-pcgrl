@@ -261,11 +261,11 @@ def main(cfg):
             }
         },
         "evaluation_interval" : 1 if cfg.evaluate else None,
-        "evaluation_duration": num_workers,
+        "evaluation_duration": max(1, num_workers),
         "evaluation_duration_unit": "episodes",
         "evaluation_num_workers": num_workers if cfg.evaluate else 0,
         "evaluation_config": {
-            "explore": True if cfg.infer else False,
+            "explore": False,
         },
         "logger_config": {
                 # "wandb": {
@@ -356,29 +356,27 @@ def main(cfg):
             trainer.load_checkpoint(checkpoint_path=checkpoint_path)
             print(f"Loaded checkpoint from {checkpoint_path}.")
 
+        # TODO: Move this into its own script and re-factor the redundant bits!(?)
         if cfg.evaluate:
+            LOAD_STATS = False
             # Set controls
             if 'holey' in cfg.env_name:
 
-                # LOAD_HOLE_STATS = False
-                LOAD_HOLE_STATS = True
-
-                if LOAD_HOLE_STATS:
-                    hole_stats = pickle.load(open(f'{log_dir}/hole_stats.pkl', 'rb'))
-                    print(f"Loaded {len(hole_stats)} hole stats.")
+                if LOAD_STATS:
+                    ctrl_stats = pickle.load(open(f'{log_dir}/hole_stats.pkl', 'rb'))
+                    print(f"Loaded {len(ctrl_stats)} hole stats.")
                 else:
-                    hole_stats = {}
+                    ctrl_stats = {}
 
                 # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
                 all_holes = dummy_env.unwrapped._prob.gen_all_holes()
                 all_holes = [hole for i, hole in enumerate(all_holes) if i % 1 == 0]
-                all_holes = [hole for hole in all_holes if (tuple(hole[0][0]), tuple(hole[1][0])) not in hole_stats]
+                all_holes = [hole for hole in all_holes if (tuple(hole[0][0]), tuple(hole[1][0])) not in ctrl_stats]
                 n_envs = max(1, num_workers) * num_envs_per_worker
                 if len(all_holes) >= n_envs:
                     # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
                     env_hole_int = len(all_holes) // n_envs
                     env_holes = [all_holes[env_hole_int * i:env_hole_int * (i + 1)] for i in range(n_envs)]
-
                     envs = trainer.evaluation_workers.foreach_env(lambda env: env)
                     envs = [env for worker_env in envs for env in worker_env]
                     idx_counter = IdxCounter.options(name='idx_counter', max_concurrency=1).remote()
@@ -393,25 +391,25 @@ def main(cfg):
                     # trainer.workers.foreach_worker(
                         # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
 
-                    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_holes(env_holes, idx_counter))
+                    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_controls(idx_counter))
 
-                    while len(hole_stats) < len(all_holes):
+                    while len(ctrl_stats) < len(all_holes):
                         result = trainer.evaluate()
                         hist_stats = result['evaluation']['hist_stats']
                         # print(result)
                         if 'holes_start' in hist_stats:
                             for hole_start, hole_end, path_len in zip(hist_stats['holes_start'], hist_stats['holes_end'], 
                                                                         hist_stats['connected-path-length-val']):
-                                hole_stats[(hole_start, hole_end)] = path_len
-                            print(f"{len(hole_stats)} out of {len(all_holes)} hole stats collected")
+                                ctrl_stats[(hole_start, hole_end)] = path_len
+                            print(f"{len(ctrl_stats)} out of {len(all_holes)} hole stats collected")
                             # print(hole_stats)
-                            pickle.dump(hole_stats, open(f'{log_dir}/hole_stats.pkl', 'wb'))
+                            pickle.dump(ctrl_stats, open(f'{log_dir}/hole_stats.pkl', 'wb'))
                 # print([e.unwrapped._prob.hole_queue for e in envs])
                 width = dummy_env.width
                 heat = np.zeros((width * 4, width * 4))
                 heat.fill(np.nan)
                 heat_dict = {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
-                for hole_pair in hole_stats:
+                for hole_pair in ctrl_stats:
                     projs = [None, None]
                     (ax, ay, az), (bx, by, bz) = hole_pair
                     for i, (z, y, x) in enumerate([(ax, ay, az), (bx, by, bz)]):
@@ -429,7 +427,7 @@ def main(cfg):
                         projs[i] = proj
                     proj_a, proj_b = projs
                     # heat[proj_a, proj_b] = hole_stats[hole_pair]
-                    heat_dict[(proj_a, proj_b)] = hole_stats[hole_pair]
+                    heat_dict[(proj_a, proj_b)] = ctrl_stats[hole_pair]
 
                 for k in heat_dict:
                     val = np.mean(heat_dict[k])
@@ -447,6 +445,60 @@ def main(cfg):
                 plt.savefig(os.path.join(log_dir, 'hole_heatmap.png'))
 
                 sys.exit()
+
+            if len(cfg.conditionals) == 1:
+                ctrl_metrics = dummy_env.ctrl_metrics
+                ctrl = ctrl_metrics[0]
+                if LOAD_STATS:
+                    ctrl_stats = pickle.load(open(f'{log_dir}/ctrl-{ctrl}_stats.pkl', 'rb'))
+                else:
+                    ctrl_bounds = dummy_env.unwrapped.cond_bounds[ctrl]
+                    # all_trgs = [i for i in range(int(ctrl_bounds[0]), int(ctrl_bounds[1]))]
+                    all_trgs = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
+                    all_trgs = [{ctrl: v} for v in all_trgs]
+                    # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
+                    n_envs = max(1, num_workers) * num_envs_per_worker
+                    idx_counter = IdxCounter.options(name='idx_counter').remote()
+                    idx_counter.set_keys.remote(all_trgs)
+                    hashes = trainer.evaluation_workers.foreach_env(lambda env: hash(env))
+                    hashes = [hash for worker_hash in hashes for hash in worker_hash]
+                    # hashes = [hash(env.unwrapped._prob) for env in envs]
+                    idx_counter.set_hashes.remote(hashes)
+                    # FIXME: Sometimes hash-to-idx dict is not set by the above call?
+                    ret = ray.get(idx_counter.scratch.remote())
+                    # Assign envs to worlds
+                    # trainer.workers.foreach_worker(
+                        # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
+
+                    ctrl_stats = {}
+                    trainer.evaluation_workers.foreach_env(lambda env: env.queue_control_trgs(idx_counter))
+
+                    while len(ctrl_stats) < len(all_trgs):
+                        result = trainer.evaluate()
+                        hist_stats = result['evaluation']['hist_stats']
+                        print(result)
+                        if f'{ctrl}-trg' in hist_stats:
+                            for ctrl_trg, ctrl_val in zip(hist_stats[f'{ctrl}-trg'], hist_stats[f'{ctrl}-val']):
+                                ctrl_stats[ctrl_trg] = ctrl_val
+                            print(f"{len(ctrl_stats)} out of {len(all_trgs)} ctrl stats collected")
+                            # print(hole_stats)
+                            pickle.dump(ctrl_stats, open(f'{log_dir}/ctrl-{ctrl}_stats.pkl', 'wb'))
+
+                fig, ax = plt.subplots(1, 1)
+                xs = list(ctrl_stats.keys())
+                ys = [ctrl_stats[x] for x in xs]
+                plt.scatter(xs, ys)
+                plt.title(f'Controlling for {ctrl}')
+                # Set x axis name
+                ax.set_xlabel(f'{ctrl} targets')
+                ax.set_ylabel(f'{ctrl} values')
+                plt.savefig(os.path.join(log_dir, f'{ctrl}_scatter.png'))
+
+                sys.exit()
+
+            else:
+                result = trainer.evaluate()
+                TT()
 
         for _ in range(100):
             trainer.evaluate()

@@ -208,11 +208,10 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         render_path_coords = remove_stacked_path_tiles(render_path_coords)
         render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
         spawn_3D_path(render_path_coords)
-        render_path_e_coords = self.min_e_path
-        render_path_e_coords = remove_stacked_path_tiles(render_path_e_coords)
-        render_path_e_coords = [tuple(coords) for coords in render_path_e_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
-        spawn_3D_path(render_path_e_coords, item=LEAVES)
-            # time.sleep(0.2)
+        # render_path_e_coords = self.min_e_path
+        # render_path_e_coords = remove_stacked_path_tiles(render_path_e_coords)
+        # render_path_e_coords = [tuple(coords) for coords in render_path_e_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
+        # spawn_3D_path(render_path_e_coords, item=LEAVES)
 
         # render_blocks(block_dict)
 

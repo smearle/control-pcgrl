@@ -16,6 +16,7 @@ class StatsCallbacks(DefaultCallbacks):
     def __init__(self, cfg, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.metrics_callback = {}
+        self.holey = 'holey' in cfg.env_name
 
     def on_episode_start(
         self,
@@ -41,10 +42,11 @@ class StatsCallbacks(DefaultCallbacks):
         for k in env.metrics:
             episode.hist_data.update({f'{k}-val': None,
         })
-        episode.hist_data.update({
-            'holes_start': None,
-            'holes_end': None,
-        })
+        if self.holey:
+            episode.hist_data.update({
+                'holes_start': None,
+                'holes_end': None,
+            })
 
     def on_episode_end(
         self,

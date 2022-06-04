@@ -340,8 +340,8 @@ if __name__ == '__main__':
     ))
     CLIENT.fillCube(FillCubeRequest(
         cube=Cube(
-            min=Point(x=-10, y=4, z=-10),
-            max=Point(x=10, y=15, z=10)
+            min=Point(x=-50, y=4, z=-50),
+            max=Point(x=50, y=15, z=50)
         ),
         type=AIR
     ))

@@ -6,13 +6,16 @@
     # test,
     # 0,
     # 1,
-    2,
+    # 2,
     # 3,
+    10,
+    # 11,
+    # 12,
   ],
 
   "problems": [
-    # "minecraft_3D_maze",
-    "minecraft_3D_holey_maze",
+    "minecraft_3D_maze",
+    # "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
@@ -28,8 +31,8 @@
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
         ["narrow3D", SeqNCA3D],
-        # ["narrow3D", null],
-        ["narrow3Dholey", SeqNCA3D],
+        ["narrow3D", null],
+        # ["narrow3Dholey", SeqNCA3D],
         # ["narrow3Dholey", null],
 
       # ["narrow", SeqNCA],
@@ -69,7 +72,7 @@
 
   # TODO: incorporate formal (rather than only functional) metrics as controls
   "global_controls": [
-        ["NONE", "NONE"],
+        # ["NONE", "NONE"],
       # ['emptiness', 'symmetry'],
   ],
 
