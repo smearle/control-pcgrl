@@ -16,6 +16,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
     def __init__(self, prob="minecraft_3D_maze", rep="narrow3D", **kwargs):
         super().__init__(prob, rep, **kwargs)
         self.get_string_map = get_string_map
+        self.display = None
 #         self._prob: Problem = PROBLEMS[prob]()
 #         self._rep: Representation = REPRESENTATIONS[rep]()
 
@@ -109,6 +110,8 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
 
     
     def render(self, mode='human'):
+        self.render_opengl(self._get_rep_map(), paths=self._prob.path_coords)
+        return
         # Render the agent's edit action.
         self._rep.render(get_string_map(
             self._get_rep_map(), self._prob.get_tile_types()))
@@ -120,5 +123,177 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         #     self._rep._map, self._prob.get_tile_types()))
         return
 
+    def render_opengl(self, rep_map, paths=None):
+        if self.display is None:
+            pygame.init()
+            self.display = (800, 600)
+            pygame.display.set_mode(self.display, DOUBLEBUF | OPENGL)
+            rep_map = np.random.randint(0, 2, (4, 4, 4))
+
+            display = self.display
+            gluPerspective(45, (display[0]/display[1]), 0.5, 50.0)
+
+            glTranslatef(0.0, 0.0, -10.0)
+    
+            glRotatef(25, 2, 1, 0)
+
+        i = 0
+        # while True:
+        for _ in range(10):
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        glTranslatef(-0.5, 0.0, 0.0)
+                    if event.key == pygame.K_RIGHT:
+                        glTranslatef(0.5, 0.0, 0.0)
+                    if event.key == pygame.K_UP:
+                        glTranslatef(0.0, 1.0, 0.0)
+                    if event.key == pygame.K_DOWN:
+                        glTranslatef(0.0, -1.0, 0.0)
+                    if event.key == pygame.K_q:
+                        glRotatef(2, 1, 3, 0)
+                    if event.key == pygame.K_e:
+                        glRotatef(-2, 1, 3, 0)
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:
+                        glTranslatef(0.0, 0.0, 1.0)
+                    if event.button == 5:
+                        glTranslatef(0.0, 0.0, -1.0)
+
+            glRotatef(1, 2, 3, 4)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            for x in range(rep_map.shape[0]):
+                for y in range(len(rep_map[x])):
+                    for z in range(len(rep_map[x][y])):
+                        if rep_map[x][y][z] < 1:
+
+                            Cube(loc=(x,y,z), color=(1, 0, 1))
+                        # Cube((2,0,0), (0, 1, 0))
+                        # Cube((4,0,0))
+            pygame.display.flip()
+            pygame.time.wait(10)
+            i += 1
+            # pygame.time.wait(10)
 
 
+import pygame
+from pygame.locals import *
+
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+
+vertices = (
+    (1, -1, -1),
+    (1, 1, -1),
+    (-1, 1, -1),
+    (-1, -1, -1),
+    (1, -1, 1),
+    (1, 1, 1),
+    (-1, -1, 1),
+    (-1, 1, 1),
+)
+cube_vertices = np.array(vertices)
+
+edges = (
+    (0, 1),
+    (0, 3),
+    (0, 4),
+    (2, 1),
+    (2, 3), 
+    (2, 7),
+    (6, 3),
+    (6, 4),
+    (6, 7),
+    (5, 1),
+    (5, 4),
+    (5, 7),
+)
+
+surfaces = (
+    (0, 1, 2, 3),
+    (3, 2, 7, 6),
+    (6, 7, 5, 4),
+    (4, 5, 1, 0),
+    (1, 5, 7, 2),
+    (4, 0, 3, 6),
+)
+
+colors = (
+    (1, 0, 0),
+    (0, 1, 0),
+    (0, 0, 1),
+    (0, 1, 1),
+    (1, 1, 0),
+    (1, 0, 1),
+    (1, 1, 1),
+)
+
+def Cube(loc=(0, 0, 0), color=(1, 0, 1)):
+    color = np.array(color, dtype=np.float)
+    loc = np.array(loc, dtype=np.float)
+    glBegin(GL_QUADS)
+    for surface in surfaces:
+        x = 0
+        for vertex in surface:
+            x+=1
+            # glColor3fv(colors[x])
+            glColor3fv(np.array(color) + x * np.array([-0.2,-0.2,-0.2]))
+            glVertex3fv(cube_vertices[vertex] / 3 + loc)
+    glEnd()
+
+a = np.random.randint(0,2,(10,10))
+
+def main():
+    pygame.init()
+    display = (800, 600)
+    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+
+    gluPerspective(45, (display[0]/display[1]), 0.5, 50.0)
+
+    glTranslatef(0.0, 0.0, -5)
+
+    glRotatef(25, 2, 1, 0)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    glTranslatef(-0.5, 0.0, 0.0)
+                if event.key == pygame.K_RIGHT:
+                    glTranslatef(0.5, 0.0, 0.0)
+                if event.key == pygame.K_UP:
+                    glTranslatef(0.0, 1.0, 0.0)
+                if event.key == pygame.K_DOWN:
+                    glTranslatef(0.0, -1.0, 0.0)
+                if event.key == pygame.K_q:
+                    glRotatef(2, 1, 3, 0)
+                if event.key == pygame.K_e:
+                    glRotatef(-2, 1, 3, 0)
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 4:
+                    glTranslatef(0.0, 0.0, 1.0)
+                if event.button == 5:
+                    glTranslatef(0.0, 0.0, -1.0)
+
+        # glRotatef(1, 3, 1, 1)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        Cube(loc=(0,0,0), color=(1, 0, 0))
+        Cube((2,0,0), (0, 1, 0))
+        Cube((4,0,0))
+        pygame.display.flip()
+        pygame.time.wait(10)
+
+
+if __name__ == "__main__":
+    main()

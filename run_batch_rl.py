@@ -81,14 +81,15 @@ def launch_batch(collect_params=False):
 #                           continue
 
             # TODO: integrate evaluate with rllib
+            py_script_name = "rl/train_ctrl.py"
             if EVALUATE:
-                py_script_name = "rl/evaluate_ctrl.py"
+                # py_script_name = "rl/evaluate_ctrl.py"
                 sbatch_name = "rl/eval.sh"
 #                       elif opts.infer:
 #                           py_script_name = "infer_ctrl_sb2.py"
             else:
-                py_script_name = "rl/train_ctrl.py"
-                sbatch_name = "rl/train.sh"
+                if not LOCAL:
+                    sbatch_name = "rl/train.sh"
             
             # Write the config file with the desired settings
             exp_config = copy.deepcopy(default_config)
@@ -140,30 +141,31 @@ def launch_batch(collect_params=False):
             config_name += f"_{exp_id}"
             # Edit the sbatch file to load the correct config file
             if not opts.render:
-                with open(sbatch_name, "r") as f:
-                    content = f.read()
+                if  not LOCAL:
+                    with open(sbatch_name, "r") as f:
+                        content = f.read()
 
-                    # Replace the ``python scriptname --cl_args`` line.
-                    content = re.sub(
-                        "python .* --load_args .*",
-                        f"python {py_script_name} --load_args {config_name}",
-                        content,
-                    )
+                        # Replace the ``python scriptname --cl_args`` line.
+                        content = re.sub(
+                            "python .* --load_args .*",
+                            f"python {py_script_name} --load_args {config_name}",
+                            content,
+                        )
 
-                    # Replace the job name.
-                    content = re.sub(
-                        "rl_runs/pcgrl_.*",
-                        f"rl_runs/pcgrl_{config_name}_%j.out",
-                        content
-                    )
+                        # Replace the job name.
+                        content = re.sub(
+                            "rl_runs/pcgrl_.*",
+                            f"rl_runs/pcgrl_{config_name}_%j.out",
+                            content
+                        )
 
-                    content = re.sub(
-                        "--job-name=.*",
-                        f"--job-name={config_name}.out",
-                        content
-                    )
-                with open(sbatch_name, "w") as f:
-                    f.write(content)
+                        content = re.sub(
+                            "--job-name=.*",
+                            f"--job-name={config_name}.out",
+                            content
+                        )
+                    with open(sbatch_name, "w") as f:
+                        f.write(content)
             
             with open(f"configs/rl/auto/settings_{config_name}.json", "w") as f:
                 json.dump(exp_config, f, ensure_ascii=False, indent=4)
