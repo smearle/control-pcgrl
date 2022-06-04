@@ -136,3 +136,5 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         render_opengl(self.display, rep_map, paths=[self._prob.path_coords])
 
 
+if __name__ == "__main__":
+    main()
