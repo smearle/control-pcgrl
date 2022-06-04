@@ -19,6 +19,7 @@ from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bo
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES, TRAPDOOR
+import ray
 # from gym_pcgrl.test3D import plot_3d_map
 
 
@@ -81,8 +82,9 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         super().adjust_param(**kwargs)
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
-    def queue_holes(self, hole_queue):
-        self._hole_queue = hole_queue
+    def queue_holes(self, env_hole_queues, idx_counter):
+        # self._hole_queue = env_hole_queues[self.env_index]
+        self._hole_queue = ray.get(idx_counter.get.remote(hash(self)))
 
     def gen_all_holes(self):
         hole_pairs = list(itertools.product(self._border_idxs, self._border_idxs))
@@ -108,7 +110,6 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
 
         if len(self._hole_queue) > 0:
             (self.start_xyz, self.end_xyz), self._hole_queue = self._hole_queue[0], self._hole_queue[1:]
-            # print(f"Setting holes: {self.start_xyz, self.end_xyz}")
 
         elif self.fixed_holes:
             self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
@@ -140,6 +141,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
                     self.end_xyz[1] = xyz + np.array([1, 0, 0])
                     break
         
+        # print(f"Setting holes: {self.start_xyz, self.end_xyz}")
         return self.start_xyz, self.end_xyz
 
     def _valid_holes(start_xyz, end_xyz) -> bool:      

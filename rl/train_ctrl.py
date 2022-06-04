@@ -5,11 +5,14 @@ import json
 import os
 from pathlib import Path
 from pdb import set_trace as TT
+import pickle
 import shutil
 import sys
 import time
 import gym
+import matplotlib
 from matplotlib import pyplot as plt
+import seaborn as sns
 from typing import Dict
 
 import numpy as np
@@ -34,8 +37,11 @@ from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D
     NCA, SeqNCA, SeqNCA3D # noqa : F401
 from args import parse_args
 from envs import make_env
-from utils import get_env_name, get_exp_name, get_map_width
+from utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 from callbacks import StatsCallbacks
+
+# Set most normal backend
+matplotlib.use('Agg')
 
 n_steps = 0
 PROJ_DIR = Path(__file__).parent.parent
@@ -237,7 +243,7 @@ def main(cfg):
     trainer_config = {
         'env': 'pcgrl',
         'framework': 'torch',
-        'num_workers': num_workers,
+        'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
         'num_gpus': cfg.n_gpu,
         'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
         # 'env_config': {
@@ -254,8 +260,10 @@ def main(cfg):
                 # 'orig_obs_space': copy.copy(dummy_env.observation_space),
             }
         },
-        "evaluation_duration": 1,
+        "evaluation_interval" : 1 if cfg.evaluate else None,
+        "evaluation_duration": num_workers,
         "evaluation_duration_unit": "episodes",
+        "evaluation_num_workers": num_workers if cfg.evaluate else 0,
         "evaluation_config": {
             "explore": True if cfg.infer else False,
         },
@@ -351,27 +359,82 @@ def main(cfg):
         if cfg.evaluate:
             # Set controls
             if 'holey' in cfg.env_name:
-                all_holes = dummy_env.unwrapped._prob.gen_all_holes()
-                # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
-                n_envs = max(1, num_workers) * num_envs_per_worker
-                env_hole_int = len(all_holes) // n_envs
-                env_holes = [all_holes[env_hole_int * i:env_hole_int * (i + 1)] for i in range(n_envs)]
-                envs = trainer.workers.foreach_env(lambda env: env)
-                envs = [env for worker_env in envs for env in worker_env]
-                hole_stats = {}
-                [env.unwrapped._prob.queue_holes(holes) for env, holes in zip(envs, env_holes)]
 
-                while len(hole_stats) < len(all_holes):
-                    result = trainer.evaluate()
-                    hist_stats = result['evaluation']['hist_stats']
-                    # print(result)
-                    if 'holes_start' in hist_stats:
-                        for hole_start, hole_end, path_len in zip(hist_stats['holes_start'], hist_stats['holes_end'], 
-                                                                    hist_stats['connected-path-length-val']):
-                            hole_stats[(hole_start, hole_end)] = path_len
-                        print(f"{len(hole_stats)} out of {len(all_holes)} hole stats collected")
-                        # print(hole_stats)
+                # LOAD_HOLE_STATS = False
+                LOAD_HOLE_STATS = False
+
+                if not LOAD_HOLE_STATS:
+                    # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
+                    all_holes = dummy_env.unwrapped._prob.gen_all_holes()
+                    all_holes = [hole for i, hole in enumerate(all_holes) if i % 100 == 0]
+                    # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
+                    n_envs = max(1, num_workers) * num_envs_per_worker
+                    env_hole_int = len(all_holes) // n_envs
+                    env_holes = [all_holes[env_hole_int * i:env_hole_int * (i + 1)] for i in range(n_envs)]
+
+                    envs = trainer.evaluation_workers.foreach_env(lambda env: env)
+                    envs = [env for worker_env in envs for env in worker_env]
+                    idx_counter = IdxCounter.options(name='idx_counter', max_concurrency=1).remote()
+                    idx_counter.set_keys.remote(all_holes)
+                    hashes = trainer.evaluation_workers.foreach_env(lambda env: hash(env.unwrapped._prob))
+                    hashes = [hash for worker_hash in hashes for hash in worker_hash]
+                    # hashes = [hash(env.unwrapped._prob) for env in envs]
+                    idx_counter.set_hashes.remote(hashes)
+                    # FIXME: Sometimes hash-to-idx dict is not set by the above call?
+                    assert ray.get(idx_counter.scratch.remote())
+                    # Assign envs to worlds
+                    # trainer.workers.foreach_worker(
+                        # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
+
+                    hole_stats = {}
+                    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_holes(env_holes, idx_counter))
+
+                    while len(hole_stats) < len(all_holes):
+                        result = trainer.evaluate()
+                        hist_stats = result['evaluation']['hist_stats']
+                        # print(result)
+                        if 'holes_start' in hist_stats:
+                            for hole_start, hole_end, path_len in zip(hist_stats['holes_start'], hist_stats['holes_end'], 
+                                                                        hist_stats['connected-path-length-val']):
+                                hole_stats[(hole_start, hole_end)] = path_len
+                            print(f"{len(hole_stats)} out of {len(all_holes)} hole stats collected")
+                            # print(hole_stats)
+                            pickle.dump(hole_stats, open(f'{log_dir}/hole_stats.pkl', 'wb'))
+                else:
+                    hole_stats = pickle.load(open(f'{log_dir}/hole_stats.pkl', 'rb'))
                 # print([e.unwrapped._prob.hole_queue for e in envs])
+                width = dummy_env.width
+                heat = np.zeros((width * 4, width * 4))
+                heat.fill(np.nan)
+                heat_dict = {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
+                for hole_pair in hole_stats:
+                    (ax, ay, az), (bx, by, bz) = hole_pair
+                    if ax > ay:
+                        proj_a = ax + ay
+                    else:
+                        proj_a = 4 * width - ax - ay
+                    if bx > by:
+                        proj_b = bx + by
+                    else:
+                        proj_b = 4 * width - bx - by
+                    # heat[proj_a, proj_b] = hole_stats[hole_pair]
+                    heat_dict[(proj_a, proj_b)] = hole_stats[hole_pair]
+
+                for k in heat_dict:
+                    val = np.mean(heat_dict[k])
+                    print(k)
+                    heat[k[0], k[1]] = val
+
+                fig, ax = plt.subplots(1, 1)
+                # Plot heatmap
+                sns.heatmap(heat, cmap='viridis', ax=ax, cbar=False, square=True, xticklabels=False, yticklabels=False)
+                # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
+                plt.title('Path-length between entrances/exits')
+                # Set x axis name
+                ax.set_xlabel('Entrance position')
+                ax.set_ylabel('Exit position')
+                plt.savefig(os.path.join(log_dir, 'hole_heatmap.png'))
+
                 sys.exit()
 
         for _ in range(100):

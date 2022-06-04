@@ -4,6 +4,7 @@ Helper functions for train, infer, and eval modules.
 from pdb import set_trace as TT
 import glob
 import os
+import ray
 import re
 
 import numpy as np
@@ -48,6 +49,50 @@ PROB_CONTROLS = {
     ],
 }
 
+@ray.remote
+class IdxCounter:
+    ''' When using rllib trainer to train and simulate on evolved maps, this global object will be
+    responsible for providing unique indices to parallel environments.'''
+
+    def __init__(self):
+        self.count = 0
+        self.keys = None
+
+    def get(self, hsh):
+        world_key_queue = self.hashes_to_keys[hsh]
+
+        if not world_key_queue:
+            raise Exception("No world keys provided.")
+
+        return world_key_queue
+
+    def set(self, i):
+        # For inference
+        self.count = i
+
+    def set_keys(self, keys):
+        self.count = 0
+        self.keys = keys
+
+    def set_hashes(self, hashes):
+        """
+        Note that we may assign multiple worlds to a single environment, or a single world to multiple environments.
+
+        We will only assign a single world to multiple environments if duplicate keys were provided to `set_idxs()`.
+
+        Args:
+            hashes: A list of hashes, one per environment object.
+        """
+        hashes_to_keys = {h: [] for h in hashes}
+
+        for i, wk in enumerate(self.keys):
+            h = hashes[i % len(hashes)]
+            hashes_to_keys[h].append(wk)
+        
+        self.hashes_to_keys = hashes_to_keys
+
+    def scratch(self):
+        return self.hashes_to_keys
 
 def get_map_width(game):
     for k, v in MAP_WIDTHS:
