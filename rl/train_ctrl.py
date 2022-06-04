@@ -361,14 +361,21 @@ def main(cfg):
             if 'holey' in cfg.env_name:
 
                 # LOAD_HOLE_STATS = False
-                LOAD_HOLE_STATS = False
+                LOAD_HOLE_STATS = True
 
-                if not LOAD_HOLE_STATS:
-                    # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
-                    all_holes = dummy_env.unwrapped._prob.gen_all_holes()
-                    all_holes = [hole for i, hole in enumerate(all_holes) if i % 100 == 0]
+                if LOAD_HOLE_STATS:
+                    hole_stats = pickle.load(open(f'{log_dir}/hole_stats.pkl', 'rb'))
+                    print(f"Loaded {len(hole_stats)} hole stats.")
+                else:
+                    hole_stats = {}
+
+                # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
+                all_holes = dummy_env.unwrapped._prob.gen_all_holes()
+                all_holes = [hole for i, hole in enumerate(all_holes) if i % 1 == 0]
+                all_holes = [hole for hole in all_holes if (tuple(hole[0][0]), tuple(hole[1][0])) not in hole_stats]
+                n_envs = max(1, num_workers) * num_envs_per_worker
+                if len(all_holes) >= n_envs:
                     # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
-                    n_envs = max(1, num_workers) * num_envs_per_worker
                     env_hole_int = len(all_holes) // n_envs
                     env_holes = [all_holes[env_hole_int * i:env_hole_int * (i + 1)] for i in range(n_envs)]
 
@@ -386,7 +393,6 @@ def main(cfg):
                     # trainer.workers.foreach_worker(
                         # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
 
-                    hole_stats = {}
                     trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_holes(env_holes, idx_counter))
 
                     while len(hole_stats) < len(all_holes):
@@ -400,34 +406,39 @@ def main(cfg):
                             print(f"{len(hole_stats)} out of {len(all_holes)} hole stats collected")
                             # print(hole_stats)
                             pickle.dump(hole_stats, open(f'{log_dir}/hole_stats.pkl', 'wb'))
-                else:
-                    hole_stats = pickle.load(open(f'{log_dir}/hole_stats.pkl', 'rb'))
                 # print([e.unwrapped._prob.hole_queue for e in envs])
                 width = dummy_env.width
                 heat = np.zeros((width * 4, width * 4))
                 heat.fill(np.nan)
                 heat_dict = {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
                 for hole_pair in hole_stats:
+                    projs = [None, None]
                     (ax, ay, az), (bx, by, bz) = hole_pair
-                    if ax > ay:
-                        proj_a = ax + ay
-                    else:
-                        proj_a = 4 * width - ax - ay
-                    if bx > by:
-                        proj_b = bx + by
-                    else:
-                        proj_b = 4 * width - bx - by
+                    for i, (z, y, x) in enumerate([(ax, ay, az), (bx, by, bz)]):
+                        if x == 0 :
+                            proj = y
+                        elif y == width +1:
+                            proj = width + x
+                        elif x == width + 1:
+                            proj = 3 * width - y - 1
+                        elif y == 0:
+                            proj = 4 * width - x - 1
+                        else:
+                            TT()
+                            raise Exception
+                        projs[i] = proj
+                    proj_a, proj_b = projs
                     # heat[proj_a, proj_b] = hole_stats[hole_pair]
                     heat_dict[(proj_a, proj_b)] = hole_stats[hole_pair]
 
                 for k in heat_dict:
                     val = np.mean(heat_dict[k])
-                    print(k)
                     heat[k[0], k[1]] = val
 
                 fig, ax = plt.subplots(1, 1)
                 # Plot heatmap
-                sns.heatmap(heat, cmap='viridis', ax=ax, cbar=False, square=True, xticklabels=False, yticklabels=False)
+                ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar=True, square=True, xticklabels=True, yticklabels=True)
+                ax_s.invert_yaxis()
                 # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
                 plt.title('Path-length between entrances/exits')
                 # Set x axis name
