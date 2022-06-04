@@ -42,7 +42,8 @@ class StatsCallbacks(DefaultCallbacks):
             episode.hist_data.update({f'{k}-val': None,
         })
         episode.hist_data.update({
-            'holes_start_end': None,
+            'holes_start': None,
+            'holes_end': None,
         })
 
     def on_episode_end(
@@ -107,6 +108,8 @@ class StatsCallbacks(DefaultCallbacks):
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
 
         if hasattr(env.unwrapped._prob, '_hole_queue'):
+            # Just record the foot-room
             episode.hist_data.update({
-                'holes_start_end': (env.unwrapped._prob.start_xyz, env.unwrapped._prob.end_xyz),
+                'holes_start': [tuple(env.unwrapped._prob.start_xyz[0])],
+                'holes_end': [tuple(env.unwrapped._prob.end_xyz[0])],
             })

@@ -352,21 +352,25 @@ def main(cfg):
             # Set controls
             if 'holey' in cfg.env_name:
                 all_holes = dummy_env.unwrapped._prob.gen_all_holes()
+                # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
                 n_envs = max(1, num_workers) * num_envs_per_worker
                 env_hole_int = len(all_holes) // n_envs
                 env_holes = [all_holes[env_hole_int * i:env_hole_int * (i + 1)] for i in range(n_envs)]
                 envs = trainer.workers.foreach_env(lambda env: env)
                 envs = [env for worker_env in envs for env in worker_env]
                 hole_stats = {}
-
                 [env.unwrapped._prob.queue_holes(holes) for env, holes in zip(envs, env_holes)]
+
                 while len(hole_stats) < len(all_holes):
                     result = trainer.evaluate()
                     hist_stats = result['evaluation']['hist_stats']
-                    if 'holes_start_end' in hist_stats:
-                        for hole, path_len in zip(hist_stats['holes_start_end'], hist_stats['connected-path-length-val']):
-                            hole_stats[tuple([tuple(h) for h in hole])] = path_len
+                    # print(result)
+                    if 'holes_start' in hist_stats:
+                        for hole_start, hole_end, path_len in zip(hist_stats['holes_start'], hist_stats['holes_end'], 
+                                                                    hist_stats['connected-path-length-val']):
+                            hole_stats[(hole_start, hole_end)] = path_len
                         print(f"{len(hole_stats)} out of {len(all_holes)} hole stats collected")
+                        # print(hole_stats)
                 # print([e.unwrapped._prob.hole_queue for e in envs])
                 sys.exit()
 
