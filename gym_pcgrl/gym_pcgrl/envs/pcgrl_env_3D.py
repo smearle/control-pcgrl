@@ -116,7 +116,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
     
     def render(self, mode='human'):
         if RENDER_MODE == RENDER_OPENGL:
-            self.render_opengl(self._get_rep_map(), paths=self._prob.path_coords)
+            self.render_opengl(self._get_rep_map())
             return
         elif RENDER_MODE == RENDER_MINECRAFT:
             # Render the agent's edit action.
@@ -130,9 +130,9 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
             #     self._rep._map, self._prob.get_tile_types()))
             return
 
-    def render_opengl(self, rep_map, paths=None):
+    def render_opengl(self, rep_map):
         if self.display is None:
             self.display = init_display()
-        render_opengl(self.display, rep_map, paths)
+        render_opengl(self.display, rep_map, paths=[self._prob.path_coords])
 
 
