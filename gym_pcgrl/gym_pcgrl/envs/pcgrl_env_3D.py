@@ -22,6 +22,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         super().__init__(prob, rep, **kwargs)
         self.get_string_map = get_string_map
         self.display = None
+        self.is_holey = False
 #         self._prob: Problem = PROBLEMS[prob]()
 #         self._rep: Representation = REPRESENTATIONS[rep]()
 
@@ -133,8 +134,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
     def render_opengl(self, rep_map):
         if self.display is None:
             self.display = init_display()
-        render_opengl(self.display, rep_map, paths=[self._prob.path_coords])
-
+        render_opengl(self.display, rep_map, paths=[self._prob.path_coords], bordered=self.is_holey)
 
 if __name__ == "__main__":
     main()

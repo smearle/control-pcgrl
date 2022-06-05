@@ -35,6 +35,7 @@ class PcgrlHoleyEnv3D(PcgrlEnv3D):
             border_tile_index = self.get_border_tile(),
             empty_tile_index = self.get_empty_tile(),
             )
+        self.is_holey = True
     """
     Resets the environment to the start state
 
@@ -53,16 +54,17 @@ class PcgrlHoleyEnv3D(PcgrlEnv3D):
         return self._rep._bordered_map
 
 
-    def render(self, mode='human'):
+    # def render(self, mode='human'):
+        # super().render(mode)
         # Render the agent's edit action.
         # self._rep.render(get_string_map(
             # self._get_rep_map(), self._prob.get_tile_types()))
 
         # Render the resulting path.
-        self._prob.render(get_string_map(
-            self._get_rep_map(), self._prob.get_tile_types()), self._iteration, self._repr_name)
+        # self._prob.render(get_string_map(
+            # self._get_rep_map(), self._prob.get_tile_types()), self._iteration, self._repr_name)
 
         # print(get_string_map(
         #     self._rep._map, self._prob.get_tile_types()))
-        return
+        # return
 

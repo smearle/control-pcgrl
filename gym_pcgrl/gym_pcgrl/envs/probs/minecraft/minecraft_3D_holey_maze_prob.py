@@ -278,14 +278,17 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
     
     def render(self, map, iteration_num, repr_name, render_matplotlib=False, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
+        super().render(map, iteration_num, repr_name, render_matplotlib, 
+                        render_paths=[self.connected_path_coords] **kwargs)
+        
 
         # Render the border if we haven't yet already.
-        if not self._rendered_initial_maze:
+        # if not self._rendered_initial_maze:
             # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
-            spawn_base(map)
-            spawn_3D_maze(map)
+            # spawn_base(map)
+            # spawn_3D_maze(map)
             # spawn_3D_bordered_map(map)
-            self._rendered_initial_maze = True
+            # self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow

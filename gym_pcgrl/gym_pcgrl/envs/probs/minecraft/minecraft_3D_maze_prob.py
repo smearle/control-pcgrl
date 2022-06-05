@@ -237,7 +237,7 @@ class Minecraft3DmazeProblem(Problem):
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
     
-    def render(self, map, iteration_num, repr_name, render_matplotlib=False, **kwargs):
+    def render(self, map, iteration_num, repr_name, render_matplotlib=False, render_paths=None, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
 
         # Render the border if we haven't yet already.

@@ -1,5 +1,7 @@
+import argparse
 import json
 import os
+from pathlib import Path
 import re
 import csv
 from pdb import set_trace as TT
@@ -16,7 +18,7 @@ from tex_formatting import newline, pandas_to_latex
 
 # Map names of metrics recorded to the names we want to display in a table
 
-RL_DIR = "../rl_runs"
+RL_DIR = os.path.join(Path(__file__).parent.parent, 'rl_runs')
 
 local_controls = {
     "binary_ctrl": [
@@ -185,17 +187,20 @@ def compile_results(settings_list, no_plot=False):
                 val_lst.append(v)
             else:
                 val_lst.append(v)
-        args = parse_args(load_args=settings)
+        # args = parse_args(load_args=settings)
+        # arg_dict = vars(args)
+        # dict to namespace
+        args = argparse.Namespace(**settings)
         arg_dict = vars(args)
         # FIXME: well this is stupid
         arg_dict["cond_metrics"] = arg_dict.pop("conditionals")
-        exp_name = get_exp_name(
-            arg_dict.pop("problem"), arg_dict.pop("representation"), **arg_dict
-        ) + "_{}_log".format(batch_exp_name)
+        exp_name = get_exp_name(args) + '_' + str(arg_dict["experiment_id"]) + '_log'  # FIXME: this should be done elsewhere??
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
         exp_name = os.path.join(RL_DIR, exp_name)
-        eval_dir = os.path.join(exp_name, "eval")
+        # eval_dir = os.path.join(exp_name, "eval")
+        eval_dir = exp_name
+        eval_stats = json.load(open(os.path.join(eval_dir, "eval_stats.json"), 'r'))
         if not os.path.isdir(eval_dir):
             print("skipping evaluation of experiment due to missing directory: {}".format(eval_dir))
             continue
@@ -218,11 +223,12 @@ def compile_results(settings_list, no_plot=False):
             plot_csv(exp_name)
         vals.append(tuple(val_lst))
         data.append([])
-        fixLvl_stats = json.load(open(fixTrgs_stats_f, "r"))
-        flat_stats = flatten_stats(fixLvl_stats)
-        for stats_f in ctrl_stats_files:
-            stats = json.load(open(stats_f, "r"))
-            flat_stats.update(flatten_stats(stats, controllable=True))
+        flat_stats = flatten_stats(eval_stats)
+        # fixLvl_stats = json.load(open(fixTrgs_stats_f, "r"))
+        # flat_stats = flatten_stats(fixLvl_stats)
+        # for stats_f in ctrl_stats_files:
+        #     stats = json.load(open(stats_f, "r"))
+        #     flat_stats.update(flatten_stats(stats, controllable=True))
 
         if columns is None:
             columns = list(flat_stats.keys())
@@ -285,7 +291,9 @@ def compile_results(settings_list, no_plot=False):
 
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
 
-    for p in ["binary", "zelda", "sokoban"]:
+    # TODO: dust off latex table-generation for new domains.
+
+    for p in ["binary", "zelda", "sokoban", "minecraft_3D_maze"]:
 #   for p in ["binary", "zelda"]:
 #   for p in ["binary"]:
         tex_name = "{}/{}_{}.tex".format(RL_DIR, p, batch_exp_name)
