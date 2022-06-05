@@ -221,13 +221,11 @@ def main(cfg):
     for _ in range(10):
         obs = dummy_env.reset()
         for i in range(300):
-            print(i)
             if i > 3:
                 act = dummy_env.action_space.sample()
             else:
                 act = 0
             dummy_env.step(act)
-            print(dummy_env.unwrapped._rep_stats)
             dummy_env.render()
     sys.exit()
 
