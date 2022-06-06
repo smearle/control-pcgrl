@@ -128,10 +128,10 @@ def test_doors(trainer, env, cfg):
 def test_control(trainer, env, cfg):
     ctrl_metrics = env.ctrl_metrics
     ctrl = ctrl_metrics[0]
+    ctrl_bounds = env.unwrapped.cond_bounds[ctrl]
     if LOAD_STATS:
         ctrl_stats = pickle.load(open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'rb'))
     else:
-        ctrl_bounds = env.unwrapped.cond_bounds[ctrl]
         # all_trgs = [i for i in range(int(ctrl_bounds[0]), int(ctrl_bounds[1]))]
         all_trgs = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
         all_trgs = [{ctrl: v} for v in all_trgs]
@@ -173,4 +173,12 @@ def test_control(trainer, env, cfg):
     ax.set_ylabel(f'{ctrl} values')
     plt.savefig(os.path.join(cfg.log_dir, f'{ctrl}_scatter.png'))
 
+    fig, ax = plt.subplots(1, 1)
+    ctrl_range = ctrl_bounds[1] - ctrl_bounds[0]
+    ys = [1 - np.abs(x - ctrl_stats[x]) / ctrl_range for x in xs]
+    im = ax.imshow(np.array(ys)[...,None].T, aspect="auto", cmap='viridis')
+    cbar = ax.figure.colorbar(im, ax=ax)
+    # sns.heatmap(np.array(ys), cmap='viridis', ax=ax, cbar=True, xticklabels=True, yticklabels=True)
+    plt.savefig(os.path.join(cfg.log_dir, f'{ctrl}_heatmap.png'))
+    plt.close()
     sys.exit()

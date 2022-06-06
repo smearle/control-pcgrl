@@ -225,17 +225,17 @@ def main(cfg):
     dummy_env = make_env(dummy_cfg)
     # check_env(dummy_env)
 
-    # DEBUG ###
-    for _ in range(10):
-        obs = dummy_env.reset()
-        for i in range(300):
-            if i > 3:
-                act = dummy_env.action_space.sample()
-            else:
-                act = 0
-            dummy_env.step(act)
-            dummy_env.render()
-    sys.exit()
+    # # DEBUG ###
+    # for _ in range(10):
+    #     obs = dummy_env.reset()
+    #     for i in range(300):
+    #         if i > 3:
+    #             act = dummy_env.action_space.sample()
+    #         else:
+    #             act = 0
+    #         dummy_env.step(act)
+    #         dummy_env.render()
+    # sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1

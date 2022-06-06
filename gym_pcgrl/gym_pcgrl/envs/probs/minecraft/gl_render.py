@@ -28,17 +28,53 @@ colors = (
 
 pos_x, pos_y, rot_x, rot_y, zoom = 0, 0, 0, 0, -0.5
 
-adjs = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]])
+adjs = np.array([[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]])
 adjs += 1
+
+cube_vertices = (
+    (1, -1, -1),
+    (1, 1, -1),
+    (-1, 1, -1),
+    (-1, -1, -1),
+    (1, -1, 1),
+    (1, 1, 1),
+    (-1, -1, 1),
+    (-1, 1, 1),
+)
+cube_vertices = np.array(cube_vertices)
+
+cube_edges = (
+    (0, 1),
+    (0, 3),
+    (0, 4),
+    (2, 1),
+    (2, 3), 
+    (2, 7),
+    (6, 3),
+    (6, 4),
+    (6, 7),
+    (5, 1),
+    (5, 4),
+    (5, 7),
+)
+
+cube_surfaces = (
+    (4, 0, 3, 6),  # bottom
+    (4, 5, 1, 0),  # right
+    (1, 5, 7, 2),  # top
+    (3, 2, 7, 6),  # left
+    (6, 7, 5, 4),  # front
+    (0, 1, 2, 3),  # back
+)
 
 class CubeFaceNN(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv = nn.Conv3d(1, 6, kernel_size=3, padding=1)
+        self.conv = nn.Conv3d(1, 6, kernel_size=3, padding=1, bias=False)
         # Hand-code the weights. Does not need gradient.
         self.conv.weight = nn.Parameter(th.zeros_like(self.conv.weight), requires_grad=False)
         # Activate an adjacency channel if the current cube is active and the adjacent cube is not.
-        self.conv.weight[:, 0, 0, 0, 0] = 1
+        self.conv.weight[:, 0, 1, 1, 1] = 1
         for i, adj in enumerate(adjs):
             self.conv.weight[i, 0, adj[0], adj[1], adj[2]] = -1
 
@@ -69,7 +105,6 @@ class Scene():
 
 
     def render(self, rep_map, paths=[], bordered=False):
-        dirt_cube_faces = np.zeros((*rep_map.shape, 6), dtype=bool)
         display = self.display
         rep_map = rep_map.copy()
         if bordered:
@@ -123,16 +158,27 @@ class Scene():
                 x, z = x - width/2, z - depth/2
                 Cube(loc=(x,y,z), color=(.12, .1, .80, 0.4))
 
-            # dirt_cubes = th.Tensor((rep_map == DIRT), dtype=int)
-            # dirt_cube_faces = cube_face_nn(dirt_cubes)
-            # TT()
-            # dirt_cubes = np.where(rep_map == DIRT)
-            dirt_cubes = np.argwhere(rep_map == DIRT)
-            # dirt_cube_faces[dirt_cube_faces]
-            for (y, x, z) in dirt_cubes:
+            dirt_cubes = th.Tensor((rep_map == DIRT))[None, ...]
+            dirt_cube_faces = cube_face_nn(dirt_cubes)
+            # print(f'{dirt_cubes.sum()} dirt cubes, {dirt_cube_faces.sum()} dirt cube faces')
+            cube_color = (.89, .44, .18, 0.3)
+            for (f, y, x, z) in th.argwhere(dirt_cube_faces > .5):
                 x, z = x - width/2, z - depth/2
+                glBegin(GL_QUADS)
+                i = 0
+                for vertex in cube_surfaces[f]:
+                    i +=1
+                    glColor4fv(cube_color + (i * np.array([-0.1,-0.1,-0.1, 0.0])))
+                    glVertex3fv(cube_vertices[vertex] / 2 + np.array([x, y, z]))
+                glEnd()
+
+            # dirt_cubes = np.where(rep_map == DIRT)
+            # dirt_cubes = np.argwhere(rep_map == DIRT)
+            # dirt_cube_faces[dirt_cube_faces]
+            # for (y, x, z) in dirt_cubes:
+                # x, z = x - width/2, z - depth/2
                 # color = np.array([.89, .44, .18, 0.3])
-                Cube(loc=(x,y,z), color=(.89, .44, .18, 0.3))
+                # Cube(loc=(x,y,z), color=(.89, .44, .18, 0.3))
                 # glBegin(GL_QUADS)
                 # for surface in surfaces:
                 #     x = 0
@@ -219,47 +265,11 @@ def Plane(loc=(0, 0, 0), color=(.2, .2, .20, 1)):
     glEnd()
 
 
-vertices = (
-    (1, -1, -1),
-    (1, 1, -1),
-    (-1, 1, -1),
-    (-1, -1, -1),
-    (1, -1, 1),
-    (1, 1, 1),
-    (-1, -1, 1),
-    (-1, 1, 1),
-)
-cube_vertices = np.array(vertices)
-
-edges = (
-    (0, 1),
-    (0, 3),
-    (0, 4),
-    (2, 1),
-    (2, 3), 
-    (2, 7),
-    (6, 3),
-    (6, 4),
-    (6, 7),
-    (5, 1),
-    (5, 4),
-    (5, 7),
-)
-
-surfaces = (
-    (0, 1, 2, 3),
-    (3, 2, 7, 6),
-    (6, 7, 5, 4),
-    (4, 5, 1, 0),
-    (1, 5, 7, 2),
-    (4, 0, 3, 6),
-)
-
 def Cube(loc=(0, 0, 0), color=(0, 1, 1, 0.2)):
     color = np.array(color, dtype=np.float) 
     loc = np.array(loc, dtype=np.float)
     glBegin(GL_QUADS)
-    for surface in surfaces:
+    for surface in cube_surfaces:
         x = 0
         for vertex in surface:
             x+=1
