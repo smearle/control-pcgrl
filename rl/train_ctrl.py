@@ -471,7 +471,7 @@ def main(cfg):
         stop={"timesteps_total": 1e8},
         checkpoint_at_end=True,
         checkpoint_freq=50,
-        keep_checkpoints_num=1,
+        keep_checkpoints_num=2,
         local_dir=log_dir,
         verbose=1,
         # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
