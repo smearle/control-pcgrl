@@ -467,11 +467,11 @@ def main(cfg):
         config={
             **trainer_config,
         },
-        checkpoint_score_attr="episode_reward_mean",
-        
+        # checkpoint_score_attr="episode_reward_mean",
+        stop={"timesteps_total": 1e8},
         checkpoint_at_end=True,
-        checkpoint_freq=10,
-        keep_checkpoints_num=3,
+        checkpoint_freq=50,
+        keep_checkpoints_num=1,
         local_dir=log_dir,
         verbose=1,
         # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
