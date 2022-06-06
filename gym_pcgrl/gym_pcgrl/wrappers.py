@@ -534,7 +534,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
 
 
 class Cropped3DImagePCGRLWrapper(gym.Wrapper):
-    def __init__(self, game, crop_size, **kwargs):
+    def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Cropping the map to the correct crop_size
@@ -545,6 +545,9 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
         # Indices for flatting
         flat_indices = ['map']
         # Final Wrapper has to be ToImage or ToFlat
+        if n_aux_tiles > 0:
+            flat_indices += ["aux"]
+            env = AuxTiles(env, n_aux_tiles=n_aux_tiles, **kwargs)
         self.env = ToImage(env, flat_indices, **kwargs)
         gym.Wrapper.__init__(self, self.env)
 

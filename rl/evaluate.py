@@ -22,8 +22,12 @@ def evaluate(trainer, env, cfg):
     if 'holey' in cfg.env_name:
         if CONTROL_DOORS:
             test_doors(trainer, env, cfg)
+
     if len(cfg.conditionals) == 1:
         test_control(trainer, env, cfg)
+
+    # TODO: If 2 controls, test 2 controls at once. Also test each control independently.
+
     elif GENERAL_EVAL:
         stats = trainer.evaluate()
         print("Evaluation stats:", stats)

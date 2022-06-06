@@ -78,12 +78,12 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
         # latex_lines.insert(9, midrule_str)
 
         # detect start of multicol then add horizontal line between multicol levels
-        for i, l in enumerate(latex_lines):
-            if '\multicolumn' in l:
-                mc_start = i
-                break
-        for i in range(len(df_table.columns[0]) - 1):
-            latex_lines.insert(mc_start + i + 1, midrule_str)
+        # for i, l in enumerate(latex_lines):
+        #     if '\multicolumn' in l:
+        #         mc_start = i
+        #         break
+        # for i in range(len(df_table.columns[0]) - 1):
+        #     latex_lines.insert(mc_start + i + 1, midrule_str)
         latex = '\n'.join(latex_lines)
 
     with open(latex_file, 'w') as f:

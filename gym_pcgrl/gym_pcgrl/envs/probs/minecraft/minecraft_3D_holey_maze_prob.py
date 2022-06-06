@@ -278,8 +278,8 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
     
     def render(self, map, iteration_num, repr_name, render_matplotlib=False, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
-        super().render(map, iteration_num, repr_name, render_matplotlib, 
-                        render_paths=[self.connected_path_coords] **kwargs)
+        # super().render(map, iteration_num, repr_name, render_matplotlib, 
+                        # render_paths=[self.connected_path_coords], **kwargs)
         
 
         # Render the border if we haven't yet already.
@@ -326,10 +326,11 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             # spawn_3D_path(self.path_coords)
-            spawn_3D_maze(map)
+            # spawn_3D_maze(mae)
             render_path_coords = self.connected_path_coords
             render_path_coords = remove_stacked_path_tiles(render_path_coords)
             render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
+            render_path_coords = np.array(render_path_coords) - 1 
             spawn_3D_path(render_path_coords, item=TRAPDOOR)
 
             # spawn_3D_path(self.path_coords, item=LEAVES)

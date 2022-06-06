@@ -362,7 +362,9 @@ def main(cfg):
             evaluate(trainer, dummy_env, cfg)
             sys.exit()
 
-
+        elif cfg.infer:
+            while True:
+                trainer.evaluate()
 
         # env = make_env(vars(cfg))
         # for i in range(10000):

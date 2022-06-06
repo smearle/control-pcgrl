@@ -184,12 +184,12 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         # know if the agent's edit action has disrupted the old path, so we won't delete blocks in the
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
-        old_path_coords = [tuple(coords) for coords in self.old_path_coords]
-        path_to_erase = set(old_path_coords)
-        path_to_render = []
-        for (x, y, z) in self.path_coords:
-            if (x, y, z) in path_to_erase:
-                path_to_erase.remove((x, y, z))
+        # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        # path_to_erase = set(old_path_coords)
+        # path_to_render = []
+        # for (x, y, z) in self.path_coords:
+        #     if (x, y, z) in path_to_erase:
+        #         path_to_erase.remove((x, y, z))
             # else:
                 # path_to_render.append((x, y, z))
 #       print(self.path_coords)
@@ -202,11 +202,12 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
             # erase_3D_path(path_to_erase)
 
             # block_dict.update(get_3D_path_blocks(self.path_coords))
-        spawn_base(map)
-        spawn_3D_maze(map)
+        # spawn_base(map)
+        # spawn_3D_maze(map)
         render_path_coords = self.path_coords
         render_path_coords = remove_stacked_path_tiles(render_path_coords)
         render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
+        render_path_coords = np.array(render_path_coords) - 1
         spawn_3D_path(render_path_coords)
         # render_path_e_coords = self.min_e_path
         # render_path_e_coords = remove_stacked_path_tiles(render_path_e_coords)
