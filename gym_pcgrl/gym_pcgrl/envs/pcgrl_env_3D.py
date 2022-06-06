@@ -2,7 +2,6 @@ import collections
 from pdb import set_trace as TT
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from gym_pcgrl.envs.probs import PROBLEMS
-from gym_pcgrl.envs.probs.minecraft.gl_render import Scene
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper_3D import get_int_prob, get_string_map
@@ -13,7 +12,11 @@ from gym import spaces
 RENDER_OPENGL = 0
 RENDER_MINECRAFT = 1
 
-RENDER_MODE = RENDER_OPENGL
+RENDER_MODE = RENDER_MINECRAFT
+
+if RENDER_MODE == RENDER_OPENGL:
+    from gym_pcgrl.envs.probs.minecraft.gl_render import Scene
+
 """
 The 3D PCGRL GYM Environment
 """
