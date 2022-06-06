@@ -3,6 +3,8 @@ from pdb import set_trace as TT
 import numpy as np
 import pygame
 from pygame.locals import *
+import torch as th
+from torch import nn
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -26,7 +28,30 @@ colors = (
 
 pos_x, pos_y, rot_x, rot_y, zoom = 0, 0, 0, 0, -0.5
 
-def init_display():
+adjs = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0], [0, 0, -1]])
+adjs += 1
+
+class CubeFaceNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv3d(1, 6, kernel_size=3, padding=1)
+        # Hand-code the weights. Does not need gradient.
+        self.conv.weight = nn.Parameter(th.zeros_like(self.conv.weight), requires_grad=False)
+        # Activate an adjacency channel if the current cube is active and the adjacent cube is not.
+        self.conv.weight[:, 0, 0, 0, 0] = 1
+        for i, adj in enumerate(adjs):
+            self.conv.weight[i, 0, adj[0], adj[1], adj[2]] = -1
+
+    def forward(self, x):
+        return th.relu(self.conv(x))
+
+
+cube_face_nn = CubeFaceNN()
+
+
+class Scene():
+    def __init__(self):
+        self.i = 0
         pygame.init()
         display = (1280, 720)
         pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
@@ -37,117 +62,92 @@ def init_display():
         glTranslate(0.0,-5,-20)
         glEnable(GL_DEPTH_TEST)
     
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glEnable(GL_BLEND)
 
-        display = display
-
-        return display
-
-def render_opengl(display, rep_map, paths=[], bordered=False):
-    rep_map = rep_map.copy()
-    if bordered:
-        borders = rep_map.copy()
-        borders[1:-1, 1:-1, 1:-1] = DIRT
-        ent_exit = np.where(borders == AIR)
-        rep_map[:, :, 0] = rep_map[:, :, -1] = AIR
-        rep_map[:, 0, :] = rep_map[:, -1, :] = AIR
-        rep_map[0, :, :] = rep_map[-1, :, :] = AIR
-        rep_map[ent_exit] = ENTRANCE
-    global rot_x, rot_y, zoom
-    i = 0
-    width, height, depth = rep_map.shape
-    # while True:
-    for _ in range(1):
-
-        keys_pressed = pygame.mouse.get_pressed()
+        self.display = display
 
 
-        # if keys_pressed[pygame.K_w]:
-        #     glTranslatef(0.0, -0.1, 0.0)
+    def render(self, rep_map, paths=[], bordered=False):
+        dirt_cube_faces = np.zeros((*rep_map.shape, 6), dtype=bool)
+        display = self.display
+        rep_map = rep_map.copy()
+        if bordered:
+            borders = rep_map.copy()
+            borders[1:-1, 1:-1, 1:-1] = DIRT
+            ent_exit = np.where(borders == AIR)
+            rep_map[:, :, 0] = rep_map[:, :, -1] = AIR
+            rep_map[:, 0, :] = rep_map[:, -1, :] = AIR
+            rep_map[0, :, :] = rep_map[-1, :, :] = AIR
+            rep_map[ent_exit] = ENTRANCE
+        global rot_x, rot_y, zoom
+        width, height, depth = rep_map.shape
+        # while True:
+        for _ in range(1):
 
-        # if keys_pressed[pygame.K_s]:
-        #     glTranslatef(0.0, 0.1, 0.0)
+            keys_pressed = pygame.mouse.get_pressed()
+            l_button_down = keys_pressed[0] == 1
+            r_button_down = keys_pressed[2] == 1
+            global pos_x, pos_y, rot_x, rot_y, zoom
 
-        # if keys_pressed[pygame.K_d]:
-        #     glTranslatef(-0.1, 0.0, 0.0)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    busy = False
+                elif event.type == pygame.MOUSEMOTION:
+                    if l_button_down:
+                        rot_x += event.rel[1] * .5
+                        rot_y += event.rel[0] * .5
+                    if r_button_down:
+                        pos_x += event.rel[0] * 0.05
+                        pos_y -= event.rel[1] * 0.05 
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:
+                        zoom += 0.2
+                    if event.button == 5:
+                        zoom -= 0.2
 
-        # if keys_pressed[pygame.K_a]:
-        #     glTranslatef(0.1, 0.0, 0.0)
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+            glPushMatrix()
+            glTranslatef(pos_x, pos_y, zoom)
+            glRotatef(rot_x, 1, 0, 0)    
+            glRotatef(rot_y, 0, 1, 0)    
 
-        # if keys_pressed[pygame.K_q]:
-        #     glRotatef(1, 0, 1, 0)
-        # if keys_pressed[pygame.K_e]:
-        #     print('q')
-        #     glRotatef(-1, 0, 1, 0)
+            # The draw order affects the transparency of the objects in the scene.
+            for path in paths:
+                for (z, x, y) in path:
+                    x, z = x - width/2, z - depth/2
+                    Cube(loc=(x,y,z), color=(.44, .89, .18, 0.4))
 
-        l_button_down = keys_pressed[0] == 1
-        r_button_down = keys_pressed[2] == 1
-        global pos_x, pos_y, rot_x, rot_y, zoom
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                busy = False
-            elif event.type == pygame.MOUSEMOTION:
-                if l_button_down:
-                    rot_x += event.rel[1] * .5
-                    rot_y += event.rel[0] * .5
-                if r_button_down:
-                    pos_x += event.rel[0] * 0.05
-                    pos_y -= event.rel[1] * 0.05 
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    zoom += 0.2
-                if event.button == 5:
-                    zoom -= 0.2
-
-
-            # control_check()
-            # if event.type == pygame.KEYDOWN:
-            #     if event.key == pygame.K_LEFT:
-            #         glTranslatef(-0.5, 0.0, 0.0)
-            #     if event.key == pygame.K_RIGHT:
-            #         glTranslatef(0.5, 0.0, 0.0)
-            #     if event.key == pygame.K_UP:
-            #         glTranslatef(0.0, 1.0, 0.0)
-            #     if event.key == pygame.K_DOWN:
-            #         glTranslatef(0.0, -1.0, 0.0)
-
-            # if event.type == pygame.MOUSEBUTTONDOWN:
-            #     if event.button == 4:
-            #         glTranslatef(0.0, 0.0, 1.0)
-            #     if event.button == 5:
-            #         glTranslatef(0.0, 0.0, -1.0)
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        glPushMatrix()
-        glTranslatef(pos_x, pos_y, zoom)
-        glRotatef(rot_x, 1, 0, 0)    
-        glRotatef(rot_y, 0, 1, 0)    
-
-
-        # The draw order affects the transparency of the objects in the scene.
-        for path in paths:
-            for (z, x, y) in path:
+            ent_cubes = np.argwhere(rep_map == ENTRANCE)
+            for (y, x, z) in ent_cubes:
                 x, z = x - width/2, z - depth/2
-                Cube(loc=(x,y,z), color=(.44, .89, .18, 0.4))
+                Cube(loc=(x,y,z), color=(.12, .1, .80, 0.4))
 
-        ent_cubes = np.argwhere(rep_map == ENTRANCE)
-        for (y, x, z) in ent_cubes:
-            x, z = x - width/2, z - depth/2
-            Cube(loc=(x,y,z), color=(.12, .1, .80, 0.4))
+            # dirt_cubes = th.Tensor((rep_map == DIRT), dtype=int)
+            # dirt_cube_faces = cube_face_nn(dirt_cubes)
+            # TT()
+            # dirt_cubes = np.where(rep_map == DIRT)
+            dirt_cubes = np.argwhere(rep_map == DIRT)
+            # dirt_cube_faces[dirt_cube_faces]
+            for (y, x, z) in dirt_cubes:
+                x, z = x - width/2, z - depth/2
+                # color = np.array([.89, .44, .18, 0.3])
+                Cube(loc=(x,y,z), color=(.89, .44, .18, 0.3))
+                # glBegin(GL_QUADS)
+                # for surface in surfaces:
+                #     x = 0
+                #     for vertex in surface:
+                #         x+=1
+                #         glColor4fv(color + (x * np.array([-0.1,-0.1,-0.1, 0.0])))
+                #         glVertex3fv(cube_vertices[vertex] / 2 + loc)
+            # glEnd()
+            Plane((0,-.5,0))
 
-        dirt_cubes = np.argwhere(rep_map == 1)
-        for (y, x, z) in dirt_cubes:
-            x, z = x - width/2, z - depth/2
-            Cube(loc=(x,y,z), color=(.89, .44, .18, 0.3))
-        Plane((0,-.5,0))
-
-        glPopMatrix()
-        pygame.display.flip()
-        pygame.time.wait(1)
-        i += 1
-        # pygame.time.wait(10)
+            glPopMatrix()
+            pygame.display.flip()
+            pygame.time.wait(1)
+            self.i += 1
+            # pygame.time.wait(10)
 
 # from sentdex youtube video
 def control_check(keys_pressed):

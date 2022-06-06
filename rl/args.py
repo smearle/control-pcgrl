@@ -36,6 +36,7 @@ def parse_args():
 def parse_pcgrl_args(args):
     opts = args.parse_args()
     opts.conditional = True
+    opts.model_cfg = {}
     opts_dict = vars(opts)
 
     if opts.load_args is not None:
@@ -211,6 +212,34 @@ def get_args():
         help='Number of auxiliary tiles to use (for the agent to leave itself messages for later).',
         type=int,
         default=0,
+    )
+    args.add_argument(
+        '--lr',
+        help='Learning rate for the agent.',
+        type=float,
+        default=5e-6,
+    )
+    args.add_argument(
+        '--load',
+        help='Whether to load a model from a checkpoint.',
+        action='store_true',
+    )
+    args.add_argument(
+        '--evaluate',
+        help='Whether to evaluate a model.',
+        action='store_true',
+    )
+    args.add_argument(
+        '--infer',
+        help='Whether to do inference with a model.',
+        action='store_true',
+    )
+    args.add_argument(
+        "-ga",
+        "--gamma",
+        type=float,
+        default=0.99,
+        help="Discount factor of the MDP."
     )
 
     return args

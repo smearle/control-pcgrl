@@ -1,8 +1,8 @@
 import collections
 from pdb import set_trace as TT
-from gym_pcgrl.envs.gl_render import init_display, render_opengl
 from gym_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from gym_pcgrl.envs.probs import PROBLEMS
+from gym_pcgrl.envs.probs.minecraft.gl_render import Scene
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper_3D import get_int_prob, get_string_map
@@ -21,7 +21,7 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
     def __init__(self, prob="minecraft_3D_maze", rep="narrow3D", **kwargs):
         super().__init__(prob, rep, **kwargs)
         self.get_string_map = get_string_map
-        self.display = None
+        self.gl_scene = None
         self.is_holey = False
 #         self._prob: Problem = PROBLEMS[prob]()
 #         self._rep: Representation = REPRESENTATIONS[rep]()
@@ -132,9 +132,6 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
             return
 
     def render_opengl(self, rep_map):
-        if self.display is None:
-            self.display = init_display()
-        render_opengl(self.display, rep_map, paths=[self._prob.path_coords], bordered=self.is_holey)
-
-if __name__ == "__main__":
-    main()
+        if self.gl_scene is None:
+            self.gl_scene = Scene()
+        self.gl_scene.render(rep_map, paths=[self._prob.path_coords], bordered=self.is_holey)
