@@ -184,12 +184,11 @@ class PcgrlEnv(gym.Env):
             percentage = min(1, max(0, self._change_percentage))
             self._max_changes = max(int(percentage * np.prod(self.get_map_dims()[:-1])), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        if kwargs["model"]:
-            if 'Decoder' in kwargs['model']:
-                self._max_iterations = 1
-            else:
-                max_board_scans = kwargs.get('max_board_scans')
-                self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
+        if kwargs['model'] is not None and 'Decoder' in kwargs['model']:
+            self._max_iterations = 1
+        else:
+            max_board_scans = kwargs.get('max_board_scans')
+            self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(*self.get_map_dims()[:-1], self.get_num_tiles())

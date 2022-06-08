@@ -114,7 +114,7 @@ class AuxTiles(gym.Wrapper):
         self.aux_map[pos[0], pos[1]] = aux
 
 
-class AuxTiles3D(gym.Wrapper):
+class AuxTiles3D(AuxTiles):
     def _write_to_aux(self, pos, aux):
         self.aux_map[pos[0], pos[1], pos[2]] = aux
 
@@ -547,7 +547,7 @@ class Cropped3DImagePCGRLWrapper(gym.Wrapper):
         # Final Wrapper has to be ToImage or ToFlat
         if n_aux_tiles > 0:
             flat_indices += ["aux"]
-            env = AuxTiles(env, n_aux_tiles=n_aux_tiles, **kwargs)
+            env = AuxTiles3D(env, n_aux_tiles=n_aux_tiles, **kwargs)
         self.env = ToImage(env, flat_indices, **kwargs)
         gym.Wrapper.__init__(self, self.env)
 

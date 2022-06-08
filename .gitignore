@@ -47,8 +47,7 @@ runs/
 # Saved models
 *.zip
 
-# ribs archives
-evo_runs/*
+evo_runs*/*
 !evo_runs/.gitkeep
 rl_runs/*
 !rl_runs/.gitkeep

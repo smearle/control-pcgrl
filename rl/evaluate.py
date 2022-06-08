@@ -14,36 +14,53 @@ from utils import IdxCounter
 
 LOAD_STATS = False
 CONTROL_DOORS = False
+CONTROLS = False
 GENERAL_EVAL = True
 
 
 def evaluate(trainer, env, cfg):
     # Set controls
-    if 'holey' in cfg.env_name:
-        if CONTROL_DOORS:
-            test_doors(trainer, env, cfg)
+    eval_stats = {}
+    eval_stats.update({'timesteps_total': trainer._timesteps_total})
+    if CONTROL_DOORS:
+        if 'holey' in cfg.env_name:
+            door_stats = test_doors(trainer, env, cfg)
+            eval_stats.update(door_stats)
+        else:
+            print('Not a holey environment, so not evaluating door placement.')
 
-    if len(cfg.conditionals) == 1:
-        test_control(trainer, env, cfg)
+    if CONTROLS:
+        if len(cfg.conditionals) == 1:
+            control_stats = test_control(trainer, env, cfg)
+            eval_stats.update(control_stats)
+        else:
+            print('Not a single control, so not evaluating control.')
 
     # TODO: If 2 controls, test 2 controls at once. Also test each control independently.
 
-    elif GENERAL_EVAL:
-        stats = trainer.evaluate()
-        print("Evaluation stats:", stats)
-        eval_stats = stats['evaluation']
-        hist_stats = eval_stats['hist_stats']
-        eval_stats.pop('hist_stats')
-        n_eval_eps = list(hist_stats['episode_lengths'])
-        eval_stats['n_eval_eps'] = n_eval_eps
-        custom_stats = eval_stats['custom_metrics']
-        eval_stats.pop('custom_metrics')
-        eval_stats.update(custom_stats)
-        eval_stats = {k: int(v) if isinstance(v, np.int64) else v for k, v in eval_stats.items()}
-        # pop hist stats and custom metrics
-        with open(os.path.join(cfg.log_dir, 'eval_stats.json'), 'w') as f:
-            json.dump(eval_stats, f)
-        # pickle.dump(stats, open(os.path.join(cfg.log_dir, 'eval_stats.pkl'), 'wb'))
+    if GENERAL_EVAL:
+        general_stats = general_eval(trainer, env, cfg)
+        eval_stats.update(general_stats)
+
+    # pop hist stats and custom metrics
+    with open(os.path.join(cfg.log_dir, 'eval_stats.json'), 'w') as f:
+        json.dump(eval_stats, f, indent=4)
+    # pickle.dump(stats, open(os.path.join(cfg.log_dir, 'eval_stats.pkl'), 'wb'))
+        
+
+def general_eval(trainer, env, cfg):
+    stats = trainer.evaluate()
+    print("Evaluation stats:", stats)
+    eval_stats = stats['evaluation']
+    hist_stats = eval_stats['hist_stats']
+    eval_stats.pop('hist_stats')
+    n_eval_eps = len(hist_stats['episode_lengths'])
+    eval_stats['n_eval_eps'] = n_eval_eps
+    custom_stats = eval_stats['custom_metrics']
+    eval_stats.pop('custom_metrics')
+    eval_stats.update(custom_stats)
+    eval_stats = {k: int(v) if isinstance(v, np.int64) else v for k, v in eval_stats.items()}
+    return eval_stats
 
 
 def test_doors(trainer, env, cfg):

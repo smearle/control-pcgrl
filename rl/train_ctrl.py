@@ -239,6 +239,7 @@ def main(cfg):
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1
+    logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
@@ -275,7 +276,7 @@ def main(cfg):
                     # "id": exp_name_id,
                     # "api_key_file": "~/.wandb_api_key"
             # },
-            "type": "ray.tune.logger.TBXLogger",
+            **logger_type,
             # Optional: Custom logdir (do not define this here
             # for using ~/ray_results/...).
             "logdir": log_dir,
@@ -354,7 +355,8 @@ def main(cfg):
                 assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
                 checkpoint_path = checkpoint_path[:-1]
 
-            trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+            # trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+            trainer.restore(checkpoint_path=checkpoint_path)
             print(f"Loaded checkpoint from {checkpoint_path}.")
 
         # TODO: Move this into its own script and re-factor the redundant bits!(?)

@@ -171,16 +171,19 @@ def launch_batch(collect_params=False):
                 json.dump(exp_config, f, ensure_ascii=False, indent=4)
             # Launch the experiment. It should load the saved settings
 
-            if collect_params:
-                settings_list.append(exp_config)
-            elif LOCAL:
-                full_cmd = f"python {py_script_name} --load_args {config_name}"
-                # Printout for convenience: when debugging on a Mac calling this from a script will break `set_trace()`
-                # so we print the command here to be entered-in manually.
-                print(f"Running command:\n{full_cmd}")
-                os.system(full_cmd)
-            else:
-                os.system(f"sbatch {sbatch_name}")
+            print('Skipping evaluation (already have stats saved).')
+            if not (EVALUATE and not opts.overwrite_eval and \
+                os.path.isfile(os.path.join('rl_runs', f'{config_name}_log', 'eval_stats.json'))):
+                if collect_params:
+                    settings_list.append(exp_config)
+                elif LOCAL:
+                    full_cmd = f"python {py_script_name} --load_args {config_name}"
+                    # Printout for convenience: when debugging on a Mac calling this from a script will break `set_trace()`
+                    # so we print the command here to be entered-in manually.
+                    print(f"Running command:\n{full_cmd}")
+                    os.system(full_cmd)
+                else:
+                    os.system(f"sbatch {sbatch_name}")
             i += 1
     if collect_params:
         return settings_list
@@ -299,6 +302,12 @@ if __name__ == "__main__":
         help='Number of max iterations in terms of maximum number of times the board can be scanned by the agent.',
         type=int,
         default=1,
+    )
+    opts.add_argument(
+        '--overwrite_eval',
+        help='Whether to overwrite stats resulting from a previous evaluation.',
+        action=argparse.BooleanOptionalAction,
+        default=True,
     )
 
     opts = opts.parse_args()

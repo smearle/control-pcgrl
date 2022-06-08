@@ -443,24 +443,24 @@ class ConditionalWrapper(gym.Wrapper):
 
         return reward
 
-    def get_done(self):
-        done = True
-        # overwrite static trgs with conditional ones, in case we have made a static one conditional in this run
-        trg_dict = copy.deepcopy(self.static_trgs)
-        trg_dict.update(self.metric_trgs)
+    # def get_done(self):
+    #     done = True
+    #     # overwrite static trgs with conditional ones, in case we have made a static one conditional in this run
+    #     trg_dict = copy.deepcopy(self.static_trgs)
+    #     trg_dict.update(self.metric_trgs)
 
-        for k, v in trg_dict.items():
-            if isinstance(v, tuple):
-                # FIXME: Missing the upper bound here!
-                if self.metrics[k] in np.arange(*v):
-                    done = False
-            elif int(self.metrics[k]) != int(v):
-                done = False
+    #     for k, v in trg_dict.items():
+    #         if isinstance(v, tuple):
+    #             # FIXME: Missing the upper bound here!
+    #             if self.metrics[k] in np.arange(*v):
+    #                 done = False
+    #         elif int(self.metrics[k]) != int(v):
+    #             done = False
 
-        if done and self.infer:
-            print("targets reached! {}".format(trg_dict))
+    #     if done and self.infer:
+    #         print("targets reached! {}".format(trg_dict))
 
-        return done
+    #     return done
 
     def close(self):
         if self.render_gui and self.conditional:
