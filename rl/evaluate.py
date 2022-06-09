@@ -218,7 +218,7 @@ def test_control(trainer, env, cfg):
         all_trg_ints = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
         all_trgs = [{ctrl: v} for v in all_trg_ints]
         # Repeat certain targets so we can take the average over noisy behavior (we're assuming that eval explore=True here)
-        all_trgs = all_trgs * 2
+        all_trgs = all_trgs * 5
         # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
         n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
         idx_counter = IdxCounter.options(name='idx_counter').remote()
@@ -236,34 +236,37 @@ def test_control(trainer, env, cfg):
         ctrl_stats = {v: [] for v in all_trg_ints}
         trainer.evaluation_workers.foreach_env(lambda env: env.queue_control_trgs(idx_counter))
 
-        while len(ctrl_stats) < len(all_trgs):
+        n_eps = 0
+        while n_eps < len(all_trgs):
             result = trainer.evaluate()
             hist_stats = result['evaluation']['hist_stats']
             print(result)
             if f'{ctrl}-trg' in hist_stats:
                 for ctrl_trg, ctrl_val in zip(hist_stats[f'{ctrl}-trg'], hist_stats[f'{ctrl}-val']):
                     ctrl_stats[ctrl_trg] += [ctrl_val]
-                print(f"{len(ctrl_stats)} out of {len(all_trgs)} ctrl stats collected")
+                    n_eps += 1
+                print(f"{n_eps} out of {len(all_trgs)} ctrl stats collected")
                 # print(hole_stats)
                 pickle.dump(ctrl_stats, open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'wb'))
 
-    ctrl_stats = {k: np.mean(v) for k, v in ctrl_stats.items()}
+    mean_ctrl_stats = {k: np.mean(v) for k, v in ctrl_stats.items()}
     fig, ax = plt.subplots(1, 1)
     xs = list(ctrl_stats.keys())
     ys = [np.mean(ctrl_stats[x]) for x in xs]
-    plt.scatter(xs, ys)
+    # plt.scatter(xs, ys)
+    plt.errorbar(xs, ys, yerr=[np.std(ctrl_stats[x]) for x in ctrl_stats], fmt='o')
     plt.title(f'Controlling for {ctrl}')
     # Set x axis name
     ax.set_xlabel(f'{ctrl} targets')
     ax.set_ylabel(f'{ctrl} values')
     plt.savefig(os.path.join(cfg.log_dir, f'{ctrl}_scatter.png'))
 
-    fig, ax = plt.subplots(1, 1)
-    ctrl_range = ctrl_bounds[1] - ctrl_bounds[0]
-    ys = [1 - np.abs(x - ctrl_stats[x]) / ctrl_range for x in xs]
-    im = ax.imshow(np.array(ys)[...,None].T, aspect="auto", cmap='viridis')
-    cbar = ax.figure.colorbar(im, ax=ax)
-    # sns.heatmap(np.array(ys), cmap='viridis', ax=ax, cbar=True, xticklabels=True, yticklabels=True)
-    plt.savefig(os.path.join(cfg.log_dir, f'{ctrl}_heatmap.png'))
-    plt.close()
-    sys.exit()
+    # fig, ax = plt.subplots(1, 1)
+    # ctrl_range = ctrl_bounds[1] - ctrl_bounds[0]
+    # ys = [1 - np.abs(x - ctrl_stats[x]) / ctrl_range for x in xs]
+    # im = ax.imshow(np.array(ys)[...,None].T, aspect="auto", cmap='viridis')
+    # cbar = ax.figure.colorbar(im, ax=ax)
+    # # sns.heatmap(np.array(ys), cmap='viridis', ax=ax, cbar=True, xticklabels=True, yticklabels=True)
+    # plt.savefig(os.path.join(cfg.log_dir, f'{ctrl}_heatmap.png'))
+    # plt.close()
+    # sys.exit()
