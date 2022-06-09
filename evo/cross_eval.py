@@ -9,7 +9,7 @@ import pandas as pd
 import pingouin as pg
 import scipy.stats
 
-from evo.args import get_args, get_exp_name
+from evo.args import get_args, get_exp_dir, get_exp_name
 from tex_formatting import align, newline, pandas_to_latex
 from matplotlib import pyplot as plt
 
@@ -221,16 +221,16 @@ def compile_results(settings_list, tex=False):
             else:
                 val_lst.append(settings[k])
         args, arg_dict = get_args(load_args=settings)
-        exp_name = get_exp_name(args, arg_dict)
+        exp_dir = get_exp_dir(args, arg_dict)
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
 #       exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
         # stats_f = os.path.join(exp_name, "train_time_stats.json")
-        stats_f = os.path.join(exp_name, "stats.json")
-        fix_lvl_stats_f = os.path.join(exp_name, "statsfixLvls.json")
+        stats_f = os.path.join(exp_dir, "stats.json")
+        fix_lvl_stats_f = os.path.join(exp_dir, "statsfixLvls.json")
 
         if not (os.path.isfile(stats_f) and os.path.isfile(fix_lvl_stats_f)):
-            print("skipping evaluation of experiment due to missing stats file(s): {}".format(exp_name))
+            print("skipping evaluation of experiment due to missing stats file(s): {}".format(exp_dir))
             continue
         row_tpls.append(tuple(val_lst))
         data.append([])

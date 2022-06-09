@@ -42,7 +42,7 @@ from deap.base import Toolbox
 import copy
 
 
-from args import get_args
+from args import get_args, get_exp_dir, get_exp_name
 from archives import InitStatesArchive, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN
@@ -352,10 +352,12 @@ def flat_to_turtle(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=No
 preprocess_action_funcs = {
     "NCA": {
         "cellular": id_action,
-        "cellular3D": id_action,
         "wide": wide_action,
         "narrow": narrow_action,
         "turtle": turtle_action,
+    },
+    "NCA3D": {
+        "cellular3D": id_action,
     },
     "CPPN": {
         "cellular": tran_action,
@@ -388,10 +390,12 @@ def local_observation(obs, **kwargs):
 preprocess_observation_funcs = {
     "NCA": {
         "cellular": id_observation,
-        "cellular3D": id_observation,
         "wide": id_observation,
         "narrow": local_observation,
         "turtle": local_observation,
+    },
+    "NCA3D": {
+        "cellular3D": id_observation,
     },
     "CNN": {
         "cellular": id_observation,
@@ -1543,7 +1547,7 @@ class EvoPCGRL:
         n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN" in MODEL else self.n_tile_types
         self.gen_model = globals()[MODEL](
             n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env.unwrapped._prob._width,
-            render=RENDER)
+            render=RENDER, n_aux_chan=args.n_aux_chan)
         # TODO: toggle CUDA/GPU use with command line argument.
         if CUDA:
             self.gen_model.cuda()
@@ -2987,30 +2991,31 @@ if __name__ == "__main__":
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
     #       PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES
     #   )
-    exp_name = 'EvoPCGRL_'
-    if ALGO == "ME":
-        exp_name += "ME_"
-    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
-    )
+    # exp_name = 'EvoPCGRL_'
+    # if ALGO == "ME":
+    #     exp_name += "ME_"
+    # exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
+    #     PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
+    # )
 
-    # TODO: remove this! Ad hoc, for backward compatibility.
-    if ALGO == "CMAME" and arg_dict["step_size"] != 1 or ALGO == "ME" and arg_dict["step_size"] != 0.01:
-        exp_name += f"_{arg_dict['step_size']}-stepSize"
+    # # TODO: remove this! Ad hoc, for backward compatibility.
+    # if ALGO == "CMAME" and arg_dict["step_size"] != 1 or ALGO == "ME" and arg_dict["step_size"] != 0.01:
+    #     exp_name += f"_{arg_dict['step_size']}-stepSize"
 
-    if CASCADE_REWARD:
-        exp_name += "_cascRew"
+    # if CASCADE_REWARD:
+    #     exp_name += "_cascRew"
 
-    if not RANDOM_INIT_LEVELS:
-        exp_name += "_fixLvls"
+    # if not RANDOM_INIT_LEVELS:
+    #     exp_name += "_fixLvls"
 
-    if not REEVALUATE_ELITES:
-        exp_name += "_fixElites"
+    # if not REEVALUATE_ELITES:
+    #     exp_name += "_fixElites"
 
-    if args.mega:
-        exp_name += "_MEGA"
-    exp_name += "_" + arg_dict["exp_name"]
-    SAVE_PATH = os.path.join("evo_runs", exp_name)
+    # if args.mega:
+    #     exp_name += "_MEGA"
+    # exp_name += "_" + arg_dict["exp_name"]
+    exp_name = get_exp_name(args, arg_dict)
+    SAVE_PATH = get_exp_dir(exp_name)
     if MODEL not in preprocess_action_funcs:
         if "CPPN" in MODEL:
             preprocess_action = preprocess_action_funcs['CPPN'][REPRESENTATION]

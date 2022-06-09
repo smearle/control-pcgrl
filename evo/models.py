@@ -166,10 +166,11 @@ class AttentionNCA(ResettableNN):
         self.last_aux = None
 
 
+# TODO: Let a subclass handle case where n_aux_chan > 0
 class NCA3D(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
-    def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
+    def __init__(self, n_in_chans, n_actions, n_aux_chan=0, **kwargs):
         """A 3-dimensional Neural Cellular Automata.
 
         Args:
@@ -180,19 +181,20 @@ class NCA3D(ResettableNN):
         """
         super().__init__(**kwargs)
         n_hid_1 = 32
-        self.n_aux = n_aux
-        self.l1 = Conv3d(n_in_chans + n_aux, n_hid_1, 3, 1, 1, bias=True)
+        self.n_aux = n_aux_chan
+        self.l1 = Conv3d(n_in_chans + n_aux_chan, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv3d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
-        self.l3 = Conv3d(n_hid_1, n_actions + n_aux, 1, 1, 0, bias=True)
+        self.l3 = Conv3d(n_hid_1, n_actions + n_aux_chan, 1, 1, 0, bias=True)
         self.last_aux = None
         self.layers = [self.l1, self.l2, self.l3]
         self.apply(init_weights)
 
     def forward(self, x):
         with th.no_grad():
-            if self.last_aux is None:
-                self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-3:]))
-            x = th.cat([x, self.last_aux], axis=1)
+            if self.n_aux > 0:
+                if self.last_aux is None:
+                    self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-3:]))
+                x = th.cat([x, self.last_aux], axis=1)
             x = self.l1(x)
             x = th.relu(x)
             x = self.l2(x)
@@ -200,8 +202,9 @@ class NCA3D(ResettableNN):
             x = self.l3(x)
             # TODO: try softmax
             x = th.sigmoid(x)
-            self.last_aux = x[:, -self.n_aux:, ...]
-            x = x[:, :-self.n_aux, ...]
+            if self.n_aux > 0:
+                self.last_aux = x[:, -self.n_aux:, ...]
+                x = x[:, :-self.n_aux, ...]
 
         return x, False
 

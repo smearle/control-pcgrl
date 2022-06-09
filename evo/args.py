@@ -6,6 +6,7 @@ import sys
 import argparse 
 import json
 
+
 def get_args(load_args=None):
     if load_args is not None:
         sys.argv = sys.argv[:1]
@@ -164,6 +165,12 @@ def get_args(load_args=None):
         type=float,
         default=1.00,
     )
+    opts.add_argument(
+        '--n_aux_chan',
+        help='Number of auxiliary channels for NCA-type hidden activations.',
+        type=int,
+        default=0,
+    )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
     args = opts.parse_args()
@@ -265,9 +272,15 @@ def get_exp_name(args, arg_dict):
     if not REEVALUATE_ELITES:
         exp_name += "_fixElites"
 
+    if arg_dict['n_aux_chan'] > 0:
+        exp_name += f"_{arg_dict['n_aux_chan']}-aux"
+
     if args.mega:
         exp_name += "_MEGA"
     exp_name += "_" + arg_dict["exp_name"]
+    return exp_name
+
+def get_exp_dir(exp_name):
     evo_runs_dir = os.path.join(pathlib.Path(__file__).parent.parent.resolve(), 'evo_runs')
     SAVE_PATH = os.path.join(evo_runs_dir, exp_name)
 

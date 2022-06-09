@@ -5,7 +5,7 @@ import re
 import imageio
 from PIL import Image
 
-from evo.args import get_args, get_exp_name
+from evo.args import get_args, get_exp_dir, get_exp_name
 
 RENDER_GRID = True
 
@@ -25,11 +25,11 @@ def render_gifs(settings_list):
     for i, settings in enumerate(settings_list):
         n_steps = settings['n_steps']
         args, arg_dict = get_args(load_args=settings)
-        exp_name = get_exp_name(args, arg_dict)
-        if not os.path.isdir(exp_name):
-            print('Skipping experiment, as directory does not exist: ', exp_name)
+        exp_dir = get_exp_dir(args, arg_dict)
+        if not os.path.isdir(exp_dir):
+            print('Skipping experiment, as directory does not exist: ', exp_dir)
             continue
-        render_path = os.path.join(exp_name, 'renders')
+        render_path = os.path.join(exp_dir, 'renders')
         if not os.path.isdir(render_path):
             continue
         model_dirs = [m for m in os.listdir(render_path) if os.path.isdir(os.path.join(render_path, m)) and 'model' in m]
