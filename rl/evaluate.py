@@ -12,8 +12,8 @@ import seaborn as sns
 from utils import IdxCounter
 
 
-LOAD_STATS = False
-CONTROL_DOORS = False
+LOAD_STATS = True
+CONTROL_DOORS = True
 CONTROLS = False
 GENERAL_EVAL = True
 
@@ -22,13 +22,17 @@ def evaluate(trainer, env, cfg):
     # Set controls
     eval_stats = {}
     eval_stats.update({'timesteps_total': trainer._timesteps_total})
+
+    # Test the generator's ability to adapt to controllable door placement.
     if CONTROL_DOORS:
         if 'holey' in cfg.env_name:
             door_stats = test_doors(trainer, env, cfg)
             eval_stats.update(door_stats)
         else:
             print('Not a holey environment, so not evaluating door placement.')
+        return
 
+    # Test the generator's ability to meet controllable metric targets.
     if CONTROLS:
         if len(cfg.conditionals) == 1:
             control_stats = test_control(trainer, env, cfg)
@@ -72,7 +76,7 @@ def test_doors(trainer, env, cfg):
 
     # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
     all_holes = env.unwrapped._prob.gen_all_holes()
-    all_holes = [hole for i, hole in enumerate(all_holes) if i % 1 == 0]
+    all_holes = [hole for i, hole in enumerate(all_holes) if i % 10 == 0]
     all_holes = [hole for hole in all_holes if (tuple(hole[0][0]), tuple(hole[1][0])) not in ctrl_stats]
     n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
     if len(all_holes) >= n_envs:
@@ -107,44 +111,100 @@ def test_doors(trainer, env, cfg):
                 # print(hole_stats)
                 pickle.dump(ctrl_stats, open(f'{cfg.log_dir}/hole_stats.pkl', 'wb'))
     # print([e.unwrapped._prob.hole_queue for e in envs])
-    width = env.width
-    heat = np.zeros((width * 4, width * 4))
-    heat.fill(np.nan)
-    heat_dict = {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
-    for hole_pair in ctrl_stats:
-        projs = [None, None]
-        (ax, ay, az), (bx, by, bz) = hole_pair
-        for i, (z, y, x) in enumerate([(ax, ay, az), (bx, by, bz)]):
-            if x == 0 :
-                proj = y
-            elif y == width +1:
-                proj = width + x
-            elif x == width + 1:
-                proj = 3 * width - y - 1
-            elif y == 0:
-                proj = 4 * width - x - 1
+    width = cfg.width
+    height = cfg.height
+    length = cfg.length
+
+    HEATMAP = 1
+    if HEATMAP == 0:
+        # Here, we make a heatmap in which each axis is the top-down circumnference of the maze, unravelled. Take means 
+        # over the height axis.
+        heat = np.zeros((width * 4, width * 4))
+        heat.fill(np.nan)
+        heat_dict = {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
+        for hole_pair in ctrl_stats:
+            projs = [None, None]
+            (ax, ay, az), (bx, by, bz) = hole_pair
+            for i, (z, y, x) in enumerate([(ax, ay, az), (bx, by, bz)]):
+                if x == 0 :
+                    proj = y
+                elif y == width +1:
+                    proj = width + x
+                elif x == width + 1:
+                    proj = 3 * width - y - 1
+                elif y == 0:
+                    proj = 4 * width - x - 1
+                else:
+                    raise Exception
+                projs[i] = proj
+            proj_a, proj_b = projs
+            # heat[proj_a, proj_b] = hole_stats[hole_pair]
+            heat_dict[(proj_a, proj_b)] = ctrl_stats[hole_pair]
+
+        for k in heat_dict:
+            val = np.mean(heat_dict[k])
+            heat[k[0], k[1]] = val
+
+        fig, ax = plt.subplots(1, 1)
+        # Plot heatmap
+        ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar=True, square=True, xticklabels=True, yticklabels=True)
+        ax_s.invert_yaxis()
+        # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
+        plt.title('Path-length between entrances/exits')
+        # Set x axis name
+        ax.set_xlabel('Entrance position')
+        ax.set_ylabel('Exit position')
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap.png'))
+
+    elif HEATMAP == 1:
+        # Create heatmaps in which the x and y axes are the absolute x and y distance between doors, resepectively, and
+        # each heatmap corresponds to a different height differnce.
+        # Note the max width/length/height differences are quirky due to the map being bordered.
+        heat_dict = {h: {(i, j): [] for i in range(length + 2) for j in range(width + 2)} for h in range(height - 1)}
+        for hole_pair in ctrl_stats:
+            (az, ay, ax), (bz, by, bx) = hole_pair
+            diff_z = abs(az - bz)
+            diff_x = abs(ax - bx)
+            diff_y = abs(ay - by)
+            heat_dict[diff_z][(diff_x, diff_y)] = ctrl_stats[hole_pair]
+
+        heats = {h: np.zeros((length + 2, width + 2)) for h in range(height - 1)}
+        [heat.fill(np.nan) for heat in heats.values()]
+        for h in heat_dict:
+            for k in heat_dict[h]:
+                val = np.mean(heat_dict[h][k])
+                heats[h][k[0], k[1]] = val
+
+        # Height many subplots
+        fig, axes = plt.subplots(1, height - 1, sharex=True, sharey=True, figsize=(10, 3))
+        cbar_ax = fig.add_axes([.91, .3, .03, .4])
+        # for h, heat in heats.items():
+        for i, ax in enumerate(axes.flat):
+            heat = heats[i]
+            # Declare subplot
+            plt.subplot(1, height - 1, i + 1)
+            # Plot heatmap
+            ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar= i == 0, square=True, xticklabels=i == 0, 
+                               yticklabels=i == 0, cbar_ax=None if i else cbar_ax)
+            ax_s.invert_yaxis()
+            # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
+            # Set x axis name
+            if i == 0:
+                ax.set_xlabel('x difference')
+                ax.set_ylabel('y difference')
+                ax.set_title(f'height diff. = {i}')
             else:
-                TT()
-                raise Exception
-            projs[i] = proj
-        proj_a, proj_b = projs
-        # heat[proj_a, proj_b] = hole_stats[hole_pair]
-        heat_dict[(proj_a, proj_b)] = ctrl_stats[hole_pair]
+                ax.set_title(i)
+        plt.suptitle('Path-length between entrances/exits')
+        fig.tight_layout(rect=[0, 0, .9, 1])
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap.png'))
 
-    for k in heat_dict:
-        val = np.mean(heat_dict[k])
-        heat[k[0], k[1]] = val
 
-    fig, ax = plt.subplots(1, 1)
-    # Plot heatmap
-    ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar=True, square=True, xticklabels=True, yticklabels=True)
-    ax_s.invert_yaxis()
-    # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
-    plt.title('Path-length between entrances/exits')
-    # Set x axis name
-    ax.set_xlabel('Entrance position')
-    ax.set_ylabel('Exit position')
-    plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap.png'))
+    # TODO: summarize the results of the evaluation with controllable door placement.
+    door_stats = {
+    }
+
+    return door_stats
 
 def test_control(trainer, env, cfg):
     ctrl_metrics = env.ctrl_metrics

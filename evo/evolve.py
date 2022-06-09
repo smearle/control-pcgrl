@@ -2055,7 +2055,7 @@ class EvoPCGRL:
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
         self.env = ConditionalWrapper(self.env)
-        self.env.adjust_param(render=RENDER)
+        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1)
 
 #       if CMAES:
 #           # Give a little wiggle room from targets, to allow for some diversity (or not)

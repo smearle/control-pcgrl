@@ -313,28 +313,6 @@ def main(cfg):
     print(f'Loading trainer with config:')
     print(pretty_print(trainer_config_loggable))
 
-    # NOTE: `ray.tune` now handles re-loading. Remove the below code when we're sure all the functionality has migrated
-    #   over successfully.
-    # Super ad-hoc re-loading. Note that we reset the number of training steps to be executed. Need to clearn this up if
-    # we were to use it in actual publication-worthy experiments. Good for debugging though, maybe.
-    # if cfg.load:
-    #     trainer = Trainer(env='pcgrl', config=trainer_config)
-    #     with open(checkpoint_path_file, 'r') as f:
-    #         checkpoint_path = f.read()
-
-    #     # TODO: are we failing to save/load certain optimizer states? For example, the kl coefficient seems to shoot
-    #     #  back up when reloading (see tensorboard logs).
-    #     trainer.load_checkpoint(checkpoint_path=checkpoint_path)
-    #     print(f"Loaded checkpoint from {checkpoint_path}.")
-
-    #     n_params = 0
-    #     param_dict = trainer.get_weights()['default_policy']
-
-    #     for v in param_dict.values():
-    #         n_params += np.prod(v.shape)
-    #     print(f'default_policy has {n_params} parameters.')
-    #     print('model overview: \n', trainer.get_policy('default_policy').model)
-
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer or cfg.evaluate:
         trainer_config.update({
@@ -368,60 +346,9 @@ def main(cfg):
             while True:
                 trainer.evaluate()
 
-        # env = make_env(vars(cfg))
-        # for i in range(10000):
-        #     obs = env.reset()
-        #     done = False
-        #     time.sleep(0.5)
-        #     while not done:
-        #         action = trainer.compute_single_action(obs, explore=False)
-        #         obs, reward, done, info = env.step(action)
-        #         # print(env.unwrapped._rep_stats["path-length"])
-        #         print(env.unwrapped._rep_stats)
-        #         env.render()
-
         # Quit the program before agent starts training.
         sys.exit()
 
-    best_mean_reward = -np.inf
-
-    # TODO: makes this controllable, i.e., by dividing the number of frames by the train_batch_size
-    n_updates = 10000
-
-    # TODO: We've given the main loop over to `ray.tune`. Make sure we keep this functionality aroundn! In particular:
-    #   the printout is ugly and verbose. And it would be nice to log `fps`. (Probably just add to PPOTrainer subclass
-    #   and override the `train_step` or `print_result` methods?)
-    # The training loop.
-    # for i in range(n_updates):
-    # def train_fn(config={}):
-    #     result = trainer.train()
-    #     log_result = {k: v for k, v in result.items() if k in log_keys}
-    #     log_result['info: learner:'] = result['info']['learner']
-
-    #     # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-    #     log_result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
-
-    #     print('-----------------------------------------')
-    #     print(pretty_print(log_result))
-
-        # NOTE: `ray.tune` does this better now.
-        # # Intermittently save model checkpoints.
-        # if i % 10 == 0:
-        #     checkpoint = trainer.save(checkpoint_dir=log_dir)
-
-        #     # Remove the old checkpoint file if it exists.
-        #     if os.path.isfile(checkpoint_path_file):
-        #         with open(checkpoint_path_file, 'r') as f:
-        #             old_checkpoint = f.read()
-
-        #         # FIXME: sometimes this does not exist (when overwriting?)
-        #         shutil.rmtree(Path(old_checkpoint).parent)
-            
-        #     # Record the path of the new checkpoint.
-        #     with open(checkpoint_path_file, 'w') as f:
-        #         f.write(checkpoint)
-
-        #     print("checkpoint saved at", checkpoint)
     tune.register_trainable("CustomPPO", PPOTrainer)
 
     class TrialProgressReporter(CLIReporter):
@@ -495,6 +422,7 @@ cfg.logging = True  # Always log
 # NOTE: change percentage currently has no effect! Be warned!! (We fix number of steps for now.)
 
 cfg.map_width = get_map_width(cfg.problem)
+cfg.length = cfg.height = cfg.width = cfg.map_width  # Temporary. Should make this nicer :)
 crop_size = cfg.crop_size
 if "holey" in cfg.problem:
     crop_size = cfg.map_width * 2 + 1 if crop_size == -1 else crop_size

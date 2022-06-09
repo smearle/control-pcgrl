@@ -169,7 +169,7 @@ class AttentionNCA(ResettableNN):
 class NCA3D(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
-    def __init__(self, n_in_chans, n_actions, n_aux=20, **kwargs):
+    def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
         """A 3-dimensional Neural Cellular Automata.
 
         Args:
