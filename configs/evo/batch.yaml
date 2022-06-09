@@ -31,7 +31,7 @@
   #       "wide",  # agent "picks" one tile to change
   #       "wide3D",
   #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
-  #       "narrow3D",
+        # "narrow3D",
   #       "turtle", # agent "moves" between adjacent tiles, give positional observation as in narrow, and agent has extra action channels corresponding to movement
   #       "turtle3D"
   ],
@@ -72,7 +72,7 @@
 #       "GenMixCPPN",
 
 #       "FeedForwardCPPN",
-#       "SinCPPN",
+#       "SinCPPN",¿
 #       "CNN"  # Doesn't learn atm
   ],
 

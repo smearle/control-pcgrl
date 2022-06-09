@@ -27,6 +27,7 @@ keys = [
     "model",
     "n_aux_tiles",
     "max_board_scans",
+    "conditionals",
     "lr",
     "experiment_id",
     # "conditionals", 
@@ -183,7 +184,7 @@ def compile_results(settings_list, no_plot=False):
                 if len(settings[k]) < 2:
                     val = ", ".join(settings[k])
                 else:
-                    val = newline(settings[k][0]+', ', v[1])
+                    val = newline(settings[k][0]+', ', val[1])
             elif k == 'alp_gmm':
                 if not controllable:
                     val = ''
@@ -200,8 +201,8 @@ def compile_results(settings_list, no_plot=False):
         args = argparse.Namespace(**settings)
         arg_dict = vars(args)
         # FIXME: well this is stupid
-        arg_dict["cond_metrics"] = arg_dict.pop("conditionals")
         exp_name = get_exp_name(args) + '_' + str(arg_dict["experiment_id"]) + '_log'  # FIXME: this should be done elsewhere??
+        arg_dict["cond_metrics"] = arg_dict.pop("conditionals")
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
         exp_name = os.path.join(RUNS_DIR, exp_name)

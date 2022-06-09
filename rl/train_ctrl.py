@@ -267,7 +267,7 @@ def main(cfg):
         "evaluation_duration_unit": "episodes",
         "evaluation_num_workers": num_workers if cfg.evaluate else 0,
         "evaluation_config": {
-            "explore": False,
+            "explore": True,
         },
         "logger_config": {
                 # "wandb": {

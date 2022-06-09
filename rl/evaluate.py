@@ -12,10 +12,10 @@ import seaborn as sns
 from utils import IdxCounter
 
 
-LOAD_STATS = True
-CONTROL_DOORS = True
-CONTROLS = False
-GENERAL_EVAL = True
+LOAD_STATS = False
+CONTROL_DOORS = False
+CONTROLS = True
+GENERAL_EVAL = False
 
 
 def evaluate(trainer, env, cfg):
@@ -68,15 +68,16 @@ def general_eval(trainer, env, cfg):
 
 
 def test_doors(trainer, env, cfg):
-    if LOAD_STATS:
-        ctrl_stats = pickle.load(open(f'{cfg.log_dir}/hole_stats.pkl', 'rb'))
+    ctrl_stats_fname = f'{cfg.log_dir}/hole_stats.pkl'
+    if LOAD_STATS and os.path.isfile(ctrl_stats_fname):
+        ctrl_stats = pickle.load(open(ctrl_stats_fname, 'rb'))
         print(f"Loaded {len(ctrl_stats)} hole stats.")
     else:
         ctrl_stats = {}
 
     # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
     all_holes = env.unwrapped._prob.gen_all_holes()
-    all_holes = [hole for i, hole in enumerate(all_holes) if i % 10 == 0]
+    all_holes = [hole for i, hole in enumerate(all_holes) if i % 1 == 0]
     all_holes = [hole for hole in all_holes if (tuple(hole[0][0]), tuple(hole[1][0])) not in ctrl_stats]
     n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
     if len(all_holes) >= n_envs:
@@ -109,7 +110,7 @@ def test_doors(trainer, env, cfg):
                     ctrl_stats[(hole_start, hole_end)] = path_len
                 print(f"{len(ctrl_stats)} out of {len(all_holes)} hole stats collected")
                 # print(hole_stats)
-                pickle.dump(ctrl_stats, open(f'{cfg.log_dir}/hole_stats.pkl', 'wb'))
+                pickle.dump(ctrl_stats, open(ctrl_stats_fname, 'wb'))
     # print([e.unwrapped._prob.hole_queue for e in envs])
     width = cfg.width
     height = cfg.height
@@ -161,12 +162,12 @@ def test_doors(trainer, env, cfg):
         # each heatmap corresponds to a different height differnce.
         # Note the max width/length/height differences are quirky due to the map being bordered.
         heat_dict = {h: {(i, j): [] for i in range(length + 2) for j in range(width + 2)} for h in range(height - 1)}
-        for hole_pair in ctrl_stats:
+        for hole_pair, hole_stat in ctrl_stats.items():
             (az, ay, ax), (bz, by, bx) = hole_pair
             diff_z = abs(az - bz)
             diff_x = abs(ax - bx)
             diff_y = abs(ay - by)
-            heat_dict[diff_z][(diff_x, diff_y)] = ctrl_stats[hole_pair]
+            heat_dict[diff_z][(diff_x, diff_y)] += [hole_stat]
 
         heats = {h: np.zeros((length + 2, width + 2)) for h in range(height - 1)}
         [heat.fill(np.nan) for heat in heats.values()]
@@ -214,8 +215,10 @@ def test_control(trainer, env, cfg):
         ctrl_stats = pickle.load(open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'rb'))
     else:
         # all_trgs = [i for i in range(int(ctrl_bounds[0]), int(ctrl_bounds[1]))]
-        all_trgs = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
-        all_trgs = [{ctrl: v} for v in all_trgs]
+        all_trg_ints = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
+        all_trgs = [{ctrl: v} for v in all_trg_ints]
+        # Repeat certain targets so we can take the average over noisy behavior (we're assuming that eval explore=True here)
+        all_trgs = all_trgs * 2
         # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
         n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
         idx_counter = IdxCounter.options(name='idx_counter').remote()
@@ -230,7 +233,7 @@ def test_control(trainer, env, cfg):
         # trainer.workers.foreach_worker(
             # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
 
-        ctrl_stats = {}
+        ctrl_stats = {v: [] for v in all_trg_ints}
         trainer.evaluation_workers.foreach_env(lambda env: env.queue_control_trgs(idx_counter))
 
         while len(ctrl_stats) < len(all_trgs):
@@ -239,14 +242,15 @@ def test_control(trainer, env, cfg):
             print(result)
             if f'{ctrl}-trg' in hist_stats:
                 for ctrl_trg, ctrl_val in zip(hist_stats[f'{ctrl}-trg'], hist_stats[f'{ctrl}-val']):
-                    ctrl_stats[ctrl_trg] = ctrl_val
+                    ctrl_stats[ctrl_trg] += [ctrl_val]
                 print(f"{len(ctrl_stats)} out of {len(all_trgs)} ctrl stats collected")
                 # print(hole_stats)
                 pickle.dump(ctrl_stats, open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'wb'))
 
+    ctrl_stats = {k: np.mean(v) for k, v in ctrl_stats.items()}
     fig, ax = plt.subplots(1, 1)
     xs = list(ctrl_stats.keys())
-    ys = [ctrl_stats[x] for x in xs]
+    ys = [np.mean(ctrl_stats[x]) for x in xs]
     plt.scatter(xs, ys)
     plt.title(f'Controlling for {ctrl}')
     # Set x axis name

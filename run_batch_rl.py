@@ -171,7 +171,6 @@ def launch_batch(collect_params=False):
                 json.dump(exp_config, f, ensure_ascii=False, indent=4)
             # Launch the experiment. It should load the saved settings
 
-            print('Skipping evaluation (already have stats saved).')
             if not (EVALUATE and not opts.overwrite_eval and \
                 os.path.isfile(os.path.join('rl_runs', f'{config_name}_log', 'eval_stats.json'))):
                 if collect_params:
@@ -184,6 +183,8 @@ def launch_batch(collect_params=False):
                     os.system(full_cmd)
                 else:
                     os.system(f"sbatch {sbatch_name}")
+            else:
+                print('Skipping evaluation (already have stats saved).')
             i += 1
     if collect_params:
         return settings_list
