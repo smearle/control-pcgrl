@@ -6,27 +6,35 @@ from qdpy import containers
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
 
-
-class InitStatesArchive(GridArchive):
-    """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
-    reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
-
-    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
-        super(InitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
+class InitStatesArchive():
+    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs):
 #       if CONTINUOUS:
 #           self.init_states_archive = np.empty(
 #               shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
 #           )
 #       else:
         self.init_states_archive = np.empty(
-            shape=(*bin_sizes, n_init_states, map_w, map_h)
+            shape=(*bin_sizes, n_init_states, *map_dims)
+        )
+        self.door_coords_archive = np.empty(
+            shape=(*bin_sizes, n_init_states, 2, 2, len(map_dims))
         )
 
-    def set_init_states(self, init_states):
+    def set_init_states(self, init_states, door_coords):
         self.init_states = init_states
+        self.door_coords = door_coords
+
+
+class CMAInitStatesGrid(InitStatesArchive, GridArchive):
+    """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
+    reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
+    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs):
+        InitStatesArchive.__init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs)
+        GridArchive.__init__(self, bin_sizes, bin_bounds, **kwargs)
+
 
     def add(self, solution, objective_value, behavior_values, meta, index=None):
-        status, dtype_improvement = super().add(
+        status, dtype_improvement = GridArchive.add(self,
             solution, objective_value, behavior_values
         )
 
@@ -35,7 +43,7 @@ class InitStatesArchive(GridArchive):
         if status != AddStatus.NOT_ADDED:
             if index is None:
                 index = self.get_index(behavior_values)
-            archive_init_states(self.init_states_archive, self.init_states, index)
+            archive_init_states(self.init_states_archive, self.door_coords_archive, self.init_states, self.door_coords, index)
 
         return status, dtype_improvement
 
@@ -61,30 +69,21 @@ class MEGrid(containers.Grid):
         return super(MEGrid, self).add(item)
 
 
-class MEInitStatesArchive(MEGrid):
+class MEInitStatesArchive(InitStatesArchive, MEGrid):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
     reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
 
-    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_w, map_h, **kwargs):
-        super(MEInitStatesArchive, self).__init__(bin_sizes, bin_bounds, **kwargs)
-#       if CONTINUOUS:
-#           self.init_states_archive = np.empty(
-#               shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
-#           )
-#       else:
-        self.init_states_archive = np.empty(
-            shape=(*bin_sizes, n_init_states, map_w, map_h)
-        )
+    def __init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs):
+        InitStatesArchive.__init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs)
+        MEGrid.__init__(self, bin_sizes, bin_bounds, **kwargs)
 
-    def set_init_states(self, init_states):
-        self.init_states = init_states
 
     def add(self, item):
-        index = super(MEInitStatesArchive, self).add(item)
+        index = MEGrid.add(self, item)
 
         if index is not None:
             idx = self.index_grid(item.features)
-            archive_init_states(self.init_states_archive, self.init_states, idx)
+            archive_init_states(self.init_states_archive, self.door_coords_archive, self.init_states, self.door_coords, idx)
 
         return index
 
@@ -184,8 +183,9 @@ class FlexArchive(InitStatesArchive):
 
 
 @njit
-def archive_init_states(init_states_archive, init_states, index):
+def archive_init_states(init_states_archive, door_coord_archive, init_states, door_coords, index):
     init_states_archive[index] = init_states
+    door_coord_archive[index] = door_coords
 
 
 def get_qd_score(archive, args):

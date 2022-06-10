@@ -43,7 +43,7 @@ import copy
 
 
 from args import get_args, get_exp_dir, get_exp_name
-from archives import InitStatesArchive, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
+from archives import CMAInitStatesGrid, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN
 from utils import get_one_hot_map
@@ -413,8 +413,8 @@ preprocess_observation_funcs = {
 
 
 # @njit
-def get_init_states(init_states_archive, index):
-    return init_states_archive[index]
+def get_init_states(init_states_archive, door_coords_archive, index):
+    return init_states_archive[index], door_coords_archive[index]
 
 
 
@@ -915,11 +915,12 @@ def multi_evo(
     player_2,
     proc_id=None,
     init_states_archive=None,
+    door_coords_archive=None,
     index=None,
     door_coords=None,
 ):
     if init_states is None:
-        init_states = get_init_states(init_states_archive, tuple(index))
+        init_states, door_coords = get_init_states(init_states_archive, tuple(index))
 
     # if proc_id is not None:
     #     print("simulating id: {}".format(proc_id))
@@ -1451,9 +1452,15 @@ class EvoPCGRL:
         self.static_targets = self.env.unwrapped._prob.static_trgs
 
         if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and (not ENV3D):
-            init_level_archive_args = (N_INIT_STATES, self.height, self.width)
+            init_level_archive_args = {
+                'map_dims': (self.height, self.width),
+                'n_init_states': N_INIT_STATES,
+            }
         elif REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and ENV3D:
-            init_level_archive_args = (N_INIT_STATES, self.height, self.width, self.length)
+            init_level_archive_args = {
+                'map_dims': (self.height, self.width, self.length),
+                'n_init_states': N_INIT_STATES,
+            }
         else:
             init_level_archive_args = ()
         self.init_level_archive_args = init_level_archive_args
@@ -1471,7 +1478,7 @@ class EvoPCGRL:
         elif RANDOM_INIT_LEVELS and not args.n_init_states == 0:
             # If we have random seeds each generation but are not re-evaluating elites, then we want to hang onto these
             # random seeds.
-            gen_archive_cls = InitStatesArchive
+            gen_archive_cls = CMAInitStatesGrid
         #           gen_archive_cls = GridArchive
         else:
             gen_archive_cls = GridArchive
@@ -1501,7 +1508,7 @@ class EvoPCGRL:
             if CMAES:
                 # Restrict the archive to 1 cell so that we are effectively doing CMAES. BCs should be ignored.
                 self.gen_archive = gen_archive_cls(
-                    [1, 1], [(0, 1), (0, 1)], *init_level_archive_args
+                    [1, 1], [(0, 1), (0, 1)], **init_level_archive_args
                 )
             else:
 
@@ -1517,7 +1524,7 @@ class EvoPCGRL:
 #                   [1 for _ in self.bc_names],
                     # min/max for each BC
                     [self.bc_bounds[bc_name] for bc_name in self.bc_names],
-                    *init_level_archive_args,
+                    **init_level_archive_args,
                 )
 
         reps_to_out_chans = {
@@ -1820,7 +1827,7 @@ class EvoPCGRL:
             if RANDOM_INIT_LEVELS:
                 # Tell the archive what the initial states are, so that we can record them in case an individual is
                 # added.
-                self.gen_archive.set_init_states(init_states)
+                self.gen_archive.set_init_states(init_states, door_coords=self.door_coords)
             # Send the results back to the optimizer.
             if args.mega:
                 # TODO: Here we need the jacobian
@@ -2455,7 +2462,7 @@ class EvoPCGRL:
                     ]
             else:
                 eval_archive = gen_archive_cls(
-                    [1, 1], [(0, 1), (0, 1)], *self.init_level_archive_args
+                    [1, 1], [(0, 1), (0, 1)], **self.init_level_archive_args
                 )
 
             RENDER = False
@@ -2558,10 +2565,13 @@ class EvoPCGRL:
             elif args.fix_level_seeds or args.n_init_states == 0:
                 # If level seeds were fixed throughout training, use those
                 init_states = self.init_states
+                door_coords = self.door_coords
                 N_EVAL_STATES = N_INIT_STATES = init_states.shape[0]
             else:
                 init_states_archive = self.gen_archive.init_states_archive
+                door_coords_archive = self.gen_archive.door_coords_archive
                 init_states = None
+                door_coords = None
                 # Otherwise, use the init level seeds that were entered into the archive with each elite
 
             n_train_bcs = len(self.bc_names)
@@ -2582,6 +2592,7 @@ class EvoPCGRL:
                         player_2=self.player_2,
                         proc_id=i,
                         init_states_archive=init_states_archive,
+                        door_coords_archive=door_coords_archive,
                         index=tuple(idxs[i]),
                         door_coords=self.door_coords,
                     )
@@ -2686,8 +2697,8 @@ class EvoPCGRL:
                         init_states_archive = None
 
                     if init_states is None:
-                        init_states = get_init_states(
-                            init_states_archive, tuple(idxs[i])
+                        init_states, door_coords = get_init_states(
+                            init_states_archive, door_coords_archive, tuple(idxs[i])
                         )
 
                     gen_model = set_weights(self.gen_model, model, algo=ALGO)
@@ -2707,7 +2718,7 @@ class EvoPCGRL:
                         seed=None,
                         player_1=self.player_1,
                         player_2=self.player_2,
-                        door_coords=self.door_coords,
+                        door_coords=door_coords,
                     )
 
                     if SAVE_LEVELS:
@@ -2843,7 +2854,8 @@ class EvoPCGRL:
                 init_states = gen_latent_seeds(N_INIT_STATES, self.env)
             elif not args.fix_level_seeds and args.n_init_states != 0:
                 init_states_archive = archive.init_states_archive
-                init_states = get_init_states(init_states_archive, tuple(idxs[i]))
+                door_coords_archive = archive.door_coords_archive
+                init_states, door_coords = get_init_states(init_states_archive, door_coords_archive, tuple(idxs[i]))
             else:
                 init_states = self.init_states
             _, _, _, (
@@ -2862,7 +2874,7 @@ class EvoPCGRL:
                 seed=None,
                 player_1=self.player_1,
                 player_2=self.player_2,
-                door_coords=self.door_coords,
+                door_coords=door_coords,
             )
             #           input("Mean behavior characteristics:\n\t{}: {}\n\t{}: {}\nMean reward:\n\tTotal: {}\n\ttime: {}\n\ttargets: {}\n\tvariance: {}\n\tdiversity: {}\nPress any key for next generator...".format(
             #               self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i], objs[i], time_penalty, targets_penalty, variance_penalty, diversity_bonus))
