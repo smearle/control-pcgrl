@@ -87,7 +87,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
 
     def gen_all_holes(self):
         hole_pairs = list(itertools.product(self._border_idxs, self._border_idxs))
-        hole_pairs = [pair for pair in hole_pairs if Minecraft3DholeymazeProblem._valid_holes((pair[0], pair[1] + np.array([1, 0, 0])), pair[1])]
+        hole_pairs = [pair for pair in hole_pairs if Minecraft3DholeymazeProblem._valid_holes((pair[0], pair[0] + np.array([1, 0, 0])), pair[1])]
         hole_pairs = [((pair[0], pair[0] + np.array([1, 0, 0])), (pair[1], pair[1] + np.array([1,0,0]))) for pair in hole_pairs]
         return hole_pairs
 

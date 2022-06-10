@@ -1,9 +1,11 @@
+from http.cookiejar import FileCookieJar
 import json
 import os
 from pdb import set_trace as TT
 import sys
 
 from matplotlib import pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import pickle
 import ray
@@ -122,8 +124,12 @@ def test_doors(trainer, env, cfg):
         # over the height axis.
         heat = np.zeros((width * 4, width * 4))
         heat.fill(np.nan)
+        fail = np.zeros((width * 4, width * 4))
+        fail.fill(np.nan)
         heat_dict = {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
-        for hole_pair in ctrl_stats:
+        failed_heat_dict= {(i, j): [] for i in range(width * 4) for j in range(width * 4)}
+        # failed_heat_dict = {h: {(i, j): 0 for i in range(length + 2) for j in range(width + 2)} for h in range(height - 1)}
+        for hole_pair, hole_stats in ctrl_stats.items():
             projs = [None, None]
             (ax, ay, az), (bx, by, bz) = hole_pair
             for i, (z, y, x) in enumerate([(ax, ay, az), (bx, by, bz)]):
@@ -140,41 +146,104 @@ def test_doors(trainer, env, cfg):
                 projs[i] = proj
             proj_a, proj_b = projs
             # heat[proj_a, proj_b] = hole_stats[hole_pair]
-            heat_dict[(proj_a, proj_b)] = ctrl_stats[hole_pair]
-
+            if hole_stats > -1:
+                heat_dict[(proj_a, proj_b)] += [ctrl_stats[hole_pair]]
+                failed_heat_dict[(proj_a, proj_b)] += [0]
+            else:
+                failed_heat_dict[(proj_a, proj_b)] += [1]
+                
+        num_pair = np.zeros((width * 4, width * 4))
+        num_pair.fill(np.nan)
         for k in heat_dict:
             val = np.mean(heat_dict[k])
+            fai = np.mean(failed_heat_dict[k])
             heat[k[0], k[1]] = val
+            fail[k[0], k[1]] = fai
+            num_pair[k[0], k[1]] = len(failed_heat_dict[k])
 
-        fig, ax = plt.subplots(1, 1)
+
+        fig, axs = plt.subplots(1, 2)
+        # fig, axs = plt.subplots(1, 1)
+        # resize the figure so that its contents are not overlapping
+        fig.set_size_inches(12, 5)
+
         # Plot heatmap
-        ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar=True, square=True, xticklabels=True, yticklabels=True)
-        ax_s.invert_yaxis()
+        axs[0] = sns.heatmap(heat, cmap='viridis', ax=axs[0], cbar=True, square=True, xticklabels=True, yticklabels=True)
+        # set the interval of the x and y axis
+        axs[0].xaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs[0].xaxis.set_major_formatter(ticker.ScalarFormatter())
+        axs[0].yaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs[0].yaxis.set_major_formatter(ticker.ScalarFormatter())
+
+        axs[0].invert_yaxis()
         # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
-        plt.title('Path-length between entrances/exits')
+        axs[0].set_title('Path-length between entrances/exits')
         # Set x axis name
-        ax.set_xlabel('Entrance position')
-        ax.set_ylabel('Exit position')
-        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap.png'))
+        axs[0].set_xlabel('Entrance position')
+        axs[0].set_ylabel('Exit position')
+
+        # Plot failed heatmap using red color map
+        axs[1] = sns.heatmap(fail, cmap='Reds', ax=axs[1], cbar=True, square=True, xticklabels=True, yticklabels=True)
+        # set the interval of the x and y axis
+        axs[1].xaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs[1].xaxis.set_major_formatter(ticker.ScalarFormatter())
+        axs[1].yaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs[1].yaxis.set_major_formatter(ticker.ScalarFormatter())
+
+        axs[1].invert_yaxis()
+
+        axs[1].set_title('Failed connections between entrances/exits')
+        axs[1].set_xlabel('Entrance position')
+        axs[1].set_ylabel('Exit position')
+
+        # ## remeber to set the subplot number to 3 if you want to plot the number of pairs
+        # # Plot the number of hole coordinates pairs
+        # axs[2] = sns.heatmap(num_pair, cmap='viridis', ax=axs[2], cbar=True, square=True, xticklabels=True, yticklabels=True)
+        # # set the interval of the x and y axis
+        # axs[2].xaxis.set_major_locator(ticker.MultipleLocator(5))
+        # axs[2].xaxis.set_major_formatter(ticker.ScalarFormatter())
+        # axs[2].yaxis.set_major_locator(ticker.MultipleLocator(5))
+        # axs[2].yaxis.set_major_formatter(ticker.ScalarFormatter())
+
+        # axs[2].invert_yaxis()
+
+        # axs[2].set_title('Failed connections between entrances/exits')
+        # axs[2].set_xlabel('Entrance position')
+        # axs[2].set_ylabel('Exit position')
+        # ##
+
+        # set suptitle
+        # fig.suptitle('Heatmap of path-length between entrances/exits')
+
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_0.png'))
 
     elif HEATMAP == 1:
         # Create heatmaps in which the x and y axes are the absolute x and y distance between doors, resepectively, and
         # each heatmap corresponds to a different height differnce.
         # Note the max width/length/height differences are quirky due to the map being bordered.
         heat_dict = {h: {(i, j): [] for i in range(length + 2) for j in range(width + 2)} for h in range(height - 1)}
+        failed_heat_dict = {h: {(i, j): [] for i in range(length + 2) for j in range(width + 2)} for h in range(height - 1)}
         for hole_pair, hole_stat in ctrl_stats.items():
-            (az, ay, ax), (bz, by, bx) = hole_pair
-            diff_z = abs(az - bz)
-            diff_x = abs(ax - bx)
-            diff_y = abs(ay - by)
-            heat_dict[diff_z][(diff_x, diff_y)] += [hole_stat]
+            if hole_stat > -1:
+                (az, ay, ax), (bz, by, bx) = hole_pair
+                diff_z = abs(az - bz)
+                diff_x = abs(ax - bx)
+                diff_y = abs(ay - by)
+                heat_dict[diff_z][(diff_x, diff_y)] += [hole_stat]
+                failed_heat_dict[diff_z][(diff_x, diff_y)] += [0]
+            else:
+                failed_heat_dict[diff_z][(diff_x, diff_y)] += [1]
 
         heats = {h: np.zeros((length + 2, width + 2)) for h in range(height - 1)}
         [heat.fill(np.nan) for heat in heats.values()]
+        fails = {h: np.zeros((length + 2, width + 2)) for h in range(height - 1)}
+        [fail.fill(np.nan) for fail in fails.values()]
         for h in heat_dict:
             for k in heat_dict[h]:
                 val = np.mean(heat_dict[h][k])
+                fai = np.mean(failed_heat_dict[h][k])
                 heats[h][k[0], k[1]] = val
+                fails[h][k[0], k[1]] = fai
 
         # Height many subplots
         fig, axes = plt.subplots(1, height - 1, sharex=True, sharey=True, figsize=(10, 3))
@@ -185,20 +254,49 @@ def test_doors(trainer, env, cfg):
             # Declare subplot
             plt.subplot(1, height - 1, i + 1)
             # Plot heatmap
-            ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar= i == 0, square=True, xticklabels=i == 0, 
-                               yticklabels=i == 0, cbar_ax=None if i else cbar_ax)
+            ax_s = sns.heatmap(heat, cmap='viridis', ax=ax, cbar= i==0 , square=True, xticklabels=i == 0, 
+                            yticklabels= i==0, cbar_ax=None if i else cbar_ax)
             ax_s.invert_yaxis()
             # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
             # Set x axis name
             if i == 0:
                 ax.set_xlabel('x difference')
-                ax.set_ylabel('y difference')
-                ax.set_title(f'height diff. = {i}')
+                ax.set_ylabel('z difference')
+                ax.set_title(f'Height (y) diff. = {i}')
             else:
                 ax.set_title(i)
-        plt.suptitle('Path-length between entrances/exits')
+        # set suptitle
+        fig.suptitle('Heatmap of path-length between entrances/exits')
+
         fig.tight_layout(rect=[0, 0, .9, 1])
-        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap.png'))
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_1_0.png'))
+        plt.close()
+
+
+        fig, axes = plt.subplots(1, height - 1, sharex=True, sharey=True, figsize=(10, 3))
+        cbar_ax = fig.add_axes([.91, .3, .03, .4])
+        for i, ax in enumerate(axes.flat):
+            fail = fails[i]
+            # Declare subplot
+            plt.subplot(1, height - 1, i + 1)
+            # Plot heatmap
+            ax_s = sns.heatmap(fail, cmap='Reds', ax=ax, cbar= i == 0, square=True, xticklabels=i == 0, 
+                            yticklabels=i == 0, cbar_ax=None if i else cbar_ax)
+            ax_s.invert_yaxis()
+            # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
+            # Set x axis name
+            if i == 0:
+                ax.set_xlabel('x difference')
+                ax.set_ylabel('z difference')
+                ax.set_title(f'Height (y) diff. = {i}')
+            else:
+                ax.set_title(i)
+        # set suptitle
+        fig.suptitle('Heatmap of fail connection between entrances/exits')
+        # plt.suptitle('Path-length between entrances/exits')
+        fig.tight_layout(rect=[0, 0, .9, 1])
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_1_1.png'))
+        plt.close()
 
 
     # TODO: summarize the results of the evaluation with controllable door placement.
