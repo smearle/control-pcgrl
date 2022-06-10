@@ -1,3 +1,4 @@
+from gym_pcgrl.envs.reps.ca_3D_holey import CA3DRepresentationHoley
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.narrow_cast_rep import NarrowCastRepresentation
 from gym_pcgrl.envs.reps.narrow_multi_rep import NarrowMultiRepresentation
@@ -36,4 +37,5 @@ REPRESENTATIONS = {
     "wide3Dholey": Wide3DHoleyRepresentation,
     "cellular": CARepresentation,
     "cellular3D": CA3DRepresentation,
+    "cellular3Dholey": CA3DRepresentationHoley,
 }

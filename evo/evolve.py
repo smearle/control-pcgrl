@@ -349,6 +349,10 @@ def flat_to_turtle(action, int_map=None, n_tiles=None, x=None, y=None, n_dirs=No
     return act, skip
 
 
+def cut_border_action_3d(action, **kwargs):
+    return action[:, 1:-1, 1:-1, 1:-1], False
+
+
 preprocess_action_funcs = {
     "NCA": {
         "cellular": id_action,
@@ -358,6 +362,7 @@ preprocess_action_funcs = {
     },
     "NCA3D": {
         "cellular3D": id_action,
+        "cellular3Dholey": cut_border_action_3d,
     },
     "CPPN": {
         "cellular": tran_action,
@@ -396,6 +401,7 @@ preprocess_observation_funcs = {
     },
     "NCA3D": {
         "cellular3D": id_observation,
+        "cellular3Dholey": id_observation,
     },
     "CNN": {
         "cellular": id_observation,
@@ -928,6 +934,7 @@ def multi_evo(
         seed=seed,
         player_1=player_1,
         player_2=player_2,
+        door_coords=self.door_coords,
     )
     return result
 
@@ -1073,7 +1080,8 @@ def simulate(
         seed=None,
         player_1=None,
         player_2=None,
-        render_levels=False
+        render_levels=False,
+        door_coords=None,
 ):
     """
     Function to run a single trajectory and return results.
@@ -1137,13 +1145,25 @@ def simulate(
         else:
             # NOTE: Sneaky hack. We don't need initial stats. Never even reset. Heh. Be careful!!
             # Set the representation to begin in the upper left corner
+            if IS_HOLEY:
+                if ENV3D:
+                    start_xyz, end_xyz = door_coords[n_episode]
+                    env.unwrapped._prob.hole_queue = [(start_xyz, end_xyz)]
+                    env.reset()
+                    # env.unwrapped._prob.start_xyz, env.unwrapped._prob.end_xyz = start_xyz, end_xyz
+                    # env.unwrapped._rep.set_holes(start_xyz, end_xyz)
+                else:
+                    raise NotImplementedError
             env.unwrapped._rep._map = init_state.copy()
             env.unwrapped._prob.path_coords = []
             env.unwrapped._prob.path_length = None
             # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
             # env.unwrapped._rep._x = np.random.randint(env.unwrapped._prob._width)
             # env.unwrapped._rep._y = np.random.randint(env.unwrapped._prob._height)
-            int_map = init_state
+            if IS_HOLEY:
+                int_map = env.unwrapped._get_rep_map()
+            else:
+                int_map = init_state
             obs = get_one_hot_map(int_map, n_tile_types)
 
         if RENDER:
@@ -1168,9 +1188,13 @@ def simulate(
             action, done = model(in_tensor)
             action = action[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
+            if not IS_HOLEY:
+                int_map = env.unwrapped._rep._map  # TODO: can use `_get_rep_map()` as below, right?
+            else:
+                int_map = env.unwrapped._get_rep_map()
             action, skip = preprocess_action(
                 action,
-                int_map=env.unwrapped._rep._map,
+                int_map=int_map,
                 x=env.unwrapped._rep._x,
                 y=env.unwrapped._rep._y,
                 n_dirs=N_DIRS,
@@ -1180,7 +1204,10 @@ def simulate(
                 change, [x, y] = env.unwrapped._rep.update(action, continuous=CONTINUOUS)
             else:
                 change, [x, y, z] = env.unwrapped._rep.update(action, continuous=CONTINUOUS)
-            int_map = env.unwrapped._rep._map
+            if not IS_HOLEY:
+                int_map = env.unwrapped._rep._map
+            else:
+                int_map = env.unwrapped._get_rep_map()
             obs = get_one_hot_map(env.unwrapped._rep.get_observation()["map"], n_tile_types)
             preprocess_observation(obs, x=env.unwrapped._rep._x, y=env.unwrapped._rep._y)
             #           int_map = action.argmax(axis=0)
@@ -1198,7 +1225,10 @@ def simulate(
                     # get final level state
                     level_frames.append(env.render(mode="rgb_array"))
                 # we'll need this to compute Hamming diversity
-                final_levels[n_episode] = int_map
+                if ENV3D and IS_HOLEY:
+                    final_levels[n_episode] = int_map[1:-1, 1:-1, 1:-1]
+                else:
+                    final_levels[n_episode] = int_map
                 if not ENV3D:
                     stats = env.unwrapped._prob.get_stats(
                         get_string_map(int_map, env.unwrapped._prob.get_tile_types(), continuous=CONTINUOUS),
@@ -1492,6 +1522,7 @@ class EvoPCGRL:
         reps_to_out_chans = {
             "cellular": self.n_tile_types,
             "cellular3D": self.n_tile_types,
+            "cellular3Dholey": self.n_tile_types,
             "wide": self.n_tile_types,
             "narrow": self.n_tile_types + 1,
             "turtle": self.n_tile_types + N_DIRS,
@@ -1500,6 +1531,7 @@ class EvoPCGRL:
         reps_to_in_chans = {
             "cellular": self.n_tile_types,
             "cellular3D": self.n_tile_types,
+            "cellular3Dholey": self.n_tile_types,
             "wide": self.n_tile_types,
             "narrow": self.n_tile_types + 1,
             "turtle": self.n_tile_types + 1,
@@ -1649,23 +1681,11 @@ class EvoPCGRL:
 
         # These are the initial maps which will act as seeds to our NCA models
 
-        if args.n_init_states == 0:
-            # special square patch with all 1s in a box in the middle
-            sw = self.width // 3
-            sh = self.height // 3
-            if not ENV3D:
-                if CONTINUOUS:
-                    self.init_states = np.zeros(shape=(1, 3, self.height, self.width))
-                    self.init_states[0, :, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
-                else:
-                    self.init_states = np.zeros(shape=(1, self.height, self.width))
-                    self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2] = 1
-            else:
-                self.init_states = np.zeros(shape=(1, self.height, self.width, self.length))
-                self.init_states[0, self.height//2-sh//2:self.height//2+sh//2, self.width//2-sw//2: self.width//2+sw//2,
-                                 self.length//2-sw//2: self.length//2+sw//2] = 1
+        self.init_states = gen_latent_seeds(N_INIT_STATES, self.env)
+        if IS_HOLEY:
+            self.door_coords = gen_door_coords(N_INIT_STATES, self.env)
         else:
-            self.init_states = gen_latent_seeds(N_INIT_STATES, self.env)
+            self.door_coords = None
 
         self.start_time = time.time()
         self.total_itrs = N_GENERATIONS
@@ -1776,6 +1796,7 @@ class EvoPCGRL:
                         seed=seed,
                         player_1=self.player_1,
                         player_2=self.player_2,
+                        door_coords=self.door_coords,
                     )
 
                     if SAVE_LEVELS:
@@ -1891,6 +1912,7 @@ class EvoPCGRL:
                             seed=seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
+                            door_coords=self.door_coords,
                         )
                         idx = self.gen_archive.get_index(old_el_bcs)
                         [stat_json[stat].extend(level_json[stat]) for stat in stats]
@@ -2108,6 +2130,7 @@ class EvoPCGRL:
         reps_to_steps = {
             "cellular": max_ca_steps,
             "cellular3D": max_ca_steps,
+            "cellular3Dholey": max_ca_steps,
 
             "wide": max_changes,
             #           "narrow": max_changes,
@@ -2170,6 +2193,7 @@ class EvoPCGRL:
 
     def infer(self, concat_gifs=True):
         assert INFER
+        self.door_coords = None if not hasattr(self, 'door_coords') else self.door_coords
         args = self.args
         self.init_env()
         archive = self.gen_archive
@@ -2321,6 +2345,7 @@ class EvoPCGRL:
                             target_weights=self.env.unwrapped._reward_weights,
                             seed=None,
                             render_levels=True,
+                            door_coords=self.door_coords,
                         )
                         if not concat_gifs:
                             save_level_frames(level_frames_i, '{}_{}'.format(row_num, col_num))
@@ -2678,6 +2703,7 @@ class EvoPCGRL:
                         seed=None,
                         player_1=self.player_1,
                         player_2=self.player_2,
+                        door_coords=self.door_coords,
                     )
 
                     if SAVE_LEVELS:
@@ -2832,6 +2858,7 @@ class EvoPCGRL:
                 seed=None,
                 player_1=self.player_1,
                 player_2=self.player_2,
+                door_coords=self.door_coords,
             )
             #           input("Mean behavior characteristics:\n\t{}: {}\n\t{}: {}\nMean reward:\n\tTotal: {}\n\ttime: {}\n\ttargets: {}\n\tvariance: {}\n\tdiversity: {}\nPress any key for next generator...".format(
             #               self.bc_names[0], bcs_0[i], self.bc_names[1], bcs_1[i], objs[i], time_penalty, targets_penalty, variance_penalty, diversity_bonus))
@@ -2842,7 +2869,32 @@ class EvoPCGRL:
 #               i=0
 
 
+def gen_door_coords(n_init_states, env):
+    all_holes = env.unwrapped._prob.gen_all_holes()
+    door_idxs = np.random.choice(len(all_holes), max(1, n_init_states), replace=False)
+    return np.array(all_holes)[door_idxs]
+
+
 def gen_latent_seeds(n_init_states, env):
+    width = env.unwrapped._prob._width
+    height = env.unwrapped._prob._height
+    if n_init_states == 0:
+        # special square patch with all 1s in a box in the middle
+        sw = width // 3
+        sh = height // 3
+        if not ENV3D:
+            if CONTINUOUS:
+                init_states = np.zeros(shape=(1, 3, height, width))
+                init_states[0, :, height//2-sh//2:height//2+sh//2, width//2-sw//2: width//2+sw//2] = 1
+            else:
+                init_states = np.zeros(shape=(1, height, width))
+                init_states[0, height//2-sh//2:height//2+sh//2, width//2-sw//2: width//2+sw//2] = 1
+        else:
+            length = env.unwrapped._prob._length
+            init_states = np.zeros(shape=(1, height, width, length))
+            init_states[0, height//2-sh//2:height//2+sh//2, width//2-sw//2: width//2+sw//2,
+                                length//2-sw//2: length//2+sw//2] = 1
+        return init_states
     if ENV3D:
         im_dims = (env.unwrapped._prob._height, env.unwrapped._prob._width, env.unwrapped._prob._length)
     else:
@@ -2975,6 +3027,7 @@ if __name__ == "__main__":
     args.targets_penalty_weight = 10
     VIS_INTERVAL = 50
     ENV3D = "3D" in PROBLEM
+    IS_HOLEY = "holey" in PROBLEM
 
     if "CPPN" in MODEL:
         if MODEL != "CPPNCA" and "Gen" not in MODEL:
@@ -3051,7 +3104,8 @@ if __name__ == "__main__":
         print("Loaded save file at {}".format(SAVE_PATH))
 
         if VISUALIZE:
-            evolver.visualize()
+            if not ENV3D:
+                evolver.visualize()
 
         if INFER:
             RENDER = True

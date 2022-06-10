@@ -48,7 +48,7 @@ def launch_batch(exp_name, collect_params=False):
                 for algo in batch_config.algos:
                     for model in batch_config.models:
 
-                        if model == "CNN" and rep == "cellular":
+                        if model == "CNN" and "cellular" in rep:
                             print("Skipping experiments with CNN model and cellular representation, as this would necessitate "
                                 "an explosion of model parameters.")
 
@@ -67,7 +67,7 @@ def launch_batch(exp_name, collect_params=False):
                                         continue
 
                                     for n_steps in batch_config.n_steps_lst:
-                                        if rep != "cellular":
+                                        if "cellular" not in rep:
                                             if n_steps != batch_config.n_steps_lst[0]:
                                                 continue
 

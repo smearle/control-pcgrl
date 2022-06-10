@@ -12,9 +12,9 @@ import seaborn as sns
 from utils import IdxCounter
 
 
-LOAD_STATS = False
-CONTROL_DOORS = False
-CONTROLS = True
+LOAD_STATS = True
+CONTROL_DOORS = True
+CONTROLS = False
 GENERAL_EVAL = False
 
 
