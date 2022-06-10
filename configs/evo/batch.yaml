@@ -22,14 +22,15 @@
         # "smb_ctrl"
         # "loderunner_ctrl",
         # "face_ctrl",
-        "minecraft_3D_maze",
+        # "minecraft_3D_maze",
         # "minecraft_3D_holey_maze",
+        "minecraft_3D_dungeon_holey",
   ],
 
  "representations": [
           # "cellular",  # change entire board at each step
-        "cellular3D",
-        # "cellular3Dholey",
+        # "cellular3D",
+        "cellular3Dholey",
   #       "wide",  # agent "picks" one tile to change
   #       "wide3D",
   #       "narrow",  # scan over board in sequence, feed current tile to agent as observation
@@ -42,7 +43,7 @@
 #
   "algos": [
       "CMAME",
-      "ME",
+      # "ME",
   ],
 
  "models": [
@@ -165,13 +166,18 @@
       ],
       "minecraft_3D_maze":[
         ["emptiness", "path-length"],
-        # ["n_jump", "path-length"],
-        # ["emptiness", "n_jump"],
+        ["n_jump", "path-length"],
+        ["emptiness", "n_jump"],
       ],
       "minecraft_3D_holey_maze":[
         ["emptiness", "path-length"],
-        # ["n_jump", "path-length"],
-        # ["emptiness", "n_jump"],
+        ["emptiness", "connected-path-length"],
+        ["path-length", "connected-path-length"],
+      ],
+      "minecraft_3D_dungeon_holey": [
+        ["emptiness", "nearest-enemy"],
+        ["emptiness", "path-length"],
+        ["nearest-enemy", "path-length"],
       ],
       "microstructure": [
           # ["emptiness", "path-length"],

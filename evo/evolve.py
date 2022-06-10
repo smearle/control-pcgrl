@@ -916,6 +916,7 @@ def multi_evo(
     proc_id=None,
     init_states_archive=None,
     index=None,
+    door_coords=None,
 ):
     if init_states is None:
         init_states = get_init_states(init_states_archive, tuple(index))
@@ -934,7 +935,7 @@ def multi_evo(
         seed=seed,
         player_1=player_1,
         player_2=player_2,
-        door_coords=self.door_coords,
+        door_coords=door_coords,
     )
     return result
 
@@ -1148,7 +1149,7 @@ def simulate(
             if IS_HOLEY:
                 if ENV3D:
                     start_xyz, end_xyz = door_coords[n_episode]
-                    env.unwrapped._prob.hole_queue = [(start_xyz, end_xyz)]
+                    env.unwrapped._prob._hole_queue = [(start_xyz, end_xyz)]
                     env.reset()
                     # env.unwrapped._prob.start_xyz, env.unwrapped._prob.end_xyz = start_xyz, end_xyz
                     # env.unwrapped._rep.set_holes(start_xyz, end_xyz)
@@ -1756,6 +1757,7 @@ class EvoPCGRL:
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
+                            door_coords=self.door_coords,
                         )
                         for model_w in gen_sols
                     ]
@@ -1855,6 +1857,7 @@ class EvoPCGRL:
                             seed,
                             player_1=self.player_1,
                             player_2=self.player_2,
+                            door_coords=self.door_coords,
                         )
                         for i in range(min(max(len(elite_models) // 2, 1), 150 // 2))
                     ]
@@ -2580,6 +2583,7 @@ class EvoPCGRL:
                         proc_id=i,
                         init_states_archive=init_states_archive,
                         index=tuple(idxs[i]),
+                        door_coords=self.door_coords,
                     )
                     for (i, model_w) in enumerate(models)
                 ]

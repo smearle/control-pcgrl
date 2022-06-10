@@ -40,6 +40,8 @@ def launch_batch(exp_name, collect_params=False):
         default_config["n_generations"] = 50000
     i = 0
 
+    # TODO: refactor with itertools
+
     for exp_id in batch_config.exp_ids:
         for prob in batch_config.problems:
             prob_bcs = batch_config.global_bcs + batch_config.local_bcs[prob]
@@ -163,14 +165,14 @@ def launch_batch(exp_name, collect_params=False):
                                                             "save_interval": 10 if args.local else 100,
                                                             "save_levels": False,
                                                             "step_size": step_size,
+                                                            "render": args.render,
                                                         }
                                                     )
                                                     if args.render:
                                                         exp_config.update(
                                                             {
-                                                                "infer": True,
-                                                                "render": True,
-                                                                "visualize": True,
+                                                                "infer": args.infer,
+                                                                "visualize": False,
                                                             }
                                                         )
 
@@ -272,6 +274,7 @@ if __name__ == "__main__":
         help="Run experiment sequentially, instead of using ray to parallelise evaluation.",
         action="store_true",
     )
+    opts.add_argument('-i', '--infer', action='store_true')
 #   opts.add_argument(
 #       "-ss",
 #       "--step_size",
