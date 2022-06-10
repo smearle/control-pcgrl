@@ -13,6 +13,7 @@ import os
 import re
 from pdb import set_trace as TT
 from typing import List
+from evo.args import get_exp_name
 
 from evo.render_gifs import render_gifs
 
@@ -39,6 +40,8 @@ def launch_batch(exp_name, collect_params=False):
     if LOCAL:
         default_config["n_generations"] = 50000
     i = 0
+
+    # TODO: refactor with itertools
 
     for exp_id in batch_config.exp_ids:
         for prob in batch_config.problems:
@@ -120,29 +123,6 @@ def launch_batch(exp_name, collect_params=False):
 
                                                 for n_aux_chan in batch_config.n_aux_chans:
 
-                                                    # Edit the sbatch file to load the correct config file
-                                                    if EVALUATE:
-                                                        script_name = "evo/eval.sh"
-                                                    else:
-                                                        script_name = "evo/train.sh"
-                                                    with open(script_name, "r") as f:
-                                                        content = f.read()
-
-                                                        # Replace the ``python scriptname --cl_args`` line.
-                                                        new_content = re.sub(
-                                                            "python evo/evolve.py -la \d+",
-                                                            "python evo/evolve.py -la {}".format(i),
-                                                            content,
-                                                        )
-
-                                                        # Replace the job name.
-                                                        new_content = re.sub(
-                                                            "evo_runs/evopcg_\d+", 
-                                                            "evo_runs/evopcg_{}".format(i), 
-                                                            new_content
-                                                        )
-                                                    with open(script_name, "w") as f:
-                                                        f.write(new_content)
                                                     # Write the config file with the desired settings
                                                     exp_config = copy.deepcopy(default_config)
                                                     exp_config.update({
@@ -155,7 +135,7 @@ def launch_batch(exp_name, collect_params=False):
                                                             "model": model,
                                                             "multi_thread": not args.single_thread,
                                                             "n_aux_chan": n_aux_chan,
-                                                            "n_generations": 50000,
+                                                            "n_generations": 100000,
                                                             "n_init_states": n_init_states,
                                                             "n_steps": n_steps,
                                                             "problem": prob,
@@ -163,14 +143,14 @@ def launch_batch(exp_name, collect_params=False):
                                                             "save_interval": 10 if args.local else 100,
                                                             "save_levels": False,
                                                             "step_size": step_size,
+                                                            "render": args.render,
                                                         }
                                                     )
                                                     if args.render:
                                                         exp_config.update(
                                                             {
-                                                                "infer": True,
-                                                                "render": True,
-                                                                "visualize": True,
+                                                                "infer": args.infer,
+                                                                "visualize": False,
                                                             }
                                                         )
 
@@ -199,6 +179,32 @@ def launch_batch(exp_name, collect_params=False):
                                                         json.dump(
                                                             exp_config, f, ensure_ascii=False, indent=4
                                                         )
+
+                                                    full_exp_name = get_exp_name(arg_dict=exp_config)
+
+                                                    # Edit the sbatch file to load the correct config file
+                                                    if EVALUATE:
+                                                        script_name = "evo/eval.sh"
+                                                    else:
+                                                        script_name = "evo/train.sh"
+                                                    with open(script_name, "r") as f:
+                                                        content = f.read()
+
+                                                        # Replace the ``python scriptname --cl_args`` line.
+                                                        new_content = re.sub(
+                                                            "python evo/evolve.py -la \d+",
+                                                            "python evo/evolve.py -la {}".format(i),
+                                                            content,
+                                                        )
+
+                                                        # Replace the job name.
+                                                        new_content = re.sub(
+                                                            "evo_runs/evopcg_.*", 
+                                                            "evo_runs/{}.out".format(i), 
+                                                            new_content
+                                                        )
+                                                    with open(script_name, "w") as f:
+                                                        f.write(new_content)
                                                     # Launch the experiment. It should load the saved settings
 
                                                     if collect_params:
@@ -272,6 +278,7 @@ if __name__ == "__main__":
         help="Run experiment sequentially, instead of using ray to parallelise evaluation.",
         action="store_true",
     )
+    opts.add_argument('-i', '--infer', action='store_true')
 #   opts.add_argument(
 #       "-ss",
 #       "--step_size",

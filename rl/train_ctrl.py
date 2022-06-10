@@ -399,7 +399,7 @@ def main(cfg):
             **trainer_config,
         },
         # checkpoint_score_attr="episode_reward_mean",
-        stop={"timesteps_total": 1e8},
+        stop={"timesteps_total": 1e10},
         checkpoint_at_end=True,
         checkpoint_freq=50,
         keep_checkpoints_num=2,
@@ -429,6 +429,7 @@ if "holey" in cfg.problem:
 else:
     crop_size = cfg.map_width * 2 if crop_size == -1 else crop_size
 cfg.crop_size = crop_size
+
 
 if __name__ == '__main__':
     main(cfg)

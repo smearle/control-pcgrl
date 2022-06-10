@@ -187,7 +187,7 @@ def get_args(load_args=None):
 
 
 # TODO: Clean this up. Unnecessary globals etc. Have evolve.py use it as well.
-def get_exp_name(args, arg_dict):
+def get_exp_name(args=None, arg_dict={}):
     global INFER
     global EVO_DIR
     global CUDA
@@ -275,8 +275,8 @@ def get_exp_name(args, arg_dict):
     if arg_dict['n_aux_chan'] > 0:
         exp_name += f"_{arg_dict['n_aux_chan']}-aux"
 
-    if args.mega:
-        exp_name += "_MEGA"
+    # if arg_dict['mega']:
+        # exp_name += "_MEGA"
     exp_name += "_" + arg_dict["exp_name"]
     return exp_name
 

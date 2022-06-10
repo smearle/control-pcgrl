@@ -38,7 +38,6 @@
 
       # ["narrow", SeqNCA],
       # ["narrow", null],
-
       # [narrowholey, SeqNCA],
       # ["narrowholey", null],
 
@@ -110,9 +109,9 @@
             # ["symmetry", "path-length"]
       ],
       "zelda": [
-          ["nearest-enemy"],
-          ["path-length"],
-          ["nearest-enemy", "path-length"],
+          # ["nearest-enemy"],
+          # ["path-length"],
+          # ["nearest-enemy", "path-length"],
           # ["emptiness", "path-length"],
           # ["symmetry", "path-length"],
       ],
