@@ -11,7 +11,7 @@
 #SBATCH --job-name=evopcg
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=se2161@nyu.edu
-#SBATCH --output=evo_runs/evopcg_62_%j.out
+#SBATCH --output=evo_runs/evopcg_95_%j.out
 
 ## cd /scratch/se2161/control-pcgrl
 
@@ -27,7 +27,7 @@
 
 
 start=$SECONDS
-while ! python evo/evolve.py -la 62
+while ! python evo/evolve.py -la 95
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"
