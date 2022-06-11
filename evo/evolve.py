@@ -2858,6 +2858,7 @@ class EvoPCGRL:
                 init_states, door_coords = get_init_states(init_states_archive, door_coords_archive, tuple(idxs[i]))
             else:
                 init_states = self.init_states
+                door_coords = self.door_coords
             _, _, _, (
                 time_penalty,
                 targets_penalty,

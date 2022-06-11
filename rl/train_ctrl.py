@@ -317,7 +317,7 @@ def main(cfg):
     if cfg.infer or cfg.evaluate:
         trainer_config.update({
             'record_env': log_dir if cfg.record_env else None,
-            'explore': True,
+            'explore': False,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
 

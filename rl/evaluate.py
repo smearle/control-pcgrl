@@ -162,39 +162,44 @@ def test_doors(trainer, env, cfg):
             num_pair[k[0], k[1]] = len(failed_heat_dict[k])
 
 
-        fig, axs = plt.subplots(1, 2)
-        # fig, axs = plt.subplots(1, 1)
+        # fig, axs = plt.subplots(1, 2)
+        fig, axs = plt.subplots(1, 1)
         # resize the figure so that its contents are not overlapping
         fig.set_size_inches(12, 5)
 
         # Plot heatmap
-        axs[0] = sns.heatmap(heat, cmap='viridis', ax=axs[0], cbar=True, square=True, xticklabels=True, yticklabels=True)
+        axs = sns.heatmap(heat, cmap='viridis', ax=axs, cbar=True, square=True, xticklabels=True, yticklabels=True)
         # set the interval of the x and y axis
-        axs[0].xaxis.set_major_locator(ticker.MultipleLocator(5))
-        axs[0].xaxis.set_major_formatter(ticker.ScalarFormatter())
-        axs[0].yaxis.set_major_locator(ticker.MultipleLocator(5))
-        axs[0].yaxis.set_major_formatter(ticker.ScalarFormatter())
+        axs.xaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs.xaxis.set_major_formatter(ticker.ScalarFormatter())
+        axs.yaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs.yaxis.set_major_formatter(ticker.ScalarFormatter())
 
-        axs[0].invert_yaxis()
+        axs.invert_yaxis()
         # im = ax.imshow(heat, cmap='viridis', interpolation='nearest')
-        axs[0].set_title('Path-length between entrances/exits')
+        axs.set_title('Path-length between entrances/exits')
         # Set x axis name
-        axs[0].set_xlabel('Entrance position')
-        axs[0].set_ylabel('Exit position')
+        axs.set_xlabel('Entrance position')
+        axs.set_ylabel('Exit position')
 
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_0_0.png'))
+        plt.close()
+
+        fig, axs = plt.subplots(1, 1)
+        fig.set_size_inches(12, 5)
         # Plot failed heatmap using red color map
-        axs[1] = sns.heatmap(fail, cmap='Reds', ax=axs[1], cbar=True, square=True, xticklabels=True, yticklabels=True)
+        axs = sns.heatmap(fail, cmap='Reds', ax=axs, cbar=True, square=True, xticklabels=True, yticklabels=True)
         # set the interval of the x and y axis
-        axs[1].xaxis.set_major_locator(ticker.MultipleLocator(5))
-        axs[1].xaxis.set_major_formatter(ticker.ScalarFormatter())
-        axs[1].yaxis.set_major_locator(ticker.MultipleLocator(5))
-        axs[1].yaxis.set_major_formatter(ticker.ScalarFormatter())
+        axs.xaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs.xaxis.set_major_formatter(ticker.ScalarFormatter())
+        axs.yaxis.set_major_locator(ticker.MultipleLocator(5))
+        axs.yaxis.set_major_formatter(ticker.ScalarFormatter())
 
-        axs[1].invert_yaxis()
+        axs.invert_yaxis()
 
-        axs[1].set_title('Failed connections between entrances/exits')
-        axs[1].set_xlabel('Entrance position')
-        axs[1].set_ylabel('Exit position')
+        axs.set_title('Failed connections between entrances/exits')
+        axs.set_xlabel('Entrance position')
+        axs.set_ylabel('Exit position')
 
         # ## remeber to set the subplot number to 3 if you want to plot the number of pairs
         # # Plot the number of hole coordinates pairs
@@ -215,7 +220,8 @@ def test_doors(trainer, env, cfg):
         # set suptitle
         # fig.suptitle('Heatmap of path-length between entrances/exits')
 
-        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_0.png'))
+        plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_0_1.png'))
+        plt.close()
 
     elif HEATMAP == 1:
         # Create heatmaps in which the x and y axes are the absolute x and y distance between doors, resepectively, and

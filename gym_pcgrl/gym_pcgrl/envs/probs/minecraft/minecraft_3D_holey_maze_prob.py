@@ -30,7 +30,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
     def __init__(self):
         super().__init__()
        
-        self.fixed_holes = False
+        self.fixed_holes = True
 
         self._hole_queue = []
 
@@ -111,9 +111,22 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             (self.start_xyz, self.end_xyz), self._hole_queue = self._hole_queue[0], self._hole_queue[1:]
 
         elif self.fixed_holes:
-            self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
-            self.end_xyz = np.array(((1, self._width, self._length + 1),
-                                     (2, self._width, self._length + 1)))
+            # Fix the holes diagonally across the cube
+            # self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
+            # self.end_xyz = np.array(((1, self._width, self._length + 1),
+            #                          (2, self._width, self._length + 1)))
+
+            # Fix the holes to be stacked together
+            # self.start_xyz = np.array(((1, 0, self._length),
+            #                          (2, 0, self._length)))
+            # self.end_xyz = np.array(((5, 0, self._length),
+            #                          (6, 0, self._length)))
+
+            # Fix the holes at diagonal corners
+            self.start_xyz = np.array(((1, 0, self._length),
+                                     (2, 0, self._length)))
+            self.end_xyz = np.array(((2, self._width + 1, 1),
+                                     (3, self._width + 1, 1)))
 
         else:
             self.start_xyz = np.ones((2, 3), dtype=np.uint8)  
@@ -327,11 +340,11 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             # block_dict.update(get_3D_path_blocks(self.path_coords))
             # spawn_3D_path(self.path_coords)
             # spawn_3D_maze(mae)
-            render_path_coords = self.path_coords  # FIXME: redundant
-            render_path_coords = remove_stacked_path_tiles(render_path_coords)
-            render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
-            render_path_coords = np.array(render_path_coords) - 1 
-            spawn_3D_path(render_path_coords, item=LEAVES)
+            # render_path_coords = self.path_coords  # FIXME: redundant
+            # render_path_coords = remove_stacked_path_tiles(render_path_coords)
+            # render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
+            # render_path_coords = np.array(render_path_coords) - 1 
+            # spawn_3D_path(render_path_coords, item=LEAVES)
             render_path_coords = self.connected_path_coords
             render_path_coords = remove_stacked_path_tiles(render_path_coords)
             render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
