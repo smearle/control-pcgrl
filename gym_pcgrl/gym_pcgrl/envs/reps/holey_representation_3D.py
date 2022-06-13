@@ -8,12 +8,12 @@ from gym.utils import seeding
 from gym_pcgrl.envs.helper import gen_random_map
 
 
-class HoleyRepresentation3D(Representation3D):
+class HoleyRepresentation(Representation3D):
     def reset(self, *args, **kwargs):
-        self.dig_holes(self.start_xyz, self.end_xyz)
+        self.dig_holes(self.entrance_coords, self.exit_coords)
 
-    def set_holes(self, start_xyz, end_xyz):
-        self.start_xyz, self.end_xyz = start_xyz, end_xyz
+    def set_holes(self, entrance_coords, exit_coords):
+        self.entrance_coords, self.exit_coords = entrance_coords, exit_coords
 
     def dig_holes(self, s, e):
         # TODO: Represent start/end differently to accommodate one-way paths.

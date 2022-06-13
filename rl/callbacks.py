@@ -110,8 +110,16 @@ class StatsCallbacks(DefaultCallbacks):
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
 
         if hasattr(env.unwrapped._prob, '_hole_queue'):
-            # Just record the foot-room
-            episode.hist_data.update({
-                'holes_start': [tuple(env.unwrapped._prob.start_xyz[0])],
-                'holes_end': [tuple(env.unwrapped._prob.end_xyz[0])],
-            })
+            entrance_coords, exit_coords = env.unwrapped._prob.entrance_coords, env.unwrapped._prob.exit_coords
+            if len(entrance_coords.shape) == 1:
+                # Then it's 2D.
+                episode.hist_data.update({
+                    'holes_start': [entrance_coords],
+                    'holes_end': [exit_coords],
+                })
+            else:
+                # Just record the foot-room if 3D
+                episode.hist_data.update({
+                    'holes_start': [tuple(env.unwrapped._prob.entrance_coords[0])],
+                    'holes_end': [tuple(env.unwrapped._prob.exit_coords[0])],
+                })

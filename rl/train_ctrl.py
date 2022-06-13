@@ -267,7 +267,7 @@ def main(cfg):
         "evaluation_duration_unit": "episodes",
         "evaluation_num_workers": num_workers if cfg.evaluate else 0,
         "evaluation_config": {
-            "explore": True,
+            "explore": False,
         },
         "logger_config": {
                 # "wandb": {
@@ -317,7 +317,6 @@ def main(cfg):
     if cfg.infer or cfg.evaluate:
         trainer_config.update({
             'record_env': log_dir if cfg.record_env else None,
-            'explore': False,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
 
@@ -401,7 +400,7 @@ def main(cfg):
         # checkpoint_score_attr="episode_reward_mean",
         stop={"timesteps_total": 1e10},
         checkpoint_at_end=True,
-        checkpoint_freq=50,
+        checkpoint_freq=10,
         keep_checkpoints_num=2,
         local_dir=log_dir,
         verbose=1,

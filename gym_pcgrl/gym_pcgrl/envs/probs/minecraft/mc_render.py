@@ -140,7 +140,7 @@ def spawn_base(map, border_size=(1, 1, 1), base_pos=5,\
     ))
 
 def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
-                    boundary_size=3, start_xyz=None, end_xyz=None, backgroud_type=QUARTZ_BLOCK):
+                    boundary_size=3, entrance_coords=None, exit_coords=None, backgroud_type=QUARTZ_BLOCK):
     '''
     Spawn the border of the maze
     The boundary contains five sides of the cube except the base
@@ -175,12 +175,12 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
     ))
 
     # render the entrance's door on the border 
-    # start_xyz and end_xyz are (z,y,x), the coordinates of Evocraft is (x,z,y)
-    if start_xyz is not None:
+    # entrance_coords and exit_coords are (z,y,x), the coordinates of Evocraft is (x,z,y)
+    if entrance_coords is not None:
         CLIENT.fillCube(FillCubeRequest(
             cube=Cube(
-                min=Point(x=start_xyz[0][2], y=start_xyz[0][0], z=start_xyz[0][1]),
-                max=Point(x=start_xyz[1][2], y=start_xyz[1][0], z=start_xyz[1][1])
+                min=Point(x=entrance_coords[0][2], y=entrance_coords[0][0], z=entrance_coords[0][1]),
+                max=Point(x=entrance_coords[1][2], y=entrance_coords[1][0], z=entrance_coords[1][1])
             ),
             type=AIR
         ))
@@ -195,11 +195,11 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
         # CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=-1, y=base_pos-1, z=0),type=item, orientation=NORTH)]))
 
     # render the exit on the border
-    if end_xyz is not None:
+    if exit_coords is not None:
         CLIENT.fillCube(FillCubeRequest(
             cube=Cube(
-                min=Point(x=start_xyz[0][2], y=start_xyz[0][0], z=start_xyz[0][1]),
-                max=Point(x=start_xyz[1][2], y=start_xyz[1][0], z=start_xyz[1][1])
+                min=Point(x=entrance_coords[0][2], y=entrance_coords[0][0], z=entrance_coords[0][1]),
+                max=Point(x=entrance_coords[1][2], y=entrance_coords[1][0], z=entrance_coords[1][1])
             ),
             type=AIR
         ))
@@ -260,7 +260,7 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=TRAPDOOR):
+def spawn_3D_path(path, base_pos=5, item=REDSTONE_WIRE):
     if len(path) == 0:
         return
     blocks = []

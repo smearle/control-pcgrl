@@ -221,7 +221,7 @@ def compile_results(settings_list, tex=False):
             else:
                 val_lst.append(settings[k])
         args, arg_dict = get_args(load_args=settings)
-        exp_dir = get_exp_dir(args, arg_dict)
+        exp_dir = get_exp_dir(get_exp_name(args, arg_dict))
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
 #       exp_name = exp_name.replace("evo_runs/", "{}/".format(EVO_DIR))
@@ -270,8 +270,8 @@ def compile_results(settings_list, tex=False):
         pairwise_tukey.to_latex(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.tex'))
         pairwise_tukey.to_html(os.path.join('eval_experiment', f'pairwise_tukey_{metric}.html'))
 
-    for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity', 'diversity']:
-        analyze_metric(metric)
+    # for metric in ['archive size', 'QD score', '(infer) QD score', '(generalize) archive size', '(infer) diversity', 'diversity']:
+        # analyze_metric(metric)
 
     # Rename hyperparameter names (row indices)
     new_keys = []

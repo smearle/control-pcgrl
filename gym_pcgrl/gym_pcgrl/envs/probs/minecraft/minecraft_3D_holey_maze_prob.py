@@ -9,6 +9,7 @@ vertical blocks available on the lower step (and two vertical blocks available o
 import itertools
 from pdb import set_trace as TT
 from tkinter import W
+from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 
 import numpy as np
 from timeit import default_timer as timer
@@ -23,16 +24,14 @@ import ray
 # from gym_pcgrl.test3D import plot_3d_map
 
 
-class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
+class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem, HoleyProblem):
     """
     The constructor is responsible of initializing all the game parameters
     """
     def __init__(self):
-        super().__init__()
-       
-        self.fixed_holes = True
-
-        self._hole_queue = []
+        Minecraft3DmazeProblem.__init__(self)
+        # TODO: factor out holey logic to HoleyProblem3D class
+        HoleyProblem.__init__(self)
 
         self._reward_weights.update({
             "regions": 0,
@@ -60,6 +59,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             "n_jump": (0, self._max_path_length // 2),
         })
 
+    def get_border_idxs(self):
         dummy_bordered_map = np.zeros((self._height + 2, self._width + 2, self._length+ 2), dtype=np.uint8)
         # # Fill in the non-borders with ones
         # dummy_bordered_map[1:-1, 1:-1, 1:-1] = 1
@@ -76,14 +76,12 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         dummy_bordered_map[1:-2, 1:-1, -1] = 1
         dummy_bordered_map[1:-2, 0, 1:-1] = 1
         dummy_bordered_map[1:-2, -1, 1:-1] = 1
-        self._border_idxs = np.argwhere(dummy_bordered_map == 1)
+        border_idxs = np.argwhere(dummy_bordered_map == 1)
+        return border_idxs
 
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
-
-    def queue_holes(self, idx_counter):
-        self._hole_queue = ray.get(idx_counter.get.remote(hash(self)))
 
     def gen_all_holes(self):
         hole_pairs = list(itertools.product(self._border_idxs, self._border_idxs))
@@ -99,46 +97,46 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         x      0
         0      0
 
-        start_xyz[0]: the foot room of the entrance
-        start_xyz[0][0]: z  (height)
-        start_xyz[0][1]: y  (width)
-        start_xyz[0][2]: x  (length)
+        entrance_coords[0]: the foot room of the entrance
+        entrance_coords[0][0]: z  (height)
+        entrance_coords[0][1]: y  (width)
+        entrance_coords[0][2]: x  (length)
         """
         # assert the map is not too small
         assert self._height > 2 
 
         if len(self._hole_queue) > 0:
-            (self.start_xyz, self.end_xyz), self._hole_queue = self._hole_queue[0], self._hole_queue[1:]
+            (self.entrance_coords, self.exit_coords), self._hole_queue = self._hole_queue[0], self._hole_queue[1:]
 
         elif self.fixed_holes:
             # Fix the holes diagonally across the cube
-            # self.start_xyz = np.array(([1, 1, 0], [2, 1, 0]))
-            # self.end_xyz = np.array(((1, self._width, self._length + 1),
+            # self.entrance_coords = np.array(([1, 1, 0], [2, 1, 0]))
+            # self.exit_coords = np.array(((1, self._width, self._length + 1),
             #                          (2, self._width, self._length + 1)))
 
             # Fix the holes to be stacked together
-            # self.start_xyz = np.array(((1, 0, self._length),
+            # self.entrance_coords = np.array(((1, 0, self._length),
             #                          (2, 0, self._length)))
-            # self.end_xyz = np.array(((5, 0, self._length),
+            # self.exit_coords = np.array(((5, 0, self._length),
             #                          (6, 0, self._length)))
 
             # Fix the holes at diagonal corners
-            self.start_xyz = np.array(((1, 0, self._length),
+            self.entrance_coords = np.array(((1, 0, self._length),
                                      (2, 0, self._length)))
-            self.end_xyz = np.array(((2, self._width + 1, 1),
+            self.exit_coords = np.array(((2, self._width + 1, 1),
                                      (3, self._width + 1, 1)))
 
         else:
-            self.start_xyz = np.ones((2, 3), dtype=np.uint8)  
+            self.entrance_coords = np.ones((2, 3), dtype=np.uint8)  
             potential = 26
             idxs = np.random.choice(self._border_idxs.shape[0], size=potential, replace=False)
 
             # randomly select a hole as the foot room of the entrance
-            self.start_xyz[0] = self._border_idxs[idxs[0]]
+            self.entrance_coords[0] = self._border_idxs[idxs[0]]
             # select a coresonding hole as the head room of the entrance
-            self.start_xyz[1] = self.start_xyz[0] + np.array([1, 0, 0])
+            self.entrance_coords[1] = self.entrance_coords[0] + np.array([1, 0, 0])
 
-            self.end_xyz = np.ones((2, 3), dtype=np.uint8)
+            self.exit_coords = np.ones((2, 3), dtype=np.uint8)
             # select the exit
             # NOTE: Some valid cases are excluded, e.g.:
             #
@@ -148,21 +146,21 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             #
             for i in range(1, potential):
                 xyz = self._border_idxs[idxs[i]]
-                if Minecraft3DholeymazeProblem._valid_holes(self.start_xyz, xyz):
-                    self.end_xyz[0] = xyz
-                    self.end_xyz[1] = xyz + np.array([1, 0, 0])
+                if Minecraft3DholeymazeProblem._valid_holes(self.entrance_coords, xyz):
+                    self.exit_coords[0] = xyz
+                    self.exit_coords[1] = xyz + np.array([1, 0, 0])
                     break
         
-        # print(f"Setting holes: {self.start_xyz, self.end_xyz}")
-        return self.start_xyz, self.end_xyz
+        # print(f"Setting holes: {self.entrance_coords, self.exit_coords}")
+        return self.entrance_coords, self.exit_coords
 
-    def _valid_holes(start_xyz, end_xyz) -> bool:      
+    def _valid_holes(entrance_coords, exit_coords) -> bool:      
         """
         Args:
-            start_xyz: a tuple with the foot/head tiles of the entrance
-            end_xyz: the foot tile of the exit
+            entrance_coords: a tuple with the foot/head tiles of the entrance
+            exit_coords: the foot tile of the exit
         """
-        return np.max((np.abs(start_xyz[0] - end_xyz), np.abs(start_xyz[1] - end_xyz))) > 1
+        return np.max((np.abs(entrance_coords[0] - exit_coords), np.abs(entrance_coords[1] - exit_coords))) > 1
 
     """
     Get the current stats of the map
@@ -182,13 +180,13 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
         
-        paths, _, jumps = run_dijkstra(self.start_xyz[0][2], self.start_xyz[0][1], self.start_xyz[0][0], map, ["AIR"])
-        # connected_path_length = dijkstra_map[self.end_xyz[0][0], self.end_xyz[0][1], self.end_xyz[0][2]]
-        end_xyz = tuple(self.end_xyz[0][::-1])  # lol ... why?
-        self.connected_path_length = len(paths[end_xyz]) if end_xyz in paths else -1
-        self.connected_path_coords = np.array(paths[end_xyz]) if end_xyz in paths else []
+        paths, _, jumps = run_dijkstra(self.entrance_coords[0][2], self.entrance_coords[0][1], self.entrance_coords[0][0], map, ["AIR"])
+        # connected_path_length = dijkstra_map[self.exit_coords[0][0], self.exit_coords[0][1], self.exit_coords[0][2]]
+        exit_coords = tuple(self.exit_coords[0][::-1])  # lol ... why?
+        self.connected_path_length = len(paths[exit_coords]) if exit_coords in paths else -1
+        self.connected_path_coords = np.array(paths[exit_coords]) if exit_coords in paths else []
         self.connected_path_coords = remove_stacked_path_tiles(self.connected_path_coords)
-        self.n_jump = jumps[end_xyz] if end_xyz in jumps else 0
+        self.n_jump = jumps[exit_coords] if exit_coords in jumps else 0
         tiles_paths = [(tile, path) for tile, path in paths.items()]
         max_id = np.argmax(np.array([len(p) for (_,p) in tiles_paths]))
         max_tile, self.path_coords = tiles_paths[max_id]
@@ -297,7 +295,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
 
         # Render the border if we haven't yet already.
         # if not self._rendered_initial_maze:
-            # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+            # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
             # spawn_base(map)
             # spawn_3D_maze(map)
             # spawn_3D_bordered_map(map)
@@ -349,7 +347,7 @@ class Minecraft3DholeymazeProblem(Minecraft3DmazeProblem):
             render_path_coords = remove_stacked_path_tiles(render_path_coords)
             render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
             render_path_coords = np.array(render_path_coords) - 1 
-            spawn_3D_path(render_path_coords, item=TRAPDOOR)
+            spawn_3D_path(render_path_coords)
 
             # spawn_3D_path(self.path_coords, item=LEAVES)
             # time.sleep(0.2)

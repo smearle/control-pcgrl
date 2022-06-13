@@ -1,3 +1,4 @@
+from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np
 import os
 from pdb import set_trace as TT
@@ -9,9 +10,10 @@ from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, run_dijkstra
 from gym_pcgrl.envs.probs.binary.binary_prob import BinaryProblem
 
-class BinaryHoleyProblem(BinaryProblem):
+class BinaryHoleyProblem(BinaryProblem, HoleyProblem):
     def __init__(self):
-        super(BinaryHoleyProblem, self).__init__()
+        HoleyProblem.__init__(self)
+        BinaryProblem.__init__(self)
 
         self.fixed_holes = False
 
@@ -49,33 +51,6 @@ class BinaryHoleyProblem(BinaryProblem):
         self.fixed_holes = kwargs.get('fixed_holes') if 'fixed_holes' in kwargs else self.fixed_holes
 
 
-    def gen_holes(self):
-        """Generate one entrance and one exit hole into/out of the map randomly. Ensure they will not necessarily result
-         in trivial paths in/out of the map. E.g., the below are not valid holes:
-        0 0    0 x  
-        x      x
-        x      0
-        0      0
-
-        start_xy[0] : y
-        start_xy[1] : x
-        """
-        if self.fixed_holes:
-            self.start_xy = np.array([1, 0])
-            self.end_xy = np.array((self._width, self._height +1))
-
-        else:
-            idxs = np.random.choice(self._border_idxs.shape[0], size=4, replace=False)
-            self.start_xy = self._border_idxs[idxs[0]]
-            for i in range(1, 4):
-                xy = self._border_idxs[idxs[i]]
-                if np.max(np.abs(self.start_xy - xy)) != 1: 
-                    self.end_xy = xy
-                    break
-        
-        return self.start_xy, self.end_xy
-
-
     """
     Get the current stats of the map
 
@@ -86,8 +61,8 @@ class BinaryHoleyProblem(BinaryProblem):
     def get_stats(self, map, lenient_paths=False):
         map_locations = get_tile_locations(map, self.get_tile_types())
         # self.path_length, self.path_coords = calc_longest_path(map, map_locations, ["empty"], get_path=self.render_path)
-        dijkstra, _ = run_dijkstra(self.start_xy[1], self.start_xy[0], map, ["empty"])
-        connected_path_length = dijkstra[self.end_xy[0], self.end_xy[1]]
+        dijkstra, _ = run_dijkstra(self.entrance_coords[1], self.entrance_coords[0], map, ["empty"])
+        connected_path_length = dijkstra[self.exit_coords[0], self.exit_coords[1]]
 
         max_start_path = np.max(dijkstra)
         self.path_length = max_start_path
@@ -102,7 +77,7 @@ class BinaryHoleyProblem(BinaryProblem):
         else:
             # connectivity_bonus = 1
             self.connected_path_length = connected_path_length
-            self.connected_path_coords = get_path_coords(dijkstra, init_coords=(self.end_xy[0], self.end_xy[1]))
+            self.connected_path_coords = get_path_coords(dijkstra, init_coords=(self.exit_coords[0], self.exit_coords[1]))
 
         # FIXME: This is a hack to prevent weird path coord list of [[0,0]]
         if max_start_path < 1:

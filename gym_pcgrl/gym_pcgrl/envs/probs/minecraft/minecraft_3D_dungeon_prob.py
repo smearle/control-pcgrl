@@ -284,7 +284,7 @@ Generate a fully connected top down layout where the longest path is greater tha
 #     def render(self, map, iteration_num, repr_name, **kwargs):
 #         # Render the border if we haven't yet already.
 #         if not self._rendered_initial_maze:
-#             # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+#             # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
 #             # spawn_3D_maze(map)
 #             self._rendered_initial_maze = True
 

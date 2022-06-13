@@ -97,8 +97,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         }
         
         # if map_stats["regions"] == 1:
-        # entrance is self.start_xyz, a hole on the border(we use the foot room for path finding), in the form of (z, y, x)
-        p_z, p_y, p_x = self.start_xyz[0]
+        # entrance is self.entrance_coords, a hole on the border(we use the foot room for path finding), in the form of (z, y, x)
+        p_z, p_y, p_x = self.entrance_coords[0]
 
         enemies = []
         enemies.extend(map_locations["SKULL"])
@@ -119,8 +119,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         if map_stats["chests"] > 0:
             c_xyz = map_locations["CHEST"][0]
 
-            # exit is self.end_xyz, a hole on the border(we use the foot room the find the path), in the form of (z, y, x)
-            d_xyz = tuple(self.end_xyz[0][::-1])  # lol
+            # exit is self.exit_coords, a hole on the border(we use the foot room the find the path), in the form of (z, y, x)
+            d_xyz = tuple(self.exit_coords[0][::-1])  # lol
 
             # start point is player
             paths_c, _, jumps_c = run_dijkstra(p_x, p_y, p_z, map, self._passable)
@@ -170,7 +170,7 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
 
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
-            # spawn_3D_border(map, self._border_tile, start_xyz=self.start_xyz, end_xyz=self.end_xyz)
+            # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
             # spawn_3D_maze(map)
             # spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True

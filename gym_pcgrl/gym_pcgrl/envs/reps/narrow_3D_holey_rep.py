@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
+from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from gym_pcgrl.envs.reps.narrow_3D_rep import Narrow3DRepresentation
 from PIL import Image
 from gym import spaces
@@ -12,7 +12,7 @@ from pdb import set_trace as TT
 The narrow representation where the agent is trying to modify the tile value of a certain
 selected position that is selected randomly or sequentially similar to cellular automata
 """
-class Narrow3DHoleyRepresentation(HoleyRepresentation3D, Narrow3DRepresentation):
+class Narrow3DHoleyRepresentation(HoleyRepresentation, Narrow3DRepresentation):
     """
     Get the observation space used by the narrow representation
 
@@ -34,7 +34,7 @@ class Narrow3DHoleyRepresentation(HoleyRepresentation3D, Narrow3DRepresentation)
 
     def reset(self, *args, **kwargs):
         ret = Narrow3DRepresentation.reset(self, *args, **kwargs)
-        HoleyRepresentation3D.reset(self)
+        HoleyRepresentation.reset(self)
         return ret   
 
     """

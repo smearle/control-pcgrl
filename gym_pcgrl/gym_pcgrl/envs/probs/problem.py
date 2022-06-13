@@ -23,9 +23,9 @@ class Problem:
         # FIXME: assumption, will overrule a similar declaration by the child.
         self._empty_tile = tiles[0]
 
-        self._prob = []
-        for _ in range(len(tiles)):
-            self._prob.append(1.0 / len(tiles))
+        self._prob = {}
+        for tile in range(len(tiles)):
+            self._prob.update({tile: 1.0 / len(tiles)})
 
         self._border_size = (1, 1)
         self._border_tile = tiles[0]

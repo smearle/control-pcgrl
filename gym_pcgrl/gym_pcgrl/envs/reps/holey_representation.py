@@ -11,13 +11,13 @@ from gym_pcgrl.envs.reps.representation import Representation
 class HoleyRepresentation(Representation):
     def reset(self, *args, **kwargs):
         # ret = super().reset(*args, **kwargs)
-        self.dig_holes(self.start_xy, self.end_xy)
+        self.dig_holes(self.entrance_coords, self.exit_coords)
 
-    def set_holes(self, start_xy, end_xy):
-        self.start_xy, self.end_xy = start_xy, end_xy
+    def set_holes(self, entrance_coords, exit_coords):
+        self.entrance_coords, self.exit_coords = entrance_coords, exit_coords
 
-    def dig_holes(self, start_xy, end_xy):
+    def dig_holes(self, entrance_coords, exit_coords):
         # TODO: Represent start/end differently to accommodate one-way paths.
-        self._bordered_map[start_xy[0], start_xy[1]] = self._empty_tile
-        self._bordered_map[end_xy[0], end_xy[1]] = self._empty_tile
+        self._bordered_map[entrance_coords[0], entrance_coords[1]] = self._empty_tile
+        self._bordered_map[exit_coords[0], exit_coords[1]] = self._empty_tile
         

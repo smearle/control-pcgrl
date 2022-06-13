@@ -24,8 +24,7 @@ from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_ctrl_prob import Minecr
 # all the problems should be defined here with its corresponding class
 PROBLEMS = {
     "binary": BinaryProblem,
-    "binary_ctrl": BinaryProblem,
-    "binary_ctrl_holey": BinaryHoleyProblem,
+    "binary_holey": BinaryHoleyProblem,
     "ddave": DDaveProblem,
     "mdungeon": MDungeonProblem,
     "sokoban": SokobanProblem,

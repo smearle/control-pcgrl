@@ -1149,11 +1149,11 @@ def simulate(
             # Set the representation to begin in the upper left corner
             if IS_HOLEY:
                 if ENV3D:
-                    start_xyz, end_xyz = door_coords[n_episode]
-                    env.unwrapped._prob._hole_queue = [(start_xyz, end_xyz)]
+                    entrance_coords, exit_coords = door_coords[n_episode]
+                    env.unwrapped._prob._hole_queue = [(entrance_coords, exit_coords)]
                     env.reset()
-                    # env.unwrapped._prob.start_xyz, env.unwrapped._prob.end_xyz = start_xyz, end_xyz
-                    # env.unwrapped._rep.set_holes(start_xyz, end_xyz)
+                    # env.unwrapped._prob.entrance_coords, env.unwrapped._prob.exit_coords = entrance_coords, exit_coords
+                    # env.unwrapped._rep.set_holes(entrance_coords, exit_coords)
                 else:
                     raise NotImplementedError
             env.unwrapped._rep._map = init_state.copy()
@@ -1462,7 +1462,7 @@ class EvoPCGRL:
                 'n_init_states': N_INIT_STATES,
             }
         else:
-            init_level_archive_args = ()
+            init_level_archive_args = {}
         self.init_level_archive_args = init_level_archive_args
 
         if ALGO == "ME":
@@ -2203,7 +2203,7 @@ class EvoPCGRL:
 
     def infer(self, concat_gifs=True):
         assert INFER
-        self.door_coords = None if not hasattr(self, 'door_coords') else self.door_coords
+        self.door_coords = None if not hasattr(self, 'door_coords') else self.door_coords  # HACK for backward compatibility
         args = self.args
         self.init_env()
         archive = self.gen_archive

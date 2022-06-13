@@ -8,7 +8,7 @@ import numpy as np
 """
 The cellular (autamaton-like) representation, where the agent may change all tiles on the map at each step.
 """
-class CA3DRepresentation(Representation3D):
+class CARepresentation(Representation3D):
     """
     Initialize all the parameters used by that representation
     """

@@ -1,7 +1,7 @@
 from pdb import set_trace as TT
 from PIL import Image
 from gym import spaces
-from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
+from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from gym_pcgrl.envs.reps.wide_3D_rep import Wide3DRepresentation
 import numpy as np
 from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, edit_bordered_3D_maze
@@ -9,7 +9,7 @@ from gym_pcgrl.envs.probs.minecraft.mc_render import edit_3D_maze, edit_bordered
 """
 The wide representation where the agent can pick the tile position and tile value at each update.
 """
-class Wide3DHoleyRepresentation(Wide3DRepresentation, HoleyRepresentation3D):
+class Wide3DHoleyRepresentation(Wide3DRepresentation, HoleyRepresentation):
     """
     Get the observation space used by the wide representation
 
@@ -29,7 +29,7 @@ class Wide3DHoleyRepresentation(Wide3DRepresentation, HoleyRepresentation3D):
 
     def reset(self, *args, **kwargs):
         ret = Wide3DRepresentation.reset(self, *args, **kwargs)
-        HoleyRepresentation3D.reset(self)
+        HoleyRepresentation.reset(self)
         return ret   
 
     """
