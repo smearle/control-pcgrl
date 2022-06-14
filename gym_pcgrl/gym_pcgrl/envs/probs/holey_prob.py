@@ -1,4 +1,5 @@
 import itertools
+from pdb import set_trace as TT
 
 import numpy as np
 import ray
@@ -13,7 +14,7 @@ class HoleyProblem(Problem):
     def __init__(self):
         super().__init__()
         self._hole_queue = []
-        self.fixed_holes = True
+        self.fixed_holes = False
         self._border_idxs = self.get_border_idxs()
 
     def get_border_idxs(self):
@@ -39,7 +40,10 @@ class HoleyProblem(Problem):
         entrance_coords[0] : y
         entrance_coords[1] : x
         """
-        if self.fixed_holes:
+        if len(self._hole_queue) > 0:
+            (self.entrance_coords, self.exit_coords), self._hole_queue = self._hole_queue[0], self._hole_queue[1:]
+        
+        elif self.fixed_holes:
             self.entrance_coords = np.array([1, 0])
             self.exit_coords = np.array((self._width, self._height + 1))
 
@@ -48,7 +52,7 @@ class HoleyProblem(Problem):
             self.entrance_coords = self._border_idxs[idxs[0]]
             for i in range(1, 4):
                 xy = self._border_idxs[idxs[i]]
-                if HoleyProblem._valid_holes(self.entrance_coords, xy): 
+                if self._valid_holes(self.entrance_coords, xy): 
                     self.exit_coords = xy
                     break
         
@@ -62,12 +66,35 @@ class HoleyProblem(Problem):
         Generate all the holes in the map for evaluation.
         """
         hole_pairs = list(itertools.product(self._border_idxs, self._border_idxs))
-        hole_pairs = [pair for pair in hole_pairs if HoleyProblem._valid_holes(pair[0], pair[1])]
+        hole_pairs = [pair for pair in hole_pairs if self._valid_holes(pair[0], pair[1])]
         return hole_pairs
 
-    def _valid_holes(entrance_coords, exit_coords):
+    def _valid_holes(self, entrance_coords, exit_coords):
         """
         Check if the given holes are valid.
         """
-        return np.max(np.abs(entrance_coords - exit_coords)) > 1
+        holes = [entrance_coords, exit_coords]
+        for i, (x, y) in enumerate(holes):
+            if x == 0:
+                x = 1
+            elif x == self._width-1:
+                x = self._width-2
+            elif y == 0:
+                y = 1
+            elif y == self._height-1:
+                y = self._height-2
+            holes[i] = np.array([x, y])
+        return np.max(np.abs(holes[0] - holes[1])) > 1
+
+        # corners = np.array([
+        #     [0, 0],
+        #     [0, self._width + 1],
+        #     [self._height + 1, 0],
+        #     [self._height + 1, self._width + 1]
+        # ])
+        # door_coords = np.array([entrance_coords, exit_coords])
+        # # Check if each door is in some corner. If so, then check that they are sufficiently far away from each other.
+        # if np.all(np.min(np.max(np.abs(corners - door_coords[:, None, :]), 2), 1) < 3):
+        #     return np.max(np.abs(entrance_coords - exit_coords)) > 2
+        # return np.max(np.abs(entrance_coords - exit_coords)) > 1
 

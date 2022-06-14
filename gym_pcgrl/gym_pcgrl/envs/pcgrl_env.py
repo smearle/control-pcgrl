@@ -179,7 +179,7 @@ class PcgrlEnv(gym.Env):
     """
     def adjust_param(self, **kwargs):
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
-        self._change_percentage = kwargs['change_percentage']
+        self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
         if self._change_percentage is not None:
             percentage = min(1, max(0, self._change_percentage))
             self._max_changes = max(int(percentage * np.prod(self.get_map_dims()[:-1])), 1)
