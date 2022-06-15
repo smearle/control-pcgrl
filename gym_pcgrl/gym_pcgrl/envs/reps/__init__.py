@@ -15,7 +15,7 @@ from gym_pcgrl.envs.reps.wide_holey_rep import WideHoleyRepresentation
 from gym_pcgrl.envs.reps.wide_3D_rep import Wide3DRepresentation
 from gym_pcgrl.envs.reps.wide_3D_holey_rep import Wide3DHoleyRepresentation
 from gym_pcgrl.envs.reps.ca_rep import CARepresentation
-from gym_pcgrl.envs.reps.ca_holey import CARepresentationHoley
+from gym_pcgrl.envs.reps.ca_holey import CARepresentationHoley, CARepresentationHoleyStatic
 
 
 # all the representations should be defined here with its corresponding class
@@ -37,6 +37,7 @@ REPRESENTATIONS = {
     "wide3Dholey": Wide3DHoleyRepresentation,
     "cellular": CARepresentation,
     "cellularholey": CARepresentationHoley,
+    "cellularholeystatic": CARepresentationHoleyStatic,
     "cellular3D": CARepresentation,
     "cellular3Dholey": CA3DRepresentationHoley,
 }

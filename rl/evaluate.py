@@ -79,8 +79,8 @@ def test_doors(trainer, env, cfg):
 
     # trainer.evaluate() # HACK get initial episode out of the way, here we assign each env its index
     all_holes = env.unwrapped._prob.gen_all_holes()
-    all_holes = [hole for i, hole in enumerate(all_holes) if i % 1 == 0]
-    all_holes = [hole for hole in all_holes if (tuple(hole[0][0]), tuple(hole[1][0])) not in ctrl_stats]
+    all_holes_total = [hole for i, hole in enumerate(all_holes) if i % 10 == 0]
+    all_holes = [hole for hole in all_holes_total if (tuple(hole[0][0]), tuple(hole[1][0])) not in ctrl_stats]
     n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
     if len(all_holes) >= n_envs:
         # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
@@ -102,7 +102,7 @@ def test_doors(trainer, env, cfg):
 
         trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._prob.queue_holes(idx_counter))
 
-        while len(ctrl_stats) < len(all_holes):
+        while len(ctrl_stats) < len(all_holes_total):
             result = trainer.evaluate()
             hist_stats = result['evaluation']['hist_stats']
             # print(result)
@@ -110,7 +110,7 @@ def test_doors(trainer, env, cfg):
                 for hole_start, hole_end, path_len in zip(hist_stats['holes_start'], hist_stats['holes_end'], 
                                                             hist_stats['connected-path-length-val']):
                     ctrl_stats[(hole_start, hole_end)] = path_len
-                print(f"{len(ctrl_stats)} out of {len(all_holes)} hole stats collected")
+                print(f"{len(ctrl_stats)} out of {len(all_holes_total)} hole stats collected")
                 # print(hole_stats)
                 pickle.dump(ctrl_stats, open(ctrl_stats_fname, 'wb'))
     # print([e.unwrapped._prob.hole_queue for e in envs])
@@ -119,7 +119,8 @@ def test_doors(trainer, env, cfg):
     length = cfg.length
 
     HEATMAP = 1
-    if HEATMAP == 0:
+    # if HEATMAP == 0:
+    if True:
         # Here, we make a heatmap in which each axis is the top-down circumnference of the maze, unravelled. Take means 
         # over the height axis.
         heat = np.zeros((width * 4, width * 4))
@@ -165,7 +166,7 @@ def test_doors(trainer, env, cfg):
         # fig, axs = plt.subplots(1, 2)
         fig, axs = plt.subplots(1, 1)
         # resize the figure so that its contents are not overlapping
-        fig.set_size_inches(12, 5)
+        fig.set_size_inches(7, 5)
 
         # Plot heatmap
         axs = sns.heatmap(heat, cmap='viridis', ax=axs, cbar=True, square=True, xticklabels=True, yticklabels=True)
@@ -181,12 +182,13 @@ def test_doors(trainer, env, cfg):
         # Set x axis name
         axs.set_xlabel('Entrance position')
         axs.set_ylabel('Exit position')
+        plt.tight_layout()
 
         plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_0_0.png'))
         plt.close()
 
         fig, axs = plt.subplots(1, 1)
-        fig.set_size_inches(12, 5)
+        fig.set_size_inches(7, 5)
         # Plot failed heatmap using red color map
         axs = sns.heatmap(fail, cmap='Reds', ax=axs, cbar=True, square=True, xticklabels=True, yticklabels=True)
         # set the interval of the x and y axis
@@ -219,11 +221,12 @@ def test_doors(trainer, env, cfg):
 
         # set suptitle
         # fig.suptitle('Heatmap of path-length between entrances/exits')
-
+        plt.tight_layout()
         plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_0_1.png'))
         plt.close()
 
-    elif HEATMAP == 1:
+    # elif HEATMAP == 1:
+    if True:
         # Create heatmaps in which the x and y axes are the absolute x and y distance between doors, resepectively, and
         # each heatmap corresponds to a different height differnce.
         # Note the max width/length/height differences are quirky due to the map being bordered.
@@ -298,7 +301,7 @@ def test_doors(trainer, env, cfg):
             else:
                 ax.set_title(i)
         # set suptitle
-        fig.suptitle('Heatmap of fail connection between entrances/exits')
+        fig.suptitle('Heatmap of failed connection between entrances/exits')
         # plt.suptitle('Path-length between entrances/exits')
         fig.tight_layout(rect=[0, 0, .9, 1])
         plt.savefig(os.path.join(cfg.log_dir, 'hole_heatmap_1_1.png'))
