@@ -195,9 +195,6 @@ class PcgrlEnv(gym.Env):
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         if 'model' in kwargs and kwargs['model'] is not None and 'Decoder' in kwargs['model']:
             self._max_iterations = 1
-        # HACK for backward compatibility with past bug given baseline model hehe
-        elif 'model' in kwargs and kwargs['model'] is None:
-            self._max_iterations = 700
         else:
             max_board_scans = kwargs.get('max_board_scans', 1)
             self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1

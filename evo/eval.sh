@@ -26,4 +26,4 @@
 ## conda activate pcgrl
 
 
-python evo/evolve.py -la 95
+python evo/evolve.py -la 98
