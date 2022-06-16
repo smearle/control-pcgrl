@@ -10,9 +10,6 @@ from ray.util.multiprocessing import Pool
 import gym_pcgrl
 
 
-STATIC_BUILDS = True
-
-
 def construct_path(entrance, exit, width, height):
     (x0, y0), (x1, y1) = sorted([entrance, exit], key=lambda x: x[0])
     # Add one empty tile next to lower-x door, to ensure we can connect with two lines.
@@ -101,7 +98,6 @@ def stretch_path(arr, static=None):
                 if static is not None:
                     static_patch = static[i:i+k, j:j+k]
                     # If static builds are in the way of any tile we would need to edit, we can't apply the rule.
-                    print(out.shape, trg.shape)
                     if np.sum(static_patch * static_chan) >= 1:
                         continue
                 if np.sum(patch == trg) == np.sum(trg > -1):
@@ -162,13 +158,10 @@ def simulate(env, render=False):
 
 def main():
     n_proc = 20
-    if STATIC_BUILDS:
-        env_str = 'binary_holey-cellularholeystatic-v0'
-    else:
-        env_str = 'binary_holey-cellularholey-v0'
+    env_str = 'binary_holey-cellularholey-v0'
     env = gym.make(env_str)
     all_holes = env._prob.gen_all_holes()
-    env.adjust_param(prob_static=0.1)  # ignored if not static-build environment
+    env.adjust_param(static_prob=0.1)
 
     # envs = [env] + [gym.make(env_str) for _ in range(n_proc - 1)]
     # [env.adjust_param(prob_static=0.1) for env in envs]

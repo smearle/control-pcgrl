@@ -1,16 +1,16 @@
-import copy
+import collections
 from pdb import set_trace as TT
-from re import S
+
+import gym
+from gym import spaces
+import numpy as np 
+
+from gym_pcgrl.envs.reps.static_build_wrapper import wrap_static_build
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 from gym_pcgrl.envs.reps.representation import Representation
-import numpy as np
-import gym
-from gym import spaces
-import PIL
-import collections
 
 """
 The PCGRL GYM Environment
@@ -36,7 +36,8 @@ class PcgrlEnv(gym.Env):
         self.get_string_map = get_string_map
 
         self._prob: Problem = PROBLEMS[prob](**kwargs)
-        self._rep: Representation = REPRESENTATIONS[rep]()
+        self._rep_cls = REPRESENTATIONS[rep]
+        self._rep: Representation = self._rep_cls()
         self._rep_stats = None
         self.metrics = {}
         # print('problem metrics trgs: {}'.format(self._prob.static_trgs))
@@ -77,6 +78,7 @@ class PcgrlEnv(gym.Env):
 
 #       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
+        self._wrapped_static_builds = False
 
     def get_map_dims(self):
         return (self._prob._width, self._prob._height, self.get_num_tiles())
@@ -178,6 +180,10 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
+        if kwargs['static_prob'] is not None and not self._wrapped_static_builds:
+            rep_cls = wrap_static_build(self._rep_cls)
+            self._rep = rep_cls()
+            self._wrapped_static_builds = True
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
         self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
         if self._change_percentage is not None:

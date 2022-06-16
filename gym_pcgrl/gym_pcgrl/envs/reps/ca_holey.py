@@ -3,7 +3,7 @@ from pdb import set_trace as TT
 import cv2
 from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_bordered_map, spawn_3D_maze
 from gym_pcgrl.envs.reps.ca_rep import CARepresentation
-from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation, StaticBuildRepresentation
+from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from PIL import Image
 from gym import spaces
 import numpy as np
@@ -54,37 +54,3 @@ class CARepresentationHoley(HoleyRepresentation, CARepresentation):
         return ret
 
 
-class CARepresentationHoleyStatic(StaticBuildRepresentation, CARepresentationHoley):
-    def __init__(self, *args, **kwargs):
-        CARepresentationHoley.__init__(self, *args, **kwargs)
-        StaticBuildRepresentation.__init__(self)
-
-    def get_observation_space(self, width, height, num_tiles):
-        obs_space_0 = CARepresentationHoley.get_observation_space(self, width, height, num_tiles)
-        obs_space_1 = StaticBuildRepresentation.get_observation_space(self, width, height, num_tiles)
-        obs_space_0.spaces.update(obs_space_1.spaces)
-        return obs_space_0
-        
-
-    def reset(self, *args, **kwargs):
-        ret = CARepresentationHoley.reset(self, *args, **kwargs)
-        StaticBuildRepresentation.reset(self)
-        return ret
-
-    def update(self, action, **kwargs):
-        old_state = self._bordered_map.copy()
-        change, pos = CARepresentationHoley.update(self, action, **kwargs)
-        new_state = self._bordered_map
-        # assert not(np.all(old_state == new_state))
-        self._bordered_map = np.where(self.static_builds < 1, new_state, old_state)
-        # print(self._bordered_map)
-        self._map = self._bordered_map[1:-1, 1:-1]
-        # FIXME: below is broken?? (false positives for change detection)
-        # change = np.any(old_state != new_state)
-        return change, pos
-
-    def render(self, level_image, tile_size, border_size, **kwargs):
-        # TODO: check for human/rgb mode
-        img = CARepresentationHoley.render(self, level_image, tile_size, border_size, **kwargs)
-        img = StaticBuildRepresentation.render(self, img, tile_size, border_size, **kwargs)
-        return img
