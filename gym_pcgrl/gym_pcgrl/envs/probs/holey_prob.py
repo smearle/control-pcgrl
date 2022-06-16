@@ -12,7 +12,7 @@ class HoleyProblem(Problem):
     The base class for all the holey problems so that we don't have to repeat the code.
     """
     def __init__(self):
-        super().__init__()
+        # super().__init__()
         self._hole_queue = []
         self.fixed_holes = False
         self._border_idxs = self.get_border_idxs()
@@ -59,6 +59,10 @@ class HoleyProblem(Problem):
         return self.entrance_coords, self.exit_coords
 
     def queue_holes(self, idx_counter):
+        """
+        Gets a list of holes to be used on reset. `idx_counter` is a global ray actor object. It uses the hash of `self`
+        to give a unique id to this environment.
+        """
         self._hole_queue = ray.get(idx_counter.get.remote(hash(self)))
 
     def gen_all_holes(self):

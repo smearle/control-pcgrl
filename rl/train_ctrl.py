@@ -234,7 +234,8 @@ def main(cfg):
     #         else:
     #             act = 0
     #         obs = dummy_env.step(act)
-    #         dummy_env.render()
+    #         # dummy_env.render()
+    # print('DEBUG: Congratulations! You can now use the environment.')
     # sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')

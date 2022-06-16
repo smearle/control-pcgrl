@@ -1,6 +1,6 @@
 from PIL import Image
 from gym import spaces
-from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
+from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
 from gym_pcgrl.envs.reps.turtle_3D_rep import Turtle3DRepresentation
 import numpy as np
 from collections import OrderedDict
@@ -11,7 +11,7 @@ The turtle representation where the agent is trying to modify the position of th
 turtle or the tile value of its current location similar to turtle graphics.
 The difference with narrow representation is the agent now controls the next tile to be modified.
 """
-class Turtle3DHoleyRepresentation(Turtle3DRepresentation, HoleyRepresentation):
+class Turtle3DHoleyRepresentation(HoleyRepresentation3D, Turtle3DRepresentation):
     """
     Get the observation space used by the turtle representation
 
@@ -33,7 +33,7 @@ class Turtle3DHoleyRepresentation(Turtle3DRepresentation, HoleyRepresentation):
 
     def reset(self, *args, **kwargs):
         ret = Turtle3DRepresentation.reset(self, *args, **kwargs)
-        HoleyRepresentation.reset(self)
+        HoleyRepresentation3D.reset(self)
         return ret   
 
     """

@@ -17,7 +17,8 @@ class Representation3D:
         self._map = None
         self._old_map = None
         self._border_tile_index = border_tile_index
-        self._empty_tile_index = empty_tile_index
+        self._empty_tile = empty_tile_index
+        # self._empty_tile_index = empty_tile_index
 
         self.seed()
 

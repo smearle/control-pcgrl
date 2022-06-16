@@ -1,7 +1,7 @@
 from pdb import set_trace as TT
 from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_bordered_map, spawn_3D_maze
 from gym_pcgrl.envs.reps.ca_rep import CARepresentation
-from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
+from gym_pcgrl.envs.reps.holey_representation_3D import HoleyRepresentation3D
 from gym_pcgrl.envs.reps.representation_3D import Representation3D
 from PIL import Image
 from gym import spaces
@@ -10,7 +10,7 @@ import numpy as np
 """
 The cellular (autamaton-like) representation, where the agent may change all tiles on the map at each step.
 """
-class CA3DRepresentationHoley(HoleyRepresentation, CARepresentation):
+class CA3DRepresentationHoley(HoleyRepresentation3D, CARepresentation):
     """
     Get the observation space used by the cellular representation
 
@@ -35,7 +35,7 @@ class CA3DRepresentationHoley(HoleyRepresentation, CARepresentation):
 
     def reset(self, *args, **kwargs):
         ret = CARepresentation.reset(self, *args, **kwargs)
-        HoleyRepresentation.reset(self)
+        HoleyRepresentation3D.reset(self)
         return ret   
 
     """

@@ -14,13 +14,13 @@
   ],
 
   "problems": [
-    # "minecraft_3D_maze",
+    "minecraft_3D_maze",
     # "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
     # "binary",
-    "binary_holey",
+    # "binary_holey",
 #   "zelda",
 #   "sokoban",
 #   'simcity',
@@ -30,7 +30,7 @@
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-        # ["narrow3D", null],
+        ["narrow3D", null],
         # ["narrow3D", SeqNCA3D],
 
         # ["narrow3Dholey", null],
@@ -39,7 +39,7 @@
       # ["narrow", SeqNCA],
       # ["narrow", null],
       # [narrowholey, SeqNCA],
-      ["narrowholey", null],
+      # ["narrowholey", null],
 
     #   ['turtle', null],
 #       ["turtle3D", null],
@@ -79,7 +79,7 @@
 
   "local_controls": {
       "minecraft_3D_maze": [
-        [n_jump],
+        # [n_jump],
         # [path-length],
         # [n_jump, path-length],
       ],
@@ -154,7 +154,8 @@
 
   # The probability that a given tile in the random initial state is "static", i.e. cannot be modified by the agent.
   "static_probs": [
-    0.1,
+    null,
+    # 0.1,
     # 0.2,
   ],
 

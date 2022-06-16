@@ -438,7 +438,7 @@ def run_dijkstra(x, y, z, map, passable_values):
         old_path = paths.get((cx, cy, cz), [])
         if len(old_path) > 0 and len(old_path) <= len(path):
             continue
-
+        # TT()
         # Zelda(Dungeon) (and other games maybe) calls this function directly without calling calc_longest_path, so we need to 
         # add this check here.
         if cz+1 == len(map) or map[cz+1][cy][cx] not in passable_values:
