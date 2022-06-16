@@ -19,8 +19,8 @@
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
-    "binary",
-    # "binary_holey",
+    # "binary",
+    "binary_holey",
 #   "zelda",
 #   "sokoban",
 #   'simcity',
@@ -36,10 +36,10 @@
         # ["narrow3Dholey", null],
         # ["narrow3Dholey", SeqNCA3D],
 
-      ["narrow", SeqNCA],
+      # ["narrow", SeqNCA],
       # ["narrow", null],
       # [narrowholey, SeqNCA],
-      # ["narrowholey", null],
+      ["narrowholey", null],
 
     #   ['turtle', null],
 #       ["turtle3D", null],
@@ -152,6 +152,7 @@
     null,
   ],
 
+  # The probability that a given tile in the random initial state is "static", i.e. cannot be modified by the agent.
   "static_probs": [
     0.1,
     # 0.2,

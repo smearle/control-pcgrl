@@ -39,12 +39,11 @@ def wrap_holey(rep_cls):
         if issubclass(rep_cls, NarrowRepresentation):
             render = NarrowHoleyRepresentation.render
 
-    TT()
-
     return HoleyRepresentation
 
 
 def wrap_static_build(rep_cls):
+    """Define a subclass for an as-yet unkown parent class."""
 
     class StaticBuildRepresentation(rep_cls):
         def __init__(self, *args, **kwargs):

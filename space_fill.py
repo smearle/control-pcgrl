@@ -84,6 +84,8 @@ def stretch_path_rules():
 
 
 def stretch_diameter_rules():
+
+    # Grow in a straight line.
     trg_0 = np.array([
         [-1, 1, -1],
         [1,  1,  1],
@@ -98,10 +100,11 @@ def stretch_diameter_rules():
     trg_2, out_2 = np.transpose(trg_0, (1, 0)), np.transpose(out_0, (1, 0))
     trg_3, out_3 = np.flip(trg_2, axis=1), np.flip(out_2, axis=1)
 
+    # Grow in a new direction.
     trg_4 = np.array([
-        [-1,  0, 1, -1],
-        [1,  0, 1,  1],
-        [-1, 1, 1, -1],
+        [-1,  0,  1, -1],
+        [1,   0,  1,  1],
+        [-1,  1,  1, -1],
         [-1, -1, -1, -1],
     ])
     out_4 = np.array([
@@ -119,6 +122,7 @@ def stretch_diameter_rules():
     trg_10, out_10 = np.transpose(trg_8, (1, 0)), np.transpose(out_8, (1, 0))
     trg_11, out_11 = np.flip(trg_10, axis=1), np.flip(out_10, axis=1)
 
+    # Dig a new hole.
     trg_12 = np.array([
         [1, 1, 1],
         [1, 1, 1],
@@ -237,7 +241,7 @@ def simulate(env, render=False, rules_fn = stretch_path_rules):
                 rules,
             )[1:-1, 1:-1]
         act = onehot_2chan(action)
-        done = np.all(act == last_act) or i > 100
+        done = np.all(act == last_act) or i > 256
 
         # Any newly traversible tiles are assigned a component id.
         new_empty = np.argwhere((action == 0) & (cmpt_arr[p:-p, p:-p] == 0))
@@ -279,7 +283,7 @@ def test_holey_space_fill():
     env_str = 'binary_holey-cellularholey-v0'
     env = gym.make(env_str)
     all_holes = env._prob.gen_all_holes()
-    env.adjust_param(static_prob=0.1)
+    env.adjust_param(static_prob=0.0)
 
     # envs = [env] + [gym.make(env_str) for _ in range(n_proc - 1)]
     # [env.adjust_param(prob_static=0.1) for env in envs]
@@ -303,7 +307,9 @@ def test_space_fill():
     n_proc = 20
     env_str = 'binary-cellular-v0'
     env = gym.make(env_str)
-    env.adjust_param(static_prob=0.1)
+    env.adjust_param(
+        static_prob=0.0
+    )
 
     # envs = [env] + [gym.make(env_str) for _ in range(n_proc - 1)]
     # [env.adjust_param(prob_static=0.1) for env in envs]
