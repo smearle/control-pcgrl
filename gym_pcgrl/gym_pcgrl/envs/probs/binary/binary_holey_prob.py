@@ -16,7 +16,7 @@ class BinaryHoleyProblem(BinaryProblem, HoleyProblem):
         BinaryProblem.__init__(self)
 
         self._reward_weights = {
-            "regions": 0,
+            "regions": 100,
             "path-length": 0,
             "connected-path-length": 100,
             # "connectivity": 0,

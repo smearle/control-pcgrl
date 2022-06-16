@@ -32,7 +32,7 @@ class BinaryProblem(Problem):
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2) + 1
 
         self._reward_weights = {
-            "regions": 0,
+            "regions": 100,
             "path-length": 100,
         }
         # # Weights for each component of the reward *if* it is being controlled.
