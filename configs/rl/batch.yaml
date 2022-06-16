@@ -3,8 +3,8 @@
 
 {
   "exp_names": [
-    testStaticBuilds,
-    # 0,
+    # testStaticBuilds,
+    0,
     # 1,
     # 2,
     # 3,
@@ -14,12 +14,12 @@
   ],
 
   "problems": [
-    "minecraft_3D_maze",
+    # "minecraft_3D_maze",
     # "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
-    # "binary",
+    "binary",
     # "binary_holey",
 #   "zelda",
 #   "sokoban",
@@ -36,7 +36,7 @@
         # ["narrow3Dholey", null],
         # ["narrow3Dholey", SeqNCA3D],
 
-      # ["narrow", SeqNCA],
+      ["narrow", SeqNCA],
       # ["narrow", null],
       # [narrowholey, SeqNCA],
       # ["narrowholey", null],
@@ -157,6 +157,7 @@
     null,
     # 0.1,
     # 0.2,
+    # 0.5,
   ],
 
   "learning_rates": [

@@ -58,8 +58,10 @@ def wrap_static_build(rep_cls):
 
         def reset(self, *args, **kwargs):
             ret = rep_cls.reset(self, *args, **kwargs)
+            # Uniformly sample a probability of static builds from within the range [0, self.prob_static]
+            prob_static = np.random.random() * self.prob_static
             # TODO: take into account validity constraints on number of certain tiles
-            self.static_builds = (np.random.random(self._bordered_map.shape) < self.prob_static).astype(np.uint8)
+            self.static_builds = (np.random.random(self._bordered_map.shape) < prob_static).astype(np.uint8)
             # Borders are always static
             self.static_builds[(0, -1), :] = 1
             self.static_builds[:, (0, -1)] = 1
