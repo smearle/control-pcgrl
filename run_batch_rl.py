@@ -53,9 +53,10 @@ def launch_batch(collect_params=False):
     # Take product of lists
     exp_hypers = itertools.product(batch_config.problems, batch_config.representations_models, batch_config.model_configs,
         batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates, batch_config.exp_names,
-        batch_config.max_board_scans, batch_config.n_aux_tiles,)
+        batch_config.max_board_scans, batch_config.n_aux_tiles, batch_config.static_probs, )
 
-    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id, max_board_scans, n_aux_tiles) in exp_hypers:
+    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id, max_board_scans, n_aux_tiles,
+         static_prob) in exp_hypers:
 
         prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
 
@@ -117,6 +118,7 @@ def launch_batch(collect_params=False):
                     "gamma": opts.gamma,
                     "model_cfg": model_cfg,
                     "record_env": opts.record_env,
+                    "static_prob": static_prob,
                     "wandb": opts.wandb,
                 }
             )

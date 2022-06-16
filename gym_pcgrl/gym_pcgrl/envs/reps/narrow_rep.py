@@ -19,6 +19,14 @@ class NarrowRepresentation(Representation):
         self.n_step = 0
 
     """
+    Get a list of (x, y) coordinates corresponding to coordinates of tiles to be edited by the generator-agent.
+    """
+    def get_act_coords(self):
+        act_coords = np.meshgrid(np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
+        act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 2))
+        return act_coords
+
+    """
     Resets the current representation where it resets the parent and the current
     modified location
 
@@ -30,17 +38,12 @@ class NarrowRepresentation(Representation):
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
         self.n_step = 0
-        # self._x = self._random.randint(width)
-        # self._y = self._random.randint(height)
         if self._act_coords is None:
-            act_coords = np.meshgrid(np.arange(self._map.shape[1]), np.arange(self._map.shape[0]))
-            self._act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, 2))
+            self._act_coords = self.get_act_coords()
         if self._random_tile:
             np.random.shuffle(self._act_coords)
 
         self._x, self._y = self._act_coords[self.n_step]
-#         self._x = 0
-#         self._y = 0
 
     """
     Gets the action space used by the narrow representation
@@ -142,16 +145,17 @@ class NarrowRepresentation(Representation):
     """
     def render(self, lvl_image, tile_size, border_size):
         x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
+        clr = (0, 255, 0, 255)
         for x in range(tile_size):
-            x_graphics.putpixel((0,x),(255,0,0,255))
-            x_graphics.putpixel((1,x),(255,0,0,255))
-            x_graphics.putpixel((tile_size-2,x),(255,0,0,255))
-            x_graphics.putpixel((tile_size-1,x),(255,0,0,255))
+            x_graphics.putpixel((0,x),clr)
+            x_graphics.putpixel((1,x),clr)
+            x_graphics.putpixel((tile_size-2,x),clr)
+            x_graphics.putpixel((tile_size-1,x),clr)
         for y in range(tile_size):
-            x_graphics.putpixel((y,0),(255,0,0,255))
-            x_graphics.putpixel((y,1),(255,0,0,255))
-            x_graphics.putpixel((y,tile_size-2),(255,0,0,255))
-            x_graphics.putpixel((y,tile_size-1),(255,0,0,255))
+            x_graphics.putpixel((y,0),clr)
+            x_graphics.putpixel((y,1),clr)
+            x_graphics.putpixel((y,tile_size-2),clr)
+            x_graphics.putpixel((y,tile_size-1),clr)
         lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
                                         (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image

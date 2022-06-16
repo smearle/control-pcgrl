@@ -127,3 +127,6 @@ class Representation:
     """
     def render(self, lvl_image, tile_size, border_size=None):
         return lvl_image
+
+    def _update_bordered_map(self):
+        self._bordered_map[1:-1, 1:-1] = self._map

@@ -242,6 +242,9 @@ def get_exp_name(cfg):
 
     if cfg.n_aux_tiles > 0:
         exp_name += f"_{cfg.n_aux_tiles}-aux"
+
+    if cfg.static_prob is not None:
+        exp_name += f"_{cfg.static_prob}-static"
     
     if cfg.lr:
         exp_name += f"_lr-{cfg.lr:.1e}"

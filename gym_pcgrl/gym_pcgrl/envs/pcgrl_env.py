@@ -5,7 +5,7 @@ import gym
 from gym import spaces
 import numpy as np 
 
-from gym_pcgrl.envs.reps.static_build_wrapper import wrap_static_build
+from gym_pcgrl.envs.reps.wrappers import wrap_static_build
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
@@ -62,7 +62,8 @@ class PcgrlEnv(gym.Env):
 
         self.action_space = self._rep.get_action_space(*self.get_map_dims())
         self.observation_space = self._rep.get_observation_space(*self.get_observable_map_dims())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
+        self.observation_space.spaces['heatmap'] = spaces.Box(
+            low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
         
@@ -70,10 +71,12 @@ class PcgrlEnv(gym.Env):
 
         # Normalize reward weights w.r.t. bounds of each metric.
         self._reward_weights = {
-            k: v * 1 / (self._prob.cond_bounds[k][1] - self._prob.cond_bounds[k][0]) for k, v in self._prob._reward_weights.items()
+            k: v * 1 / (self._prob.cond_bounds[k][1] - self._prob.cond_bounds[k][0]) \
+                for k, v in self._prob._reward_weights.items()
         }
         self._ctrl_reward_weights = {
-            k: v * 1 / (self._prob.cond_bounds[k][1] - self._prob.cond_bounds[k][0]) for k, v in self._prob._ctrl_reward_weights.items()
+            k: v * 1 / (self._prob.cond_bounds[k][1] - self._prob.cond_bounds[k][0]) \
+                for k, v in self._prob._ctrl_reward_weights.items()
         }
 
 #       self.param_bounds = self._prob.cond_bounds
@@ -201,8 +204,10 @@ class PcgrlEnv(gym.Env):
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(*self.get_map_dims()[:-1], self.get_num_tiles())
-        self.observation_space = self._rep.get_observation_space(*self.get_map_dims()[:-1], self.get_num_observable_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
+        self.observation_space = self._rep.get_observation_space(
+            *self.get_map_dims()[:-1], self.get_num_observable_tiles())
+        self.observation_space.spaces['heatmap'] = spaces.Box(
+            low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
 
     """
@@ -310,8 +315,8 @@ class PcgrlEnv(gym.Env):
         img or boolean: img for rgb_array rendering and boolean for human rendering
     """
     def render(self, mode='human'):
-        tile_size = 16
-        img = self._prob.render(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
+        img = self._prob.render(self.get_string_map(
+            self._get_rep_map(), self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
         if mode == 'rgb_array':

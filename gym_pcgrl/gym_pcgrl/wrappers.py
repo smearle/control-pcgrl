@@ -77,19 +77,18 @@ def get_pcgrl_env(env):
 
 
 class AuxTiles(gym.Wrapper):
+    """Let the generator write to and observe additional, "invisible" channels."""
     def __init__(self, game, n_aux_tiles, **kwargs):
         self.n_aux_tiles = n_aux_tiles
         self.env = game
         super().__init__(self.env)
         map_obs_space = self.env.observation_space.spaces['map']
-        # map_obs_space = self.env.observation_space
         self.env.observation_space.spaces['aux'] =spaces.Box(
             shape=(*map_obs_space.shape[:-1], n_aux_tiles),
             low = 0,
             high = 1,
             dtype=np.float32,
         )
-        # self.env.observation_space.dtype = np.float32
         self.action_space = spaces.Dict(
             action=self.env.action_space, 
             aux=spaces.Box(low=0, high=1, shape=(n_aux_tiles,), dtype=np.float32),
@@ -212,39 +211,6 @@ class ToImageCA(ToImage):
         obs = self.transform(obs)
 
         return obs, reward, done, info
-
-#class ToImage3D(ToImage):
-#    def __init__(self, game, names, **kwargs):
-#        if isinstance(game, str):
-#            self.env = gym.make(game)
-#        else:
-#            self.env = game
-#        get_pcgrl_env(self.env).adjust_param(**kwargs)
-#        gym.Wrapper.__init__(self, self.env)
-#        self.shape = None
-#        depth=0
-#        max_value = 0
-#        for n in names:
-#            assert n in self.env.observation_space.spaces.keys(), 'This wrapper only works if your observation_space is spaces.Dict with the input names.'
-#            if self.shape == None:
-#                self.shape = self.env.observation_space[n].shape
-#            new_shape = self.env.observation_space[n].shape
-#            depth += 1 if len(new_shape) <= 3 else new_shape[3]
-#            assert self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1] and self.shape[2] == new_shape[2], 'This wrapper only works when all objects have same length, width and height'
-#            if self.env.observation_space[n].high.max() > max_value:
-#                max_value = self.env.observation_space[n].high.max()
-#        self.names = names
-#
-#        self.observation_space = gym.spaces.Box(low=0, high=max_value,shape=(self.shape[0], self.shape[1], self.shape[2], depth))
-#
-#    def transform(self, obs):
-#        final = np.empty([])
-#        for n in self.names:
-#            if len(final.shape) == 0:
-#                final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
-#            else:
-#                final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2)
-#        return final
 
 
 class OneHotEncoding(gym.Wrapper):
@@ -493,6 +459,7 @@ class Cropped3D(Cropped):
         obs[self.name] = cropped
         return obs
 
+
 ################################################################################
 #   Final used wrappers for the experiments
 ################################################################################
@@ -501,35 +468,34 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
     The wrappers we use for narrow and turtle experiments
     """
     def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
-        self.pcgrl_env = gym.make(game)
-        # These envs don't use a lot of PCGRL conventions and are wide be default
+        static_prob = kwargs.get('static_prob')
+        env = gym.make(game)
+        env.adjust_param(**kwargs)
 
-        if "micropolis" in game.lower():
-            self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
-            import gym_city
+        # Keys of (box) observation spaces to be concatenated (channel-wise)
+        flat_indices = ["map"]
+        flat_indices += ["static_builds"] if static_prob is not None else []
 
-        if "RCT" in game:
-            self.pcgrl_env = RCTWrapper(self.pcgrl_env)
-        else:
-            self.pcgrl_env.adjust_param(**kwargs)
-            # Cropping the map to the correct crop_size
+        # Cropping map, etc. to the correct crop_size
+        for k in flat_indices:
             env = Cropped(
-                game=self.pcgrl_env, crop_size=crop_size, pad_value=self.pcgrl_env.get_border_tile(), name="map", 
+                game=env, crop_size=crop_size, pad_value=env.get_border_tile(), name=k, 
                 **kwargs,
             )
-            # Indices for flatting
-            flat_indices = ["map"]
-            # Transform to one hot encoding
-            env = OneHotEncoding(env, "map", padded=True, **kwargs)
 
-            if n_aux_tiles > 0:
-                flat_indices += ["aux"]
-                env = AuxTiles(env, n_aux_tiles=n_aux_tiles, **kwargs)
+        # Transform the map to a one hot encoding
+        # for k in flat_indices:
+        env = OneHotEncoding(env, 'map', padded=True, **kwargs)
 
-            # Final Wrapper has to be ToImage or ToFljat
-            env = ToImage(env, flat_indices, **kwargs)
+        if n_aux_tiles > 0:
+            flat_indices += ["aux"]
+            env = AuxTiles(env, n_aux_tiles=n_aux_tiles, **kwargs)
+        
 
-            self.env = env
+        # Final Wrapper has to be ToImage or ToFljat
+        env = ToImage(env, flat_indices, **kwargs)
+
+        self.env = env
         gym.Wrapper.__init__(self, self.env)
 
 

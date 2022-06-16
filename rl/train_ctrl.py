@@ -225,7 +225,7 @@ def main(cfg):
     dummy_env = make_env(dummy_cfg)
     # check_env(dummy_env)
 
-    # # DEBUG ###
+    # ### DEBUG ###
     # for _ in range(10):
     #     obs = dummy_env.reset()
     #     for i in range(300):
@@ -233,7 +233,7 @@ def main(cfg):
     #             act = dummy_env.action_space.sample()
     #         else:
     #             act = 0
-    #         dummy_env.step(act)
+    #         obs = dummy_env.step(act)
     #         dummy_env.render()
     # sys.exit()
 
