@@ -1,3 +1,4 @@
+from abc import ABC
 from collections import OrderedDict
 from pdb import set_trace as TT
 
@@ -12,20 +13,44 @@ from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.representation import Representation
 
 
-def wrap_holey(rep_cls):
-    # TODO: Not finished implementing this. Not using for now.
+class HoleyRepresentationABC(): pass
+class StaticBuildRepresentationABC(): pass
 
-    class HoleyRepresentation(rep_cls):
+
+def wrap_holey(
+        rep_cls: Representation  # Actually a subclass of the Representation class. Not an instance. Can we specify this?
+    ):
+    """Define a subclass for an as-yet unkown parent class."""
+
+    class HoleyRepresentation(
+            rep_cls,  # unknown class (subclass of Representation) from which we derive
+            HoleyRepresentationABC,  # link to ABC class in the global scope (to be referenced elsewhere)
+            Representation  # for convenience: letting the interpreter know we will be a Representation via `rep_cls`
+        ):
+
+        def update(self, action):
+            print('hole action:', action)
+            ret = rep_cls.update(self, action)
+            self._update_bordered_map()
+            return ret
+
+        def set_holes(self, entrance_coords, exit_coords):
+            self.entrance_coords, self.exit_coords = entrance_coords, exit_coords
+
+        def dig_holes(self, entrance_coords, exit_coords):
+            # TODO: Represent start/end differently to accommodate one-way paths.
+            self._bordered_map[entrance_coords[0], entrance_coords[1]] = self._empty_tile
+            self._bordered_map[exit_coords[0], exit_coords[1]] = self._empty_tile
 
         def reset(self, *args, **kwargs):
             ret = rep_cls.reset(self, *args, **kwargs)
-            rep_cls.reset(self)
+            self.dig_holes(self.entrance_coords, self.exit_coords)
             return ret
 
         def get_observation(self):
             obs = rep_cls.get_observation(self)
             obs.update(
-                {'map': self._bordered_map(),}
+                {'map': self._bordered_map.copy(),}
             )
             return obs
 
@@ -36,16 +61,13 @@ def wrap_holey(rep_cls):
             })
             return obs_space
 
-        if issubclass(rep_cls, NarrowRepresentation):
-            render = NarrowHoleyRepresentation.render
-
     return HoleyRepresentation
 
 
 def wrap_static_build(rep_cls):
     """Define a subclass for an as-yet unkown parent class."""
 
-    class StaticBuildRepresentation(rep_cls):
+    class StaticBuildRepresentation(rep_cls, StaticBuildRepresentationABC):
         def __init__(self, *args, **kwargs):
             rep_cls.__init__(self, *args, **kwargs)
             self.prob_static = 0.0

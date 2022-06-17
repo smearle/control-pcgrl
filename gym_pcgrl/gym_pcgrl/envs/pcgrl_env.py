@@ -5,7 +5,7 @@ import gym
 from gym import spaces
 import numpy as np 
 
-from gym_pcgrl.envs.reps.wrappers import wrap_static_build
+from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, StaticBuildRepresentationABC, wrap_holey, wrap_static_build
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
@@ -81,7 +81,6 @@ class PcgrlEnv(gym.Env):
 
 #       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
-        self._wrapped_static_builds = False
 
     def get_map_dims(self):
         return (self._prob._width, self._prob._height, self.get_num_tiles())
@@ -183,10 +182,12 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
-        if kwargs['static_prob'] is not None and not self._wrapped_static_builds:
-            rep_cls = wrap_static_build(self._rep_cls)
-            self._rep = rep_cls()
-            self._wrapped_static_builds = True
+        # Wrap the representation if we haven't already.
+        if kwargs['static_prob'] is not None and issubclass(type(self._rep), StaticBuildRepresentationABC):
+            self._rep = wrap_static_build(self._rep_cls)()
+        if kwargs['holey'] and not issubclass(type(self._rep), HoleyRepresentationABC):
+            self._rep = wrap_holey(self._rep_cls)()
+
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
         self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
         if self._change_percentage is not None:
@@ -275,7 +276,6 @@ class PcgrlEnv(gym.Env):
             # if last_build_coords in old_path_coords:
             #     old_path_coords.remove(last_build_coords)
             #     self._prob.path_to_erase = old_path_coords
-            #     print("DDFDFDF")
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))
 
             if self._rep_stats is None:
@@ -284,13 +284,8 @@ class PcgrlEnv(gym.Env):
 
             info = self._prob.get_debug_info(self._rep_stats, old_stats)
 
-            # Log episode infos for sb2/tensorboard (in our callback) when done.
-            # if done:
-                # info['episode'] = copy.copy(info)
-
         else:
             info = {}
-
 
         info["iterations"] = self._iteration
         info["changes"] = self._changes

@@ -219,8 +219,8 @@ def simulate(env, render=False, rules_fn = stretch_path_rules):
     if render:
         env.render()
     if rules_fn == stretch_path_rules:
-        path = construct_path(env._prob.entrance_coords, env._prob.exit_coords, 
-                                *env._rep._bordered_map.shape)
+        path = construct_path(env.unwrapped._prob.entrance_coords, env.unwrapped._prob.exit_coords, 
+                                *env.unwrapped._rep._bordered_map.shape)
         action[path[:, 0], path[:, 1]] = 0
         act = onehot_2chan(action)
         # hack_step(env, action)
@@ -236,8 +236,8 @@ def simulate(env, render=False, rules_fn = stretch_path_rules):
         print(cmpt_arr)
         print(diam_arr)
         action = apply_rules(
-                env._rep._bordered_map, 
-                env._rep.static_builds if hasattr(env._rep, 'static_builds') else None,
+                env.unwrapped._rep._bordered_map, 
+                env.unwrapped._rep.static_builds if hasattr(env.unwrapped._rep, 'static_builds') else None,
                 rules,
             )[1:-1, 1:-1]
         act = onehot_2chan(action)
@@ -272,18 +272,18 @@ def simulate(env, render=False, rules_fn = stretch_path_rules):
             env.render()
         i += 1
     # sleep(1.5)
-    stats = env._prob.get_stats(
-        get_string_map(env._rep._bordered_map, env.unwrapped._prob.get_tile_types())
+    stats = env.unwrapped._prob.get_stats(
+        get_string_map(env.unwrapped._rep._bordered_map, env.unwrapped._prob.get_tile_types())
     )
     return stats
 
 
 def test_holey_space_fill():
     n_proc = 20
-    env_str = 'binary_holey-cellularholey-v0'
+    env_str = 'binary_holey-cellular-v0'
     env = gym.make(env_str)
-    all_holes = env._prob.gen_all_holes()
-    env.adjust_param(static_prob=0.0)
+    env.adjust_param(static_prob=0.0, holey=True)
+    all_holes = env.unwrapped._prob.gen_all_holes()
 
     # envs = [env] + [gym.make(env_str) for _ in range(n_proc - 1)]
     # [env.adjust_param(prob_static=0.1) for env in envs]
@@ -297,7 +297,7 @@ def test_holey_space_fill():
     #     for r in results:
     #         print(r)
 
-    env._prob._hole_queue = all_holes
+    env.unwrapped._prob._hole_queue = all_holes
     for _ in range(len(all_holes)):
         stats = simulate(env, render=True, rules_fn=stretch_path_rules)
         print(stats)
@@ -330,8 +330,8 @@ def test_space_fill():
 
 def hack_step(env, action):
     # HACK don't fix me
-    env._rep._map = action
-    env._rep._bordered_map[1:-1, 1:-1] = action
+    env.unwrapped._rep._map = action
+    env.unwrapped._rep._bordered_map[1:-1, 1:-1] = action
 
 
 def onehot_2chan(x):
@@ -339,5 +339,5 @@ def onehot_2chan(x):
 
 
 if __name__ == '__main__':
-    # test_holey_space_fill()
+    test_holey_space_fill()
     test_space_fill()

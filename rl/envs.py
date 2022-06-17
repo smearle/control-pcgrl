@@ -21,9 +21,10 @@ def make_env(cfg_dict: Dict):
     cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
 
     if cfg.representation in ['wide']:
-        env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
-    elif cfg.representation in ['wideholey']:
-        env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, **cfg_dict)
+        if 'holey' in cfg.problem:  # HACK
+            env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, **cfg_dict)
+        else:
+            env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
 
     elif cfg.representation in ['wide3D', 'wide3Dholey']:
         # raise NotImplementedError("3D wide representation not implemented")

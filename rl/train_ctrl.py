@@ -179,6 +179,9 @@ def main(cfg):
         assert "3D" in cfg.representation
         is_3D_env = True
 
+    # Determine if this is a holey problem. Will use this to wrap representation.
+    # TODO: Do this in a more sane way. Detect if `problem` class is a subclass of `HoleyProblem`.
+    cfg.holey = '_holey' in cfg.problem  
     cfg.env_name = get_env_name(cfg.problem, cfg.representation)
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
@@ -226,7 +229,7 @@ def main(cfg):
     # check_env(dummy_env)
 
     # ### DEBUG ###
-    # for _ in range(10):
+    # for _ in range(100):
     #     obs = dummy_env.reset()
     #     for i in range(300):
     #         if i > 3:
@@ -234,7 +237,7 @@ def main(cfg):
     #         else:
     #             act = 0
     #         obs = dummy_env.step(act)
-    #         # dummy_env.render()
+    #         dummy_env.render()
     # print('DEBUG: Congratulations! You can now use the environment.')
     # sys.exit()
 

@@ -69,10 +69,10 @@ def launch_batch(collect_params=False):
                         'do not match. Skipping experiment.')
                 continue
 
-            if sum(['holey' in name for name in [prob, rep]]) == 1:
-                print(f'Holeyness of Problem: {prob} and Representation: {rep} '
-                        'do not match. Skipping experiment.')
-                continue
+            # if sum(['holey' in name for name in [prob, rep]]) == 1:
+            #     print(f'Holeyness of Problem: {prob} and Representation: {rep} '
+            #             'do not match. Skipping experiment.')
+            #     continue
 
             if alp_gmm and controls == ["NONE", "NONE"]:
                 continue

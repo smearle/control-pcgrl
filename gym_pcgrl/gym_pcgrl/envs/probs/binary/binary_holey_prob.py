@@ -10,10 +10,10 @@ from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.helper import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, run_dijkstra
 from gym_pcgrl.envs.probs.binary.binary_prob import BinaryProblem
 
-class BinaryHoleyProblem(BinaryProblem, HoleyProblem):
+class BinaryHoleyProblem(HoleyProblem, BinaryProblem):
     def __init__(self):
-        HoleyProblem.__init__(self)
         BinaryProblem.__init__(self)
+        HoleyProblem.__init__(self)
 
         self._reward_weights = {
             "regions": 100,

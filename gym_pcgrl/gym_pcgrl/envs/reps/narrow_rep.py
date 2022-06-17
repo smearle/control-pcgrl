@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.reps.representation import Representation
+from gym_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
 from PIL import Image
 from gym import spaces
 import numpy as np
@@ -8,7 +8,7 @@ from collections import OrderedDict
 The narrow representation where the agent is trying to modify the tile value of a certain
 selected position that is selected randomly or sequentially similar to cellular automata
 """
-class NarrowRepresentation(Representation):
+class NarrowRepresentation(EgocentricRepresentation):
     """
     Initialize all the parameters used by that representation
     """
@@ -131,31 +131,31 @@ class NarrowRepresentation(Representation):
         self.n_step += 1
         return change, [self._x, self._y]
 
-    """
-    Modify the level image with a red rectangle around the tile that is
-    going to be modified
+    # """
+    # Modify the level image with a red rectangle around the tile that is
+    # going to be modified
 
-    Parameters:
-        lvl_image (img): the current level_image without modifications
-        tile_size (int): the size of tiles in pixels used in the lvl_image
-        border_size ((int,int)): an offeset in tiles if the borders are not part of the level
+    # Parameters:
+    #     lvl_image (img): the current level_image without modifications
+    #     tile_size (int): the size of tiles in pixels used in the lvl_image
+    #     border_size ((int,int)): an offeset in tiles if the borders are not part of the level
         
-    Returns:
-        img: the modified level image
-    """
-    def render(self, lvl_image, tile_size, border_size):
-        x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
-        clr = (0, 255, 0, 255)
-        for x in range(tile_size):
-            x_graphics.putpixel((0,x),clr)
-            x_graphics.putpixel((1,x),clr)
-            x_graphics.putpixel((tile_size-2,x),clr)
-            x_graphics.putpixel((tile_size-1,x),clr)
-        for y in range(tile_size):
-            x_graphics.putpixel((y,0),clr)
-            x_graphics.putpixel((y,1),clr)
-            x_graphics.putpixel((y,tile_size-2),clr)
-            x_graphics.putpixel((y,tile_size-1),clr)
-        lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
-                                        (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
-        return lvl_image
+    # Returns:
+    #     img: the modified level image
+    # """
+    # def render(self, lvl_image, tile_size, border_size):
+    #     x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
+    #     clr = (0, 255, 0, 255)
+    #     for x in range(tile_size):
+    #         x_graphics.putpixel((0,x),clr)
+    #         x_graphics.putpixel((1,x),clr)
+    #         x_graphics.putpixel((tile_size-2,x),clr)
+    #         x_graphics.putpixel((tile_size-1,x),clr)
+    #     for y in range(tile_size):
+    #         x_graphics.putpixel((y,0),clr)
+    #         x_graphics.putpixel((y,1),clr)
+    #         x_graphics.putpixel((y,tile_size-2),clr)
+    #         x_graphics.putpixel((y,tile_size-1),clr)
+    #     lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
+    #                                     (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
+    #     return lvl_image
