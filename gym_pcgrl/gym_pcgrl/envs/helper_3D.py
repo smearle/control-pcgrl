@@ -739,9 +739,8 @@ Parameters:
 Returns:
     int[][][]: the random generated map
 """
-def gen_random_map(random, length, width, height, prob):
-    map = random.choice(list(prob.keys()), size=(
-        height, width, length), p=list(prob.values())).astype(np.uint8)
+def gen_random_map(random, dims, prob):
+    map = random.choice(list(prob.keys()), size=dims, p=list(prob.values())).astype(np.uint8)
     return map
 
 """

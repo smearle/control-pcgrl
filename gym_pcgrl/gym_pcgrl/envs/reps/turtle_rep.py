@@ -1,3 +1,4 @@
+from pdb import set_trace as TT
 from gym_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
 from PIL import Image
 from gym import spaces
@@ -10,13 +11,13 @@ turtle or the tile value of its current location similar to turtle graphics.
 The difference with narrow representation is the agent now controls the next tile to be modified.
 """
 class TurtleRepresentation(EgocentricRepresentation):
+    _dirs = [(-1,0), (1,0), (0,-1), (0,1)]
     """
     Initialize all the parameters used by that representation
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._dirs = [(-1,0), (1,0), (0,-1), (0,1)]
-        self._warp = True
+        self._wrap = True
 
     """
     Resets the current representation where it resets the parent and the current
@@ -27,10 +28,11 @@ class TurtleRepresentation(EgocentricRepresentation):
         height (int): the generated map height
         prob (dict(int,float)): the probability distribution of each tile value
     """
-    def reset(self, width, height, prob):
-        super().reset(width, height, prob)
-        self._x = self._random.randint(width)
-        self._y = self._random.randint(height)
+    def reset(self, dims, prob):
+        super().reset(dims, prob)
+        self._pos = [self._random.randint(i) for i in dims]
+        # self._x = self._random.randint(width)
+        # self._y = self._random.randint(height)
 #       self._x = 0
 #       self._y = 0
 
@@ -39,11 +41,12 @@ class TurtleRepresentation(EgocentricRepresentation):
 
     Parameters:
         random_start (boolean): if the system will restart with a new map (true) or the previous map (false)
-        warp (boolean): if the turtle will stop at the edges (false) or warp around the edges (true)
+        wrap (boolean): if the turtle will stop at the edges (false) or warp around the edges (true)
     """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
-        self._warp = kwargs.get('warp', self._warp)
+        self._random_start = kwargs.get('random_start', self._random_start)
+        self._wrap = kwargs.get('wrap', self._wrap)
 
     """
     Gets the action space used by the turtle representation
@@ -57,39 +60,8 @@ class TurtleRepresentation(EgocentricRepresentation):
         Discrete: the action space used by that turtle representation which
         correspond the movement direction and the tile values
     """
-    def get_action_space(self, width, height, num_tiles):
+    def get_action_space(self, dims, num_tiles):
         return spaces.Discrete(len(self._dirs) + num_tiles)
-
-    """
-    Get the observation space used by the turtle representation
-
-    Parameters:
-        width: the current map width
-        height: the current map height
-        num_tiles: the total number of the tile values
-
-    Returns:
-        Dict: the observation space used by that representation. "pos" Integer
-        x,y position for the current location. "map" 2D array of tile numbers
-    """
-    def get_observation_space(self, width, height, num_tiles):
-        return spaces.Dict({
-            "pos": spaces.Box(low=np.array([0, 0]), high=np.array([width-1, height-1]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
-        })
-
-    """
-    Get the current representation observation object at the current moment
-
-    Returns:
-        observation: the current observation at the current moment. "pos" Integer
-        x,y position for the current location. "map" 2D array of tile numbers
-    """
-    def get_observation(self):
-        return OrderedDict({
-            "pos": np.array([self._x, self._y], dtype=np.uint8),
-            "map": self._map.copy()
-        })
 
     """
     Update the turtle representation with the input action
@@ -103,32 +75,22 @@ class TurtleRepresentation(EgocentricRepresentation):
     def update(self, action):
         change = 0
         if action < len(self._dirs):
-            self._x += self._dirs[action][0]
-            if self._x < 0:
-                if self._warp:
-                    self._x += self._map.shape[1]
-                else:
-                    self._x = 0
-            if self._x >= self._map.shape[1]:
-                if self._warp:
-                    self._x -= self._map.shape[1]
-                else:
-                    self._x = self._map.shape[1] - 1
-            self._y += self._dirs[action][1]
-            if self._y < 0:
-                if self._warp:
-                    self._y += self._map.shape[0]
-                else:
-                    self._y = 0
-            if self._y >= self._map.shape[0]:
-                if self._warp:
-                    self._y -= self._map.shape[0]
-                else:
-                    self._y = self._map.shape[0] - 1
+            for i, d in enumerate(self._dirs[action]):
+                self._pos[i] += d
+                if self._pos[i] < 0:
+                    if self._wrap:
+                        self._pos[i] = self._map.shape[i]
+                    else:
+                        self._pos[i] = 0
+                if self._pos[i] >= self._map.shape[i]:
+                    if self._wrap:
+                        self._pos[i] -= self._map.shape[i]
+                    else:
+                        self._pos[i] = self._map.shape[i] - 1
         else:
-            change = [0,1][self._map[self._y][self._x] != action - len(self._dirs)]
-            self._map[self._y][self._x] = action - len(self._dirs)
-        return change, [self._x, self._y]
+            change = [0,1][self._map[tuple(self._pos)] != action - len(self._dirs)]
+            self._map[tuple(self._pos)] = action - len(self._dirs)
+        return change, self._pos
 
     # """
     # Modify the level image with a red rectangle around the tile that the turtle is on

@@ -64,10 +64,10 @@ def launch_batch(collect_params=False):
 #                   if controls != ["NONE"] and change_percentage != 1:
 
 #                       continue
-            if sum(['3D' in name for name in [prob, rep]]) == 1:
-                print(f'Dimensions (2D or 3D) of Problem: {prob} and Representation: {rep} '
-                        'do not match. Skipping experiment.')
-                continue
+            # if sum(['3D' in name for name in [prob, rep]]) == 1:
+                # print(f'Dimensions (2D or 3D) of Problem: {prob} and Representation: {rep} '
+                        # 'do not match. Skipping experiment.')
+                # continue
 
             # if sum(['holey' in name for name in [prob, rep]]) == 1:
             #     print(f'Holeyness of Problem: {prob} and Representation: {rep} '

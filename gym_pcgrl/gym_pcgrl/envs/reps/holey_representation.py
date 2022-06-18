@@ -8,7 +8,7 @@ from gym.utils import seeding
 import numpy as np
 from PIL import Image
 
-from gym_pcgrl.envs.helper import gen_random_map
+# from gym_pcgrl.envs.helper import gen_random_map
 from gym_pcgrl.envs.reps.representation import Representation
 
 

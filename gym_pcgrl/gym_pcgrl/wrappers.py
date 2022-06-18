@@ -420,7 +420,7 @@ class Cropped(gym.Wrapper):
         # View Centering
         # padded = np.pad(map, self.pad, constant_values=self.pad_value)
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
-        cropped = padded[y : y + self.size, x : x + self.size]
+        cropped = padded[x : x + self.size, y : y + self.size]
         obs[self.name] = cropped
 
         return obs

@@ -1,11 +1,14 @@
 from pdb import set_trace as TT
 from gym.envs.registration import register
 from gym_pcgrl.envs.probs import PROBLEMS
+from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 
 # Register all the problems with every different representation for the OpenAI GYM
 for prob in PROBLEMS.keys():
-    if "holey" in prob:
+    prob_cls = PROBLEMS[prob]
+    if issubclass(prob_cls, HoleyProblem):
+        # if issubclass(prob_cls, 3DProblem):
         if "3D" in prob:
             entry_point = "gym_pcgrl.envs:PcgrlHoleyEnv3D"
         else:
@@ -24,19 +27,16 @@ for prob in PROBLEMS.keys():
         # entry_point='gym_pcgrl.envs:PcgrlEnv'
 
     for rep in REPRESENTATIONS.keys():
-        if (("3D" not in prob) and ("3D" not in rep)) or (("3D" in prob) and ("3D" in rep)):
-            id = '{}-{}-v0'.format(prob, rep)
-            register(
-                id=id,
-                entry_point=entry_point,
-                kwargs={"prob": prob, "rep": rep},
+        id = '{}-{}-v0'.format(prob, rep)
+        register(
+            id=id,
+            entry_point=entry_point,
+            kwargs={"prob": prob, "rep": rep},
 
-                # Need this when using newer versions of gym. But we also need to update rendering to use the new 
-                # version of gym.
+            # Need this when using newer versions of gym. But we also need to update rendering to use the new 
+            # version of gym.
 #               order_enforce=False,  
 
-            )
-        else:
-            continue
+        )
 
 # print(registry.all())

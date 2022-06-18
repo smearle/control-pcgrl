@@ -41,23 +41,23 @@ class TurtleCastRepresentation(TurtleRepresentation):
         if type < len(self._dirs):
             self._x += self._dirs[type][0]
             if self._x < 0:
-                if self._warp:
+                if self._wrap:
                     self._x += self._map.shape[1]
                 else:
                     self._x = 0
             if self._x >= self._map.shape[1]:
-                if self._warp:
+                if self._wrap:
                     self._x -= self._map.shape[1]
                 else:
                     self._x = self._map.shape[1] - 1
             self._y += self._dirs[type][1]
             if self._y < 0:
-                if self._warp:
+                if self._wrap:
                     self._y += self._map.shape[0]
                 else:
                     self._y = 0
             if self._y >= self._map.shape[0]:
-                if self._warp:
+                if self._wrap:
                     self._y -= self._map.shape[0]
                 else:
                     self._y = self._map.shape[0] - 1

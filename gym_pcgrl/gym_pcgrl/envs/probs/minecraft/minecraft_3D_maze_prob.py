@@ -12,7 +12,7 @@ import time
 import numpy as np
 from timeit import default_timer as timer
 
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
@@ -20,7 +20,7 @@ from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_ma
 # from gym_pcgrl.test3D import plot_3d_map
 
 
-class Minecraft3DmazeProblem(Problem):
+class Minecraft3DmazeProblem(Problem3D):
     """
     The constructor is responsible of initializing all the game parameters
     """

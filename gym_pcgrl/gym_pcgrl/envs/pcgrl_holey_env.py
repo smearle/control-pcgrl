@@ -7,8 +7,8 @@ from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
-from gym_pcgrl.envs.reps.holey_representation import HoleyRepresentation
 from gym_pcgrl.envs.reps.representation import Representation
+from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC
 import numpy as np
 import gym
 from gym import spaces
@@ -31,7 +31,7 @@ class PcgrlHoleyEnv(PcgrlCtrlEnv):
     """
     def __init__(self, prob="binary", rep="narrow", **kwargs):
         super(PcgrlHoleyEnv, self).__init__(prob, rep, **kwargs)
-        self._rep: HoleyRepresentation = REPRESENTATIONS[rep](
+        self._rep: HoleyRepresentationABC = REPRESENTATIONS[rep](
             border_tile_index = self.get_border_tile(),
             empty_tile_index = self.get_empty_tile(),
             )

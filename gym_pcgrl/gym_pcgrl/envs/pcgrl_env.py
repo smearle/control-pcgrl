@@ -1,13 +1,16 @@
 import collections
 from pdb import set_trace as TT
+import PIL
 
 import gym
 from gym import spaces
+from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np 
 
-from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, StaticBuildRepresentationABC, wrap_holey, wrap_static_build
+from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, Representation3DABC, StaticBuildRepresentationABC#, wrap_rep 
+from gym_pcgrl.envs.reps.wrappers import wrap_3D, wrap_holey, wrap_static_build
 from gym_pcgrl.envs.probs import PROBLEMS
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 from gym_pcgrl.envs.reps.representation import Representation
@@ -60,8 +63,10 @@ class PcgrlEnv(gym.Env):
         self.seed()
         self.viewer = None
 
-        self.action_space = self._rep.get_action_space(*self.get_map_dims())
-        self.observation_space = self._rep.get_observation_space(*self.get_observable_map_dims())
+        map_dims = self.get_map_dims()
+        self.action_space = self._rep.get_action_space(map_dims[:-1], map_dims[-1])
+        obs_map_dims = self.get_observable_map_dims()
+        self.observation_space = self._rep.get_observation_space(obs_map_dims[:-1], obs_map_dims[-1])
         self.observation_space.spaces['heatmap'] = spaces.Box(
             low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
@@ -138,7 +143,7 @@ class PcgrlEnv(gym.Env):
     def reset(self):
         self._changes = 0
         self._iteration = 0
-        self._rep.reset(*self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+        self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         # continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
         self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
         self.metrics = self._rep_stats
@@ -185,9 +190,21 @@ class PcgrlEnv(gym.Env):
         # Wrap the representation if we haven't already.
         if kwargs['static_prob'] is not None and issubclass(type(self._rep), StaticBuildRepresentationABC):
             self._rep = wrap_static_build(self._rep_cls)()
-        if kwargs['holey'] and not issubclass(type(self._rep), HoleyRepresentationABC):
+
+        if issubclass(type(self._prob), HoleyProblem) and not issubclass(type(self._rep), HoleyRepresentationABC):
             self._rep = wrap_holey(self._rep_cls)()
 
+        if issubclass(type(self._prob), Problem3D) and not issubclass(type(self._rep), Representation3DABC) and not issubclass(type(self._rep), HoleyRepresentationABC):
+            self._rep = wrap_3D(self._rep_cls)()
+        # TODO: make this a single wrap func
+        # FIXME: holey 2D rendering seems buggy, assuming need to switch the x, y order in rendering function in problem
+        # FIXME: 3D holey representations seem buggy because of the local wrapper
+        # _prob_cls = type(self._prob)
+        # static_build = kwargs['static_prob'] is not None
+        # if static_build or not issubclass(type(self._rep), HoleyRepresentationABC) or not issubclass(type(self._rep), Representation3DABC):
+        #     self._rep = wrap_rep(self._rep_cls, _prob_cls, static_build=static_build)
+        
+        # TT()
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
         self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
         if self._change_percentage is not None:
@@ -201,9 +218,9 @@ class PcgrlEnv(gym.Env):
             self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
-        self.action_space = self._rep.get_action_space(*self.get_map_dims()[:-1], self.get_num_tiles())
+        self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
-            *self.get_map_dims()[:-1], self.get_num_observable_tiles())
+            self.get_map_dims()[:-1], self.get_num_observable_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(
             low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
@@ -307,8 +324,10 @@ class PcgrlEnv(gym.Env):
         img or boolean: img for rgb_array rendering and boolean for human rendering
     """
     def render(self, mode='human'):
-        img = self._prob.render(self.get_string_map(
+        img: PIL.Image = self._prob.render(self.get_string_map(
             self._get_rep_map(), self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
+        # Transpose image
+        img = img.transpose(PIL.Image.TRANSPOSE)
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
         if mode == 'rgb_array':

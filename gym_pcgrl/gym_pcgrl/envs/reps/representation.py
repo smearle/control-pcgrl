@@ -1,17 +1,20 @@
+from abc import ABC
 from pdb import set_trace as TT
 from typing import List
 
+from gym import spaces
+from gym.utils import seeding
 import numpy as np
 from PIL import Image
 
-from gym.utils import seeding
-from gym_pcgrl.envs.helper import gen_random_map
+from gym_pcgrl.envs import helper
+from gym_pcgrl.envs.probs.problem import Problem
 
 
 """
 The base class of all the representations
 """
-class Representation:
+class Representation(ABC):
     """
     The base constructor where all the representation variable are defined with default values
     """
@@ -40,6 +43,8 @@ class Representation:
         self._random, seed = seeding.np_random(seed)
         return seed
 
+    gen_random_map = helper.gen_random_map
+
     """
     Resets the current representation
 
@@ -48,15 +53,15 @@ class Representation:
         height (int): the generated map height
         prob (dict(int,float)): the probability distribution of each tile value
     """
-    def reset(self, width, height, prob):
+    def reset(self, dims: tuple, prob: Problem):
         if self._random_start or self._old_map is None:
-            self._map = gen_random_map(self._random, width, height, prob)
-            self._bordered_map = np.empty((height + 2, width + 2), dtype=np.int)
+            self._map = type(self).gen_random_map(self._random, dims, prob)
+            self._bordered_map = np.empty(tuple([i + 2 for i in dims]), dtype=np.int)
             self._bordered_map.fill(self._border_tile_index)
-            self._bordered_map[1:-1, 1:-1] = self._map
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
+        self._update_bordered_map()
 
     """
     Adjust current representation parameter
@@ -78,7 +83,7 @@ class Representation:
     Returns:
         ActionSpace: the action space used by that representation
     """
-    def get_action_space(self, width, height, num_tiles):
+    def get_action_space(self, dims, num_tiles):
         raise NotImplementedError('get_action_space is not implemented')
 
     """
@@ -92,8 +97,17 @@ class Representation:
     Returns:
         ObservationSpace: the observation space used by that representation
     """
-    def get_observation_space(self, width, height, num_tiles):
-        raise NotImplementedError('get_observation_space is not implemented')
+    def get_observation_space(self, dims, num_tiles):
+        return spaces.Dict({
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=dims)
+        })
+
+    """
+    Get the current representation observation object at the current moment
+
+    Returns:
+        observation: the current observation at the current moment. A 3D array of tile numbers
+    """
 
     """
     Get the current representation observation object at the current moment
@@ -102,7 +116,9 @@ class Representation:
         observation: the current observation at the current moment
     """
     def get_observation(self):
-        raise NotImplementedError('get_observation is not implemented')
+        return {
+            "map": self._map.copy()
+        }
 
     """
     Update the representation with the current action
@@ -138,8 +154,27 @@ class EgocentricRepresentation(Representation):
     """Representation in which the generator-agent occupies a particular position, i.e. (x, y) coordinate, on the map
     at each step."""
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Whether the agent begins on a random tile.
+        self._random_tile: bool = False
+
+    def get_observation(self):
+        obs = super().get_observation()
+        obs.update({
+            'pos': np.array(self._pos),
+        })
+        return obs
+
+    def get_observation_space(self, dims, num_tiles):
+        obs_space = super().get_observation_space(dims, num_tiles)
+        obs_space.spaces.update({
+            "pos": spaces.Box(low=np.array([0 for i in dims]), high=np.array([i-1 for i in dims]), dtype=np.uint8),
+        })
+        return obs_space
+
     """
-    Modify the level image with a red rectangle around the tile that the egocentric agent is on.
+    Modify the level image with a white rectangle around the tile that the egocentric agent is on.
 
     Parameters:
         lvl_image (img): the current level_image without modifications
@@ -150,18 +185,11 @@ class EgocentricRepresentation(Representation):
         img: the modified level image
     """
     def render(self, lvl_image, tile_size, border_size):
-        x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
+        x, y = self._pos
+        im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
         clr = (255, 255, 255, 255)
-        for x in range(tile_size):
-            x_graphics.putpixel((0,x),clr)
-            x_graphics.putpixel((1,x),clr)
-            x_graphics.putpixel((tile_size-2,x),clr)
-            x_graphics.putpixel((tile_size-1,x),clr)
-        for y in range(tile_size):
-            x_graphics.putpixel((y,0),clr)
-            x_graphics.putpixel((y,1),clr)
-            x_graphics.putpixel((y,tile_size-2),clr)
-            x_graphics.putpixel((y,tile_size-1),clr)
-        lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
-                                        (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
+        im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
+        x_graphics = Image.fromarray(im_arr)
+        lvl_image.paste(x_graphics, ((x+border_size[0])*tile_size, (y+border_size[1])*tile_size,
+                                        (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image

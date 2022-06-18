@@ -5,10 +5,10 @@ from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np
 import ray
 
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 
 
-class HoleyProblem3D(HoleyProblem):
+class HoleyProblem3D(HoleyProblem, Problem3D):
     """
     The base class for all the holey problems so that we don't have to repeat the code.
     """

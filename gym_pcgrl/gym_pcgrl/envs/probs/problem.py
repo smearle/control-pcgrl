@@ -1,3 +1,4 @@
+from abc import ABC
 from pdb import set_trace as TT
 from gym.utils import seeding
 from PIL import Image
@@ -11,7 +12,7 @@ The base class for all the problems that can be handled by the interface
 
 map in prob are list of strings
 """
-class Problem:
+class Problem(ABC):
     """
     Constructor for the problem that initialize all the basic parameters
     """
@@ -224,3 +225,6 @@ class Problem:
 
     def get_reward(self, new_stats, old_stats):
         return None
+
+
+class Problem3D(Problem): pass

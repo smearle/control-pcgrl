@@ -10,6 +10,7 @@ import shutil
 import sys
 import time
 import gym
+from gym_pcgrl.envs.probs import PROBLEMS
 import matplotlib
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -175,13 +176,10 @@ def main(cfg):
             # "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
 
     is_3D_env = False
-    if "3D" in cfg.problem:
-        assert "3D" in cfg.representation
-        is_3D_env = True
+    # if "3D" in cfg.problem:
+        # assert "3D" in cfg.representation
+        # is_3D_env = True
 
-    # Determine if this is a holey problem. Will use this to wrap representation.
-    # TODO: Do this in a more sane way. Detect if `problem` class is a subclass of `HoleyProblem`.
-    cfg.holey = '_holey' in cfg.problem  
     cfg.env_name = get_env_name(cfg.problem, cfg.representation)
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
@@ -228,18 +226,19 @@ def main(cfg):
     dummy_env = make_env(dummy_cfg)
     # check_env(dummy_env)
 
-    # ### DEBUG ###
-    # for _ in range(100):
-    #     obs = dummy_env.reset()
-    #     for i in range(300):
-    #         if i > 3:
-    #             act = dummy_env.action_space.sample()
-    #         else:
-    #             act = 0
-    #         obs = dummy_env.step(act)
-    #         dummy_env.render()
-    # print('DEBUG: Congratulations! You can now use the environment.')
-    # sys.exit()
+    ### DEBUG ###
+    for _ in range(100):
+        obs = dummy_env.reset()
+        for i in range(300):
+            # if i > 3:
+            act = dummy_env.action_space.sample()
+            # else:
+                # act = 0
+            obs, rew, done, info = dummy_env.step(act)
+            # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
+            dummy_env.render()
+    print('DEBUG: Congratulations! You can now use the environment.')
+    sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1

@@ -308,7 +308,7 @@ def test_space_fill():
     env_str = 'binary-cellular-v0'
     env = gym.make(env_str)
     env.adjust_param(
-        static_prob=0.0
+        static_prob=0.1
     )
 
     # envs = [env] + [gym.make(env_str) for _ in range(n_proc - 1)]
