@@ -7,7 +7,7 @@ from gym import spaces
 from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np 
 
-from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, Representation3DABC, StaticBuildRepresentationABC#, wrap_rep 
+from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, Representation3DABC, StaticBuildRepresentationABC# wrap_rep 
 from gym_pcgrl.envs.reps.wrappers import wrap_3D, wrap_holey, wrap_static_build
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem, Problem3D
@@ -327,7 +327,7 @@ class PcgrlEnv(gym.Env):
         img: PIL.Image = self._prob.render(self.get_string_map(
             self._get_rep_map(), self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
         # Transpose image
-        img = img.transpose(PIL.Image.TRANSPOSE)
+        # img = img.transpose(PIL.Image.TRANSPOSE)
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
         if mode == 'rgb_array':

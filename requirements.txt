@@ -15,6 +15,7 @@ numpy==1.21  # numba requires this version or lower
 opencv-python
 # gym==0.19.0     # minerl will require 0.19.0
 pingouin
+PyOpenGL
 ribs
 scikit-image
 tqdm

@@ -185,7 +185,7 @@ class EgocentricRepresentation(Representation):
         img: the modified level image
     """
     def render(self, lvl_image, tile_size, border_size):
-        x, y = self._pos
+        y, x = self._pos
         im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
         clr = (255, 255, 255, 255)
         im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr

@@ -82,7 +82,7 @@ def wrap_3D(rep_cls: Representation):
 def wrap_holey(
         rep_cls: Representation  # Actually a subclass of the Representation class. Not an instance. Can we specify this?
     ):
-#     """Define a subclass for an as-yet unkown parent class."""
+    """Define a subclass for an as-yet unkown parent class."""
 
     class HoleyRepresentation(
             rep_cls,  # unknown class (subclass of Representation) from which we derive
@@ -228,7 +228,7 @@ def wrap_static_build(rep_cls: Representation):
     # if static_build and issubclass(rep_cls, StaticBuildRepresentationABC):
     #     rep_cls = StaticBuildRepresentation(rep_cls)
 
-    # TT()
+    # # TT()
     # # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
     # rep_cls = rep_cls if isclass(rep_cls) else type(rep_cls)
     # if issubclass(prob_cls, Problem3D) and not issubclass(rep_cls, Representation3DABC):
@@ -238,7 +238,7 @@ def wrap_static_build(rep_cls: Representation):
     #     else:
     #         rep_cls = Representation3D(rep_cls)
     
-    # TT()
+    # # TT()
     # # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
     # rep_cls = rep_cls if isclass(rep_cls) else type(rep_cls)
     # if issubclass(prob_cls, HoleyProblem) and not issubclass(rep_cls, HoleyRepresentationABC):
@@ -247,7 +247,7 @@ def wrap_static_build(rep_cls: Representation):
     #     else:
     #         rep_cls = HoleyRepresentation()
 
-    # TT()
+    # # TT()
     # return rep_cls
     
     

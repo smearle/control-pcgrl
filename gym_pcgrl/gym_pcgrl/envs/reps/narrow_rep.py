@@ -19,7 +19,8 @@ class NarrowRepresentation(EgocentricRepresentation):
         self.n_step = 0
 
     """
-    Get a list of (x, y) coordinates corresponding to coordinates of tiles to be edited by the generator-agent.
+    Get a list of (y, x) or (z, y, x) coordinates corresponding to coordinates of tiles to be edited by the 
+    generator-agent. Dimension ignored.
     """
     def get_act_coords(self):
         act_coords = np.meshgrid(*tuple([np.arange(s) for s in self._map.shape]))

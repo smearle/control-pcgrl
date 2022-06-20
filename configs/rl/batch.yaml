@@ -4,7 +4,8 @@
 {
   "exp_names": [
     # testStaticBuilds,
-    0,
+    testing,
+    # 0,
     # 1,
     # 2,
     # 3,
