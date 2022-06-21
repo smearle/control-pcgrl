@@ -64,7 +64,7 @@ class WideRepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
-        self._pos = action[:-1]
+        self._pos = action[:-1]  # Agent "chooses" location to act on, record this as our position.
         change = [0,1][self._map[tuple(action[:-1])] != action[-1]]
         self._map[tuple(action[:-1])] = action[-1]
         super().update(action)

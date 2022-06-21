@@ -150,7 +150,7 @@ class Representation(ABC):
 
     def _update_bordered_map(self):
         # self._bordered_map[1:-1, 1:-1] = self._map
-        self._bordered_map[[slice(1, -1) for _ in range(len(self._map.shape))]] = self._map
+        self._bordered_map[tuple([slice(1, -1) for _ in range(len(self._map.shape))])] = self._map
 
     @property
     def unwrapped(self):

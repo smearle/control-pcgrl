@@ -369,8 +369,8 @@ class NCA(TorchModelV2, nn.Module):
         self.l3 = Conv2d(n_hid_1, n_out_chans, 1, 1, 0, bias=True)
         # self.l_vars = nn.Conv2d(n_hid_1, n_out_chans, 1, 1, 0, bias=True)
         # self.l3 = Conv2d(n_hid_1, n_out_chans * 2, 1, 1, 0, bias=True)
-        # self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
-        self.value_branch = SlimFC(n_out_chans * w_out * h_out * 2, 1)
+        self.value_branch = SlimFC(n_out_chans * w_out * h_out, 1)
+        # self.value_branch = SlimFC(n_out_chans * w_out * h_out * 2, 1)
         # self.layers = [self.l1, self.l2, self.l3]
         with th.no_grad():
             self.indices = (th.Tensor(np.indices((w_out, h_out)))[None,...] / max(w_out, h_out)) * 2 - 1
@@ -395,25 +395,21 @@ class NCA(TorchModelV2, nn.Module):
         # x = x * mask + x0 * ~mask  # assume binary, maybe observable path
 
         # So that we flatten in a way that matches the dimensions of the observation space.
-        # x = x.permute(0, 2, 3, 1)
+        x = x.permute(0, 2, 3, 1)
 
         x = x.reshape(x.size(0), -1)
         # vars = vars.reshape(vars.size(0), -1) - 5
 
         # x = x0[:, :2].reshape(x.size(0), -1)
-        vars = th.empty_like(x).fill_(0)
-        x = th.cat([x, vars], dim=1)
+        # vars = th.empty_like(x).fill_(0)
+        # x = th.cat([x, vars], dim=1)
 
         self._features = x
         # x = x0[:, :2].reshape(x.size(0), -1)
-        vars = th.empty_like(x).fill_(0)
-        x = th.cat([x, vars], dim=1)
+        # vars = th.empty_like(x).fill_(0)
+        # x = th.cat([x, vars], dim=1)
 
-
-        # axis 0 is batch
-        # axis 1 is the tile-type (one-hot)
-        # axis 0,1 is the x value
-        # axis 0,2 is the y value
+        # TT()
 
         return x, []
 

@@ -25,19 +25,6 @@ def get_action(a):
     return a.item() if a.shape == [1] else a
 
 
-# Q: why don't we just use env.unwrapped?
-# unwrap all the environments and get the PcgrlEnv
-def get_pcgrl_env(env):
-    # return (
-    #     env
-    #     if "PcgrlEnv" in str(type(env))
-    #     or "PcgrlCtrlEnv" in str(type(env))
-    #     or "Micropolis" in str(type(env))
-    #     or "RCT" in str(type(env))
-    #     else get_pcgrl_env(env.env)
-    # )
-    return env.unwrapped
-
 
 # class MaxStep(gym.Wrapper):
 #     """
@@ -110,12 +97,12 @@ class AuxTiles(gym.Wrapper):
         return obs, reward, done, info
 
     def _write_to_aux(self, pos, aux):
-        self.aux_map[pos[0], pos[1]] = aux
+        self.aux_map[tuple(pos)] = aux
 
 
-class AuxTiles3D(AuxTiles):
-    def _write_to_aux(self, pos, aux):
-        self.aux_map[pos[0], pos[1], pos[2]] = aux
+# class AuxTiles3D(AuxTiles): pass
+    # def _write_to_aux(self, pos, aux):
+        # self.aux_map[pos[0], pos[1], pos[2]] = aux
 
 
 class ToImage(gym.Wrapper):
@@ -129,7 +116,7 @@ class ToImage(gym.Wrapper):
             self.env = gym.make(game)
         else:
             self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        self.env.unwrapped.adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
         self.shape = None
         depth = 0
@@ -229,7 +216,7 @@ class OneHotEncoding(gym.Wrapper):
             self.env = gym.make(game)
         else:
             self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        self.env.unwrapped.adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
         assert (
@@ -292,14 +279,14 @@ class OneHotEncoding(gym.Wrapper):
 
 class ActionMap(gym.Wrapper):
     """
-    Transform the action input space to a 3D map of values where the argmax value will be applied can be stacked
+    Transform the action input space to a 3D map of values where the argmax value will be applied. Can be stacked.
     """
     def __init__(self, game, bordered_observation=False, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
             self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        self.env.unwrapped.adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
         assert (
@@ -373,7 +360,7 @@ class Cropped(gym.Wrapper):
             self.env = gym.make(game)
         else:
             self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        self.env.unwrapped.adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
         assert (
@@ -396,7 +383,7 @@ class Cropped(gym.Wrapper):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value, shape=(crop_size, crop_size), dtype=np.uint8
+            low=0, high=high_value, shape=tuple([crop_size for _ in self.get_map_dims()[:-1]]), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -415,49 +402,51 @@ class Cropped(gym.Wrapper):
     def transform(self, obs):
         # Incrementing all tile indices by 1 to avoid 0s (out-of-bounds).
         map = obs[self.name] + 1
-        x, y = obs["pos"]
+        # x, y = obs["pos"]
+        pos = obs['pos']
 
         # View Centering
         # padded = np.pad(map, self.pad, constant_values=self.pad_value)
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
-        cropped = padded[x : x + self.size, y : y + self.size]
+        # cropped = padded[x : x + self.size, y : y + self.size]
+        cropped = padded[tuple([slice(i, i + self.size) for i in pos])]
         obs[self.name] = cropped
 
         return obs
 
-class Cropped3D(Cropped):
-    def __init__(self, game, crop_size, pad_value, name, **kwargs):
-        if isinstance(game, str):
-            self.env = gym.make(game)
-        else:
-            self.env = game
-        get_pcgrl_env(self.env).adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
+# class Cropped3D(Cropped):
+#     def __init__(self, game, crop_size, pad_value, name, **kwargs):
+#         if isinstance(game, str):
+#             self.env = gym.make(game)
+#         else:
+#             self.env = game
+#         self.env.unwrapped.adjust_param(**kwargs)
+#         gym.Wrapper.__init__(self, self.env)
 
-        assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
-        assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
-        assert len(self.env.observation_space.spaces[name].shape) == 3, "This wrapper only works on 2D arrays."
-        self.name = name
-        self.size = crop_size
-        self.pad = crop_size//2
-        self.pad_value = pad_value
+#         assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
+#         assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
+#         assert len(self.env.observation_space.spaces[name].shape) == 3, "This wrapper only works on 2D arrays."
+#         self.name = name
+#         self.size = crop_size
+#         self.pad = crop_size//2
+#         self.pad_value = pad_value
 
-        self.observation_space = gym.spaces.Dict({})
-        for (k,s) in self.env.observation_space.spaces.items():
-            self.observation_space.spaces[k] = s
-        high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
-        self.observation_space.spaces[self.name] = gym.spaces.Box(low=0, high=high_value, shape=(crop_size, crop_size, crop_size), dtype=np.uint8)
+#         self.observation_space = gym.spaces.Dict({})
+#         for (k,s) in self.env.observation_space.spaces.items():
+#             self.observation_space.spaces[k] = s
+#         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
+#         self.observation_space.spaces[self.name] = gym.spaces.Box(low=0, high=high_value, shape=(crop_size, crop_size, crop_size), dtype=np.uint8)
 
-    def transform(self, obs):
-        map = obs[self.name]
-        x, y, z = obs['pos']
+#     def transform(self, obs):
+#         map = obs[self.name]
+#         x, y, z = obs['pos']
 
-        #View Centering
-        # padded = np.pad(map, self.pad, constant_values=self.pad_value)
-        padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
-        cropped = padded[z:z+self.size, y:y+self.size, x:x+self.size]
-        obs[self.name] = cropped
-        return obs
+#         #View Centering
+#         # padded = np.pad(map, self.pad, constant_values=self.pad_value)
+#         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
+#         cropped = padded[z:z+self.size, y:y+self.size, x:x+self.size]
+#         obs[self.name] = cropped
+#         return obs
 
 
 ################################################################################
@@ -499,23 +488,23 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
 
-class Cropped3DImagePCGRLWrapper(gym.Wrapper):
-    def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
-        self.pcgrl_env = gym.make(game)
-        self.pcgrl_env.adjust_param(**kwargs)
-        # Cropping the map to the correct crop_size
-        env = Cropped3D(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map', **kwargs)
-        env = OneHotEncoding(env, 'map', padded=True, **kwargs)
+# class Cropped3DImagePCGRLWrapper(gym.Wrapper):
+#     def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
+#         self.pcgrl_env = gym.make(game)
+#         self.pcgrl_env.adjust_param(**kwargs)
+#         # Cropping the map to the correct crop_size
+#         env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map', **kwargs)
+#         env = OneHotEncoding(env, 'map', padded=True, **kwargs)
         
-        # Now we one hot encode the observation for all probs including the binary
-        # Indices for flatting
-        flat_indices = ['map']
-        # Final Wrapper has to be ToImage or ToFlat
-        if n_aux_tiles > 0:
-            flat_indices += ["aux"]
-            env = AuxTiles3D(env, n_aux_tiles=n_aux_tiles, **kwargs)
-        self.env = ToImage(env, flat_indices, **kwargs)
-        gym.Wrapper.__init__(self, self.env)
+#         # Now we one hot encode the observation for all probs including the binary
+#         # Indices for flatting
+#         flat_indices = ['map']
+#         # Final Wrapper has to be ToImage or ToFlat
+#         if n_aux_tiles > 0:
+#             flat_indices += ["aux"]
+#             env = AuxTiles(env, n_aux_tiles=n_aux_tiles, **kwargs)
+#         self.env = ToImage(env, flat_indices, **kwargs)
+#         gym.Wrapper.__init__(self, self.env)
 
 
 """
