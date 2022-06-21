@@ -92,6 +92,7 @@ class NarrowRepresentation(EgocentricRepresentation):
                 np.random.shuffle(self._act_coords)
         self._pos = self._act_coords[self.n_step % len(self._act_coords)]
         self.n_step += 1
+        super().update(action)
         return change, self._pos
 
     # """

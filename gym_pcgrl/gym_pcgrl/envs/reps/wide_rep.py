@@ -67,6 +67,7 @@ class WideRepresentation(Representation):
         self._pos = action[:-1]
         change = [0,1][self._map[tuple(action[:-1])] != action[-1]]
         self._map[tuple(action[:-1])] = action[-1]
+        super().update(action)
         return change, action[:-1]
 
     def render(self, lvl_image, tile_size, border_size):

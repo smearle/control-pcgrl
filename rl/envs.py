@@ -14,8 +14,6 @@ from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.reps.ca_rep import CARepresentation
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
-from gym_pcgrl.envs.reps.wide_rep import WideRepresentation
-from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, Representation3DABC
 #from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 # from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 # from utils import RenderMonitor, get_map_width

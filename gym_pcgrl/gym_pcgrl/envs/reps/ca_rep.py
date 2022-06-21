@@ -49,5 +49,5 @@ class CARepresentation(Representation):
                 raise Exception
             change = np.any(next_map != self._map)
         self._map = next_map
-        self._update_bordered_map()
+        super().update(action)
         return change, [None] * len(self._map.shape)

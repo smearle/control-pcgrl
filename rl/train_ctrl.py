@@ -226,19 +226,19 @@ def main(cfg):
     dummy_env = make_env(dummy_cfg)
     # check_env(dummy_env)
 
-    ### DEBUG ###
-    for _ in range(100):
-        obs = dummy_env.reset()
-        for i in range(300):
-            # if i > 3:
-            act = dummy_env.action_space.sample()
-            # else:
-                # act = 0
-            obs, rew, done, info = dummy_env.step(act)
-            # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
-            dummy_env.render()
-    print('DEBUG: Congratulations! You can now use the environment.')
-    sys.exit()
+    # ### DEBUG ###
+    # for _ in range(100):
+    #     obs = dummy_env.reset()
+    #     for i in range(500):
+    #         # if i > 3:
+    #         act = dummy_env.action_space.sample()
+    #         # else:
+    #             # act = 0
+    #         obs, rew, done, info = dummy_env.step(act)
+    #         # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
+    #         dummy_env.render()
+    # print('DEBUG: Congratulations! You can now use the environment.')
+    # sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1

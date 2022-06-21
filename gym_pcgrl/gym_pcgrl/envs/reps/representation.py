@@ -26,6 +26,7 @@ class Representation(ABC):
         self._old_map: List[List[int]] = None
         self._border_tile_index = border_tile_index
         self._empty_tile = empty_tile_index
+        self._random_start: bool = True
 
         self.seed()
 
@@ -54,10 +55,10 @@ class Representation(ABC):
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, dims: tuple, prob: Problem):
+        self._bordered_map = np.empty(tuple([i + 2 for i in dims]), dtype=np.int)
+        self._bordered_map.fill(self._border_tile_index)
         if self._random_start or self._old_map is None:
             self._map = type(self).gen_random_map(self._random, dims, prob)
-            self._bordered_map = np.empty(tuple([i + 2 for i in dims]), dtype=np.int)
-            self._bordered_map.fill(self._border_tile_index)
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()
@@ -130,7 +131,8 @@ class Representation(ABC):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
-        raise NotImplementedError('update is not implemented')
+        return self._update_bordered_map()
+        # raise NotImplementedError('update is not implemented')
 
     """
     Modify the level image with any special modification based on the representation
@@ -147,7 +149,17 @@ class Representation(ABC):
         return lvl_image
 
     def _update_bordered_map(self):
-        self._bordered_map[1:-1, 1:-1] = self._map
+        # self._bordered_map[1:-1, 1:-1] = self._map
+        self._bordered_map[[slice(1, -1) for _ in range(len(self._map.shape))]] = self._map
+
+    @property
+    def unwrapped(self):
+        """Completely unwrap this env.
+
+        Returns:
+            gym.Env: The base non-wrapped gym.Env instance
+        """
+        return self
 
 
 class EgocentricRepresentation(Representation):
@@ -158,6 +170,24 @@ class EgocentricRepresentation(Representation):
         super().__init__(**kwargs)
         # Whether the agent begins on a random tile.
         self._random_tile: bool = False
+        # An x, y, (z) position
+        self._pos: np.ndarray = None
+
+    """
+    Resets the current representation where it resets the parent and the current
+    turtle location
+
+    Parameters:
+        length (int): the generated map length
+        width (int): the generated map width
+        height (int): the generated map height
+        prob (dict(int,float)): the probability distribution of each tile value
+    """
+    def reset(self, dims, prob):
+        super().reset(dims, prob)
+        # TODO: Remove this?
+        self._new_coords = self._pos
+        self._old_coords = self._pos
 
     def get_observation(self):
         obs = super().get_observation()

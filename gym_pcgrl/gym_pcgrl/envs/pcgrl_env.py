@@ -7,8 +7,7 @@ from gym import spaces
 from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np 
 
-from gym_pcgrl.envs.reps.wrappers import HoleyRepresentationABC, Representation3DABC, StaticBuildRepresentationABC# wrap_rep 
-from gym_pcgrl.envs.reps.wrappers import wrap_3D, wrap_holey, wrap_static_build
+from gym_pcgrl.envs.reps.wrappers import wrap_rep 
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 from gym_pcgrl.envs.reps import REPRESENTATIONS
@@ -41,6 +40,7 @@ class PcgrlEnv(gym.Env):
         self._prob: Problem = PROBLEMS[prob](**kwargs)
         self._rep_cls = REPRESENTATIONS[rep]
         self._rep: Representation = self._rep_cls()
+        self._rep_is_wrapped: bool = False
         self._rep_stats = None
         self.metrics = {}
         # print('problem metrics trgs: {}'.format(self._prob.static_trgs))
@@ -187,23 +187,13 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
+        _prob_cls = type(self._prob)
+        static_build = kwargs['static_prob'] is not None
         # Wrap the representation if we haven't already.
-        if kwargs['static_prob'] is not None and issubclass(type(self._rep), StaticBuildRepresentationABC):
-            self._rep = wrap_static_build(self._rep_cls)()
+        if not self._rep_is_wrapped:
+            self._rep = wrap_rep(self._rep, _prob_cls, static_build=static_build)
+            self._rep_is_wrapped = True
 
-        if issubclass(type(self._prob), HoleyProblem) and not issubclass(type(self._rep), HoleyRepresentationABC):
-            self._rep = wrap_holey(self._rep_cls)()
-
-        if issubclass(type(self._prob), Problem3D) and not issubclass(type(self._rep), Representation3DABC) and not issubclass(type(self._rep), HoleyRepresentationABC):
-            self._rep = wrap_3D(self._rep_cls)()
-        # TODO: make this a single wrap func
-        # FIXME: holey 2D rendering seems buggy, assuming need to switch the x, y order in rendering function in problem
-        # FIXME: 3D holey representations seem buggy because of the local wrapper
-        # _prob_cls = type(self._prob)
-        # static_build = kwargs['static_prob'] is not None
-        # if static_build or not issubclass(type(self._rep), HoleyRepresentationABC) or not issubclass(type(self._rep), Representation3DABC):
-        #     self._rep = wrap_rep(self._rep_cls, _prob_cls, static_build=static_build)
-        
         # TT()
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
         self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
@@ -312,7 +302,7 @@ class PcgrlEnv(gym.Env):
         return observation, reward, done, info
 
     def _get_rep_map(self):
-        return self._rep._map
+        return self._rep.unwrapped._map
 
     """
     Render the current state of the environment
