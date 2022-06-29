@@ -1026,6 +1026,49 @@ test_map_22 = {
 }
 
 
+# test_map_23:
+# size: 5 * 1 * 7
+# jump distance: 1
+# path length: 5
+# region number: 1
+# jump: 1
+# height difference: 0
+# info: valid jump
+test_map_23 = {
+    "name": "test_map_23",
+    "map": [
+        [
+            [1, 1, 0, 1, 1]
+        ],
+        [
+            [0, 0, 0, 1, 1]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0]
+        ]
+    ],
+    "size": (5, 1, 7),
+    "jump_distance": 1,
+    "path_length": 6,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 1,
+    "info": "valid jump",
+}
+
+
 """
 get the state of the test maps
 """

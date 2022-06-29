@@ -8,6 +8,7 @@ vertical blocks available on the lower step (and two vertical blocks available o
 """
 from pdb import set_trace as TT
 import time
+from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import TRAPDOOR
 
 import numpy as np
 from timeit import default_timer as timer
@@ -16,7 +17,7 @@ from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
-    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
+    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 # from gym_pcgrl.test3D import plot_3d_map
 
 
@@ -146,7 +147,6 @@ class Minecraft3DmazeProblem(Problem3D):
 
         # for earsing the path of the previous iteration in Minecraft
         # new path coords are updated in the render function
-        self.old_path_coords = self.path_coords
 
         self.path_coords = []
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
@@ -236,15 +236,44 @@ class Minecraft3DmazeProblem(Problem3D):
             "path-length": new_stats["path-length"],
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
+
+    def render_path_change(self, map, path_coords, old_path_coords, item=TRAPDOOR, **kwargs):
+        path_to_erase = set([tuple(coords) for coords in old_path_coords])
+        path_to_render = set([tuple(coords) for coords in path_coords])
+        for (x, y, z) in list(path_to_erase):
+            if (x, y, z) in path_to_render:
+                path_to_erase.remove((x, y, z))
+                # Red glazed terracotta may have deleted me though. Or if I'm perishable, I may have perished.
+                # path_to_render.remove((x, y, z)) 
+            if map[z][y][x] != "AIR":
+                path_to_erase.remove((x, y, z))
+            # else:
+                # path_to_render.append((x, y, z))
+#       print(self.path_coords)
+#       print(path_to_render)
+#       print(len(self.path_coords))
+        # if self.render_path:
+        # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
+
+        erase_3D_path(path_to_erase, **kwargs)
+        # time.sleep(2)
+
+        # block_dict.update(get_3D_path_blocks(self.path_coords))
+        # render_path_coords = [coords for coords in self.path_coords if map[coords[2]][coords[1]][coords[0]] != "AIR"]
+        spawn_3D_path(path_to_render, item=item, **kwargs)
+        # time.sleep(0.2)
     
     def render(self, map, iteration_num, repr_name, render_matplotlib=False, render_paths=None, **kwargs):
         # NOTE: the agent's action is rendered directly before this function is called.
 
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile)
+            # spawn_3D_border(map, self._border_tile)
             spawn_3D_maze(map)
+            spawn_base(map)
             self._rendered_initial_maze = True
+
+        self.render_path_change(map, self.path_coords, self.old_path_coords)
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
@@ -256,28 +285,7 @@ class Minecraft3DmazeProblem(Problem3D):
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
         # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
-        path_to_erase = self.path_to_erase
-        path_to_render = []
-        for (x, y, z) in self.path_coords:
-            if (x, y, z) in path_to_erase:
-                path_to_erase.remove((x, y, z))
-            # else:
-                # path_to_render.append((x, y, z))
-#       print(self.path_coords)
-#       print(path_to_render)
-#       print(path_to_erase)
-#       print(len(self.path_coords))
 
-        if self.render_path:
-            pass
-            # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
-
-            # erase_3D_path(path_to_erase)
-            # time.sleep(2)
-
-            # block_dict.update(get_3D_path_blocks(self.path_coords))
-            spawn_3D_path(self.path_coords)
-            # time.sleep(0.2)
 
         # render_blocks(block_dict)
 
@@ -285,6 +293,7 @@ class Minecraft3DmazeProblem(Problem3D):
         if render_matplotlib:
             plot_3D_path(self._length, self._width, self._height, self.path_coords)
 
+        self.old_path_coords = self.path_coords.copy()
         return 
 
     def get_episode_over(self, new_stats, old_stats):

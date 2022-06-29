@@ -248,7 +248,7 @@ def spawn_3D_bordered_map(map, base_pos=5):
                 item = get_tile(map[k][j][i])
                 # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
                 #  second arguement from inside the problem.
-                blocks.append(Block(position=Point(x=i-1, y=k+4,  z=j-1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
+                blocks.append(Block(position=Point(x=i+1, y=k+base_pos+1,  z=j+1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -260,12 +260,12 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=REDSTONE_WIRE):
+def spawn_3D_path(path, base_pos=5, item=TRAPDOOR):
     if len(path) == 0:
         return
     blocks = []
     for pos in path:
-        blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
+        blocks.append(Block(position=Point(x=pos[0], y=pos[2]+base_pos , z=pos[1]),
                                 type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -328,6 +328,29 @@ def edit_bordered_3D_maze(map, i, j, k, base_pos=5):
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i+1, y=k+base_pos+1, z=j+1),
                                             type=item, orientation=NORTH)]))
     return
+
+def spawn_3D_doors(map, entrance, exit, base_pos=5):
+    '''
+    Spawn the doors in Minecraft
+
+    Parameters:
+        map (string[][][]): the current game map
+        entrance (tuple): the entrance position
+        exit (tuple): the exit position
+        base_pos (int): the vertical height of the bottom of the maze
+    '''
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=entrance[2], y=entrance[0]+base_pos, z=entrance[1]),
+                                            type=WOODEN_DOOR, orientation=NORTH),
+                                Block(position=Point(x=exit[2], y=exit[0]+base_pos, z=exit[1]),
+                                      type=WOODEN_DOOR, orientation=NORTH)]))
+    # spawn colored blocks below the doors
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=entrance[2], y=entrance[0]+base_pos-1, z=entrance[1]),
+                                            type=GOLD_BLOCK, orientation=NORTH),
+                                Block(position=Point(x=exit[2], y=exit[0]+base_pos-1, z=exit[1]),
+                                      type=DIAMOND_BLOCK, orientation=NORTH)]))
+    return
+
+    
 
 if __name__ == '__main__':
     # clear(20,20)

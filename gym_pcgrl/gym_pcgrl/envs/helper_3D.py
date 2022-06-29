@@ -655,21 +655,24 @@ def get_path_coords(path_map, x=None, y=None, z=None, can_fly=False):
     return path
 
 def remove_stacked_path_tiles(path):
+    path = set([tuple(e) for e in path])
+    for x, y, z in list(path):
+        if (x, y, z+1) in path:
+            path.remove((x, y, z+1))
     # if the agent can't fly, delete the blocks with identical vertical coordinates in the path, only reserve the bottom one
-    path = np.array(path)
-    for i in range(0, len(path)): 
-        if i == 0:
-            continue
-        else:
-            if path[i][0] == path[i-1][0] and path[i][1] == path[i-1][1]:
-                # if first path is higher than
-                # TODO: use einops
-                if path[i-1][2] > path[i][2]:
-                    path[i-1, :] = [-1, -1, -1]
-                else:
-                    path[i, :] = [-1, -1, -1]
-    path = np.delete(path, np.where(path < 0)[0], axis=0)
-    return path
+    # path = np.array(path)
+    # for i in range(0, len(path)): 
+    #     if i == 0:
+    #         continue
+    #     else:
+    #         if path[i][0] == path[i-1][0] and path[i][1] == path[i-1][1]:
+    #             # if first path is higher than
+    #             if path[i-1][2] > path[i][2]:
+    #                 path[i-1, :] = [-1, -1, -1]
+    #             else:
+    #                 path[i, :] = [-1, -1, -1]
+    # path = np.delete(path, np.where(path < 0)[0], axis=0)
+    return list(path)
 
 def debug_path(path, map, passable_values):
     """

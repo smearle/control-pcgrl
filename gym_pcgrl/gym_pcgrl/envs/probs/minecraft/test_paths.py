@@ -371,18 +371,73 @@ test_map_crossjump = {
     "info": "valid jump",
 }
 
-test_maps = [np.array(test_map_crossjump["map"])]
+
+test_map_23 = {
+    "name": "test_map_23",
+    "map": [
+        [
+            [1, 1, 0, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1]
+        ],
+        [
+            [1, 1, 0, 0, 1, 0],
+            [1, 1, 0, 1, 0, 0],
+            [1, 1, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 1, 0],
+            [0, 1, 0, 1, 0, 0],
+            [1, 1, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ],
+        [
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
+        ]
+    ],
+    "size": (5, 1, 7),
+    "jump_distance": 1,
+    "path_length": 6,
+    "region_number": 1,
+    "jump": 1,
+    "height_difference": 1,
+    "info": "valid jump",
+}
+
+
+
+test_maps = [np.array(test_map_23["map"])]
 
 for int_map in test_maps:
     # FIXME: why does this seem to take so long? Path-finding is fast. Just creating the environment itself?
-    prob = "minecraft_3D_maze_ctrl"
-    repr = "narrow3D"
+    prob = "minecraft_3D_holey_maze"
+    repr = "narrow3Dholey"
     env_name = f"{prob}-{repr}-v0"
     env = gym.make(env_name)
-    env.adjust_param(render=True, change_percentage=None)
+    env.adjust_param(render=True, change_percentage=None, static_prob=None)
     # env.unwrapped._rep._x = env.unwrapped._rep._y = 0
     env.unwrapped._rep._old_coords = env.unwrapped._rep._new_coords = (0, 0, 0)
-    env._rep._map = int_map
+    int_map = np.pad(int_map, 1, 'constant', constant_values=1)
+    env._rep._bordered_map = int_map
+    env._prob.exit_coords = [(2, 1, 7), (3, 1, 7)]
+    env._prob.entrance_coords = [(3, 1, 0), (4, 1, 0)]
+    env._rep.dig_holes(env._prob.entrance_coords, env._prob.exit_coords)
     env.render()
     stats = env.unwrapped._prob.get_stats(
         get_string_map(int_map, env.unwrapped._prob.get_tile_types()),

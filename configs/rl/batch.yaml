@@ -10,13 +10,13 @@
     # 2,
     # 3,
     # 10,
-    # 11,
+    11,
     # 12,
   ],
 
   "problems": [
     # "minecraft_3D_maze",
-    # "minecraft_3D_holey_maze",
+    "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
@@ -162,7 +162,6 @@
   # 1,
   # 2,
   3,
-  # 5fully
 ],
 
   "n_aux_tiles": [
