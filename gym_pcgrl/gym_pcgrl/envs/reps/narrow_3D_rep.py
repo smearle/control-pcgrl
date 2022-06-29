@@ -150,8 +150,8 @@ class Narrow3DRepresentation(Representation3D):
 
     def render(self, map):
         x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
-        # edit_3D_maze(map, x, y, z)
-        spawn_3D_maze(map)
+        edit_3D_maze(map, x, y, z)
+        # spawn_3D_maze(map)
         self._old_coords = self._new_coords
 
         return

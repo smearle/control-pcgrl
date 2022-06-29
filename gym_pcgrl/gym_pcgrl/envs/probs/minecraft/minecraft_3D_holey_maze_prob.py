@@ -16,7 +16,7 @@ from timeit import default_timer as timer
 
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
+from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_doors, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES, TRAPDOOR
@@ -74,8 +74,8 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
 
         # for earsing the path of the previous iteration in Minecraft
         # new path coords are updated in the render function
-        self.old_path_coords = self.path_coords
-        self.old_connected_path_coords = self.connected_path_coords
+        self.old_path_coords = self.path_coords.copy()
+        self.old_connected_path_coords = self.connected_path_coords.copy()
 
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
@@ -194,12 +194,16 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
         
 
         # Render the border if we haven't yet already.
-        # if not self._rendered_initial_maze:
+        if not self._rendered_initial_maze:
             # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
-            # spawn_base(map)
-            # spawn_3D_maze(map)
+            spawn_base(map)
+            spawn_3D_doors(map, self.entrance_coords[0], self.exit_coords[0])
+            # TODO: do not render border, only footholds
+            map = np.array(map)
+            spawn_3D_maze(map)
+
             # spawn_3D_bordered_map(map)
-            # self._rendered_initial_maze = True
+            self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
@@ -230,7 +234,18 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
 #       print(path_to_erase)
 #       print(len(self.path_coords))
 
-        if self.render_path:
+        path_coords = set([tuple(coords) for coords in self.path_coords])
+        cnct_path_coords = set([tuple(coords) for coords in self.connected_path_coords])
+        old_path_coords = set([tuple(coords) for coords in self.old_path_coords])
+        for (x, y, z) in list(path_coords):
+            if (x, y, z) in cnct_path_coords:
+                path_coords.remove((x, y, z))
+                if (x, y, z) in old_path_coords:
+                    old_path_coords.remove((x, y, z))
+        # [path_coords.remove((x, y, z)) for (x, y, z) in list(path_coords) if (x, y, z) in cnct_path_coords]
+        self.render_path_change(map, path_coords, old_path_coords, item=LEAVES)
+        self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, item=TRAPDOOR)
+        # if self.render_path:
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
             # erase_3D_path(path_to_erase)
             # erase_3D_path(connected_path_to_erase)
@@ -243,16 +258,18 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
             # render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
             # render_path_coords = np.array(render_path_coords) - 1 
             # spawn_3D_path(render_path_coords, item=LEAVES)
-            render_path_coords = self.connected_path_coords
-            render_path_coords = remove_stacked_path_tiles(render_path_coords)
-            render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
-            render_path_coords = np.array(render_path_coords) - 1 
-            spawn_3D_path(render_path_coords)
+            # render_path_coords = self.connected_path_coords
+            # render_path_coords = remove_stacked_path_tiles(render_path_coords)
+            # render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
+            # render_path_coords = np.array(render_path_coords) - 1 
+            # spawn_3D_path(render_path_coords)
 
             # spawn_3D_path(self.path_coords, item=LEAVES)
             # time.sleep(0.2)
 
         # render_blocks(block_dict)
+        self.old_path_coords = self.path_coords.copy()
+        self.old_connected_path_coords = self.connected_path_coords.copy()
 
         # plot the path using matplotlib
         if render_matplotlib:

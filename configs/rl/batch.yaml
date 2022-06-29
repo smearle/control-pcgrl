@@ -4,22 +4,22 @@
 {
   "exp_names": [
     # testStaticBuilds,
-    0,
+    # 0,
     # 1,
     # 2,
     # 3,
     # 10,
-    # 11,
+    11,
     # 12,
   ],
 
   "problems": [
     # "minecraft_3D_maze",
-    # "minecraft_3D_holey_maze",
+    "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
-    "binary",
+    # "binary",
     # "binary_holey",
 #   "zelda",
 #   "sokoban",
@@ -30,13 +30,13 @@
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-        ["narrow3D", null],
+        # ["narrow3D", null],
         # ["narrow3D", SeqNCA3D],
 
-        # ["narrow3Dholey", null],
+        ["narrow3Dholey", null],
         # ["narrow3Dholey", SeqNCA3D],
 
-      ["narrow", SeqNCA],
+      # ["narrow", SeqNCA],
       # ["narrow", null],
       # [narrowholey, SeqNCA],
       # ["narrowholey", null],
@@ -177,7 +177,6 @@
   # 1,
   # 2,
   3,
-  # 5fully
 ],
 
   "n_aux_tiles": [
