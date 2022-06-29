@@ -16,7 +16,7 @@ from timeit import default_timer as timer
 
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
+from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_map, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES, TRAPDOOR
@@ -194,12 +194,12 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
         
 
         # Render the border if we haven't yet already.
-        # if not self._rendered_initial_maze:
+        if not self._rendered_initial_maze:
             # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
-            # spawn_base(map)
-            # spawn_3D_maze(map)
+            spawn_base(map)
             # spawn_3D_bordered_map(map)
-            # self._rendered_initial_maze = True
+            self._rendered_initial_maze = True
+        spawn_3D_bordered_map(map)
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow

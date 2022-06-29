@@ -50,11 +50,7 @@ def make_env(cfg_dict: Dict):
 
     elif np.any(issubclass(rep_cls, c) for c in [NarrowRepresentation, TurtleRepresentation]):
     # elif cfg.representation in ['narrow', 'turtle', 'narrowholey', 'turtleholey']:
-        if '3D' in cfg.problem:
-        # if issubclass(rep_cls, Representation3DABC):
-            env = wrappers.Cropped3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
-        else:  
-            env = wrappers.CroppedImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+        env = wrappers.CroppedImagePCGRLWrapper(cfg.env_name, **cfg_dict)
     # elif cfg.representation in ['narrow3D', 'turtle3D', 'narrow3Dholey', 'turtle3Dholey']:
 
     else:

@@ -409,7 +409,6 @@ class NCA(TorchModelV2, nn.Module):
         # vars = th.empty_like(x).fill_(0)
         # x = th.cat([x, vars], dim=1)
 
-        # TT()
 
         return x, []
 

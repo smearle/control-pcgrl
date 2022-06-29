@@ -42,6 +42,7 @@ from evaluate import evaluate
 from utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 from callbacks import StatsCallbacks
 
+np.set_printoptions(threshold=sys.maxsize, linewidth=1000)
 # Set most normal backend
 matplotlib.use('Agg')
 
@@ -176,9 +177,9 @@ def main(cfg):
             # "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
 
     is_3D_env = False
-    # if "3D" in cfg.problem:
+    if "3D" in cfg.problem:
         # assert "3D" in cfg.representation
-        # is_3D_env = True
+        is_3D_env = True
 
     cfg.env_name = get_env_name(cfg.problem, cfg.representation)
     print('env name: ', cfg.env_name)

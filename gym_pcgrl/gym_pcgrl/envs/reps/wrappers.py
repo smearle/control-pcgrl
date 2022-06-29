@@ -309,7 +309,6 @@ def wrap_rep(rep: Representation, prob_cls: Problem, static_build = False):
         # else:
             # rep_cls = Representation3D(rep_cls)
     
-    # TT()
     # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
     # rep_cls = rep_cls if isclass(rep_cls) else type(rep_cls)
     # if issubclass(prob_cls, HoleyProblem) and not issubclass(type(rep), HoleyRepresentation):

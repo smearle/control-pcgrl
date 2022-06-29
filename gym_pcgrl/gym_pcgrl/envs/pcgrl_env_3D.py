@@ -12,7 +12,7 @@ from gym import spaces
 RENDER_OPENGL = 0
 RENDER_MINECRAFT = 1
 
-RENDER_MODE = RENDER_OPENGL
+RENDER_MODE = RENDER_MINECRAFT
 
 if RENDER_MODE == RENDER_OPENGL:
     from gym_pcgrl.envs.probs.minecraft.gl_render import Scene
@@ -122,14 +122,16 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
         if RENDER_MODE == RENDER_OPENGL:
             self.render_opengl(self._get_rep_map())
             return
+
         elif RENDER_MODE == RENDER_MINECRAFT:
             # Render the agent's edit action.
-            self._rep.render(get_string_map(
-                self._get_rep_map(), self._prob.get_tile_types()))
+            # self._rep.render(get_string_map(
+                # self._get_rep_map(), self._prob.get_tile_types()))
 
             # Render the resulting path.
             self._prob.render(get_string_map(
                 self._get_rep_map(), self._prob.get_tile_types()), self._iteration, self._repr_name)
+            
             # print(get_string_map(
             #     self._rep._map, self._prob.get_tile_types()))
             return

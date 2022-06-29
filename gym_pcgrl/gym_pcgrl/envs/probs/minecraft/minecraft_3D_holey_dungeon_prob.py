@@ -3,7 +3,7 @@ from pdb import set_trace as TT
 from sklearn.utils import check_X_y
 
 from gym_pcgrl.envs.helper_3D import calc_certain_tile, calc_num_regions, get_path_coords, get_tile_locations, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_path, spawn_base
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_map, spawn_3D_path, spawn_base
 import numpy as np
 
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem

@@ -216,7 +216,7 @@ def spawn_3D_border(map, border_tile, border_size=(1, 1, 1), base_pos=5,\
     return
 
 
-def spawn_3D_maze(map, base_pos=5):
+def spawn_3D_map(map, base_pos=5):
     '''
     Note that: in Minecraft, the vertical direction is y (map[z][][])
                              the horizontal direction x is (map[][][x])
@@ -233,9 +233,9 @@ def spawn_3D_maze(map, base_pos=5):
         for j in range(len(map[k])):
             for i in range(len(map[k][j])):
                 item = get_tile(map[k][j][i])
-                # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
+                # FIXME: why is base_pos str? Because sometimes we are incorrectly providing self._border_tile as the 
                 #  second arguement from inside the problem.
-                blocks.append(Block(position=Point(x=i, y=k+5,  z=j),   
+                blocks.append(Block(position=Point(x=i, y=k+base_pos,  z=j),   
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -248,7 +248,7 @@ def spawn_3D_bordered_map(map, base_pos=5):
                 item = get_tile(map[k][j][i])
                 # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
                 #  second arguement from inside the problem.
-                blocks.append(Block(position=Point(x=i-1, y=k+4,  z=j-1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
+                blocks.append(Block(position=Point(x=i-1, y=k+base_pos-1,  z=j-1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -260,7 +260,7 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=REDSTONE_WIRE):
+def spawn_3D_path(path, base_pos=5, item=TRAPDOOR):
     if len(path) == 0:
         return
     blocks = []

@@ -15,7 +15,7 @@ from timeit import default_timer as timer
 from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
+from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_map, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks)
 # from gym_pcgrl.test3D import plot_3d_map
 
@@ -241,10 +241,10 @@ class Minecraft3DmazeProblem(Problem3D):
         # NOTE: the agent's action is rendered directly before this function is called.
 
         # Render the border if we haven't yet already.
-        if not self._rendered_initial_maze:
-            spawn_3D_border(map, self._border_tile)
-            spawn_3D_maze(map)
-            self._rendered_initial_maze = True
+        # if not self._rendered_initial_maze:
+            # spawn_3D_border(map, self._border_tile)
+        spawn_3D_map(map)
+            # self._rendered_initial_maze = True
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
@@ -255,13 +255,13 @@ class Minecraft3DmazeProblem(Problem3D):
         # know if the agent's edit action has disrupted the old path, so we won't delete blocks in the
         # old path that are also in the new path, but we will have to render all blocks in the new path,
         # just in case.
-        # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
-        path_to_erase = self.path_to_erase
-        path_to_render = []
-        for (x, y, z) in self.path_coords:
-            if (x, y, z) in path_to_erase:
-                path_to_erase.remove((x, y, z))
-            # else:
+        # # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
+        # path_to_erase = self.path_to_erase
+        # path_to_render = []
+        # for (x, y, z) in self.path_coords:
+        #     if (x, y, z) in path_to_erase:
+        #         path_to_erase.remove((x, y, z))
+        #     # else:
                 # path_to_render.append((x, y, z))
 #       print(self.path_coords)
 #       print(path_to_render)

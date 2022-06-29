@@ -150,6 +150,8 @@ class Representation(ABC):
 
     def _update_bordered_map(self):
         # self._bordered_map[1:-1, 1:-1] = self._map
+        # if np.any(self._bordered_map != self.unwrapped._bordered_map):
+        #     raise Exception('bordered map is not equal to unwrapped bordered map')
         self._bordered_map[tuple([slice(1, -1) for _ in range(len(self._map.shape))])] = self._map
 
     @property
@@ -205,6 +207,7 @@ class EgocentricRepresentation(Representation):
 
     """
     Modify the level image with a white rectangle around the tile that the egocentric agent is on.
+    NOTE: specific to 2D.
 
     Parameters:
         lvl_image (img): the current level_image without modifications

@@ -194,7 +194,6 @@ class PcgrlEnv(gym.Env):
             self._rep = wrap_rep(self._rep, _prob_cls, static_build=static_build)
             self._rep_is_wrapped = True
 
-        # TT()
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
         self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
         if self._change_percentage is not None:

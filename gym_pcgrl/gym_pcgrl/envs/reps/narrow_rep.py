@@ -26,6 +26,11 @@ class NarrowRepresentation(EgocentricRepresentation):
         act_coords = np.meshgrid(*tuple([np.arange(s) for s in self._map.shape]))
         # Flatten so that we can treat this like a list of coordinates.
         act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, len(self._map.shape)))
+        # if act_coords.shape[1] == 2:
+        act_coords = np.flip(act_coords, axis=1)
+        # elif act_coords.shape[1] == 3:
+            # act_coords = np.stack((act_coords[:, 1], act_coords[:, 0], act_coords[:, 2]), axis=-1)
+
         return act_coords
 
     """
@@ -61,7 +66,7 @@ class NarrowRepresentation(EgocentricRepresentation):
         correspond to which value for each tile type
     """
     def get_action_space(self, dims, num_tiles):
-        return spaces.Discrete(num_tiles + 1)
+        return spaces.Discrete(num_tiles)
 
 
     """
@@ -84,9 +89,9 @@ class NarrowRepresentation(EgocentricRepresentation):
     """
     def update(self, action):
         change = 0
-        if action > 0:
-            change += [0,1][self._map[tuple(self._pos)] != action-1]
-            self._map[tuple(self._pos)] = action-1
+        change += [0,1][self._map[tuple(self._pos)] != action]
+        self._map[tuple(self._pos)] = action
+        # if action > 0:
         if self._random_tile:
             if self.n_step == len(self._act_coords):
                 np.random.shuffle(self._act_coords)
