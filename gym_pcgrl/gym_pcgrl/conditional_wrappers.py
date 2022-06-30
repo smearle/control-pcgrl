@@ -231,7 +231,8 @@ class ConditionalWrapper(gym.Wrapper):
         if self.conditional:
             ob = self.observe_metric_trgs(ob)
         self.last_metrics = copy.deepcopy(self.metrics)
-        self.last_loss = self.get_loss()
+        if self.unwrapped._get_stats_on_step:
+            self.last_loss = self.get_loss()
         self.n_step = 0
 
         return ob

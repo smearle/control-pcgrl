@@ -21,6 +21,7 @@ class SokobanCtrlProblem(SokobanProblem):
             "dist-win": 0.0,
             "sol-length": 1,
         }
+        self._ctrl_reward_weights = self._reward_weights
 
         self.static_trgs = {
             "player": 1,

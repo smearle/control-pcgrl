@@ -12,7 +12,7 @@ from gym import spaces
 RENDER_OPENGL = 0
 RENDER_MINECRAFT = 1
 
-RENDER_MODE = RENDER_OPENGL
+RENDER_MODE = RENDER_MINECRAFT
 
 if RENDER_MODE == RENDER_OPENGL:
     from gym_pcgrl.envs.probs.minecraft.gl_render import Scene

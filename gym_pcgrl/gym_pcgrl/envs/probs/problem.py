@@ -1,4 +1,5 @@
 from abc import ABC
+from pathlib import Path
 from pdb import set_trace as TT
 from gym.utils import seeding
 from PIL import Image
@@ -6,6 +7,7 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 GVGAI_SPRITES = False
+PROB_DIR = str(Path(__file__).parent)  # for convenience when loading sprite .pngs
 
 """
 The base class for all the problems that can be handled by the interface

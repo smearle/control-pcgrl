@@ -56,40 +56,46 @@ class MixActiv(nn.Module):
         return x
 
 
-class AuxNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions, n_aux=3, render=False, **kwargs):
+class NCA(ResettableNN):
+    def __init__(self, n_in_chans, n_actions, n_aux_chan=0, render=False, **kwargs):
         """
         Args:
             render (bool): whether to render the auxiliary channels in order to observe the model's behavior.
         """
         super().__init__(**kwargs)
+        self._has_aux = n_aux_chan > 0
         self.n_hid_1 = n_hid_1 = 32
-        self.n_aux = n_aux
+        self.n_aux = n_aux_chan
         self.l1 = Conv2d(n_in_chans + self.n_aux, n_hid_1, 3, 1, 1, bias=True)
         self.l2 = Conv2d(n_hid_1, n_hid_1, 1, 1, 0, bias=True)
         self.l3 = Conv2d(n_hid_1, n_actions + self.n_aux, 1, 1, 0, bias=True)
         self.layers = [self.l1, self.l2, self.l3]
         self.last_aux = None
         self.apply(init_weights)
-        self.render = render
+        self._render = render
         if render:
             cv2.namedWindow("Auxiliary NCA")
 
     def forward(self, x):
         with th.no_grad():
-            if self.last_aux is None:
-                self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-2:]))
-            x_in = th.cat([x, self.last_aux], axis=1)
+            if self._has_aux:
+                if self.last_aux is None:
+                    self.last_aux = th.zeros(size=(1, self.n_aux, *x.shape[-2:]))
+                x_in = th.cat([x, self.last_aux], axis=1)
+            else:
+                x_in = x
             x = self.l1(x_in)
             x = th.relu(x)
             x = self.l2(x)
             x = th.relu(x)
             x = self.l3(x)
             x = th.sigmoid(x)
-            self.last_aux = x[:,-self.n_aux:,:,:]
-            x = x[:, :-self.n_aux,:,:]
 
-            if self.render:
+            if self._has_aux > 0:
+                self.last_aux = x[:,-self.n_aux:,:,:]
+                x = x[:, :-self.n_aux,:,:]
+
+            if self._render:
 #               im = self.last_aux[0].cpu().numpy().transpose(1,2,0)
                 aux = self.last_aux[0].cpu().numpy()
                 aux = aux / aux.max()
@@ -109,11 +115,11 @@ class AuxNCA(ResettableNN):
         self.last_aux = None
 
 
-class DoneAuxNCA(AuxNCA):
+class DoneAuxNCA(NCA):
     def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
         # Add an extra auxiliary ("done") channel after the others
         n_aux += 1
-        super().__init__(n_in_chans, n_actions, n_aux=n_aux, **kwargs)
+        super().__init__(n_in_chans, n_actions, n_aux_chan=n_aux, **kwargs)
         done_kernel_size = 3
         self.l_done = Conv2d(1, 1, 7, stride=999)
         self.layers += [self.l_done]
@@ -132,14 +138,14 @@ class DoneAuxNCA(AuxNCA):
 
 
 class AttentionNCA(ResettableNN):
-    def __init__(self, n_in_chans, n_actions, n_aux=3, **kwargs):
-        self.n_aux = n_aux
+    def __init__(self, n_in_chans, n_actions, n_aux_chan=3, **kwargs):
+        self.n_aux = n_aux_chan
         super().__init__(**kwargs)
-        n_in_chans += n_aux
+        n_in_chans += n_aux_chan
         h_chan = 48
         self.l1 = Conv2d(n_in_chans, h_chan, 1, 1, 0, bias=True)
         self.cbam = CBAM(h_chan, 1)
-        self.l2 = Conv2d(h_chan, n_actions + n_aux, 1, 1, 0, bias=True)
+        self.l2 = Conv2d(h_chan, n_actions + n_aux_chan, 1, 1, 0, bias=True)
 #       self.layers = [getattr(self.cbam, k) for k in self.cbam.state_dict().keys()]
 #       self.bn = nn.BatchNorm2d(n_actions, affine=False)
         self.layers = [self.l1, self.l2, self.cbam.ChannelGate.l1, self.cbam.ChannelGate.l2, self.cbam.SpatialGate.spatial.conv]
@@ -209,7 +215,7 @@ class NCA3D(ResettableNN):
         return x, False
 
 
-class NCA(ResettableNN):
+class NCA_old(ResettableNN):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
     def __init__(self, n_in_chans, n_actions, **kwargs):

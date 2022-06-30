@@ -6,7 +6,7 @@ from pdb import set_trace as TT
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from gym_pcgrl.envs.helper import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path, run_dijkstra
 from gym_pcgrl.envs.probs.binary.binary_prob import BinaryProblem
 
@@ -187,7 +187,7 @@ class BinaryHoleyProblem(HoleyProblem, BinaryProblem):
                 self._graphics = {
                     "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
                     "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
-                    "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
+                    "path" : Image.open(PROB_DIR + "/common/path_g.png").convert('RGBA'),
                     "c_path" : Image.open(os.path.dirname(__file__) + "/binary/path_b.png").convert('RGBA'),
                 }
         render_path=self.path_coords

@@ -55,10 +55,12 @@ class RepresentationWrapper():
         return str(self)
 
     def __getattr__(self, name):
-        # if name.startswith("_"):
-        #     raise AttributeError(
-        #         "attempted to get missing private attribute '{}'".format(name)
-        #     )
+        # Removing this check causes errors when serializing this object with pickle. E.g. when using ray for parallel
+        # environments.
+        if name.startswith("_"):
+            raise AttributeError(
+                "attempted to get missing private attribute '{}'".format(name)
+            )
         return getattr(self.rep, name)
 
     # @property

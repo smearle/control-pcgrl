@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from PIL import Image
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from gym_pcgrl.envs.helper import calc_tortuosity, get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
 
@@ -186,9 +186,9 @@ class MicroStructureProblem(Problem):
                 }
             else:
                 self._graphics = {
-                    "empty": Image.open(os.path.dirname(__file__) + "/binary/binary/empty.png").convert('RGBA'),
-                    "solid": Image.open(os.path.dirname(__file__) + "/binary/binary/solid.png").convert('RGBA'),
-                    "path" : Image.open(os.path.dirname(__file__) + "/binary/binary/path_g.png").convert('RGBA'),
+                    "empty": Image.open(PROB_DIR + "/common/empty.png").convert('RGBA'),
+                    "solid": Image.open(PROB_DIR + "/common/binary/solid.png").convert('RGBA'),
+                    "path" : Image.open(PROB_DIR + "/common/path_g.png").convert('RGBA'),
                 }
         return super().render(map, render_path=self.path_coords)
 

@@ -45,7 +45,7 @@ import copy
 from args import get_args, get_exp_dir, get_exp_name
 from archives import CMAInitStatesGrid, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
-    set_weights, Decoder, NCA, AuxNCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN
+    set_weights, Decoder, NCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN
 from utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
@@ -224,8 +224,8 @@ def save_grid(csv_name="levels", d=4):
                     )
 
             # Set map
-            env.unwrapped._rep._x = env.unwrapped._rep._y = 0
-            env.unwrapped._rep._map = level
+            env.unwrapped._rep.unwrapped._x = env.unwrapped._rep.unwrapped._y = 0
+            env.unwrapped._rep.unwrapped._map = level
 
             # TODO: this won't work for minecraft! Find a workaround?
             img = env.render(mode="rgb_array")
@@ -847,8 +847,8 @@ N_PLAYER_STEPS = 100
 
 
 def play_level(env, level, player):
-    env.unwrapped._rep._old_map = level
-    env.unwrapped._rep._random_start = False
+    env.unwrapped._rep.unwrapped._old_map = level
+    env.unwrapped._rep.unwrapped._random_start = False
     p_obs = env.reset()
 
     if not env.is_playable():
@@ -990,7 +990,7 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
             action, done = gen_model(int_tensor)[0].numpy()
 #           obs = action
             int_map = done or action.argmax(axis=0)
-            env.unwrapped._rep._map = int_map
+            env.unwrapped._rep.unwrapped._map = int_map
             done = done or (int_map == last_int_map).all() or n_step >= N_STEPS
 
             #           if INFER and not EVALUATE:
@@ -998,8 +998,8 @@ def gen_playable_levels(env, gen_model, init_states, n_tile_types):
 
             if done:
                 gen_model.reset()
-                env.unwrapped._rep._old_map = int_map
-                env.unwrapped._rep._random_start = False
+                env.unwrapped._rep.unwrapped._old_map = int_map
+                env.unwrapped._rep.unwrapped._random_start = False
                 _ = env.reset()
 
                 if env.is_playable():
@@ -1140,7 +1140,7 @@ def simulate(
 
     for (n_episode, init_state) in enumerate(init_states):
         # TODO: wrap the env instead
-        env.unwrapped._rep._x = env.unwrapped._rep._y = 0
+        env.unwrapped._rep.unwrapped._x = env.unwrapped._rep.unwrapped._y = 0
         # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
         if ("Decoder" in MODEL) or ("CPPN" in MODEL):
             obs = init_state
@@ -1151,12 +1151,15 @@ def simulate(
                 if ENV3D:
                     entrance_coords, exit_coords = door_coords[n_episode]
                     env.unwrapped._prob._hole_queue = [(entrance_coords, exit_coords)]
-                    env.reset()
                     # env.unwrapped._prob.entrance_coords, env.unwrapped._prob.exit_coords = entrance_coords, exit_coords
                     # env.unwrapped._rep.set_holes(entrance_coords, exit_coords)
                 else:
                     raise NotImplementedError
-            env.unwrapped._rep._map = init_state.copy()
+            env.reset() # Initialize the bordered map
+            env.unwrapped._rep.unwrapped._map = init_state.copy()
+            env.unwrapped._rep._update_bordered_map()
+            # env.unwrapped._rep._map = init_state.copy()
+            # env.unwrapped._rep._update_bordered_map()
             env.unwrapped._prob.path_coords = []
             env.unwrapped._prob.path_length = None
             # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
@@ -1181,7 +1184,7 @@ def simulate(
 
         # Simulate an episode of level generation.
         while not done:
-            if env.unwrapped._rep._map is not None:
+            if env.unwrapped._rep.unwrapped._map is not None:
                 if render_levels:
                     level_frames.append(env.render(mode="rgb_array"))
             #           in_tensor = th.unsqueeze(
@@ -1191,14 +1194,14 @@ def simulate(
             action = action[0].numpy()
             # There is probably a better way to do this, so we are not passing unnecessary kwargs, depending on representation
             if not IS_HOLEY:
-                int_map = env.unwrapped._rep._map  # TODO: can use `_get_rep_map()` as below, right?
+                int_map = env.unwrapped._rep.unwrapped._map  # TODO: can use `_get_rep_map()` as below, right?
             else:
                 int_map = env.unwrapped._get_rep_map()
             action, skip = preprocess_action(
                 action,
                 int_map=int_map,
-                x=env.unwrapped._rep._x,
-                y=env.unwrapped._rep._y,
+                x=env.unwrapped._rep.unwrapped._x,
+                y=env.unwrapped._rep.unwrapped._y,
                 n_dirs=N_DIRS,
                 n_tiles=n_tile_types,
             )
@@ -1207,11 +1210,11 @@ def simulate(
             else:
                 change, [x, y, z] = env.unwrapped._rep.update(action, continuous=CONTINUOUS)
             if not IS_HOLEY:
-                int_map = env.unwrapped._rep._map
+                int_map = env.unwrapped._rep.unwrapped._map
             else:
                 int_map = env.unwrapped._get_rep_map()
             obs = get_one_hot_map(env.unwrapped._rep.get_observation()["map"], n_tile_types)
-            preprocess_observation(obs, x=env.unwrapped._rep._x, y=env.unwrapped._rep._y)
+            preprocess_observation(obs, x=env.unwrapped._rep.unwrapped._x, y=env.unwrapped._rep.unwrapped._y)
             #           int_map = action.argmax(axis=0)
             #           obs = get_one_hot_map(int_map, n_tile_types)
             #           env.unwrapped._rep._map = int_map
@@ -1482,7 +1485,7 @@ class EvoPCGRL:
         #           gen_archive_cls = GridArchive
         else:
             gen_archive_cls = GridArchive
-            init_level_archive_args = ()
+            init_level_archive_args = {}
         self.gen_archive_cls = gen_archive_cls
 
         if PLAY_LEVEL:
@@ -1527,72 +1530,8 @@ class EvoPCGRL:
                     **init_level_archive_args,
                 )
 
-        reps_to_out_chans = {
-            "cellular": self.n_tile_types,
-            "cellular3D": self.n_tile_types,
-            "cellular3Dholey": self.n_tile_types,
-            "wide": self.n_tile_types,
-            "narrow": self.n_tile_types + 1,
-            "turtle": self.n_tile_types + N_DIRS,
-        }
-
-        reps_to_in_chans = {
-            "cellular": self.n_tile_types,
-            "cellular3D": self.n_tile_types,
-            "cellular3Dholey": self.n_tile_types,
-            "wide": self.n_tile_types,
-            "narrow": self.n_tile_types + 1,
-            "turtle": self.n_tile_types + 1,
-        }
-
-        n_out_chans = reps_to_out_chans[REPRESENTATION]
-        n_in_chans = reps_to_in_chans[REPRESENTATION]
-
-        if MODEL == "CNN":
-            # Adding n_tile_types as a dimension here. Why would this not be in the env's observation space though? Should be one-hot by default?
-            observation_shape = (
-                1,
-                self.n_tile_types,
-                *self.env.observation_space["map"].shape,
-            )
-
-            if isinstance(self.env.action_space, gym.spaces.Box):
-                action_shape = self.env.action_space.shape
-                assert len(action_shape) == 3
-                n_flat_actions = action_shape[0] * action_shape[1] * action_shape[2]
-            elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
-                nvec = self.env.action_space.nvec
-                assert len(nvec) == 3
-                n_flat_actions = nvec[0] + nvec[1] + nvec[2]
-            elif isinstance(self.env.action_space, gym.spaces.Discrete):
-                n_flat_actions = self.env.action_space.n
-            else:
-                raise NotImplementedError(
-                    "I don't know how to handle this action space: {}".format(
-                        type(self.env.action_space)
-                    )
-                )
-            self.gen_model = GeneratorNNDense(
-                n_in_chans=self.n_tile_types,
-                n_actions=n_out_chans,
-                observation_shape=observation_shape,
-                n_flat_actions=n_flat_actions,
-            )
-        # TODO: remove this, just call model "NCA"
-#       elif MODEL == "NCA":
-#           self.gen_model = globals()["GeneratorNN"](
-#               n_in_chans=self.n_tile_types, n_actions=n_out_chans
-#           )
-#       else:
-        n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN" in MODEL else self.n_tile_types
-        self.gen_model = globals()[MODEL](
-            n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env.unwrapped._prob._width,
-            render=RENDER, n_aux_chan=args.n_aux_chan)
-        # TODO: toggle CUDA/GPU use with command line argument.
-        if CUDA:
-            self.gen_model.cuda()
-        set_nograd(self.gen_model)
         # TODO: different initial weights per emitter as in pyribs lunar lander relanded example?
+        self._init_model()
 
         init_step_size = args.step_size
 #       if MODEL == "NCA":
@@ -1713,6 +1652,79 @@ class EvoPCGRL:
         with open(os.path.join(SAVE_PATH, "settings.json"), "w", encoding="utf-8") as f:
             json.dump(arg_dict, f, ensure_ascii=False, indent=4)
 
+    def _init_model(self):
+        global N_DIRS
+
+        if hasattr(self.env.unwrapped._rep.unwrapped, "_dirs"):
+        # if hasattr(self.env.unwrapped._rep, "_dirs"):
+            N_DIRS = len(self.env.unwrapped._rep.unwrapped._dirs)
+        else:
+            N_DIRS = 0
+        reps_to_out_chans = {
+            "cellular": self.n_tile_types,
+            "cellular3D": self.n_tile_types,
+            "cellular3Dholey": self.n_tile_types,
+            "wide": self.n_tile_types,
+            "narrow": self.n_tile_types + 1,
+            "turtle": self.n_tile_types + N_DIRS,
+        }
+
+        reps_to_in_chans = {
+            "cellular": self.n_tile_types,
+            "cellular3D": self.n_tile_types,
+            "cellular3Dholey": self.n_tile_types,
+            "wide": self.n_tile_types,
+            "narrow": self.n_tile_types + 1,
+            "turtle": self.n_tile_types + 1,
+        }
+        n_out_chans = reps_to_out_chans[REPRESENTATION]
+        n_in_chans = reps_to_in_chans[REPRESENTATION]
+
+        if MODEL == "CNN":
+            # Adding n_tile_types as a dimension here. Why would this not be in the env's observation space though? Should be one-hot by default?
+            observation_shape = (
+                1,
+                self.n_tile_types,
+                *self.env.observation_space["map"].shape,
+            )
+
+            if isinstance(self.env.action_space, gym.spaces.Box):
+                action_shape = self.env.action_space.shape
+                assert len(action_shape) == 3
+                n_flat_actions = action_shape[0] * action_shape[1] * action_shape[2]
+            elif isinstance(self.env.action_space, gym.spaces.MultiDiscrete):
+                nvec = self.env.action_space.nvec
+                assert len(nvec) == 3
+                n_flat_actions = nvec[0] + nvec[1] + nvec[2]
+            elif isinstance(self.env.action_space, gym.spaces.Discrete):
+                n_flat_actions = self.env.action_space.n
+            else:
+                raise NotImplementedError(
+                    "I don't know how to handle this action space: {}".format(
+                        type(self.env.action_space)
+                    )
+                )
+            self.gen_model = GeneratorNNDense(
+                n_in_chans=self.n_tile_types,
+                n_actions=n_out_chans,
+                observation_shape=observation_shape,
+                n_flat_actions=n_flat_actions,
+            )
+        # TODO: remove this, just call model "NCA"
+#       elif MODEL == "NCA":
+#           self.gen_model = globals()["GeneratorNN"](
+#               n_in_chans=self.n_tile_types, n_actions=n_out_chans
+#           )
+#       else:
+        n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN" in MODEL else self.n_tile_types
+        self.gen_model = globals()[MODEL](
+            n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env.unwrapped._prob._width,
+            render=RENDER, n_aux_chan=args.n_aux_chan)
+        # TODO: toggle CUDA/GPU use with command line argument.
+        if CUDA:
+            self.gen_model.cuda()
+        set_nograd(self.gen_model)
+
     def evolve(self):
 
         net_p_itr = 0
@@ -1766,7 +1778,7 @@ class EvoPCGRL:
                             player_2=self.player_2,
                             door_coords=self.door_coords,
                         )
-                        for model_w in gen_sols
+                        for model_w in gen_sols[n_launch * n_proc: (n_launch+1) * n_proc]
                     ]
                     results += ray.get(futures)
                     del futures
@@ -2091,7 +2103,8 @@ class EvoPCGRL:
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
         self.env = ConditionalWrapper(self.env)
-        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1)
+        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0)
+        self.env.unwrapped._get_stats_on_step = False
 
 #       if CMAES:
 #           # Give a little wiggle room from targets, to allow for some diversity (or not)
@@ -2116,15 +2129,6 @@ class EvoPCGRL:
 #               pass
 #           else:
 #               raise NotImplementedError
-
-        global N_DIRS
-
-        if hasattr(self.env.unwrapped._rep, "_dirs"):
-        # if hasattr(self.env.unwrapped._rep, "_dirs"):
-            N_DIRS = len(self.env.unwrapped._rep._dirs)
-        else:
-            N_DIRS = 0
-
         global N_STEPS
         global CONTINUOUS
         CONTINUOUS = PROBLEM == 'face_ctrl'
@@ -3120,16 +3124,22 @@ if __name__ == "__main__":
             )
         print("Loaded save file at {}".format(SAVE_PATH))
 
+        if INFER:
+            RENDER = True
+            N_STEPS = N_INFER_STEPS
+            RANDOM_INIT_LEVELS = False
+        else:
+            RENDER = False
+
+        evolver.init_env()
+        evolver._init_model()
+
         if VISUALIZE:
             if not ENV3D:
                 evolver.visualize()
 
         if INFER:
-            RENDER = True
-            N_STEPS = N_INFER_STEPS
-
             # evaluate on initial level seeds that each generator has seen before
-            RANDOM_INIT_LEVELS = False
             evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels_fixLvls")
 
@@ -3142,7 +3152,6 @@ if __name__ == "__main__":
             writer = init_tensorboard()
             # then we train
             RENDER = arg_dict["render"]
-            evolver.init_env()
             evolver.total_itrs = arg_dict["n_generations"]
             evolver.evolve()
     except FileNotFoundError as e:

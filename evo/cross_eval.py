@@ -181,7 +181,7 @@ def compile_results(settings_list, tex=False):
     hyperparam_rename = {
         "model" : {
             # "AuxNCA": newline("NCA with", "auxiliary channels", "r"),
-            "AuxNCA": "NCA with auxiliary channels",
+            # "AuxNCA": "NCA with auxiliary channels",
             # "Sin2CPPN": newline("fixed-topology", "CPPN", "r"),
             "Sin2CPPN": "fixed-topology CPPN",
             # "GenSin2CPPN2": newline("generative,", "fixed-topology CPPN", "r"),

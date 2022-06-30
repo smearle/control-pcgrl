@@ -31,6 +31,7 @@ class ZeldaCtrlProblem(ZeldaProblem):
             "nearest-enemy": 1,
             "path-length": 1,
         }
+        self._ctrl_reward_weights = self._reward_weights
 
         self.static_trgs = {
             "enemies": (2, self._max_enemies),

@@ -4,7 +4,7 @@ from pdb import set_trace as TT
 import numpy as np
 from PIL import Image
 
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
 # from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_2D_maze
@@ -224,9 +224,9 @@ class BinaryProblem(Problem):
                 }
             else:
                 self._graphics = {
-                    "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                    "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA'),
-                    "path" : Image.open(os.path.dirname(__file__) + "/binary/path_g.png").convert('RGBA'),
+                    "empty": Image.open(PROB_DIR + "/common/empty.png").convert('RGBA'),
+                    "solid": Image.open(PROB_DIR + "/common/solid.png").convert('RGBA'),
+                    "path" : Image.open(PROB_DIR + "/common/path_g.png").convert('RGBA'),
                 }
         return super().render(map, render_path=self.path_coords)
         # spawn_2Dmaze(map, self._border_tile, self._border_size)

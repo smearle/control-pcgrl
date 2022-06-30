@@ -52,6 +52,10 @@ class PcgrlEnv(gym.Env):
         self.width = self._prob._width
         self._change_percentage = 0.2
 
+        # Should we compute stats each step/reset? If not, assume some external process is computing terminal reward.
+        # TODO: adapt evolution to toggle a `terminal_reward` setting in the env.
+        self._get_stats_on_step = True
+
         # Effectively a dummy variable if `change_percentage` is later set to `None`.
         self._max_changes = max(int(self._change_percentage * np.prod(self.get_map_dims()[:-1])), 1)
 
@@ -145,7 +149,8 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         # continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
-        self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
+        if self._get_stats_on_step:
+            self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros(self.get_map_dims()[:-1])

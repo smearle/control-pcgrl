@@ -1,8 +1,9 @@
 import os
+from pathlib import Path
 from pdb import set_trace as TT
 import numpy as np
 from PIL import Image
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dijkstra, get_path_coords
 
 """
@@ -221,14 +222,14 @@ class ZeldaProblem(Problem):
                 }
             else:
                 self._graphics = {
-                    "empty": Image.open(os.path.dirname(__file__) + "/zelda/empty.png").convert('RGBA'),
-                    "solid": Image.open(os.path.dirname(__file__) + "/zelda/solid.png").convert('RGBA'),
+                    "empty": Image.open(PROB_DIR + "/common/empty.png").convert('RGBA'),
+                    "solid": Image.open(PROB_DIR + "/common/solid.png").convert('RGBA'),
                     "player": Image.open(os.path.dirname(__file__) + "/zelda/player.png").convert('RGBA'),
                     "key": Image.open(os.path.dirname(__file__) + "/zelda/key.png").convert('RGBA'),
                     "door": Image.open(os.path.dirname(__file__) + "/zelda/door.png").convert('RGBA'),
                     "spider": Image.open(os.path.dirname(__file__) + "/zelda/spider.png").convert('RGBA'),
                     "bat": Image.open(os.path.dirname(__file__) + "/zelda/bat.png").convert('RGBA'),
                     "scorpion": Image.open(os.path.dirname(__file__) + "/zelda/scorpion.png").convert('RGBA'),
-                    "path": Image.open(os.path.dirname(__file__) + "/zelda/path_g.png").convert('RGBA'),
+                    "path": Image.open(PROB_DIR + "/common/path_g.png").convert('RGBA'),
                 }
         return super().render(map, render_path=self.path)

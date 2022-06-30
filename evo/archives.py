@@ -184,8 +184,13 @@ class FlexArchive(InitStatesArchive):
 
 @njit
 def archive_init_states(init_states_archive, door_coord_archive, init_states, door_coords, index):
+    """Store the initial state/seed a generator used during training in a parallel archive, when the generator is added 
+    to the generator archive.
+    TODO: refactor storing initial states into the environment or an environment wrapped.
+    """
     init_states_archive[index] = init_states
-    door_coord_archive[index] = door_coords
+    if door_coords is not None:
+        door_coord_archive[index] = door_coords
 
 
 def get_qd_score(archive, args):

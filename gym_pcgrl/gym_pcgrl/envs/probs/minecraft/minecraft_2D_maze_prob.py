@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from PIL import Image
-from gym_pcgrl.envs.probs.problem import Problem
+from gym_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_2D_maze, spawn_2D_path 
 
@@ -156,9 +156,9 @@ class Minecraft2DmazeProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "AIR": Image.open(os.path.dirname(__file__) + "/minecraft/empty.png").convert('RGBA'),
-                "DIRT": Image.open(os.path.dirname(__file__) + "/minecraft/solid.png").convert('RGBA'),
-                "path": Image.open(os.path.dirname(__file__) + "/minecraft/path_g.png").convert('RGBA'),
+                "AIR": Image.open( PROB_DIR + "/common/empty.png").convert('RGBA'),
+                "DIRT": Image.open(PROB_DIR  + "/common/solid.png").convert('RGBA'),
+                "path": Image.open(PROB_DIR  + "/common/path_g.png").convert('RGBA'),
             }
         spawn_2D_maze(map, self._border_tile, self._border_size)
         spawn_2D_path(path=self.path_coords)

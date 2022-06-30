@@ -47,6 +47,9 @@ def launch_batch(exp_name, collect_params=False):
                                       batch_config.algos, batch_config.models, batch_config.fix_elites, 
                                       batch_config.fix_seeds, batch_config.n_steps_lst, batch_config.n_init_states_lst, 
                                       batch_config.step_sizes, batch_config.n_aux_chans)
+    settings_prod = list(settings_prod)
+    if settings_prod == 0:
+        raise Exception("No valid settings to run.")
     for exp_id, prob, rep, algo, model, fix_el, fix_seed, n_steps, n_init_states, step_size, n_aux_chan \
         in settings_prod:
 
@@ -137,6 +140,7 @@ def launch_batch(exp_name, collect_params=False):
                     "save_levels": False,
                     "step_size": step_size,
                     "render": args.render,
+                    "n_cpu": args.n_cpu,
                 }
             )
             if args.render:
@@ -270,6 +274,11 @@ if __name__ == "__main__":
         "--single_thread",
         help="Run experiment sequentially, instead of using ray to parallelise evaluation.",
         action="store_true",
+    )
+    opts.add_argument(
+        "--n_cpu",
+        type=int,
+        default=None,
     )
     opts.add_argument('-i', '--infer', action='store_true')
 #   opts.add_argument(
