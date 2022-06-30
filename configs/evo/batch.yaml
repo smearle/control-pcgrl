@@ -1,24 +1,24 @@
 {
  "exp_ids": [
 # "lcl",
-          0,
+          # 0,
           1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
+          # 2,
+          # 3,
+          # 4,
+          # 5,
+          # 6,
+          # 7,
+          # 8,
+          # 9,
+          # 10,
   ],
 
  "problems": [
         # "microstructure"
-        "binary_ctrl",
-        # "zelda_ctrl",
-        # "sokoban_ctrl",
+        "binary",
+        # "zelda",
+        # "sokoban",
         # "smb_ctrl"
         # "loderunner_ctrl",
         # "face_ctrl",
@@ -47,14 +47,14 @@
   ],
 
  "models": [
-        "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
+        # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
         "NCA",
-        "Decoder",
-        "GenSin2CPPN2",
-        "Sin2CPPN",
+        # "Decoder",
+        # "GenSin2CPPN2",
+        # "Sin2CPPN",
 
-        "GenCPPN2",
-        "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
+        # "GenCPPN2",
+        # "CPPN",  # Vanilla CPPN. No latents. Only runs with n_init_states = 0
 
 #       "GenCPPN",
 #       "DirectBinaryEncoding",
@@ -85,8 +85,8 @@
       # 1,
       # 0.5,
       # 0.1,
-      # 0.05,
-      0.01,
+      0.05,
+      # 0.01,
   ],
 
   # Reevaluate elites on new random seeds after inserting into the archive?
@@ -96,30 +96,32 @@
 
   # Fix a set of random levels with which to seed the generator (otherwise generate new ones each generation).
   "fix_seeds": [
-          # True,
-          False
+          True,
+          # False
           ],
 
   # How many random initial maps on which to evaluate each agent? (0 corresponds to a single layout with a square of wall
   # in the center)
   "n_init_states_lst" : [
-    # 0,
+    0,
     # 1,
-    10,
+    # 10,
     # 20,
     # 50,
   ],
 
   # How many steps in an episode of level editing?
   "n_steps_lst": [
-      1,
+      # 1,
     # 10,
-    50,
+    20,
+    # 50,
 #     100,
   ],
 
   "n_aux_chans": [
-    0,
+    # 0,
+    4,
     # 8,
     # 16,
     # 32,
@@ -131,17 +133,17 @@
   ],
 
   "local_bcs": {
-      "binary_ctrl": [
+      "binary": [
   #       ["regions", "path-length"],
   #       ["emptiness", "path-length"],
           ["symmetry", "path-length"],
       ],
-      "zelda_ctrl": [
+      "zelda": [
   #       ["nearest-enemy", "path-length"],
   #       ["emptiness", "path-length"],
           ["symmetry", "path-length"],
       ],
-      "sokoban_ctrl": [
+      "sokoban": [
   #       ["crate", "sol-length"],
           ["emptiness", "sol-length"],
   #       ["symmetry", "sol-length"],
