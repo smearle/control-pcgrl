@@ -45,7 +45,7 @@ import copy
 from args import get_args, get_exp_dir, get_exp_name
 from archives import CMAInitStatesGrid, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
-    set_weights, Decoder, NCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN
+    set_weights, Decoder, NCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN, DirectEncoding
 from utils import get_one_hot_map
 from gym_pcgrl.conditional_wrappers import ConditionalWrapper
 from gym_pcgrl.envs.helper import get_string_map
@@ -1141,6 +1141,7 @@ def simulate(
     for (n_episode, init_state) in enumerate(init_states):
         # TODO: wrap the env instead
         env.unwrapped._rep.unwrapped._x = env.unwrapped._rep.unwrapped._y = 0
+        env.reset() # Initialize the bordered map
         # Decoder and CPPN models will observe continuous latent seeds. #TODO: implement for CPPNs
         if ("Decoder" in MODEL) or ("CPPN" in MODEL):
             obs = init_state
@@ -1155,11 +1156,8 @@ def simulate(
                     # env.unwrapped._rep.set_holes(entrance_coords, exit_coords)
                 else:
                     raise NotImplementedError
-            env.reset() # Initialize the bordered map
-            env.unwrapped._rep.unwrapped._map = init_state.copy()
+            env.unwrapped._rep._map = init_state.copy()
             env.unwrapped._rep._update_bordered_map()
-            # env.unwrapped._rep._map = init_state.copy()
-            # env.unwrapped._rep._update_bordered_map()
             env.unwrapped._prob.path_coords = []
             env.unwrapped._prob.path_length = None
             # Only applies to narrow and turtle. Better than using reset, but ugly, and not optimal
@@ -1175,9 +1173,9 @@ def simulate(
             env.render()
 
             if INFER:
-                #               time.sleep(10/30)
-                #               input()
                 pass
+                # time.sleep(10/30)
+                #               input()
         done = False
 
         n_step = 0
@@ -1323,6 +1321,10 @@ def simulate(
                             stats, time_penalty, targets_penalty
                         )
                     )
+                if RENDER:
+                    pass
+                    # time.sleep(0.2)
+                    # TT()
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
@@ -1464,6 +1466,8 @@ class EvoPCGRL:
                 'map_dims': (self.height, self.width, self.length),
                 'n_init_states': N_INIT_STATES,
             }
+        if "Decoder" in MODEL or "CPPN" in MODEL:
+            init_level_archive_args.update({"map_dims": (N_LATENTS, self.height // 4, self.width // 4)})
         else:
             init_level_archive_args = {}
         self.init_level_archive_args = init_level_archive_args
@@ -1615,7 +1619,7 @@ class EvoPCGRL:
                    'n_actions': self.n_tile_types,
                    'step_size': args.step_size,
             }
-            if MODEL == "DirectBinaryEncoding":
+            if MODEL == "DirectEncoding":
                 ind_cls_args.update({'map_width': self.env.unwrapped._prob._width})
 
             self.gen_optimizer = MEOptimizer(grid=self.gen_archive,
@@ -3143,10 +3147,11 @@ if __name__ == "__main__":
             evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels_fixLvls")
 
-            # evaluate on random initial level seeds
-            RANDOM_INIT_LEVELS = True
-            evolver.infer(concat_gifs=CONCAT_GIFS)
-            save_grid(csv_name="eval_levels")
+            if not isinstance(evolver.model, DirectEncoding):
+                # evaluate on random initial level seeds
+                RANDOM_INIT_LEVELS = True
+                evolver.infer(concat_gifs=CONCAT_GIFS)
+                save_grid(csv_name="eval_levels")
 
         if not (INFER or VISUALIZE):
             writer = init_tensorboard()

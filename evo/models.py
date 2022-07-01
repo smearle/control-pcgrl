@@ -2,6 +2,7 @@ import math
 from pdb import set_trace as TT
 
 import cv2
+from einops import rearrange
 import neat
 from neat import DefaultGenome
 import numpy as np
@@ -560,26 +561,27 @@ class FixedGenCPPN(ResettableNN):
         return x, True
 
 
-class DirectBinaryEncoding():
+class DirectEncoding():
+    """In this "model" (if you can call it that), the weights are the level itself. (Continuous methods like CMA won't
+    make sense here!) Though we accept an input, it is totally ignored."""
     def __init__(self, n_in_chans, n_actions, map_width, **kwargs):
+        self.n_actions = n_actions  # how many distinct tiles can appear in the output
         self.layers = np.array([])  # dummy
         self.discrete = th.randint(0, n_in_chans, (map_width, map_width))
 
     def __call__(self, x):
-        # if self.discrete is None:
-            # self.discrete = x[0].argmax(0)
-
-        onehot = th.zeros(1, x.shape[1], x.shape[2], x.shape[3])
-        onehot[0,0,self.discrete==0]=1
-        onehot[0,1,self.discrete==1]=1
-        # onehot.scatter_(1, self.discrete.unsqueeze(0), 1)
-
+        # onehot = th.zeros(1, x.shape[1], x.shape[2], x.shape[3])
+        # onehot[0,0,self.discrete==0]=1
+        # onehot[0,1,self.discrete==1]=1
+        onehot = th.eye(self.n_actions)[self.discrete]
+        onehot = rearrange(onehot, "h w c -> 1 c h w")
         return onehot, True
 
     def mutate(self):
         # flip some tiles
         mut_act = (th.rand(self.discrete.shape) < 0.01).long()  # binary mutation actions
-        new_discrete = (self.discrete + mut_act) % 2
+        mut_act *= th.randint(1, self.n_actions, mut_act.shape)
+        new_discrete = (self.discrete + mut_act) % self.n_actions
         self.discrete = new_discrete
 
     def reset(self):

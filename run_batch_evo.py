@@ -91,7 +91,7 @@ def launch_batch(exp_name, collect_params=False):
             if n_init_states == 0 and "Decoder" in model:
                 continue
 
-            if model in ["CPPN", "GenCPPN", "GenCPPN2", "CPPNCA", "DirectBinaryEncoding"]:
+            if model in ["CPPN", "GenCPPN", "GenCPPN2", "CPPNCA", "DirectEncoding"]:
                 if algo != "ME":
                     print(f"Skipping experiments with model {model} and algo {algo}. (requires "
                     "MAP-Elites.)")
@@ -99,6 +99,14 @@ def launch_batch(exp_name, collect_params=False):
             else:
                 pass
                 # algo = "CMAME"
+
+            if model == "DirectEncoding":
+                if n_init_states != 1:
+                    print("DirectEncoding only works with n_init_states=1. (Seed is ignored.)")
+                    continue
+                if not (fix_seed and fix_el):
+                    print("DirectEncoding only works with fix_seed=True and fix_elites=True. (Seed is ignored.)")
+                    continue
 
             if 'CPPN' in model:
                 if 'Gen' not in model and model != "CPPNCA":
