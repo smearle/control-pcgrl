@@ -412,7 +412,7 @@ preprocess_observation_funcs = {
 }
 
 
-# @njit
+@njit
 def get_init_states(init_states_archive, door_coords_archive, index):
     return init_states_archive[index], door_coords_archive[index]
 
@@ -920,7 +920,7 @@ def multi_evo(
     door_coords=None,
 ):
     if init_states is None:
-        init_states, door_coords = get_init_states(init_states_archive, tuple(index))
+        init_states, door_coords = get_init_states(init_states_archive, door_coords_archive, tuple(index))
 
     # if proc_id is not None:
     #     print("simulating id: {}".format(proc_id))
