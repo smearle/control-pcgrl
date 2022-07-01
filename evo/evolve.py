@@ -3160,7 +3160,7 @@ if __name__ == "__main__":
             evolver.total_itrs = arg_dict["n_generations"]
             evolver.evolve()
     except FileNotFoundError as e:
-        if not INFER:
+        if not INFER or EVALUATE:
             RENDER = arg_dict["render"]
             print(
                 "Failed loading from an existing save-file. Evolving from scratch. The error was: {}".format(

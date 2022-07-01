@@ -21,11 +21,12 @@ from evo.render_gifs import render_gifs
 
 GECCO_CROSS_EVAL = False
 
-with open("configs/evo/batch.yaml", "r") as f:
-    batch_config = yaml.safe_load(f)
-batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
 
-def launch_batch(exp_name, collect_params=False):
+def launch_batch(opts, exp_name, collect_params=False):
+    with open(f"configs/evo/{opts.batch}.yaml", "r") as f:
+        batch_config = yaml.safe_load(f)
+    batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
+
     if collect_params:
         settings_list = []
         assert not EVALUATE
@@ -118,7 +119,8 @@ def launch_batch(exp_name, collect_params=False):
                     continue
 
             # The decoder generates levels in a single pass (from a smaller latent)
-            if 'Decoder' in model and n_steps != 1:
+            if 'Decoder' in model or 'DirectEncoding' in model and n_steps != 1:
+                print('Too many steps for 1-pass generator.')
                 continue
 
             # For rendering tables for the GECCO paper, we exclude a bunch of experiments.
@@ -236,6 +238,12 @@ if __name__ == "__main__":
     )
 
     opts.add_argument(
+        "-b",
+        "--batch",
+        type=str,
+        default="batch",
+    )
+    opts.add_argument(
         "-ex",
         "--experiment_name",
         help="A name to be shared by the batch of experiments.",
@@ -308,7 +316,7 @@ if __name__ == "__main__":
 
     if args.cross_eval or args.gif:
         from evo.cross_eval import compile_results
-        settings_list = launch_batch(EXP_NAME, collect_params=True)
+        settings_list = launch_batch(opts, EXP_NAME, collect_params=True)
     if args.cross_eval:
         compile_results(settings_list, tex=args.tex)
         if not args.tex:
@@ -319,4 +327,4 @@ if __name__ == "__main__":
     elif args.gif:
         render_gifs(settings_list)
     else:
-        launch_batch(EXP_NAME)
+        launch_batch(opts, EXP_NAME)
