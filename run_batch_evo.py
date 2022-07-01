@@ -74,6 +74,10 @@ def launch_batch(exp_name, collect_params=False):
                 if n_steps != batch_config.n_steps_lst[0]:
                     continue
 
+            if n_aux_chan > 0 and "NCA" not in model:
+                print("Skipping experiment with n_aux_chan > 0 and model != NCA.")
+                continue
+
             if "NCA" in model and n_steps <= 5:
                 print("Skipping experiments with NCA model and n_steps <= 5.")
                 continue

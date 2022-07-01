@@ -56,6 +56,8 @@ class MixActiv(nn.Module):
         return x
 
 
+RENDER_AUX_NCA = False # overwrite kwarg so we can render level frames on HPC
+
 class NCA(ResettableNN):
     def __init__(self, n_in_chans, n_actions, n_aux_chan=0, render=False, **kwargs):
         """
@@ -72,8 +74,9 @@ class NCA(ResettableNN):
         self.layers = [self.l1, self.l2, self.l3]
         self.last_aux = None
         self.apply(init_weights)
-        self._render = render
-        if render:
+        # self._render = render
+        self._render = RENDER_AUX_NCA
+        if self._render:
             cv2.namedWindow("Auxiliary NCA")
 
     def forward(self, x):
