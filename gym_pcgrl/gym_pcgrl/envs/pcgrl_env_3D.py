@@ -124,8 +124,13 @@ class PcgrlEnv3D(PcgrlCtrlEnv):
             return
         elif RENDER_MODE == RENDER_MINECRAFT:
             # Render the agent's edit action.
+           
+            # NOTE: can't call rep render twice (or agent's current position becomes invalid on second call...)
             self._rep.render(get_string_map(
                 self._get_rep_map(), self._prob.get_tile_types()))
+
+            # self._rep.render(get_string_map(
+            #     self._get_rep_map(), self._prob.get_tile_types()), offset=(-10, 0, 0))
 
             # Render the resulting path.
             self._prob.render(get_string_map(

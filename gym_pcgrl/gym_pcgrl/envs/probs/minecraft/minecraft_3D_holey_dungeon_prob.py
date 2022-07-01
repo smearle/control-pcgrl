@@ -3,11 +3,11 @@ from pdb import set_trace as TT
 from sklearn.utils import check_X_y
 
 from gym_pcgrl.envs.helper_3D import calc_certain_tile, calc_num_regions, get_path_coords, get_tile_locations, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_maze, spawn_3D_path, spawn_base
+from gym_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_3D_border, spawn_3D_bordered_map, spawn_3D_doors, spawn_3D_maze, spawn_3D_path, spawn_base
 import numpy as np
 
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES
+from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import WOODEN_SLAB, LEAVES, PURPUR_SLAB, WOOL
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -15,7 +15,7 @@ Generate a fully connected top down layout where the longest path is greater tha
 class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
     def __init__(self):
         Minecraft3DholeymazeProblem.__init__(self)
-        self._passable = ["AIR", "CHEST", "SKULL", "PUMPKIN"]
+        self._passable = set({"AIR", "CHEST", "SKULL", "PUMPKIN"})
         # self._prob = {"AIR": 0.5, "DIRT":0.35, "CHEST":0.05, "SKULL":0.05, "PUMPKIN":0.05}
         self._prob = {"AIR": 1.0, "DIRT":0., "CHEST":0.0, "SKULL":0.0, "PUMPKIN":0.0}
         # self._border_tile = "DIRT"
@@ -83,8 +83,6 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
 
-        self.old_path_coords = self.path_coords
-
         self.path_coords = []
 
         map_stats = {
@@ -113,6 +111,7 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
                 if e_dist > 0 and (e_dist < min_dist or min_dist == 0):
                     min_dist = e_dist
                     self.min_e_path = e_path
+                    self.min_e_path = remove_stacked_path_tiles(self.min_e_path)
             map_stats["nearest-enemy"] = min_dist
 
 
@@ -137,6 +136,7 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
                 # self.path_coords = np.vstack((get_path_coords(paths_c, c_x, c_y, c_z),
                                             #   get_path_coords(pathd_d, d_x, d_y, d_z)))
             self.path_coords = path_c + path_d
+            self.path_coords = remove_stacked_path_tiles(self.path_coords)
             # self.path_coords = np.vstack((path_c, path_d))
 
         self.path_length = map_stats["path-length"]
@@ -173,7 +173,17 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
             # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
             # spawn_3D_maze(map)
             # spawn_3D_bordered_map(map)
+
+            spawn_base(map, base_pos=6)
+            spawn_3D_doors(map, self.entrance_coords[0], self.exit_coords[0])
+            # TODO: do not render border, only footholds
+            map = np.array(map)
+            spawn_3D_bordered_map(map[1:-1, 1:-1, 1:-1])
+            # spawn_3D_maze(map[1:-1, 1:-1, 1:-1])
+
+            # spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True
+
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
@@ -186,7 +196,7 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         # just in case.
         # old_path_coords = [tuple(coords) for coords in self.old_path_coords]
         # path_to_erase = set(old_path_coords)
-        # path_to_render = []
+        # path_to_render = []render_path_change
         # for (x, y, z) in self.path_coords:
         #     if (x, y, z) in path_to_erase:
         #         path_to_erase.remove((x, y, z))
@@ -204,21 +214,49 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
             # block_dict.update(get_3D_path_blocks(self.path_coords))
         # spawn_base(map)
         # spawn_3D_maze(map)
-        render_path_coords = self.path_coords
-        render_path_coords = remove_stacked_path_tiles(render_path_coords)
-        render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
-        render_path_coords = np.array(render_path_coords) - 1
-        spawn_3D_path(render_path_coords)
+        # render_path_coords = self.path_coords
+        # render_path_coords = remove_stacked_path_tiles(render_path_coords)
+        # render_path_coords = [tuple(coords) for coords in render_path_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
+        # render_path_coords = np.array(render_path_coords) - 1
+        # spawn_3D_path(render_path_coords)
         # render_path_e_coords = self.min_e_path
         # render_path_e_coords = remove_stacked_path_tiles(render_path_e_coords)
         # render_path_e_coords = [tuple(coords) for coords in render_path_e_coords if map[coords[2]][coords[1]][coords[0]] == 'AIR']
         # spawn_3D_path(render_path_e_coords, item=LEAVES)
+
+        path_coords = set([tuple(coords) for coords in self.path_coords])
+        e_path_coords = set([tuple(coords) for coords in self.min_e_path])
+        # if not debug_path(path_coords, map, ["AIR"]):
+            # raise Exception("Path is not valid my friend")        
+        # if not debug_path(cnct_path_coords, map, ["AIR"]):
+            # raise Exception("Connected Path is not valid my friend")
+        old_e_path_coords = set([tuple(coords) for coords in self.old_e_path_coords])
+        for (x, y, z) in list(e_path_coords):
+            if (x, y, z) in path_coords:
+                # Do not render tiles in the enemy-path that are also in the connected path
+                e_path_coords.remove((x, y, z))
+                # If a block is in both paths *and* the old enemy-path, then we have removed it from the 
+                # enemy-path to render, above. We also need to remove it from the old enemy-path, so 
+                # that we don't unnecessarily delete it while rendering the change in the enemy-path.
+                if (x, y, z) in old_e_path_coords:
+                    old_e_path_coords.remove((x, y, z))
+        # [path_coords.remove((x, y, z)) for (x, y, z) in list(path_coords) if (x, y, z) in cnct_path_coords]
+        # assert debug_path(path_coords, map, ["AIR"])
+        # assert debug_path(cnct_path_coords, map, ["AIR"])
+
+        # NOTE: cannot call twice, or old path coords become out of date
+        self.render_path_change(map, e_path_coords, old_e_path_coords, item=WOODEN_SLAB)
+        self.render_path_change(map, path_coords, self.old_path_coords, item=PURPUR_SLAB)
+
 
         # render_blocks(block_dict)
 
         # plot the path using matplotlib
         if render_matplotlib:
             plot_3D_path(self._length, self._width, self._height, self.path_coords)
+
+        self.old_path_coords = self.path_coords.copy()
+        self.old_e_path_coords = self.min_e_path.copy()
 
         return 
 
@@ -231,6 +269,7 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
     """
     def reset(self, start_stats):
         self.min_e_path = []
+        self.old_e_path_coords = []
         self._rendered_initial_maze = False
         super().reset(start_stats)
         if self._random_probs:

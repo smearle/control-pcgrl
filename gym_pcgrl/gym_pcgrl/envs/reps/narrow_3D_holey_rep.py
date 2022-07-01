@@ -88,9 +88,10 @@ class Narrow3DHoleyRepresentation(HoleyRepresentation3D, Narrow3DRepresentation)
         self._new_coords = [self._x, self._y, self._z]
         return change, [self._x, self._y, self._z]
     
-    def render(self, map):
+    def render(self, map, **kwargs):
         x, y, z = self._old_coords[0], self._old_coords[1], self._old_coords[2]
-        edit_bordered_3D_maze(map, x, y, z)
+        # x, y, z = self._x, self._y, self._z
+        edit_bordered_3D_maze(np.array(map), x, y, z, **kwargs)
         # spawn_3D_bordered_map(map)
         self._old_coords = self._new_coords
 
