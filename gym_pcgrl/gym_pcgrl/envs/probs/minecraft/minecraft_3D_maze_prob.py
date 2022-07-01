@@ -8,7 +8,7 @@ vertical blocks available on the lower step (and two vertical blocks available o
 """
 from pdb import set_trace as TT
 import time
-from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import TRAPDOOR
+from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import PURPUR_SLAB
 
 import numpy as np
 from timeit import default_timer as timer
@@ -30,6 +30,7 @@ class Minecraft3DmazeProblem(Problem3D):
         self._length = 7
         self._width = 7
         self._height = 7
+        self._passable = set({"AIR"})
         self._prob = {"AIR": 1.0, "DIRT": 0.0}
         self._border_tile = "DIRT"
         self._border_size = (1, 1, 1)
@@ -237,23 +238,24 @@ class Minecraft3DmazeProblem(Problem3D):
             "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
 
-    def render_path_change(self, map, path_coords, old_path_coords, item=TRAPDOOR, **kwargs):
+    def render_path_change(self, map, path_coords, old_path_coords, item=PURPUR_SLAB, **kwargs):
         path_to_erase = set([tuple(coords) for coords in old_path_coords])
-        path_to_render = set([tuple(coords) for coords in path_coords])
+        path_to_render = set([tuple(coords) for coords in path_coords if map[coords[2]][coords[1]][coords[0]] == "AIR"])
+
+        # Do not erase pieces of the old path that are in the new one.
+        # Do not erase pieces of the old path that have already been overwritten by some non-air block. 
         for (x, y, z) in list(path_to_erase):
             if (x, y, z) in path_to_render:
                 path_to_erase.remove((x, y, z))
                 # Red glazed terracotta may have deleted me though. Or if I'm perishable, I may have perished.
                 # path_to_render.remove((x, y, z)) 
-            if map[z][y][x] != "AIR":
+            # Note that if we're in the path to render, we can't also be non-air.
+            elif map[z][y][x] != "AIR":
                 path_to_erase.remove((x, y, z))
-            # else:
-                # path_to_render.append((x, y, z))
-#       print(self.path_coords)
-#       print(path_to_render)
-#       print(len(self.path_coords))
-        # if self.render_path:
-        # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
+                # In, e.g., a dungeon, the block may be non-air, but still in the path-to-render, in which case we 
+                # will *not* actually render it.
+                if (x, y, z) in path_to_render:
+                    path_to_render.remove((x, y, z))
 
         erase_3D_path(path_to_erase, **kwargs)
         # time.sleep(2)

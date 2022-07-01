@@ -8,6 +8,7 @@ vertical blocks available on the lower step (and two vertical blocks available o
 """
 import itertools
 from pdb import set_trace as TT
+from this import d
 from tkinter import W
 from gym_pcgrl.envs.probs.holey_prob_3D import HoleyProblem3D
 
@@ -19,7 +20,7 @@ from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_bordered_map, spawn_3D_doors, spawn_3D_maze, spawn_3D_border, spawn_3D_path, 
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
-from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import LEAVES, TRAPDOOR
+from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import BEDROCK, WOODEN_SLAB, LEAVES, TORCH, PURPUR_SLAB, WOOL
 import ray
 # from gym_pcgrl.test3D import plot_3d_map
 
@@ -74,18 +75,18 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
 
         # for earsing the path of the previous iteration in Minecraft
         # new path coords are updated in the render function
-        self.old_path_coords = self.path_coords.copy()
-        self.old_connected_path_coords = self.connected_path_coords.copy()
 
         # do not fix the positions of entrance and exit (calculating the longest path among 2 random positions) 
         # start_time = timer()
         
         paths, _, jumps = run_dijkstra(self.entrance_coords[0][2], self.entrance_coords[0][1], self.entrance_coords[0][0], map, ["AIR"])
         # connected_path_length = dijkstra_map[self.exit_coords[0][0], self.exit_coords[0][1], self.exit_coords[0][2]]
-        exit_coords = tuple(self.exit_coords[0][::-1])  # lol ... why?
+        exit_coords = tuple(self.exit_coords[0][::-1])  # lol ... why? Because the entrance/exit coords was (z, y, x)
         self.connected_path_length = len(paths[exit_coords]) if exit_coords in paths else -1
         self.connected_path_coords = np.array(paths[exit_coords]) if exit_coords in paths else []
         self.connected_path_coords = remove_stacked_path_tiles(self.connected_path_coords)
+
+
         self.n_jump = jumps[exit_coords] if exit_coords in jumps else 0
         tiles_paths = [(tile, path) for tile, path in paths.items()]
         max_id = np.argmax(np.array([len(p) for (_,p) in tiles_paths]))
@@ -196,15 +197,20 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
         # Render the border if we haven't yet already.
         if not self._rendered_initial_maze:
             # spawn_3D_border(map, self._border_tile, entrance_coords=self.entrance_coords, exit_coords=self.exit_coords)
-            spawn_base(map)
+            spawn_base(map, base_pos=6)
             spawn_3D_doors(map, self.entrance_coords[0], self.exit_coords[0])
             # TODO: do not render border, only footholds
             map = np.array(map)
-            spawn_3D_maze(map)
+            spawn_3D_bordered_map(map[1:-1, 1:-1, 1:-1])
+            # spawn_3D_maze(map[1:-1, 1:-1, 1:-1])
 
             # spawn_3D_bordered_map(map)
             self._rendered_initial_maze = True
 
+        # spawn_3D_bordered_map(np.array(map)[1:-1, 1:-1, 1:-1])
+
+        # spawn_3D_bordered_map(np.array(map)[1:-1, 1:-1, 1:-1], offset=(10, 0, 0))
+       
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow
         # block_dict.update(get_3D_maze_blocks(map))
@@ -236,15 +242,30 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
 
         path_coords = set([tuple(coords) for coords in self.path_coords])
         cnct_path_coords = set([tuple(coords) for coords in self.connected_path_coords])
+        if not debug_path(path_coords, map, ["AIR"]):
+            raise Exception("Path is not valid my friend")        
+        if not debug_path(cnct_path_coords, map, ["AIR"]):
+            raise Exception("Connected Path is not valid my friend")
         old_path_coords = set([tuple(coords) for coords in self.old_path_coords])
         for (x, y, z) in list(path_coords):
             if (x, y, z) in cnct_path_coords:
+                # Do not render tiles in the non-connected path that are also in the connected path
                 path_coords.remove((x, y, z))
+                # If a block is in both paths *and* the old non-connected path, then we have removed it from the 
+                # non-connected path to render, above. We also need to remove it from the old non-connected path, so 
+                # that we don't unnecessarily delete it while rendering the change in the non-connected path.
                 if (x, y, z) in old_path_coords:
                     old_path_coords.remove((x, y, z))
         # [path_coords.remove((x, y, z)) for (x, y, z) in list(path_coords) if (x, y, z) in cnct_path_coords]
-        self.render_path_change(map, path_coords, old_path_coords, item=LEAVES)
-        self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, item=TRAPDOOR)
+        assert debug_path(path_coords, map, ["AIR"])
+        assert debug_path(cnct_path_coords, map, ["AIR"])
+
+        # NOTE: cannot call twice, or old path coords become out of date
+        self.render_path_change(map, path_coords, old_path_coords, item=WOODEN_SLAB)
+        self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, item=PURPUR_SLAB)
+
+        # self.render_path_change(map, path_coords, old_path_coords, item=WOODEN_SLAB, offset=(10, 0, 0))
+        # self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, item=PURPUR_SLAB, offset=(20, 0, 0))
         # if self.render_path:
             # block_dict.update(get_erased_3D_path_blocks(self.old_path_coords))
             # erase_3D_path(path_to_erase)

@@ -1,11 +1,9 @@
 # import gym
-from turtle import position
 import grpc
 # import minecraft_pb2_grpc
 # from minecraft_pb2 import *
 import gym_pcgrl.envs.probs.minecraft.minecraft_pb2_grpc as minecraft_pb2_grpc
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import *
-import time
 from pdb import set_trace as TT
 
 CHANNEL = grpc.insecure_channel('localhost:5001')
@@ -240,7 +238,7 @@ def spawn_3D_maze(map, base_pos=5):
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
-def spawn_3D_bordered_map(map, base_pos=5):
+def spawn_3D_bordered_map(map, base_pos=5, offset=(0, 0, 0)):
     blocks = []
     for k in range(len(map)):
         for j in range(len(map[k])):
@@ -248,7 +246,8 @@ def spawn_3D_bordered_map(map, base_pos=5):
                 item = get_tile(map[k][j][i])
                 # FIXME: why base_pos is str? Because sometimes we are incorrectlyproviding self._border_tile as the 
                 #  second arguement from inside the problem.
-                blocks.append(Block(position=Point(x=i+1, y=k+base_pos+1,  z=j+1),   # NOTE: the -1 may cause a problem when the border is thicker than 1
+                blocks.append(Block(
+                    position=Point(x=i+1+offset[0], y=k+base_pos+1+offset[2],  z=j+1+offset[1]),   # NOTE: the -1 may cause a problem when the border is thicker than 1
                                     type=item, orientation=NORTH))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -260,23 +259,25 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=TRAPDOOR):
+def spawn_3D_path(path, base_pos=5, item=PURPUR_SLAB, offset=(0, 0, 0)):
     if len(path) == 0:
         return
     blocks = []
     for pos in path:
-        blocks.append(Block(position=Point(x=pos[0], y=pos[2]+base_pos , z=pos[1]),
+        blocks.append(Block(position=Point(
+            x=pos[0]+offset[0], y=pos[2]+base_pos+offset[2] , z=pos[1]+offset[1]),
                                 type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
 
 
-def erase_3D_path(path, base_pos=5, item=AIR):
+def erase_3D_path(path, base_pos=5, item=AIR, offset=(0, 0, 0)):
     if len(path) == 0:
         return
     blocks = []
     for pos in path:
-        blocks.append(Block(position=Point(x=pos[0], y=pos[2]+5 , z=pos[1]),
+        blocks.append(Block(position=Point(
+            x=pos[0]+offset[0], y=pos[2]+5+offset[2] , z=pos[1]+offset[1]),
                                 type=item))
     CLIENT.spawnBlocks(Blocks(blocks=blocks))
     return
@@ -310,7 +311,7 @@ def edit_3D_maze(map, i, j, k, base_pos=5):
     # time.sleep(2)
     return
 
-def edit_bordered_3D_maze(map, i, j, k, base_pos=5):
+def edit_bordered_3D_maze(map, i, j, k, base_pos=5, offset=(0, 0, 0)):
     '''
     Render function for high-lighting the action
 
@@ -321,11 +322,13 @@ def edit_bordered_3D_maze(map, i, j, k, base_pos=5):
         j (int) : the y position that the action take place
         k (int) : the z position that the action take place
     '''
-    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i+1, y=k+base_pos+1, z=j+1),
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(
+        x=i+1+offset[0], y=k+base_pos+1+offset[2], z=j+1+offset[1]),
                                             type=RED_GLAZED_TERRACOTTA, orientation=NORTH)]))
-    # time.sleep(0.2)
-    item = get_tile(map[k][j][i])
-    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=i+1, y=k+base_pos+1, z=j+1),
+    # time.sleep(0.5)
+    item = get_tile(map[k+1][j+1][i+1])
+    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(
+        x=i+1+offset[0], y=k+base_pos+1+offset[2], z=j+1+offset[1]),
                                             type=item, orientation=NORTH)]))
     return
 
@@ -339,15 +342,29 @@ def spawn_3D_doors(map, entrance, exit, base_pos=5):
         exit (tuple): the exit position
         base_pos (int): the vertical height of the bottom of the maze
     '''
-    CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=entrance[2], y=entrance[0]+base_pos, z=entrance[1]),
-                                            type=WOODEN_DOOR, orientation=NORTH),
-                                Block(position=Point(x=exit[2], y=exit[0]+base_pos, z=exit[1]),
-                                      type=WOODEN_DOOR, orientation=NORTH)]))
-    # spawn colored blocks below the doors
+    # render a border (and inner map) of air
+    border_size = (1, 1, 1)
+    i, k, j = len(map[0][0]), len(map), len(map[0])
+    CLIENT.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=-border_size[0], y=base_pos+1, z=-border_size[1]),
+            max=Point(x=i+border_size[0]-1, y=base_pos + k +
+                      border_size[2]-1, z=j+border_size[1]-1)
+        ),
+        type=AIR
+    ))
+    
+    # spawn colored blocks as supports for the entrance and exit
     CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=entrance[2], y=entrance[0]+base_pos-1, z=entrance[1]),
                                             type=GOLD_BLOCK, orientation=NORTH),
                                 Block(position=Point(x=exit[2], y=exit[0]+base_pos-1, z=exit[1]),
                                       type=DIAMOND_BLOCK, orientation=NORTH)]))
+
+    # # spawn a carpet to step on
+    # CLIENT.spawnBlocks(Blocks(blocks=[Block(position=Point(x=entrance[2], y=entrance[0]+base_pos, z=entrance[1]),
+    #                                         type=CARPET, orientation=NORTH),
+    #                             Block(position=Point(x=exit[2], y=exit[0]+base_pos, z=exit[1]),
+    #                                   type=CARPET, orientation=NORTH)]))
     return
 
     

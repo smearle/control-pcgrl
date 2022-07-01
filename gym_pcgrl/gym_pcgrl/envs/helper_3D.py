@@ -688,6 +688,9 @@ def debug_path(path, map, passable_values):
         if z + 2 > len(map):
             print(f'My head is sticking out of range!!!!!!!!!!!!!!!! My foot is at the position {x}, {y}, {z}')
             return False
+        if z + 1 > len(map):
+            print(f'My head is sticking out of range!!!!!!!!!!!!!!!! My foot is at the position {x}, {y}, {z}')
+            return False
         if map[z+1][y][x] not in passable_values: 
             print(f'Something in position {x}, {y}, {z+1} blocks my head!!!!!!!!!!!!!!!!!!!!!!!!!!')
             return False 

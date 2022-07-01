@@ -42,7 +42,7 @@ def infer(game, representation, model_path, **kwargs):
                 print(info[0])
             if dones:
                 break
-        time.sleep(2)
+        # time.sleep(2)
 
 
 ################################## MAIN ########################################
