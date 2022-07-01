@@ -64,14 +64,7 @@ from qdpy import plots as qdpy_plots
 # print([env.id for env in envs.registry.all() if "gym_pcgrl" in env.entry_point])
 """
 /// Required Environment ///
-conda create -n ribs-pt python=3.7
-pip install scipy==1.2.0  # must use this version with GVGAI_GYM
-conda install -c conda-forge notebook
-conda install pytorch torchvision torchaudio -c pyth
-conda install tensorboard
-pip install 'ribs[all]' gym~=0.17.0 Box2D~=2.3.10 tqdm
-git clone https://github.com/amidos2006/gym-pcgrl.git
-cd gym-pcgrl  # Must run in project root folder for access to pcgrl modules
+see setup.sh
 
 /// Instructions ///
 To start TensorBoard run the following command:
@@ -94,6 +87,8 @@ https://arxiv.org/pdf/2009.01398.pdf
 RIBS examples:
 https://docs.pyribs.org/en/stable/tutorials/lunar_lander.html
 """
+
+matplotlib.use('Agg')
 
 
 def save_level_frames(level_frames, model_name):
@@ -1156,7 +1151,7 @@ def simulate(
                     # env.unwrapped._rep.set_holes(entrance_coords, exit_coords)
                 else:
                     raise NotImplementedError
-            env.unwrapped._rep._map = init_state.copy()
+            env.unwrapped._rep.unwrapped._map = init_state.copy()
             env.unwrapped._rep._update_bordered_map()
             env.unwrapped._prob.path_coords = []
             env.unwrapped._prob.path_length = None
@@ -1168,6 +1163,20 @@ def simulate(
             else:
                 int_map = init_state
             obs = get_one_hot_map(int_map, n_tile_types)
+
+        if RENDER or RENDER_LEVELS:
+            if INFER:
+                if ENV3D:
+                    stats = env.unwrapped._prob.get_stats(
+                        get_string_map_3d(int_map, env.unwrapped._prob.get_tile_types()),
+                        # lenient_paths=True,
+                    )
+                    print(stats)
+                else:
+                    stats = env.unwrapped._prob.get_stats(
+                        get_string_map(int_map, env.unwrapped._prob.get_tile_types(), continuous=CONTINUOUS),
+                        # lenient_paths=True,
+                    )
 
         if RENDER:
             env.render()
@@ -1184,7 +1193,7 @@ def simulate(
         while not done:
             if env.unwrapped._rep.unwrapped._map is not None:
                 if render_levels:
-                    level_frames.append(env.render(mode="rgb_array"))
+                    level_frames.append(env.render(mode="image"))
             #           in_tensor = th.unsqueeze(
             #               th.unsqueeze(th.tensor(np.float32(obs['map'])), 0), 0)
             in_tensor = th.unsqueeze(th.Tensor(obs), 0)
@@ -1223,10 +1232,6 @@ def simulate(
             #               time.sleep(1 / 30)
 
             if done:
-                model.reset()
-                if render_levels:
-                    # get final level state
-                    level_frames.append(env.render(mode="rgb_array"))
                 # we'll need this to compute Hamming diversity
                 if ENV3D and IS_HOLEY:
                     final_levels[n_episode] = int_map[1:-1, 1:-1, 1:-1]
@@ -1242,6 +1247,10 @@ def simulate(
                         get_string_map_3d(int_map, env.unwrapped._prob.get_tile_types()),
                         # lenient_paths = True,
                     )
+                if render_levels:
+                    # get final level state
+                    level_frames.append(env.render(mode="image"))
+                model.reset()
 
                 # get BCs
                 # Resume here. Use new BC function.
@@ -1297,7 +1306,7 @@ def simulate(
 
                     #TODO Add discriminator here
 
-            if RENDER:
+            if RENDER or RENDER_LEVELS:
                 if INFER:
                     if ENV3D:
                         stats = env.unwrapped._prob.get_stats(
@@ -1310,6 +1319,7 @@ def simulate(
                             get_string_map(int_map, env.unwrapped._prob.get_tile_types(), continuous=CONTINUOUS),
                             # lenient_paths=True,
                         )
+            if RENDER:
                 env.render()
 
 
@@ -1456,20 +1466,19 @@ class EvoPCGRL:
 
         self.static_targets = self.env.unwrapped._prob.static_trgs
 
+        init_level_archive_args = {'n_init_states': N_INIT_STATES}
         if REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and (not ENV3D):
-            init_level_archive_args = {
+            init_level_archive_args.update({
                 'map_dims': (self.height, self.width),
                 'n_init_states': N_INIT_STATES,
-            }
+            })
         elif REEVALUATE_ELITES or (RANDOM_INIT_LEVELS and args.n_init_states != 0) and ENV3D:
-            init_level_archive_args = {
+            init_level_archive_args.update({
                 'map_dims': (self.height, self.width, self.length),
                 'n_init_states': N_INIT_STATES,
-            }
+            })
         if "Decoder" in MODEL or "CPPN" in MODEL:
             init_level_archive_args.update({"map_dims": (N_LATENTS, self.height // 4, self.width // 4)})
-        else:
-            init_level_archive_args = {}
         self.init_level_archive_args = init_level_archive_args
 
         if ALGO == "ME":
@@ -3153,14 +3162,14 @@ if __name__ == "__main__":
                 evolver.infer(concat_gifs=CONCAT_GIFS)
                 save_grid(csv_name="eval_levels")
 
-        if not (INFER or VISUALIZE):
+        if not (INFER or EVALUATE or VISUALIZE):
             writer = init_tensorboard()
             # then we train
             RENDER = arg_dict["render"]
             evolver.total_itrs = arg_dict["n_generations"]
             evolver.evolve()
     except FileNotFoundError as e:
-        if not INFER or EVALUATE:
+        if not (INFER or EVALUATE or RENDER_LEVELS):
             RENDER = arg_dict["render"]
             print(
                 "Failed loading from an existing save-file. Evolving from scratch. The error was: {}".format(

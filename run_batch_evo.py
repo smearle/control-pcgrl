@@ -14,16 +14,16 @@ import os
 import re
 from pdb import set_trace as TT
 from typing import List
-from evo.args import get_exp_name
 
+from evo.args import get_exp_name
 from evo.render_gifs import render_gifs
 
 
 GECCO_CROSS_EVAL = False
 
 
-def launch_batch(opts, exp_name, collect_params=False):
-    with open(f"configs/evo/{opts.batch}.yaml", "r") as f:
+def launch_batch(args, exp_name, collect_params=False):
+    with open(f"configs/evo/{args.batch}.yaml", "r") as f:
         batch_config = yaml.safe_load(f)
     batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
 
@@ -316,7 +316,7 @@ if __name__ == "__main__":
 
     if args.cross_eval or args.gif:
         from evo.cross_eval import compile_results
-        settings_list = launch_batch(opts, EXP_NAME, collect_params=True)
+        settings_list = launch_batch(args, EXP_NAME, collect_params=True)
     if args.cross_eval:
         compile_results(settings_list, tex=args.tex)
         if not args.tex:
@@ -327,4 +327,4 @@ if __name__ == "__main__":
     elif args.gif:
         render_gifs(settings_list)
     else:
-        launch_batch(opts, EXP_NAME)
+        launch_batch(args, EXP_NAME)

@@ -327,7 +327,8 @@ class PcgrlEnv(gym.Env):
 
         if mode == 'rgb_array':
             return np.array(img)
-            # return img
+        elif mode == 'image':
+            return img
         elif mode == 'human':
             from gym.envs.classic_control import rendering
 

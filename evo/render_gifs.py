@@ -1,8 +1,9 @@
 import os
-import numpy as np
+from pdb import set_trace as TT
 import re
 
 import imageio
+import numpy as np
 from PIL import Image
 
 from evo.args import get_args, get_exp_dir, get_exp_name
@@ -25,7 +26,8 @@ def render_gifs(settings_list):
     for i, settings in enumerate(settings_list):
         n_steps = settings['n_steps']
         args, arg_dict = get_args(load_args=settings)
-        exp_dir = get_exp_dir(args, arg_dict)
+        exp_name = get_exp_name(args, arg_dict)
+        exp_dir = get_exp_dir(exp_name)
         if not os.path.isdir(exp_dir):
             print('Skipping experiment, as directory does not exist: ', exp_dir)
             continue
@@ -82,8 +84,8 @@ def render_gifs(settings_list):
 #                   writer.append_data(np.array(im))
             print(gif_name)
 #           frames_to_gif('{}.gif'.format(gif_name), grid_frames)
-            os.system("ffmpeg -y -r 15 -i \"{0}/frame_%04d.png\" -vf tpad=stop_mode=clone:stop_duration=2 \"{0}\".gif".format(grid_frames_dir))
-            os.system("ffmpeg -y -r 10 -f gif -i \"{0}.gif\" -c:v libx264 -crf 20 -vf tpad=stop_mode=clone:stop_duration=2 \"{0}.mp4\"".format(gif_name))
+            os.system("ffmpeg -y -r 15 -i \"{0}/frame_%04d.png\" -vf tpad=stop_mode=clone:stop_duration=1 \"{0}\".gif".format(grid_frames_dir))
+            os.system("ffmpeg -y -r 10 -f gif -i \"{0}.gif\" -c:v libx264 -crf 20 -pix_fmt yuv420p -vf tpad=stop_mode=clone:stop_duration=1 \"{0}.mp4\"".format(gif_name))
 
 
 def frames_to_gif(gif_path, filenames):
