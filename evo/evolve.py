@@ -2564,6 +2564,7 @@ class EvoPCGRL:
                     )
 
             init_states_archive = None
+            door_coords_archive = None
 
             if RANDOM_INIT_LEVELS:
                 # Effectively doing inference on a (presumed) held-out set of levels
@@ -3128,6 +3129,8 @@ if __name__ == "__main__":
     if THREADS:
         ray.init()
 
+    evolver: EvoPCGRL = None
+
     try:
         try:
             evolver = pickle.load(open(os.path.join(SAVE_PATH, "evolver.pkl"), "rb"))
@@ -3156,7 +3159,7 @@ if __name__ == "__main__":
             evolver.infer(concat_gifs=CONCAT_GIFS)
             save_grid(csv_name="eval_levels_fixLvls")
 
-            if not isinstance(evolver.model, DirectEncoding):
+            if not isinstance(evolver.gen_model, DirectEncoding):
                 # evaluate on random initial level seeds
                 RANDOM_INIT_LEVELS = True
                 evolver.infer(concat_gifs=CONCAT_GIFS)

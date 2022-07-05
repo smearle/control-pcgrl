@@ -49,7 +49,7 @@ class CMAInitStatesGrid(InitStatesArchive, GridArchive):
 
 
 class MEGrid(containers.Grid):
-    def __init__(self, bin_sizes, bin_bounds):
+    def __init__(self, bin_sizes, bin_bounds, **kwargs):
         max_items_per_bin = int(200) if np.all(np.array(bin_sizes) == 1) else 1
         super(MEGrid, self).__init__(shape=bin_sizes, max_items_per_bin=max_items_per_bin,
                                      features_domain=bin_bounds,

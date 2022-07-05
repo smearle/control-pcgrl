@@ -7,7 +7,7 @@
 ##SBATCH --gres=gpu:1
 
 #SBATCH --time=2:00:00
-#SBATCH --mem=32GB
+#SBATCH --mem=96GB
 #SBATCH --job-name=evalevopcg
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --mail-user=se2161@nyu.edu
@@ -26,4 +26,4 @@
 ## conda activate pcgrl
 
 
-python evo/evolve.py -la 98
+python evo/evolve.py -la 47

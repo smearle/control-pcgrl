@@ -72,10 +72,11 @@ def render_gifs(settings_list):
                 if im_w is None:
                     im_w, im_h = ims[0].shape[0], ims[0].shape[1]
                 grid_frame = np.empty(shape=(im_w*(grid_tiles_w+1), im_h*(grid_tiles_h+1), 3), dtype=np.uint8)
+                print(grid_frame.shape)
                 for j, im in enumerate(ims):
 #               grid_frame = Image.new(mode="RGBA", size=(grid_w, grid_h))
                     x, y = model_idxs[j]
-                    grid_frame[(x)*im_w: (x+1)*im_w, (y)*im_h: (y+1)*im_h, :] = np.array(im)
+                    grid_frame[(-y-1)*im_w: (grid_tiles_w+1-y)*im_w, (x)*im_h: (x+1)*im_h, :] = np.array(im)
                 grid_frame = Image.fromarray(grid_frame, mode="RGB")
                 grid_frame.save(open(os.path.join(grid_frames_dir, 'frame_{:04d}.png'.format(i)), mode='wb'))
             gif_name = os.path.join(grid_frames_dir)

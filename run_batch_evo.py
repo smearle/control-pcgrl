@@ -73,6 +73,7 @@ def launch_batch(args, exp_name, collect_params=False):
 
             if "cellular" not in rep:
                 if n_steps != batch_config.n_steps_lst[0]:
+                    print("Number of steps does not apply to non-cellular representations.")
                     continue
 
             if n_aux_chan > 0 and "NCA" not in model:
@@ -88,8 +89,8 @@ def launch_batch(args, exp_name, collect_params=False):
                     "hand-made seed cannot be randomized.")
                 continue
 
-            # The hand-made seed is not valid for Decoders (or CPPNs, handled below)
             if n_init_states == 0 and "Decoder" in model:
+                print("The hand-made seed is not valid for Decoders")  # (or CPPNs, handled below)
                 continue
 
             if model in ["CPPN", "GenCPPN", "GenCPPN2", "CPPNCA", "DirectEncoding"]:
@@ -119,7 +120,7 @@ def launch_batch(args, exp_name, collect_params=False):
                     continue
 
             # The decoder generates levels in a single pass (from a smaller latent)
-            if 'Decoder' in model or 'DirectEncoding' in model and n_steps != 1:
+            if ('Decoder' in model or 'DirectEncoding' in model) and n_steps != 1:
                 print('Too many steps for 1-pass generator.')
                 continue
 
@@ -145,7 +146,7 @@ def launch_batch(args, exp_name, collect_params=False):
                     "model": model,
                     "multi_thread": not args.single_thread,
                     "n_aux_chan": n_aux_chan,
-                    "n_generations": 100000,
+                    "n_generations": 500000,
                     "n_init_states": n_init_states,
                     "n_steps": n_steps,
                     "problem": prob,
@@ -192,6 +193,7 @@ def launch_batch(args, exp_name, collect_params=False):
                 )
 
             full_exp_name = get_exp_name(arg_dict=exp_config)
+            full_exp_name = full_exp_name.replace(' ', '').replace("'", "")
 
             # Edit the sbatch file to load the correct config file
             if EVALUATE:
@@ -204,14 +206,14 @@ def launch_batch(args, exp_name, collect_params=False):
                 # Replace the ``python scriptname --cl_args`` line.
                 new_content = re.sub(
                     "python evo/evolve.py -la \d+",
-                    "python evo/evolve.py -la {}".format(i),
+                    f"python evo/evolve.py -la {i}",
                     content,
                 )
 
                 # Replace the job name.
                 new_content = re.sub(
-                    "evo_runs/evopcg_.*", 
-                    "evo_runs/{}.out".format(i), 
+                    "evo_runs/.*\.out", 
+                    f"evo_runs/{full_exp_name}.out", 
                     new_content
                 )
             with open(script_name, "w") as f:
