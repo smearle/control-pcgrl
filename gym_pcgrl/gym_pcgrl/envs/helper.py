@@ -488,7 +488,7 @@ Returns:
 """
 def gen_random_map(random, dims, prob):
 # def gen_random_map(random, width, height, prob):
-    map = random.choice(list(prob.keys()),size=dims,p=list(prob.values())).astype(np.uint8)
+    map = random.choice(list(prob.keys()),size=dims[::-1],p=list(prob.values())).astype(np.uint8)
     return map
 
 """

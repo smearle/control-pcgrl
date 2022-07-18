@@ -210,7 +210,7 @@ def save_grid(csv_name="levels", d=4):
             if ENV3D:
                 level = np.zeros((map_length, map_width, map_height), dtype=int)
             else:
-                level = np.zeros((map_width, map_height), dtype=int)
+                level = np.zeros((map_height, map_width), dtype=int)
 
             for i, l_rows in enumerate(grid_models[col_num].split("], [")):
                 for j, l_col in enumerate(l_rows.split(",")):
@@ -1333,8 +1333,7 @@ def simulate(
                     )
                 if RENDER:
                     pass
-                    # time.sleep(0.2)
-                    # TT()
+                    time.sleep(0.2)
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
@@ -1629,7 +1628,8 @@ class EvoPCGRL:
                    'step_size': args.step_size,
             }
             if MODEL == "DirectEncoding":
-                ind_cls_args.update({'map_width': self.env.unwrapped._prob._width})
+                ind_cls_args.update({'map_width': self.env.unwrapped._prob._width,
+                    'map_dims': self.env.get_map_dims()[:-1]})
 
             self.gen_optimizer = MEOptimizer(grid=self.gen_archive,
                                              ind_cls=Individual,
@@ -1732,6 +1732,7 @@ class EvoPCGRL:
         n_observed_tiles = 0 if "Decoder" in MODEL or "CPPN" in MODEL else self.n_tile_types
         self.gen_model = globals()[MODEL](
             n_in_chans=n_observed_tiles + N_LATENTS, n_actions=n_out_chans, map_width=self.env.unwrapped._prob._width,
+            map_dims=self.env.get_map_dims()[:-1],
             render=RENDER, n_aux_chan=args.n_aux_chan)
         # TODO: toggle CUDA/GPU use with command line argument.
         if CUDA:
@@ -2668,7 +2669,8 @@ class EvoPCGRL:
                                 eval_bcs = [np.clip(bc, *archive.features_domain[i]) for i, bc in enumerate(eval_bcs)]
                                 id_0, id_1 = archive.index_grid(tuple(eval_bcs))
                                 # Dummy individual
-                                individual = Individual(type(self.gen_model), self.n_tile_types, self.n_tile_types)
+                                individual = Individual(type(self.gen_model), self.n_tile_types, self.n_tile_types,
+                                    map_dims=self.env.unwrapped.get_map_dims()[:-1])
                                 individual.fitness = Fitness([batch_reward])
                                 individual.features = Features(final_bcs)
                                 idx = eval_archive.add(individual)

@@ -30,8 +30,10 @@ class SMBProblem(Problem):
             "noise": 4,
             "jumps": 2,
             "jumps-dist": 2,
-            "dist-win": 5
+            "dist-win": 5,
+            "sol-length": 1,
         }
+        self._ctrl_reward_weights = self._reward_weights
 
     def get_tile_types(self):
         return ["empty", "solid", "enemy", "brick", "question", "coin", "tube"]

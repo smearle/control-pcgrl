@@ -564,17 +564,19 @@ class FixedGenCPPN(ResettableNN):
 class DirectEncoding():
     """In this "model" (if you can call it that), the weights are the level itself. (Continuous methods like CMA won't
     make sense here!) Though we accept an input, it is totally ignored."""
-    def __init__(self, n_in_chans, n_actions, map_width, **kwargs):
+    def __init__(self, n_in_chans, n_actions, map_dims, **kwargs):
         self.n_actions = n_actions  # how many distinct tiles can appear in the output
         self.layers = np.array([])  # dummy
-        self.discrete = th.randint(0, n_in_chans, (map_width, map_width))
+        self.discrete = th.randint(0, n_in_chans, map_dims[::-1])
 
     def __call__(self, x):
         # onehot = th.zeros(1, x.shape[1], x.shape[2], x.shape[3])
         # onehot[0,0,self.discrete==0]=1
         # onehot[0,1,self.discrete==1]=1
         onehot = th.eye(self.n_actions)[self.discrete]
-        onehot = rearrange(onehot, "h w c -> 1 c h w")
+        onehot = onehot.unsqueeze(0)
+        onehot = onehot.transpose(1, -1)
+        # onehot = rearrange(onehot, "h w c -> 1 c h w")  # prettier, but not dimension agnostic (?)
         return onehot, True
 
     def mutate(self):

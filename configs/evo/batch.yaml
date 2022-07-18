@@ -16,8 +16,7 @@
  "problems": [
         # "microstructure"
         "binary",
-        "zelda",
-        "sokoban",
+        "zelda",evo_update
         # "smb_ctrl"
         # "loderunner_ctrl",
         # "face_ctrl",
@@ -27,8 +26,8 @@
   ],
 
  "representations": [
-        "cellular",  # change entire board at each step
-        # "cellular3D",
+        # "cellular",  # change entire board at each step
+        "cellular3D",
         # "cellular3Dholey",
   #       "wide",  # agent "picks" one tile to change
   #       "wide3D",
@@ -41,14 +40,14 @@
 #
 #
   "algos": [
-      "CMAME",
+      # "CMAME",
       "ME",
   ],
 
  "models": [
         # "AuxNCA",  # NCA w/ additional/auxiliary "invisible" tile-channels to use as external memory
-        "NCA",
-        # "DirectEncoding",
+        # "NCA",
+        "DirectEncoding",
         # "Decoder",
         # "GenSin2CPPN2",
         # "Sin2CPPN",
