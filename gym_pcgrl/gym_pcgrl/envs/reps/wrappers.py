@@ -7,6 +7,8 @@ from gym import spaces
 import gym
 from gym_pcgrl.envs import helper_3D
 from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
+from gym_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_rain import Minecraft3Drain
 from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 import numpy as np
 from PIL import Image
@@ -100,6 +102,10 @@ class Representation3D(RepresentationWrapper):
 
     # def _update_bordered_map(self):
         # self._bordered_map[1:-1, 1:-1, 1:-1] = self._map
+
+    def render(self, map, mode='human', **kwargs):
+        spawn_3D_maze(map)
+        # return self.rep.render(mode, **kwargs)
 
 
 class HoleyRepresentation(RepresentationWrapper):
@@ -235,8 +241,25 @@ class StaticBuildRepresentation(RepresentationWrapper):
         change = np.any(old_state != new_state)
         return change, pos
 
-# class StaticBuildRepresentationABC(): pass
 
+# 
+class RainRepresentation(RepresentationWrapper):
+    def get_action_space(self, dims, num_tiles):
+        # Need no-op because raining sand/acid will always change map (if column is not empty).
+        return spaces.Discrete(num_tiles + 1)
+
+    # TODO:
+    def update(self, action, **kwargs):
+        # FIXME: Assuming a narrow representation!
+        TT()
+        change, pos = super().update(action, **kwargs)
+        if change:
+            self.unwrapped._map[pos[0], pos[1]] = self.unwrapped._empty_tile
+        return change, pos
+
+    def render(self, map, mode='human', **kwargs):
+        # TODO: just place a sand block at the top
+        spawn_3D_maze(map)
 
 
 # def wrap_3D(rep_cls: Representation):
@@ -302,8 +325,9 @@ def wrap_rep(rep: Representation, prob_cls: Problem, static_build = False):
 
     # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
     # rep_cls = rep_cls if isclass(rep_cls) else type(rep_cls)
+    # if issubclass(prob_cls, Minecraft3Drain):
+        # rep = RainRepresentation(rep)
     if issubclass(prob_cls, Problem3D):
-
         rep = Representation3D(rep)
         # rep_cls = wrap_3D(rep_cls)
         # if issubclass(rep_cls, EgocentricRepresentation):

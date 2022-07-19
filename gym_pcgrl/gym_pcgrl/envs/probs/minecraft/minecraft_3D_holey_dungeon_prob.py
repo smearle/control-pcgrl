@@ -18,6 +18,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         self._passable = set({"AIR", "CHEST", "SKULL", "PUMPKIN"})
         # self._prob = {"AIR": 0.5, "DIRT":0.35, "CHEST":0.05, "SKULL":0.05, "PUMPKIN":0.05}
         self._prob = {"AIR": 1.0, "DIRT":0., "CHEST":0.0, "SKULL":0.0, "PUMPKIN":0.0}
+        self.min_e_path = set({})
+        self.ordered_e_path = []
         # self._border_tile = "DIRT"
         # self._border_size = (1, 1, 1)
 
@@ -83,8 +85,6 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
     def get_stats(self, map):
         map_locations = get_tile_locations(map, self.get_tile_types())
 
-        self.path_coords = []
-
         map_stats = {
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": 0,
@@ -101,7 +101,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         enemies = []
         enemies.extend(map_locations["SKULL"])
         enemies.extend(map_locations["PUMPKIN"])
-        self.min_e_path = []
+        self.min_e_path = set({})
+        self.ordered_e_path = []
         if len(enemies) > 0:
             paths_e, _, _ = run_dijkstra(p_x, p_y, p_z, map, self._passable)
             min_dist = 0
@@ -110,8 +111,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
                 e_dist = len(e_path)
                 if e_dist > 0 and (e_dist < min_dist or min_dist == 0):
                     min_dist = e_dist
-                    self.min_e_path = e_path
-                    self.min_e_path = remove_stacked_path_tiles(self.min_e_path)
+                    self.ordered_e_path = e_path
+                    self.min_e_path = remove_stacked_path_tiles(self.ordered_e_path)
             map_stats["nearest-enemy"] = min_dist
 
 
@@ -135,8 +136,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
             # if self.render_path:
                 # self.path_coords = np.vstack((get_path_coords(paths_c, c_x, c_y, c_z),
                                             #   get_path_coords(pathd_d, d_x, d_y, d_z)))
-            self.path_coords = path_c + path_d
-            self.path_coords = remove_stacked_path_tiles(self.path_coords)
+            self.ordered_path = path_c + path_d
+            self.path_coords = remove_stacked_path_tiles(self.ordered_path)
             # self.path_coords = np.vstack((path_c, path_d))
 
         self.path_length = map_stats["path-length"]
@@ -245,8 +246,8 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
         # assert debug_path(cnct_path_coords, map, ["AIR"])
 
         # NOTE: cannot call twice, or old path coords become out of date
-        self.render_path_change(map, e_path_coords, old_e_path_coords, item=WOODEN_SLAB)
-        self.render_path_change(map, path_coords, self.old_path_coords, item=PURPUR_SLAB)
+        self.render_path_change(map, e_path_coords, old_e_path_coords, ordered_path=self.ordered_e_path, item=WOODEN_SLAB)
+        self.render_path_change(map, path_coords, self.old_path_coords, ordered_path=self.ordered_path, item=PURPUR_SLAB)
 
 
         # render_blocks(block_dict)

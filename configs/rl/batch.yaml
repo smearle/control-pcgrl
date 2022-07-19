@@ -10,18 +10,19 @@
     # 2,
     # 3,
     # 10,
-    11,
+    # 11,
     # 12,
   ],
 
   "problems": [
     # "minecraft_3D_maze",
-    "minecraft_3D_holey_maze",
+    "minecraft_3D_rain",
+    # "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
     # "binary",
-    "binary_holey",
+    # "binary_holey",
 #   "zelda",
 #   "sokoban",
 #   'simcity',
@@ -31,7 +32,8 @@
 
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
-      ["narrow", SeqNCA],
+      # ["narrow", SeqNCA],
+      ["narrow", SeqNCA3D],
       # ["narrow", null],
 
       # ['turtle', null],
@@ -68,6 +70,7 @@
         # [path-length],
         # [n_jump, path-length],
       ],
+      "minecraft_3D_rain": [],
       "minecraft_3D_holey_maze": [
         # [n_jump],
         # [connected-path-length],

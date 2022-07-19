@@ -370,8 +370,8 @@ class Cropped(gym.Wrapper):
             name in self.env.observation_space.spaces.keys()
         ), "This wrapper only works if you have a {} key".format(name)
         assert (
-            len(self.env.observation_space.spaces[name].shape) == 2
-        ), "This wrapper only works on 2D arrays."
+            len(self.env.observation_space.spaces[name].shape) in [2, 3]
+        ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
         self.size = crop_size
         self.pad = crop_size // 2

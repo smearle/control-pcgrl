@@ -1334,6 +1334,8 @@ def simulate(
                 if RENDER:
                     pass
                     time.sleep(0.2)
+                    TT()
+
             last_int_map = int_map
             n_step += 1
     final_bcs = [bcs[i].mean() for i in range(bcs.shape[0])]
@@ -2225,13 +2227,15 @@ class EvoPCGRL:
         args = self.args
         self.init_env()
         archive = self.gen_archive
-        if args.algo == "ME":
+        if args.algo == "ME":  # if qdpy
             nonempty_idxs = np.stack(np.where(
                 np.isnan(archive.quality_array) == False), axis=1)
             # Assume 2nd BC is a measure of complexity
-            # Sort according to 2nd BC
             idxs = nonempty_idxs.tolist()
-            idxs.sort(key=lambda x: x[1])
+            # Sort according to 2nd BC
+            # idxs.sort(key=lambda x: x[1], reverse=True)
+            # Sort according to fitness
+            idxs.sort(key=lambda x: archive.quality_array[tuple(x)], reverse=True)
             idxs_T = tuple(np.array(idxs).T)
             objs = archive.quality_array[idxs_T]
             # Get list of individuals in same order. First get list of features belonging to individuals in bin,
@@ -2241,7 +2245,7 @@ class EvoPCGRL:
             # Get rid of bin coordinate for our purposes
             # TODO: for more flexibility, instead adapt the below to get this bin coordinate
             idxs = [idx[:-1] for idx in idxs]
-        else:
+        else:  # if pyribs
             df = archive.as_pandas()
             rows = df.sort_values("behavior_1", ascending=False)
             models = np.array(rows.loc[:, "solution_0":])

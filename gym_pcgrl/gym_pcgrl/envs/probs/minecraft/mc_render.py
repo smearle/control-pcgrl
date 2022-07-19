@@ -1,4 +1,6 @@
 # import gym
+from time import sleep
+from turtle import position
 import grpc
 # import minecraft_pb2_grpc
 # from minecraft_pb2 import *
@@ -9,8 +11,11 @@ from pdb import set_trace as TT
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-b_map = [AIR, STAINED_GLASS, CHEST, PUMPKIN, PUMPKIN]
+b_map = [AIR, STONE, CHEST, PUMPKIN, PUMPKIN]
 string_map = ["AIR", "DIRT","CHEST", "SKULL", "PUMPKIN"]
+# PATH_BLOCK = PURPUR_BLOCK  # pretty
+PATH_BLOCK = TRAPDOOR  # navigable (debug)
+PLAYER_BLOCK = RED_GLAZED_TERRACOTTA
 
 # map string map entries into Minecraft item type
 block_map = dict(zip(string_map, b_map))
@@ -19,6 +24,7 @@ block_map = dict(zip(string_map, b_map))
 inv_block_map = dict(zip(b_map, string_map))
 
 N_BLOCK_TYPE = 3
+RENDER_PATH_SEQUENCE = True
 
 
 def render_blocks(blocks, base_pos=5):
@@ -61,7 +67,7 @@ def clear(n, e, boundary_size=3, backgroud_type=QUARTZ_BLOCK):
 
 def get_tile(tile):
     '''
-    return the types blocks of each tiles in Minecraft
+    Return the block type of the given tile in Minecraft.
     '''
     if tile:
         return block_map[tile]
@@ -259,15 +265,51 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=PURPUR_SLAB, offset=(0, 0, 0)):
+def spawn_3D_path(path, base_pos=5, item=PATH_BLOCK, offset=(0, 0, 0), ordered_path=None):
+    '''
+    Spawn path once or iteratively in Minecraft
+
+    Parameters:
+        path (list[(int, int, int)]): the path to be spawned
+        base_pos (int): the vertical height of the bottom of the maze
+        item (int): the type of the block to be spawned
+        offset (tuple(int, int, int)): the offset of the path
+        sequence (bool): if True, spawn the path iteratively
+    '''
     if len(path) == 0:
-        return
-    blocks = []
-    for pos in path:
-        blocks.append(Block(position=Point(
-            x=pos[0]+offset[0], y=pos[2]+base_pos+offset[2] , z=pos[1]+offset[1]),
-                                type=item))
-    CLIENT.spawnBlocks(Blocks(blocks=blocks))
+            return
+
+    if RENDER_PATH_SEQUENCE is False or ordered_path is None:
+        blocks = []
+        for pos in path:
+            blocks.append(Block(position=Point(
+                x=pos[0]+offset[0], y=pos[2]+base_pos+offset[2] , z=pos[1]+offset[1]),
+                                    type=item))
+        CLIENT.spawnBlocks(Blocks(blocks=blocks))
+    
+    else:
+        old_points = []
+        for pos in ordered_path:
+            points = [pos, (pos[0], pos[1], pos[2] + 1)]
+            # points = [Point(x=pos[0]+offset[0], y=pos[2]+base_pos+offset[2], z=pos[1]+offset[1]),
+                    #   Point(x=pos[0]+offset[0], y=pos[2]+base_pos+offset[2]+1, z=pos[1]+offset[1])]
+            # Erase old blocks first! (Order of list matters.)
+            block_lst = \
+                [Block(position=Point(x=p[0]+offset[0], y=p[2]+base_pos+offset[2], z=p[1]+offset[1]), type=AIR) for p in old_points] + \
+                [Block(position=Point(x=p[0]+offset[0], y=p[2]+base_pos+offset[2], z=p[1]+offset[1]), type=PLAYER_BLOCK) for p in points]
+            if old_points and old_points[0] in path:
+                op = old_points[0]
+                block_lst += [Block(position=Point(
+                    x=op[0]+offset[0], y=op[2]+base_pos+offset[2], z=op[1]+offset[1]), type=item)]
+            old_points = points
+            CLIENT.spawnBlocks(Blocks(blocks=block_lst))
+            sleep(0.1)
+        CLIENT.spawnBlocks(Blocks(blocks=
+            [Block(position=Point(x=points[0][0]+offset[0], y=points[0][2]+base_pos+offset[2], z=points[0][1]+offset[1]), type=item), 
+            Block(position=Point(x=points[0][0]+offset[0], y=points[0][2]+base_pos+offset[2]+1, z=points[0][1]+offset[1]), type=AIR), 
+            ]
+        ))
+
     return
 
 

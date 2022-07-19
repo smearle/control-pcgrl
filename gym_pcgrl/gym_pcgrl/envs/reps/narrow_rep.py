@@ -61,7 +61,7 @@ class NarrowRepresentation(EgocentricRepresentation):
         correspond to which value for each tile type
     """
     def get_action_space(self, dims, num_tiles):
-        return spaces.Discrete(num_tiles + 1)
+        return spaces.Discrete(num_tiles)
 
 
     """

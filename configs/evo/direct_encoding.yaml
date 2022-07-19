@@ -21,7 +21,8 @@
         # "smb_ctrl"
         # "loderunner_ctrl",
         # "face_ctrl",
-        "minecraft_3D_maze",
+        "minecraft_3D_rain",
+        # "minecraft_3D_maze",
         # "minecraft_3D_holey_maze",
         # "minecraft_3D_dungeon_holey",
   ],
@@ -71,6 +72,9 @@
   ],
 
   "local_bcs": {
+      "minecraft_3D_rain": [
+        ["emptiness", "path-length"],
+      ],
       "binary": [
   #       ["regions", "path-length"],
   #       ["emptiness", "path-length"],

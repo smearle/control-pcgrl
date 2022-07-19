@@ -43,12 +43,12 @@ Returns:
     int: the distance to certain types underneath a certain location
 """
 def _calc_dist_floor(map, x, y, z, types):
-    for dz in range(len(map)):
-        if z+dz >= len(map):
+    for dz in range(1, len(map)):
+        if z-dz < 0:
             break
-        if map[z+dz][y][x] in types:
+        if map[z-dz][y][x] in types:
             return dz-1
-    return len(map) - 1
+    return dz - 1
 
 """
 Public function to calculate the distance of a certain tiles to the floor tiles

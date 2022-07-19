@@ -83,16 +83,16 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
         # connected_path_length = dijkstra_map[self.exit_coords[0][0], self.exit_coords[0][1], self.exit_coords[0][2]]
         exit_coords = tuple(self.exit_coords[0][::-1])  # lol ... why? Because the entrance/exit coords was (z, y, x)
         self.connected_path_length = len(paths[exit_coords]) if exit_coords in paths else -1
-        self.connected_path_coords = np.array(paths[exit_coords]) if exit_coords in paths else []
-        self.connected_path_coords = remove_stacked_path_tiles(self.connected_path_coords)
+        self.ordered_connected_path = np.array(paths[exit_coords]) if exit_coords in paths else []
+        self.connected_path_coords = remove_stacked_path_tiles(self.ordered_connected_path)
 
 
         self.n_jump = jumps[exit_coords] if exit_coords in jumps else 0
         tiles_paths = [(tile, path) for tile, path in paths.items()]
         max_id = np.argmax(np.array([len(p) for (_,p) in tiles_paths]))
-        max_tile, self.path_coords = tiles_paths[max_id]
+        max_tile, self.ordered_path = tiles_paths[max_id]
         self.path_length = len(self.path_coords)
-        self.path_coords = remove_stacked_path_tiles(self.path_coords)
+        self.path_coords = remove_stacked_path_tiles(self.ordered_path)
 
         assert not (self.connected_path_length == 0 and len(self.connected_path_coords) > 0)
         # print(f"minecraft path-finding time: {timer() - start_time}")
@@ -261,8 +261,9 @@ class Minecraft3DholeymazeProblem(HoleyProblem3D, Minecraft3DmazeProblem):
         assert debug_path(cnct_path_coords, map, ["AIR"])
 
         # NOTE: cannot call twice, or old path coords become out of date
-        self.render_path_change(map, path_coords, old_path_coords, item=WOODEN_SLAB)
-        self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, item=PURPUR_SLAB)
+        self.render_path_change(map, path_coords, old_path_coords, ordered_path=self.ordered_path, item=WOODEN_SLAB)
+        self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, 
+            ordered_path=self.ordered_connected_path, item=PURPUR_SLAB)
 
         # self.render_path_change(map, path_coords, old_path_coords, item=WOODEN_SLAB, offset=(10, 0, 0))
         # self.render_path_change(map, cnct_path_coords, self.old_connected_path_coords, item=PURPUR_SLAB, offset=(20, 0, 0))

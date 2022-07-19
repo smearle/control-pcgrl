@@ -16,6 +16,7 @@ from gym_pcgrl.envs.probs.face_prob import FaceProblem
 from gym_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructureProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_2D_maze_prob import Minecraft2DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_rain import Minecraft3Drain
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_dungeon_prob import Minecraft3DholeyDungeonProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_Parkour_prob import Minecraft3DParkourProblem
@@ -41,6 +42,7 @@ PROBLEMS = {
     "microstructure": MicroStructureProblem,
     "minecraft_2D_maze": Minecraft2DmazeProblem,
     "minecraft_3D_maze": Minecraft3DmazeProblem,
+    "minecraft_3D_rain": Minecraft3Drain,
     "minecraft_3D_holey_maze": Minecraft3DholeymazeProblem,
     "minecraft_3D_dungeon_holey": Minecraft3DholeyDungeonProblem,
     "minecraft_3D_parkour": Minecraft3DParkourProblem,

@@ -1,7 +1,7 @@
 {
  "exp_ids": [
-    # 0,
-    1,
+    0,
+    # 1,
     # 2,
     # 3,
     # 4,
@@ -15,11 +15,12 @@
 
  "problems": [
         # "microstructure"
-        "binary",
-        "zelda",evo_update
+        # "binary",
+        # "zelda",
         # "smb_ctrl"
         # "loderunner_ctrl",
         # "face_ctrl",
+        "minecraft_3D_rain",
         # "minecraft_3D_maze",
         # "minecraft_3D_holey_maze",
         # "minecraft_3D_dungeon_holey",
@@ -27,7 +28,6 @@
 
  "representations": [
         # "cellular",  # change entire board at each step
-        "cellular3D",
         # "cellular3Dholey",
   #       "wide",  # agent "picks" one tile to change
   #       "wide3D",

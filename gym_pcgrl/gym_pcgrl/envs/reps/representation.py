@@ -145,7 +145,7 @@ class Representation(ABC):
     Returns:
         img: the modified level image
     """
-    def render(self, lvl_image, tile_size, border_size=None):
+    def render(self, lvl_image, tile_size=16, border_size=None):
         return lvl_image
 
     def _update_bordered_map(self):
@@ -214,7 +214,7 @@ class EgocentricRepresentation(Representation):
     Returns:
         img: the modified level image
     """
-    def render(self, lvl_image, tile_size, border_size):
+    def render(self, lvl_image, tile_size=16, border_size=None):
         y, x = self._pos
         im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
         clr = (255, 255, 255, 255)

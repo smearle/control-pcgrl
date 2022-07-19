@@ -13,14 +13,14 @@ import numpy as np
 from timeit import default_timer as timer
 
 from gym_pcgrl.envs.probs.problem import Problem, Problem3D
-from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
+from gym_pcgrl.envs.helper_3D import get_floor_dist, get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
 from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path,
     get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
 # from gym_pcgrl.test3D import plot_3d_map
 
 
-class Minecraft3DmazeProblem(Problem3D):
+class Minecraft3Drain(Problem3D):
     """
     The constructor is responsible of initializing all the game parameters
     """
@@ -47,6 +47,7 @@ class Minecraft3DmazeProblem(Problem3D):
 
         # default conditional targets
         self.static_trgs = {
+            "floating_blocks": 0,
             "regions": 1, 
             # "path-length": self._max_path_length,
             "path-length": 10 * self._max_path_length,
@@ -56,11 +57,14 @@ class Minecraft3DmazeProblem(Problem3D):
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
             # Upper bound: checkerboard
+            "floating_blocks": (0, np.floor(self._width * self._length * self._height / 2)),
             "regions": (0, np.ceil(self._width * self._length / 2 * self._height)),
             "path-length": (0, self._max_path_length),
             "n_jump": (0, self._max_path_length // 2),
+            "hanging_blocks": (0, np.floor(self._width * self._length / 2 * self._height)),
         }
         self._reward_weights = {
+            "floating_blocks": 200,
             "regions": 0,
             "path-length": 100,
             "n_jump": 100,
@@ -177,6 +181,7 @@ class Minecraft3DmazeProblem(Problem3D):
         #     # print("path coords: ", self.path_coords)
 
         return {
+            "floating_blocks": get_floor_dist(map, ["DIRT"], ["DIRT"]),
             "regions": calc_num_regions(map, map_locations, ["AIR"]),
             "path-length": self.path_length,
             # "path-coords": self.path_coords,
