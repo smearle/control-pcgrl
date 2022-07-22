@@ -1,7 +1,8 @@
 import gi 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GdkPixbuf, GLib
 from pdb import set_trace as TT
+from timeit import default_timer as timer
 
 #FIXME: sometimes the mere existence of this class will break a multi-env micropolis run
 class ParamRewWindow(Gtk.Window):
@@ -10,20 +11,33 @@ class ParamRewWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="Metrics")
         self.set_border_width(10)
 
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        # This hbox contains the map and the gui side by side
+        hbox_0 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        eventbox = Gtk.EventBox()        
+        eventbox.connect("button-press-event", self.on_event_press)
+        # self.add(eventbox)        
+
+        image = Gtk.Image()
+
+        eventbox.add(image)
+        hbox_0.pack_start(eventbox, False, False, 0)
+
+        # This vbox contains the gui (buttons and control sliders and meters)
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+
+        # This hbox contains the auto reset checkbox and the reset button
+        hbox_1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         
         reset_button = Gtk.Button("reset")
         reset_button.connect('clicked', lambda item: self.env.reset())
-        hbox.pack_start(reset_button, False, False, 0) 
+        hbox_1.pack_start(reset_button, False, False, 0) 
 
         auto_reset_button = Gtk.CheckButton("auto reset")
         auto_reset_button.connect('clicked', lambda item: self.env.enable_auto_reset(item))
         self.env.auto_reset = False
-        hbox.pack_start(auto_reset_button, False, False, 0)
+        hbox_1.pack_start(auto_reset_button, False, False, 0)
 
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        vbox.pack_start(hbox, False, False, 0)
-        self.add(vbox)
+        vbox.pack_start(hbox_1, False, False, 0)
 
         prog_bars = {}
         scales = {}
@@ -56,18 +70,49 @@ class ParamRewWindow(Gtk.Window):
            #frac = metrics[k]
            #metric_prog.set_fraction(frac)
 
-      
+        hbox_0.add(vbox) 
+        self.add(hbox_0)
        #self.timeout_id = GLib.timeout_add(50, self.on_timeout, None)
        #self.activity_mode = False
+        self.image = image
         self.prog_bars = prog_bars
         self.scales = scales
         self.prog_labels = prog_labels
 
+    def on_event_press(self, widget, event):
+        print('click', widget, event.button, event.time)
 
     def step(self):
+        pass
+
+    def render(self, img):
+
+        # FIXME: fuxing slow as fuque
+        ### PROFILING:
+        # N = 100
+        # start_time = timer()
+        # for _ in range(N):
+        #     self.display_image(img)
+        # print(f'mean image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+        # N = 100
+        # start_time = timer()
+        # for _ in range(N):
+        #     self.display_metrics()
+        # print(f'mean gui display time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+        ###
+
+        self.display_image(img)
         self.display_metrics()
         while Gtk.events_pending():
             Gtk.main_iteration()
+
+    def display_image(self, img):
+        # self.image.set_from_file("../Downloads/xbox_cat.png")        
+        shape = img.shape
+        arr = img.flatten()
+        pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
+            GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
+        self.image.set_from_pixbuf(pixbuf)
 
     def scale_moved(self, event):
         k = event.get_name()
@@ -106,6 +151,7 @@ class ParamRewWindow(Gtk.Window):
         value = button.get_active()
         self.progressbar.set_inverted(value)
 
+    # This is unused code from an example (?)
     def on_timeout(self, user_data):
         """
         Update value on the progress bar

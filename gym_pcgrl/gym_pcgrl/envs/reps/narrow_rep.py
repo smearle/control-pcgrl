@@ -26,6 +26,7 @@ class NarrowRepresentation(EgocentricRepresentation):
         act_coords = np.meshgrid(*tuple([np.arange(s) for s in self._map.shape]))
         # Flatten so that we can treat this like a list of coordinates.
         act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, len(self._map.shape)))
+        act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first.
         return act_coords
 
     """
@@ -61,7 +62,9 @@ class NarrowRepresentation(EgocentricRepresentation):
         correspond to which value for each tile type
     """
     def get_action_space(self, dims, num_tiles):
-        return spaces.Discrete(num_tiles)
+        # FIXME: For backward compatibility only!
+        return spaces.Discrete(num_tiles + 1)
+        # return spaces.Discrete(num_tiles)
 
 
     """

@@ -4,6 +4,7 @@
 import collections
 import copy
 from pdb import set_trace as TT
+from timeit import default_timer as timer
 from typing import Dict, OrderedDict
 
 import gym
@@ -14,10 +15,12 @@ from gym_pcgrl.envs.helper import get_range_reward
 import ray
 
 
-#FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
+# TODO: Make this part of the PcgrlEnv class instead of a wrapper?
+# FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ConditionalWrapper(gym.Wrapper):
     def __init__(self, env, ctrl_metrics=[], rand_params=False, **kwargs):
+        self.win = None
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
         self.conditional = kwargs.get("conditional")
@@ -33,7 +36,7 @@ class ConditionalWrapper(gym.Wrapper):
                 print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
         self.CA_action = kwargs.get("ca_action")
 
-        self.render_gui = kwargs.get("render") and self.conditional
+        self.render_gui = kwargs.get("render")
         # Whether to always select random parameters, to stabilize learning multiple objectives
         # (i.e. prevent overfitting to some subset of objectives)
         #       self.rand_params = rand_params
@@ -161,20 +164,22 @@ class ConditionalWrapper(gym.Wrapper):
         self.next_trgs = None
         self._ctrl_trg_queue = []
 
-        if self.render_gui and self.conditional:
-            screen_width = 200
-            screen_height = 100 * self.num_params
-            from gym_pcgrl.conditional_window import ParamRewWindow
-
-            win = ParamRewWindow(self, self.metrics, self.metric_trgs, self.cond_bounds)
-            # win.connect("destroy", Gtk.main_quit)
-            win.show_all()
-            self.win = win
+        if self.render_gui:  # and self.conditional:
+            self._init_win()
         self.infer = kwargs.get("infer", False)
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
         self.max_loss = self.get_max_loss(ctrl_metrics=ctrl_loss_metrics)
 
+    def _init_win(self):
+        screen_width = 200
+        screen_height = 100 * self.num_params
+        from gym_pcgrl.conditional_window import ParamRewWindow
+
+        win = ParamRewWindow(self, self.metrics, self.metric_trgs, self.cond_bounds)
+        # win.connect("destroy", Gtk.main_quit)
+        win.show_all()
+        self.win = win
 
     def get_control_bounds(self):
         controllable_bounds = {k: self.cond_bounds[k] for k in self.ctrl_metrics}
@@ -285,9 +290,6 @@ class ConditionalWrapper(gym.Wrapper):
         return obs
 
     def step(self, action, **kwargs):
-        if self.render_gui:
-            self.win.step()
-
         ob, rew, done, info = super().step(action, **kwargs)
         self.metrics = self.unwrapped._rep_stats
 
@@ -316,6 +318,31 @@ class ConditionalWrapper(gym.Wrapper):
 
 
         return ob, reward, done, info
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            if self.win is None:
+                self._init_win()
+            ### PROFILING
+            N = 100
+            start_time = timer()
+            for _ in range(N):
+                super().render(mode=mode)
+                img = super().render(mode='rgb_array')
+                self.win.render(img)
+            print(f'mean pygobject image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+            ###
+            img = super().render(mode='rgb_array')
+            self.win.render(img)
+        else:
+            ### PROFILING
+            N = 100
+            start_time = timer()
+            for _ in range(N):
+                super().render(mode=mode)
+            print(f'mean SimpleViewer image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+            ###
+            return super().render(mode=mode)
 
     def get_cond_trgs(self):
         return self.metric_trgs

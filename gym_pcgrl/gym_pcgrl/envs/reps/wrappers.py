@@ -237,7 +237,8 @@ class StaticBuildRepresentation(RepresentationWrapper):
         # assert not(np.all(old_state == new_state))
         self.unwrapped._bordered_map = np.where(self.static_builds < 1, new_state, old_state)
         # print(self._bordered_map)
-        self.unwrapped._map = self.unwrapped._bordered_map[[slice(1, -1) for _ in range(len(self.unwrapped._map.shape))]]
+        self.unwrapped._map = self.unwrapped._bordered_map[
+            tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])]
         change = np.any(old_state != new_state)
         return change, pos
 

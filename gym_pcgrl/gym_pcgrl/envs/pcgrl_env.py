@@ -329,9 +329,9 @@ class PcgrlEnv(gym.Env):
         elif mode == 'image':
             return img
         elif mode == 'human':
-            from gym.envs.classic_control import rendering
 
             if self.viewer is None:
+                from gym.envs.classic_control import rendering
                 self.viewer = rendering.SimpleImageViewer()
 
             if not hasattr(img, 'shape'):
@@ -341,7 +341,7 @@ class PcgrlEnv(gym.Env):
             return self.viewer.isopen
 
     """
-    Close the environment
+    Close the environment rendering window.
     """
     def close(self):
         if self.viewer:
