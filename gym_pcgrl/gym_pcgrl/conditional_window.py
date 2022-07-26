@@ -1,16 +1,20 @@
-import gi 
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GdkPixbuf, GLib
 from pdb import set_trace as TT
 from timeit import default_timer as timer
 
+import gi 
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, GdkPixbuf, GLib
+import numpy as np
+
+
 #FIXME: sometimes the mere existence of this class will break a multi-env micropolis run
-class ParamRewWindow(Gtk.Window):
-    def __init__(self, env, metrics, metric_trgs, metric_bounds):
+class GtkGUI(Gtk.Window):
+    def __init__(self, env, tile_types, tile_images, metrics, metric_trgs, metric_bounds):
         self.env = env
         Gtk.Window.__init__(self, title="Metrics")
         self.set_border_width(10)
 
+        self.pixbuf = None
         # This hbox contains the map and the gui side by side
         hbox_0 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         eventbox = Gtk.EventBox()        
@@ -38,6 +42,28 @@ class ParamRewWindow(Gtk.Window):
         hbox_1.pack_start(auto_reset_button, False, False, 0)
 
         vbox.pack_start(hbox_1, False, False, 0)
+        tile_radio_buttons = []
+
+        for tile in tile_types:
+            # This hbox contains the tile type name and the tile image
+            hbox_2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            tile_radio_button = Gtk.RadioButton(label='poo')
+            tile_radio_buttons.append(tile_radio_button)
+            tile_image = Gtk.Image()
+            arr = np.array(tile_images[tile].convert('RGB'))
+            shape = arr.shape
+            arr = arr.flatten()
+            pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
+                GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
+            tile_image.set_from_pixbuf(pixbuf)
+            hbox_2.pack_start(tile_radio_button, False, False, 0)
+            hbox_2.pack_start(tile_image, False, False, 0)
+            hbox_2.pack_start(Gtk.Label(tile), False, False, 0)
+            vbox.pack_start(hbox_2, False, False, 0)
+
+        # Set all tile radio buttons to belong to the same group
+        # for tile_radio_button in tile_radio_buttons:
+            # tile_radio_button.set_group(tile_radio_buttons)
 
         prog_bars = {}
         scales = {}
@@ -78,12 +104,14 @@ class ParamRewWindow(Gtk.Window):
         self.prog_bars = prog_bars
         self.scales = scales
         self.prog_labels = prog_labels
+        self._user_clicks = []
 
     def on_event_press(self, widget, event):
-        print('click', widget, event.button, event.time)
+        self._user_clicks.append((event.x, event.y, self._active_tool))
+        # print('click', widget, event.button, event.time)
 
-    def step(self):
-        pass
+    def get_clicks(self):
+        return self._user_clicks
 
     def render(self, img):
 
@@ -110,9 +138,14 @@ class ParamRewWindow(Gtk.Window):
         # self.image.set_from_file("../Downloads/xbox_cat.png")        
         shape = img.shape
         arr = img.flatten()
+        # self.pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(arr, GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], shape[2] * shape[1])
         pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
             GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
+        # TT()
+        # else:
+        # if self.pixbuf is None:
         self.image.set_from_pixbuf(pixbuf)
+            # self.pixbuf.fill(arr)
 
     def scale_moved(self, event):
         k = event.get_name()
@@ -171,4 +204,18 @@ class ParamRewWindow(Gtk.Window):
         return True
 
 
+if __name__ == "__main__":
+    import pyglet
+    window = pyglet.window.Window()
+    label = pyglet.text.Label('Hello, world',
+                          font_name='Times New Roman',
+                          font_size=36,
+                          x=window.width//2, y=window.height//2,
+                          anchor_x='center', anchor_y='center')
 
+    @window.event
+    def on_draw():
+        window.clear()
+        label.draw()
+
+    pyglet.app.run()

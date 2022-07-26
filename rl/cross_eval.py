@@ -8,8 +8,8 @@ from pdb import set_trace as TT
 
 import numpy as np
 from matplotlib import pyplot as plt
-
 import pandas as pd
+
 from rl.args import parse_args
 from rl.utils import get_exp_name, PROB_CONTROLS
 from tex_formatting import newline, pandas_to_latex

@@ -333,6 +333,7 @@ class PcgrlEnv(gym.Env):
             if self.viewer is None:
                 from gym.envs.classic_control import rendering
                 self.viewer = rendering.SimpleImageViewer()
+                # self.viewer = GUI()
 
             if not hasattr(img, 'shape'):
                 img = np.array(img)
@@ -347,4 +348,3 @@ class PcgrlEnv(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
-            

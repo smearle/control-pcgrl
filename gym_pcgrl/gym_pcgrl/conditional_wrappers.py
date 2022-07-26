@@ -174,9 +174,10 @@ class ConditionalWrapper(gym.Wrapper):
     def _init_win(self):
         screen_width = 200
         screen_height = 100 * self.num_params
-        from gym_pcgrl.conditional_window import ParamRewWindow
+        from gym_pcgrl.conditional_window import GtkGUI
 
-        win = ParamRewWindow(self, self.metrics, self.metric_trgs, self.cond_bounds)
+        win = GtkGUI(env=self, tile_types=self.unwrapped._prob.get_tile_types(), tile_images=self.unwrapped._prob._graphics, 
+            metrics=self.metrics, metric_trgs=self.metric_trgs, metric_bounds=self.cond_bounds)
         # win.connect("destroy", Gtk.main_quit)
         win.show_all()
         self.win = win
@@ -321,26 +322,27 @@ class ConditionalWrapper(gym.Wrapper):
 
     def render(self, mode='human'):
         if mode == 'human':
+            img = super().render(mode='rgb_array')
             if self.win is None:
                 self._init_win()
             ### PROFILING
-            N = 100
-            start_time = timer()
-            for _ in range(N):
-                super().render(mode=mode)
-                img = super().render(mode='rgb_array')
-                self.win.render(img)
-            print(f'mean pygobject image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+            # N = 100
+            # start_time = timer()
+            # for _ in range(N):
+            #     img = super().render(mode='rgb_array')
+            #     self.win.render(img)
+            # print(f'mean pygobject image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
             ###
-            img = super().render(mode='rgb_array')
             self.win.render(img)
+            user_clicks = self.win.get_clicks()
+
         else:
             ### PROFILING
             N = 100
             start_time = timer()
             for _ in range(N):
                 super().render(mode=mode)
-            print(f'mean SimpleViewer image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+            print(f'mean pyglet image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
             ###
             return super().render(mode=mode)
 
