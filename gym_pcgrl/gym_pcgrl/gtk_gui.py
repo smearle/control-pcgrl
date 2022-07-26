@@ -43,12 +43,22 @@ class GtkGUI(Gtk.Window):
 
         vbox.pack_start(hbox_1, False, False, 0)
         tile_radio_buttons = []
+        self._active_tool = tile_types[0]
+
+        hbox_static = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        static_checkbox = Gtk.CheckButton("static builds")
+        self._static_build = static_checkbox.get_active()
+        static_checkbox.connect('clicked', self.toggle_static_build)
+        hbox_static.pack_start(static_checkbox, False, False, 0)
+        vbox.pack_start(hbox_static, False, False, 0)
+
 
         for tile in tile_types:
             # This hbox contains the tile type name and the tile image
-            hbox_2 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-            tile_radio_button = Gtk.RadioButton(label='poo')
+            hbox_t = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+            tile_radio_button = Gtk.RadioButton.new_with_label_from_widget(tile_radio_buttons[0] if len(tile_radio_buttons) > 0 else None, tile)
             tile_radio_buttons.append(tile_radio_button)
+            tile_radio_button.connect('toggled', self.on_tool_changed, tile)
             tile_image = Gtk.Image()
             arr = np.array(tile_images[tile].convert('RGB'))
             shape = arr.shape
@@ -56,14 +66,10 @@ class GtkGUI(Gtk.Window):
             pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
                 GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
             tile_image.set_from_pixbuf(pixbuf)
-            hbox_2.pack_start(tile_radio_button, False, False, 0)
-            hbox_2.pack_start(tile_image, False, False, 0)
-            hbox_2.pack_start(Gtk.Label(tile), False, False, 0)
-            vbox.pack_start(hbox_2, False, False, 0)
-
-        # Set all tile radio buttons to belong to the same group
-        # for tile_radio_button in tile_radio_buttons:
-            # tile_radio_button.set_group(tile_radio_buttons)
+            hbox_t.pack_start(tile_radio_button, False, False, 0)
+            hbox_t.pack_start(tile_image, False, False, 0)
+            # hbox_t.pack_start(Gtk.Label(tile), False, False, 0)
+            vbox.pack_start(hbox_t, False, False, 0)
 
         prog_bars = {}
         scales = {}
@@ -106,12 +112,22 @@ class GtkGUI(Gtk.Window):
         self.prog_labels = prog_labels
         self._user_clicks = []
 
+    def toggle_static_build(self, button):
+        self._static_build = button.get_active()
+
+    def on_tool_changed(self, button, tile):
+        if not button.get_active():
+            return
+        self._active_tool = tile
+
     def on_event_press(self, widget, event):
-        self._user_clicks.append((event.x, event.y, self._active_tool))
+        self._user_clicks.append((event.x, event.y, self._active_tool, self._static_build))
         # print('click', widget, event.button, event.time)
 
     def get_clicks(self):
-        return self._user_clicks
+        user_clicks = self._user_clicks
+        self._user_clicks = []
+        return user_clicks
 
     def render(self, img):
 

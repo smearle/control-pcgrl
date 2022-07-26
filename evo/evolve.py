@@ -47,7 +47,7 @@ from archives import CMAInitStatesGrid, get_qd_score, MEGrid, MEInitStatesArchiv
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN, DirectEncoding
 from utils import get_one_hot_map
-from gym_pcgrl.conditional_wrappers import ConditionalWrapper
+from gym_pcgrl.control_wrappers import ControlWrapper
 from gym_pcgrl.envs.helper import get_string_map
 from gym_pcgrl.envs.helper_3D import get_string_map as get_string_map_3d
 from qdpy import plots as qdpy_plots
@@ -152,7 +152,7 @@ def save_grid(csv_name="levels", d=4):
     env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
     # create env
     env = gym.make(env_name)
-    env = ConditionalWrapper(env)
+    env = ControlWrapper(env)
     map_width = env.unwrapped._prob._width
     map_height = env.unwrapped._prob._height
     if ENV3D:
@@ -2118,7 +2118,7 @@ class EvoPCGRL:
 
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
-        self.env = ConditionalWrapper(self.env)
+        self.env = ControlWrapper(self.env)
         self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0)
         self.env.unwrapped._get_stats_on_step = False
 

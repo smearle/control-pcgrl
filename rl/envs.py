@@ -6,7 +6,7 @@ from typing import Dict
 from gym import spaces
 import numpy as np
 
-from gym_pcgrl import wrappers, conditional_wrappers
+from gym_pcgrl import control_wrappers, wrappers
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
 from gym_pcgrl.envs.probs.problem import Problem3D
@@ -65,12 +65,12 @@ def make_env(cfg_dict: Dict):
 #   if log_dir is not None and cfg.get('add_bootstrap', False):
 #       env = wrappers.EliteBootStrapping(env,
 #                                           os.path.join(log_dir, "bootstrap{}/".format(rank)))
-    env = conditional_wrappers.ConditionalWrapper(env, ctrl_metrics=cfg.conditionals, **cfg_dict)
+    env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.conditionals, **cfg_dict)
     if not cfg.evaluate:
         if not cfg.alp_gmm:
-            env = conditional_wrappers.UniformNoiseyTargets(env, **cfg_dict)
+            env = control_wrappers.UniformNoiseyTargets(env, **cfg_dict)
         else:
-            env = conditional_wrappers.ALPGMMTeacher(env, **cfg_dict)
+            env = control_wrappers.ALPGMMTeacher(env, **cfg_dict)
     # it not conditional, the ParamRew wrapper should just be fixed at default static targets
 #   if render or log_dir is not None and len(log_dir) > 0:
 #       # RenderMonitor must come last

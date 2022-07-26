@@ -45,6 +45,12 @@ class Problem(ABC):
     # def gen_holes(self):
         # return None
 
+    def init_tile_int_dict(self):
+        self._tile_int_dict = {tile: i for i, tile in enumerate(self.get_tile_types())}
+
+    def get_tile_int(self, tile):
+        return self._tile_int_dict[tile]
+
     def is_continuous(self):
         return False
 
@@ -79,7 +85,8 @@ class Problem(ABC):
         string[]: that contains all the tile names
     """
     def get_tile_types(self):
-        raise NotImplementedError('get_tile_types is not implemented')
+        return self._tile_types
+        # raise NotImplementedError('get_tile_types is not implemented')
 
     """
     Adjust the parameters for the current problem

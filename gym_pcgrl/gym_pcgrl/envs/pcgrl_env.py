@@ -38,6 +38,7 @@ class PcgrlEnv(gym.Env):
         self.get_string_map = get_string_map
 
         self._prob: Problem = PROBLEMS[prob](**kwargs)
+        self._prob.init_tile_int_dict()
         self._rep_cls = REPRESENTATIONS[rep]
         self._rep: Representation = self._rep_cls()
         self._rep_is_wrapped: bool = False

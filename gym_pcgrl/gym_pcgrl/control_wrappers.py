@@ -18,7 +18,7 @@ import ray
 # TODO: Make this part of the PcgrlEnv class instead of a wrapper?
 # FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
-class ConditionalWrapper(gym.Wrapper):
+class ControlWrapper(gym.Wrapper):
     def __init__(self, env, ctrl_metrics=[], rand_params=False, **kwargs):
         self.win = None
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
@@ -165,16 +165,16 @@ class ConditionalWrapper(gym.Wrapper):
         self._ctrl_trg_queue = []
 
         if self.render_gui:  # and self.conditional:
-            self._init_win()
+            self._init_gui()
         self.infer = kwargs.get("infer", False)
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
         self.max_loss = self.get_max_loss(ctrl_metrics=ctrl_loss_metrics)
 
-    def _init_win(self):
+    def _init_gui(self):
         screen_width = 200
         screen_height = 100 * self.num_params
-        from gym_pcgrl.conditional_window import GtkGUI
+        from gym_pcgrl.gtk_gui import GtkGUI
 
         win = GtkGUI(env=self, tile_types=self.unwrapped._prob.get_tile_types(), tile_images=self.unwrapped._prob._graphics, 
             metrics=self.metrics, metric_trgs=self.metric_trgs, metric_bounds=self.cond_bounds)
@@ -324,7 +324,7 @@ class ConditionalWrapper(gym.Wrapper):
         if mode == 'human':
             img = super().render(mode='rgb_array')
             if self.win is None:
-                self._init_win()
+                self._init_gui()
             ### PROFILING
             # N = 100
             # start_time = timer()
@@ -335,6 +335,23 @@ class ConditionalWrapper(gym.Wrapper):
             ###
             self.win.render(img)
             user_clicks = self.win.get_clicks()
+            for (py, px, tile, static) in user_clicks:
+                x = int(px // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[0])
+                y = int(py // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[1])
+                if x < 0 or y < 0 or x >= self.unwrapped._rep.unwrapped._map.shape[0] or y >= self.unwrapped._rep.unwrapped._map.shape[1]:
+                    print("Clicked outside of map")
+                    continue
+
+                tile_int = self.unwrapped._prob.get_tile_int(tile)
+                print(f"Place tile {tile} at {x}, {y}")
+
+                # FIXME: This is a hack. Write a function in Representation for this.
+                self.unwrapped._rep.unwrapped._map[x, y] = tile_int
+                self.unwrapped._rep.unwrapped._update_bordered_map()
+
+                if hasattr(self.unwrapped._rep, 'static_builds'):
+                    # Assuming borders of width 1 (different than `_border_size` above, which may be different for rendering purposes).
+                    self.unwrapped._rep.static_builds[x+1, y+1] = int(static)
 
         else:
             ### PROFILING

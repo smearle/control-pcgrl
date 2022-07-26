@@ -13,11 +13,13 @@ from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
 class BinaryProblem(Problem):
+    _tile_types = ["empty", "solid"]
+
     """
     The constructor is responsible of initializing all the game parameters
     """
     def __init__(self, **kwargs):
-        super().__init__()
+        super().__init__(**kwargs)
         self._width = 16
         self._height = 16
 
@@ -97,8 +99,8 @@ class BinaryProblem(Problem):
     Returns:`
         string[]: that contains all the tile names
     """
-    def get_tile_types(self):
-        return ["empty", "solid"]
+    # def get_tile_types(self):
+        # return self._
 
     """
     Adjust the parameters for the current problem
