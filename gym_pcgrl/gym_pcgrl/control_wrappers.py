@@ -164,8 +164,8 @@ class ControlWrapper(gym.Wrapper):
         self.next_trgs = None
         self._ctrl_trg_queue = []
 
-        if self.render_gui:  # and self.conditional:
-            self._init_gui()
+        # if self.render_gui:  # and self.conditional:
+            # self._init_gui()
         self.infer = kwargs.get("infer", False)
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
@@ -198,7 +198,7 @@ class ControlWrapper(gym.Wrapper):
     def configure(self, **kwargs):
         pass
 
-    def enable_auto_reset(self, button):
+    def toggle_auto_reset(self, button):
         self.auto_reset = button.get_active()
 
     def getState(self):
@@ -317,7 +317,6 @@ class ControlWrapper(gym.Wrapper):
 #           assert self.infer
             done = False
 
-
         return ob, reward, done, info
 
     def render(self, mode='human'):
@@ -336,8 +335,8 @@ class ControlWrapper(gym.Wrapper):
             self.win.render(img)
             user_clicks = self.win.get_clicks()
             for (py, px, tile, static) in user_clicks:
-                x = int(px // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[0])
-                y = int(py // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[1])
+                x = int(px // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[1])
+                y = int(py // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[0])
                 if x < 0 or y < 0 or x >= self.unwrapped._rep.unwrapped._map.shape[0] or y >= self.unwrapped._rep.unwrapped._map.shape[1]:
                     print("Clicked outside of map")
                     continue
@@ -347,11 +346,15 @@ class ControlWrapper(gym.Wrapper):
 
                 # FIXME: This is a hack. Write a function in Representation for this.
                 self.unwrapped._rep.unwrapped._map[x, y] = tile_int
-                self.unwrapped._rep.unwrapped._update_bordered_map()
 
                 if hasattr(self.unwrapped._rep, 'static_builds'):
                     # Assuming borders of width 1 (different than `_border_size` above, which may be different for rendering purposes).
                     self.unwrapped._rep.static_builds[x+1, y+1] = int(static)
+
+            self.unwrapped._rep.unwrapped._update_bordered_map()
+
+            if self.win._paused:
+                self.render()
 
         else:
             ### PROFILING

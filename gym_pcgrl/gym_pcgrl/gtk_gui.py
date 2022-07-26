@@ -3,7 +3,7 @@ from timeit import default_timer as timer
 
 import gi 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GdkPixbuf, GLib
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib
 import numpy as np
 
 
@@ -18,7 +18,10 @@ class GtkGUI(Gtk.Window):
         # This hbox contains the map and the gui side by side
         hbox_0 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         eventbox = Gtk.EventBox()        
-        eventbox.connect("button-press-event", self.on_event_press)
+        eventbox.connect("motion-notify-event", self.on_mouse_move)
+        eventbox.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
+        eventbox.connect("button-press-event", self.on_mouse_click)
+        eventbox.connect("button-release-event", self.on_mouse_release)
         # self.add(eventbox)        
 
         image = Gtk.Image()
@@ -28,6 +31,16 @@ class GtkGUI(Gtk.Window):
 
         # This vbox contains the gui (buttons and control sliders and meters)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+
+        pause_play_box = Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL)
+        # Add pause button
+        self.pause_button = Gtk.ToggleButton(label="Pause")
+        self.play_button = Gtk.ToggleButton(label="Play")
+        self.pause_button.connect("toggled", self.on_pause_toggled)
+        self.play_button.connect("toggled", self.on_play_toggled)
+        pause_play_box.add(self.pause_button)
+        pause_play_box.add(self.play_button)
+        vbox.pack_start(pause_play_box, False, False, 0)
 
         # This hbox contains the auto reset checkbox and the reset button
         hbox_1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
@@ -111,6 +124,32 @@ class GtkGUI(Gtk.Window):
         self.scales = scales
         self.prog_labels = prog_labels
         self._user_clicks = []
+        self._tool_down = False
+        self._paused = False
+
+    def _pause(self):
+            self._paused = True
+            self.play_button.set_active(False)
+
+    def _play(self):
+            self._paused = False
+            self.pause_button.set_active(False)
+
+    def on_pause_toggled(self, widget):
+        if widget.get_active():
+            self._pause()
+        else:
+            self._play()
+
+    def on_play_toggled(self, widget):
+        if widget.get_active():
+            self._play()
+        else:
+            self._pause()
+
+    def on_mouse_move(self, widget, event):
+        if self._tool_down:
+            self._user_clicks.append((event.x, event.y, self._active_tool, self._static_build))
 
     def toggle_static_build(self, button):
         self._static_build = button.get_active()
@@ -120,9 +159,13 @@ class GtkGUI(Gtk.Window):
             return
         self._active_tool = tile
 
-    def on_event_press(self, widget, event):
+    def on_mouse_click(self, widget, event):
         self._user_clicks.append((event.x, event.y, self._active_tool, self._static_build))
+        self._tool_down = True
         # print('click', widget, event.button, event.time)
+
+    def on_mouse_release(self, widget, event):
+        self._tool_down = False
 
     def get_clicks(self):
         user_clicks = self._user_clicks
