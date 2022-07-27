@@ -31,7 +31,8 @@
   # Pairs of [representation, model] hyperparameters. If model is None, then revert to a default model class.
   "representations_models": [
       # ["narrow", SeqNCA],
-      ["narrow", null],
+      ["narrow", SeqNCA3D],
+      # ["narrow", null],
 
       # ['turtle', null],
       # ["wide", null],
