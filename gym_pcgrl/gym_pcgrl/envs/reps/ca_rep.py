@@ -51,6 +51,3 @@ class CARepresentation(Representation):
         self._map = next_map
         super().update(action)
         return change, [None] * len(self._map.shape)
-
-    def render(self, *args, **kwargs):
-        pass

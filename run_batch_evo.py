@@ -146,7 +146,7 @@ def launch_batch(args, exp_name, collect_params=False):
                     "model": model,
                     "multi_thread": not args.single_thread,
                     "n_aux_chan": n_aux_chan,
-                    "n_generations": 500000,
+                    "n_generations": 1000000,
                     "n_init_states": n_init_states,
                     "n_steps": n_steps,
                     "problem": prob,

@@ -101,11 +101,6 @@ class AuxTiles(gym.Wrapper):
         self.aux_map[tuple(pos)] = aux
 
 
-# class AuxTiles3D(AuxTiles): pass
-    # def _write_to_aux(self, pos, aux):
-        # self.aux_map[pos[0], pos[1], pos[2]] = aux
-
-
 class ToImage(gym.Wrapper):
     """
     Return a Box instead of dictionary by stacking different similar objects

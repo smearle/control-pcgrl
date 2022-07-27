@@ -1,7 +1,7 @@
 {
  "exp_ids": [
-    0,
-    # 1,
+    # 0,
+    1,
     # 2,
     # 3,
     # 4,
@@ -15,13 +15,13 @@
 
  "problems": [
         # "microstructure"
-        # "binary",
-        # "zelda",
-        # "sokoban",
+        "binary",
+        "zelda",
+        "sokoban",
         # "smb_ctrl"
         # "loderunner_ctrl",
         # "face_ctrl",
-        "minecraft_3D_rain",
+        # "minecraft_3D_rain",
         # "minecraft_3D_maze",
         # "minecraft_3D_holey_maze",
         # "minecraft_3D_dungeon_holey",

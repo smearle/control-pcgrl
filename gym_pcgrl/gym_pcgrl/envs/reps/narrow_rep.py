@@ -63,8 +63,8 @@ class NarrowRepresentation(EgocentricRepresentation):
     """
     def get_action_space(self, dims, num_tiles):
         # FIXME: For backward compatibility only!
-        return spaces.Discrete(num_tiles + 1)
-        # return spaces.Discrete(num_tiles)
+        # return spaces.Discrete(num_tiles + 1)
+        return spaces.Discrete(num_tiles)
 
 
     """
