@@ -110,7 +110,7 @@ class PPOTrainer(RlLibPPOTrainer):
         log_result['info: learner:'] = result['info']['learner']
 
         # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-        result['fps'] = result['timesteps_this_iter'] / result['time_this_iter_s']
+        result['fps'] = result['num_env_steps_sampled_this_iter'] / result['time_this_iter_s']
 
         # TODO: Send a heatmap to tb/wandb representing success reaching various control targets?
         if len(result['custom_metrics']) > 0:
@@ -171,15 +171,16 @@ class PPOTrainer(RlLibPPOTrainer):
 
 def main(cfg):
     DEBUG = False
+    DEBUG_RENDER = True
     # if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
         # ("minecraft" not in cfg.problem):
         # raise Exception(
             # "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
 
+    # FIXME: Check for a 3D problem parent class.
     is_3D_env = False
-    # if "3D" in cfg.problem:
-        # assert "3D" in cfg.representation
-        # is_3D_env = True
+    if "3D" in cfg.problem:
+        is_3D_env = True
 
     cfg.env_name = get_env_name(cfg.problem, cfg.representation)
     print('env name: ', cfg.env_name)
@@ -225,7 +226,7 @@ def main(cfg):
     dummy_cfg = copy.copy(vars(cfg))
     dummy_cfg['render'] = False
     dummy_env = make_env(dummy_cfg)
-    # check_env(dummy_env)
+    check_env(dummy_env)
 
     ### DEBUG ###
     if DEBUG:
@@ -238,7 +239,8 @@ def main(cfg):
                     # act = 0
                 obs, rew, done, info = dummy_env.step(act)
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
-                dummy_env.render()
+                if DEBUG_RENDER:
+                    dummy_env.render()
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()
 

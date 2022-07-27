@@ -2,6 +2,7 @@ from pdb import set_trace as TT
 
 import gym
 from gym import spaces
+from gym_pcgrl.envs.probs.problem import Problem3D
 import numpy as np
 
 # try:
@@ -130,7 +131,8 @@ class ToImage(gym.Wrapper):
             if self.shape is None:
                 self.shape = self.env.observation_space.spaces[n].shape
             new_shape = self.env.observation_space.spaces[n].shape
-            if len(new_shape) <= 2:
+            if (issubclass(type(self.unwrapped._prob), Problem3D) and len(new_shape) == 3 
+                    or len(new_shape) <= 2):  # here we assume the problem is 2D if not 3D
                 depth += 1
                 n_cat_dims = len(new_shape)
             else:

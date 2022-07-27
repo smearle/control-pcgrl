@@ -11,7 +11,7 @@ from pdb import set_trace as TT
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-b_map = [AIR, STONE, CHEST, PUMPKIN, PUMPKIN]
+b_map = [AIR, STAINED_GLASS, CHEST, PUMPKIN, PUMPKIN]
 string_map = ["AIR", "DIRT","CHEST", "SKULL", "PUMPKIN"]
 # PATH_BLOCK = PURPUR_BLOCK  # pretty
 PATH_BLOCK = TRAPDOOR  # navigable (debug)

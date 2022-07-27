@@ -50,7 +50,7 @@ class PcgrlHoleyEnv(PcgrlCtrlEnv):
         return self._prob.get_tile_types().index(self._prob._empty_tile)
 
     def _get_rep_map(self):
-        return self._rep._bordered_map
+        return self._rep.unwrapped._bordered_map
 
     """
     Close the environment

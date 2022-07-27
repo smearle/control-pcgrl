@@ -72,17 +72,18 @@ class GtkGUI(Gtk.Window):
             tile_radio_button = Gtk.RadioButton.new_with_label_from_widget(tile_radio_buttons[0] if len(tile_radio_buttons) > 0 else None, tile)
             tile_radio_buttons.append(tile_radio_button)
             tile_radio_button.connect('toggled', self.on_tool_changed, tile)
-            tile_image = Gtk.Image()
-            arr = np.array(tile_images[tile].convert('RGB'))
-            shape = arr.shape
-            arr = arr.flatten()
-            pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
-                GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
-            tile_image.set_from_pixbuf(pixbuf)
-            hbox_t.pack_start(tile_radio_button, False, False, 0)
-            hbox_t.pack_start(tile_image, False, False, 0)
-            # hbox_t.pack_start(Gtk.Label(tile), False, False, 0)
-            vbox.pack_start(hbox_t, False, False, 0)
+            if tile_images is not None:
+                arr = np.array(tile_images[tile].convert('RGB'))
+                tile_image = Gtk.Image()
+                shape = arr.shape
+                arr = arr.flatten()
+                pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
+                    GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
+                tile_image.set_from_pixbuf(pixbuf)
+                hbox_t.pack_start(tile_radio_button, False, False, 0)
+                hbox_t.pack_start(tile_image, False, False, 0)
+                # hbox_t.pack_start(Gtk.Label(tile), False, False, 0)
+                vbox.pack_start(hbox_t, False, False, 0)
 
         prog_bars = {}
         scales = {}
@@ -195,6 +196,8 @@ class GtkGUI(Gtk.Window):
 
     def display_image(self, img):
         # self.image.set_from_file("../Downloads/xbox_cat.png")        
+        if img is None:
+            return
         shape = img.shape
         arr = img.flatten()
         # self.pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(arr, GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], shape[2] * shape[1])
