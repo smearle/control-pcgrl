@@ -8,7 +8,6 @@ vertical blocks available on the lower step (and two vertical blocks available o
 """
 import itertools
 from pdb import set_trace as TT
-from this import d
 from tkinter import W
 from gym_pcgrl.envs.probs.holey_prob_3D import HoleyProblem3D
 

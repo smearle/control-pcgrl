@@ -4,23 +4,23 @@
 {
   "exp_names": [
     # testStaticBuilds,
-    # 0,
+    0,
     # 1,
     # 2,
     # 3,
     # 10,
-    11,
+    # 11,
     # 12,
   ],
 
   "problems": [
     # "minecraft_3D_maze",
-    "minecraft_3D_holey_maze",
+    # "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
     # "binary",
-    # "binary_holey",
+    "binary_holey",
 #   "zelda",
 #   "sokoban",
 #   'simcity',
@@ -33,13 +33,13 @@
         # ["narrow3D", null],
         # ["narrow3D", SeqNCA3D],
 
-        ["narrow3Dholey", null],
+        # ["narrow3Dholey", null],
         # ["narrow3Dholey", SeqNCA3D],
 
       # ["narrow", SeqNCA],
-      # ["narrow", null],
-      # [narrowholey, SeqNCA],
-      # ["narrowholey", null],
+    #   ["narrow", null],
+      [narrowholey, SeqNCA],
+    #   ["narrowholey", null],
 
     #   ['turtle', null],
 #       ["turtle3D", null],
@@ -147,9 +147,9 @@
   "change_percentages": [
     # 0.2,
     # 0.6,
-    # 0.8,
+    0.8,
     # 1.0,
-    null,
+    # null,
   ],
 
   # The probability that a given tile in the random initial state is "static", i.e. cannot be modified by the agent.
@@ -164,13 +164,13 @@
     # 1,
     # 0.5,
     # 0.01,
-      # 0.001,
-      # 0.0001,
-      # 0.00005,
-      # 0.00001,
-      0.000005,
-      # 0.000001,
-      # 1e-7,
+    # 0.001,
+    # 0.0001,
+    # 0.00005,
+    # 0.00001,
+    0.000005,
+    # 0.000001,
+    # 1e-7,
   ],
 
 "max_board_scans": [

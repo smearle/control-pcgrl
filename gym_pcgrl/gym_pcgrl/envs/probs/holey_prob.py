@@ -12,7 +12,7 @@ class HoleyProblem(Problem):
     The base class for all the holey problems so that we don't have to repeat the code.
     """
     def __init__(self):
-        # super().__init__()
+        # super().__init__()      # FIXME: you need to uncomment this line if you want to use the 2D holey problem, comment it if you want to use the 3D holey problem.
         self._hole_queue = []
         self.fixed_holes = False
         self._border_idxs = self.get_border_idxs()
