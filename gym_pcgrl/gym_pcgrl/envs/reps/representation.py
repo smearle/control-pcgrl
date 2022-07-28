@@ -54,10 +54,13 @@ class Representation(ABC):
         height (int): the generated map height
         prob (dict(int,float)): the probability distribution of each tile value
     """
-    def reset(self, dims: tuple, prob: Problem):
+    def reset(self, dims: tuple, prob: Problem, next_map: np.ndarray = None):
         self._bordered_map = np.empty(tuple([i + 2 for i in dims[::-1]]), dtype=np.int)
         self._bordered_map.fill(self._border_tile_index)
-        if self._random_start or self._old_map is None:
+        if next_map is not None:
+            self._map = next_map
+            self._old_map = self._map.copy()
+        elif self._random_start or self._old_map is None:
             self._map = type(self).gen_random_map(self._random, dims, prob)
             self._old_map = self._map.copy()
         else:

@@ -5,7 +5,10 @@ import PIL
 import gym
 from gym import spaces
 from gym_pcgrl.envs.probs.holey_prob import HoleyProblem
-import numpy as np 
+import numpy as np
+from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
+from ray.rllib.env.env_context import EnvContext
+from ray.rllib.utils.annotations import override
 
 from gym_pcgrl.envs.reps.wrappers import wrap_rep 
 from gym_pcgrl.envs.probs import PROBLEMS
@@ -32,6 +35,11 @@ class PcgrlEnv(gym.Env):
         constant in gym_pcgrl.envs.reps.__init__.py
     """
     def __init__(self, prob="binary", rep="narrow", **kwargs):
+        self._has_been_assigned_map = False  # TODO: Factor this out into a ... wrapper?
+
+        # Whether we need to load a new evaluation map.
+        self.switch_env = False
+        self.cur_map_idx = 0
 
         self._repr_name = rep
         # Attach this function to the env, since it will be different for, e.g., 3D environments.
@@ -92,6 +100,23 @@ class PcgrlEnv(gym.Env):
 #       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
 
+    @override(TaskSettableEnv)
+    def sample_tasks(self, n_maps):
+        """Implement this to sample n random tasks."""
+        return [np.random.randint(self._n_maps, n_maps)]
+
+    @override(TaskSettableEnv)
+    def get_task(self):
+        """Implement this to get the current task (curriculum level)."""
+        return self.cur_map_idx
+
+    @override(TaskSettableEnv)
+    def set_task(self, map_idx):
+        """Implement this to set the task (curriculum level) for this env."""
+        if map_idx is not None:
+            self.cur_map_idx = map_idx
+            self.switch_env = True
+
     def get_map_dims(self):
         return (self._prob._width, self._prob._height, self.get_num_tiles())
 
@@ -148,7 +173,12 @@ class PcgrlEnv(gym.Env):
     def reset(self):
         self._changes = 0
         self._iteration = 0
-        self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+        if self.switch_env:
+            self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()),
+                next_map=self._prob.eval_maps[self.cur_map_idx])
+            self.switch_env = False
+        else:
+            self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         # continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
         if self._get_stats_on_step:
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
@@ -193,6 +223,11 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
+        # TODO: Factor this out into a ... wrapper?
+        self.evaluation_env = kwargs['evaluation_env']
+        if self.evaluation_env:
+            self.num_eval_envs = kwargs['num_eval_envs']
+
         _prob_cls = type(self._prob)
         static_build = kwargs['static_prob'] is not None
         # Wrap the representation if we haven't already.

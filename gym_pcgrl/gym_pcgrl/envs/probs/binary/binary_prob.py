@@ -4,6 +4,7 @@ from pdb import set_trace as TT
 import numpy as np
 from PIL import Image
 
+from gym_pcgrl.envs.probs.binary.eval_maps import binary_eval_maps
 from gym_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
@@ -14,6 +15,7 @@ Generate a fully connected top down layout where the longest path is greater tha
 """
 class BinaryProblem(Problem):
     _tile_types = ["empty", "solid"]
+    eval_maps = binary_eval_maps
 
     """
     The constructor is responsible of initializing all the game parameters
@@ -25,12 +27,12 @@ class BinaryProblem(Problem):
 
         # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
         # beginning of a level-generation episode.
-        self._prob = {"empty": 0.0, "solid": 1.0,}
+        self._prob = {"empty": 0.5, "solid": 0.5,}
 
         self._border_tile = "solid"
 
         self._target_path = 20
-        self._random_probs = False
+        self._random_probs = True
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2) + 1
 
         self._reward_weights = {
@@ -100,7 +102,7 @@ class BinaryProblem(Problem):
         string[]: that contains all the tile names
     """
     # def get_tile_types(self):
-        # return self._
+        # return ["empty", "solid"]
 
     """
     Adjust the parameters for the current problem

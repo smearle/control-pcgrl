@@ -15,6 +15,8 @@ The base class for all the problems that can be handled by the interface
 map in prob are list of strings
 """
 class Problem(ABC):
+    _tile_types = []
+    eval_maps = []
     """
     Constructor for the problem that initialize all the basic parameters
     """

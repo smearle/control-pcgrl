@@ -11,6 +11,7 @@ import sys
 import time
 import gym
 from gym_pcgrl.envs.probs import PROBLEMS
+from gym_pcgrl.task_assignment import set_map_fn
 import matplotlib
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -168,6 +169,12 @@ class PPOTrainer(RlLibPPOTrainer):
         # print(pretty_print(log_result))
         return result
 
+    def evaluate(self):
+        # TODO: Set the evaluation maps here!
+        # self.eval_workers.foreach_env_with_context(fn)
+        result = super().evaluate()
+        return result
+
 
 def main(cfg):
     DEBUG = False
@@ -224,7 +231,8 @@ def main(cfg):
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
     dummy_cfg = copy.copy(vars(cfg))
-    dummy_cfg['render'] = False
+    dummy_cfg["render"] = False
+    dummy_cfg["evaluation_env"] = False
     dummy_env = make_env(dummy_cfg)
     check_env(dummy_env)
 
@@ -247,6 +255,7 @@ def main(cfg):
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
+    cfg.eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
@@ -254,11 +263,14 @@ def main(cfg):
         'framework': 'torch',
         'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
         'num_gpus': cfg.n_gpu,
-        'env_config': vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
+        'env_config': {
+            **vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
+            "evaluation_env": False,
+        },
         # 'env_config': {
             # 'change_percentage': cfg.change_percentage,
         # },
-        'num_envs_per_worker': num_envs_per_worker if not cfg.infer else 1,
+        'num_envs_per_worker': num_envs_per_worker,
         'render_env': cfg.render,
         'lr': cfg.lr,
         'gamma': cfg.gamma,
@@ -269,11 +281,17 @@ def main(cfg):
                 # 'orig_obs_space': copy.copy(dummy_env.observation_space),
             }
         },
-        "evaluation_interval" : 1 if cfg.evaluate else None,
+        "evaluation_interval" : 1 if cfg.evaluate else 1,
         "evaluation_duration": max(1, num_workers),
         "evaluation_duration_unit": "episodes",
-        "evaluation_num_workers": num_workers if cfg.evaluate else 0,
+        "evaluation_num_workers": eval_num_workers,
+        "env_task_fn": set_map_fn,
         "evaluation_config": {
+            "env_config": {
+                **vars(cfg),
+                "evaluation_env": True,
+                "num_eval_envs": num_envs_per_worker * eval_num_workers,
+            },
             "explore": False,
         },
         "logger_config": {
