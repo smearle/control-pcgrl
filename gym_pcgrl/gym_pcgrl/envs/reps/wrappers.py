@@ -104,8 +104,11 @@ class Representation3D(RepresentationWrapper):
         # self._bordered_map[1:-1, 1:-1, 1:-1] = self._map
 
     def render(self, map, mode='human', **kwargs):
+        # TODO: Check if we are Egocentric. If so, render the agent edit. Otherwise, render the whole map (assume cellular)
         spawn_3D_maze(map)
         # return self.rep.render(mode, **kwargs)
+        # pass
+        
 
 
 class HoleyRepresentation(RepresentationWrapper):

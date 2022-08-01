@@ -261,7 +261,8 @@ class Minecraft3DmazeProblem(Problem3D):
 
         # block_dict.update(get_3D_path_blocks(self.path_coords))
         # render_path_coords = [coords for coords in self.path_coords if map[coords[2]][coords[1]][coords[0]] != "AIR"]
-        spawn_3D_path(path_to_render, ordered_path=ordered_path, **kwargs)
+        render_path_sequence = False
+        spawn_3D_path(path_to_render, ordered_path=ordered_path, render_path_sequence=render_path_sequence, **kwargs)
         # time.sleep(0.2)
     
     def render(self, map, iteration_num, repr_name, render_matplotlib=False, render_paths=None, **kwargs):

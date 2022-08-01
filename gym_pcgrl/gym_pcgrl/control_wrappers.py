@@ -321,9 +321,9 @@ class ControlWrapper(gym.Wrapper):
 
     def render(self, mode='human'):
         if mode == 'human':
-            img = super().render(mode='rgb_array')
             if self.win is None:
                 self._init_gui()
+            img = super().render(mode='rgb_array')
             ### PROFILING
             # N = 100
             # start_time = timer()
@@ -378,6 +378,8 @@ class ControlWrapper(gym.Wrapper):
 
     def display_metric_trgs(self):
         if self.render_gui:
+            if self.win is None:
+                self._init_gui()
             self.win.display_metric_trgs()
 
     def get_loss(self):

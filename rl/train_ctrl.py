@@ -243,6 +243,7 @@ def main(cfg):
             for i in range(500):
                 # if i > 3:
                 act = dummy_env.action_space.sample()
+                # act = 0 
                 # else:
                     # act = 0
                 obs, rew, done, info = dummy_env.step(act)

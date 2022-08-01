@@ -88,8 +88,8 @@ class NarrowRepresentation(EgocentricRepresentation):
     def update(self, action):
         change = 0
         if action > 0:
-            change += [0,1][self._map[tuple(self._pos)] != action-1]
-            self._map[tuple(self._pos)] = action-1
+            change += [0,1][self._map[tuple(self._pos)] != action]
+            self._map[tuple(self._pos)] = action
         if self._random_tile:
             if self.n_step == len(self._act_coords):
                 np.random.shuffle(self._act_coords)

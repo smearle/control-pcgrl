@@ -11,7 +11,7 @@ from pdb import set_trace as TT
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-SOLID_BLOCK = STONE
+SOLID_BLOCK = STAINED_GLASS
 # SOLID_BLOCK = STAINED_GLASS
 b_map = [AIR, SOLID_BLOCK, CHEST, PUMPKIN, PUMPKIN]
 string_map = ["AIR", "DIRT","CHEST", "SKULL", "PUMPKIN"]
@@ -26,7 +26,7 @@ block_map = dict(zip(string_map, b_map))
 inv_block_map = dict(zip(b_map, string_map))
 
 N_BLOCK_TYPE = 3
-RENDER_PATH_SEQUENCE = True
+# RENDER_PATH_SEQUENCE = False
 
 
 def render_blocks(blocks, base_pos=5):
@@ -267,7 +267,8 @@ def get_3D_maze_blocks(map):
 
 
 # NEXT: change these 2 funcs into 1
-def spawn_3D_path(path, base_pos=5, item=PATH_BLOCK, offset=(0, 0, 0), ordered_path=None):
+def spawn_3D_path(path, base_pos=5, item=PATH_BLOCK, offset=(0, 0, 0), ordered_path=None, 
+                    render_path_sequence = False, **kwargs):
     '''
     Spawn path once or iteratively in Minecraft
 
@@ -281,7 +282,7 @@ def spawn_3D_path(path, base_pos=5, item=PATH_BLOCK, offset=(0, 0, 0), ordered_p
     if len(path) == 0:
             return
 
-    if RENDER_PATH_SEQUENCE is False or ordered_path is None:
+    if render_path_sequence is False or ordered_path is None:
         blocks = []
         for pos in path:
             blocks.append(Block(position=Point(
