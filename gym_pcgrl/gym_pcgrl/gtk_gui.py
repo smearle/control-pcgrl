@@ -11,7 +11,7 @@ import numpy as np
 class GtkGUI(Gtk.Window):
     def __init__(self, env, tile_types, tile_images, metrics, metric_trgs, metric_bounds):
         self.env = env
-        Gtk.Window.__init__(self, title="Metrics")
+        Gtk.Window.__init__(self, title="Controllable PCGRL")
         self.set_border_width(10)
 
         self.pixbuf = None

@@ -292,7 +292,7 @@ def main(cfg):
                 "evaluation_env": True,
                 "num_eval_envs": num_envs_per_worker * eval_num_workers,
             },
-            "explore": False,
+            "explore": True,
         },
         "logger_config": {
                 # "wandb": {

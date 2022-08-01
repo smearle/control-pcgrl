@@ -11,10 +11,12 @@ from pdb import set_trace as TT
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
-b_map = [AIR, STAINED_GLASS, CHEST, PUMPKIN, PUMPKIN]
+SOLID_BLOCK = STONE
+# SOLID_BLOCK = STAINED_GLASS
+b_map = [AIR, SOLID_BLOCK, CHEST, PUMPKIN, PUMPKIN]
 string_map = ["AIR", "DIRT","CHEST", "SKULL", "PUMPKIN"]
-# PATH_BLOCK = PURPUR_BLOCK  # pretty
-PATH_BLOCK = TRAPDOOR  # navigable (debug)
+PATH_BLOCK = PURPUR_SLAB  # pretty
+# PATH_BLOCK = TRAPDOOR  # navigable (debug)
 PLAYER_BLOCK = RED_GLAZED_TERRACOTTA
 
 # map string map entries into Minecraft item type

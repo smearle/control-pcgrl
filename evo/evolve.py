@@ -1334,6 +1334,7 @@ def simulate(
                 if RENDER:
                     pass
                     time.sleep(0.2)
+                    # This will pause inference after each episode when rendering.
                     TT()
 
             last_int_map = int_map
@@ -2119,7 +2120,7 @@ class EvoPCGRL:
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
         self.env = ControlWrapper(self.env)
-        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0)
+        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0, evaluation_env=False)
         self.env.unwrapped._get_stats_on_step = False
 
 #       if CMAES:
