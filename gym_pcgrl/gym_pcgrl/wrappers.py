@@ -362,7 +362,7 @@ class Cropped(gym.Wrapper):
 
         assert (
             "pos" in self.env.observation_space.spaces.keys()
-        ), "This wrapper only works for representations thave have a position"
+        ), "This wrapper only works for representations that have a position"
         assert (
             name in self.env.observation_space.spaces.keys()
         ), "This wrapper only works if you have a {} key".format(name)
@@ -455,6 +455,8 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
     """
     def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
         static_prob = kwargs.get('static_prob')
+        obs_size = kwargs.get('observation_size')
+        # crop_size = obs_size if obs_size is not None else crop_size
         env = gym.make(game)
         env.adjust_param(**kwargs)
 
@@ -468,7 +470,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
                 game=env, crop_size=crop_size, pad_value=env.get_border_tile(), name=k, 
                 **kwargs,
             )
-
+        TT()
         # Transform the map to a one hot encoding
         # for k in flat_indices:
         env = OneHotEncoding(env, 'map', padded=True, **kwargs)

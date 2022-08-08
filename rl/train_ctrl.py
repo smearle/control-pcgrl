@@ -424,6 +424,7 @@ def main(cfg):
             **trainer_config,
         },
         # checkpoint_score_attr="episode_reward_mean",
+        # TODO: makes timestep total input by user.(n_frame)
         stop={"timesteps_total": 1e10},
         checkpoint_at_end=True,
         checkpoint_freq=10,

@@ -248,6 +248,12 @@ def get_exp_name(cfg):
     
     if cfg.lr:
         exp_name += f"_lr-{cfg.lr:.1e}"
+    
+    if cfg.observation_size is not None:
+        exp_name += f"_obs-{cfg.observation_size}"
+
+    if cfg.n_frame is not None:
+        exp_name += f"_nframe-{cfg.n_frame}"
 
     return exp_name
 
