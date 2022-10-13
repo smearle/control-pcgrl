@@ -178,8 +178,8 @@
 # after the agent is translated to the center of the board. For example 3 means 3*3 around the agent for 2D case.
 # For non-egocentric representation, the observation space is the size of the board no matter what number is given.
 "observation_size": [
-  3,
-  # null,
+  # 3,
+  null,
 ],
 
 

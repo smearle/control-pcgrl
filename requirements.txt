@@ -2,6 +2,7 @@
 
 pandas
 deap
+dm-tree        # rllib dependency
 pyglet
 neat-python
 ribs
@@ -10,16 +11,15 @@ psutil
 imageio
 gym==0.21.0   # not newer than 0.20.0
 graphviz
-grpc  # For rendering minecraft via Evocraft
 numpy==1.21  # numba requires this version or lower
-opencv-python
+opencv-python      # M1 mac users may need to install this separately (or try pip install opencv-python separately; requires numpy 1.23+)
 # gym==0.19.0     # minerl will require 0.19.0
 pingouin
 PyOpenGL
 ribs
 scikit-image
 tqdm
-wandb
+wandb       # after installing wandb, run `wandb login` to login to wandb
 
 # git submodule update --init qdpy/       # add submodule first before python -m pip install -r requirements.txt
 # ./submodules/qdpy
