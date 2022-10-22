@@ -1,23 +1,27 @@
 # TODO: separate requirements for evo/rl (while ensuring they do not conflict).
+# under the gcc verison of: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0 (Tirona) ; python 3.10
 
-pandas
 deap
 dm-tree        # rllib dependency
-pyglet
-neat-python
-ribs
-numba
-psutil
-imageio
-gym==0.21.0   # not newer than 0.20.0
 graphviz
-numpy==1.21  # numba requires this version or lower
-opencv-python      # M1 mac users may need to install this separately (or try pip install opencv-python separately; requires numpy 1.23+)
+gym==0.26.2
+
+# gym==0.21.0   
 # gym==0.19.0     # minerl will require 0.19.0
+imageio
+neat-python
+numba
+numpy==1.23.4
+# numpy==1.21  # numba requires this version or lower
+opencv-python      # M1 mac users may need to install this separately (or try pip install opencv-python separately; requires numpy 1.23+)
+pandas
 pingouin
+psutil
+pyglet
 PyOpenGL
 ribs
 scikit-image
+submitit
 tqdm
 wandb       # after installing wandb, run `wandb login` to login to wandb
 
@@ -30,10 +34,8 @@ wandb       # after installing wandb, run `wandb login` to login to wandb
 ./submodules/pytorch-neat
 
 # ray[rllib]
-ray==1.13     # not older than 1.13.0
+ray==2.0    # not older than 2.0 
 
-# Installing minerl:
-# python -m pip install --upgrade minerl
 
 
 # Would be great to try using dqd-rl inside evolve.py... until then, we don't need dqd.

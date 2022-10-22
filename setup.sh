@@ -5,7 +5,7 @@ python -m pip install -e gym_pcgrl
 python -m pip install -e submodules/qdpy
 
 
-# Installing torch:
+####### Installing torch: #######
 
 # for cpu
 # conda install pytorch torchvision torchaudio -c pytorch
@@ -19,6 +19,14 @@ conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 # # M1 mac users, if want to use GPU (MPS acceleration)):
 # conda install pytorch torchvision torchaudio -c pytorch-nightly
 
+#################################
 
 # GUI libraries for rendering (and controlling) controllable agents.
 conda install -c conda-forge pygobject gtk3
+
+# Installing minerl:
+# python -m pip install --upgrade minerl
+
+
+# Installing hydra:
+python -m pip install hydra-core --upgrade

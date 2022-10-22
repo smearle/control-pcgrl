@@ -87,6 +87,7 @@ class Minecraft3DmazeProblem(Problem3D):
         return ["AIR", "DIRT"]
 
     def process_observation(self, observation, path_coords=None):
+        """ add the path into the observation to be returned to the agent. """
         path_coords = self.path_coords if path_coords is None else path_coords
         path_coords = np.array(path_coords)
         if path_coords.shape == (0,):
