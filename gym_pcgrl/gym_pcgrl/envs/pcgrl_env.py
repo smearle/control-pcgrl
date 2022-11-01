@@ -230,9 +230,11 @@ class PcgrlEnv(gym.Env):
 
         _prob_cls = type(self._prob)
         static_build = kwargs['static_prob'] is not None
+        multi = kwargs['action_size'] is not None
         # Wrap the representation if we haven't already.
         if not self._rep_is_wrapped:
-            self._rep = wrap_rep(self._rep, _prob_cls, static_build=static_build)
+            self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), static_build=static_build, multi=multi, 
+                                 **kwargs)
             self._rep_is_wrapped = True
 
         self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
@@ -335,7 +337,7 @@ class PcgrlEnv(gym.Env):
             info = {}
 
         info["iterations"] = self._iteration
-        info["changes"] = self._changes
+        info["changes"] = self._changes                    # noop is removed now, so this is the same as iteration
         info["max_iterations"] = self._max_iterations
         info["max_changes"] = self._max_changes
 

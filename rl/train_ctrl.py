@@ -177,7 +177,7 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
-    DEBUG = False
+    DEBUG = True
     DEBUG_RENDER = True
     # if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
         # ("minecraft" not in cfg.problem):

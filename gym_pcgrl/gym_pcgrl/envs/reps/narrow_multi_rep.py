@@ -10,7 +10,7 @@ or changing 3x3 location at once to a certain value
 """
 class NarrowMultiRepresentation(NarrowRepresentation):
     """
-    Gets the action space used by the narrow cast representation
+    Gets the action space used by the narrow multi representation
 
     Parameters:
         width: the current map width
@@ -28,7 +28,7 @@ class NarrowMultiRepresentation(NarrowRepresentation):
         return spaces.MultiDiscrete(action_space)
 
     """
-    Update the narrow cast representation with the input action
+    Update the narrow multi representation with the input action
 
     Parameters:
         action: an action that is used to advance the environment (same as action space)

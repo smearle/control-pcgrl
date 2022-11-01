@@ -1,6 +1,7 @@
 from abc import ABC
 from collections import OrderedDict
 from inspect import isclass
+import math
 from pdb import set_trace as TT
 
 from gym import spaces
@@ -21,7 +22,7 @@ from gym_pcgrl.envs.reps.representation import EgocentricRepresentation, Represe
 
 # class RepresentationWrapper(Representation):
 class RepresentationWrapper():
-    def __init__(self, rep: Representation):
+    def __init__(self, rep: Representation, **kwargs):
         self.rep = rep
         # TODO: implement below so that they all point to the same object
         # self._map = self.rep._map
@@ -246,7 +247,6 @@ class StaticBuildRepresentation(RepresentationWrapper):
         return change, pos
 
 
-# 
 class RainRepresentation(RepresentationWrapper):
     def get_action_space(self, dims, num_tiles):
         # Need no-op because raining sand/acid will always change map (if column is not empty).
@@ -266,73 +266,108 @@ class RainRepresentation(RepresentationWrapper):
         spawn_3D_maze(map)
 
 
-# def wrap_3D(rep_cls: Representation):
-    # TODO: make this a decorator(?)(suggeseted by @joshuaschwartz) <-- copliot write this
-    # TODO: make this a single wrap func
+class MultiRepresentation(RepresentationWrapper):
+    '''
+    A wrapper that make the action space change multiple tiles at each time step. Maybe useful for all representations 
+    (for 2D, 3D, narrow, turtle, wide, ca, ...).
+    NOW JUST FOR EGOCENTRIC REPRESENTATIONS.
+    '''
+    def __init__(self, rep, map_dims, **kwargs):
+        super().__init__(rep, **kwargs)
+        self.action_size = kwargs.get('action_size')       # if we arrive here, there must be an action_size in kwargs
+        self.map_size = map_dims                            # map_dims is a tuple (height, width, n_tiles) in 2D
+        self.map_dim = len(map_dims[:-1])                        # 2 for 2D, 3 for 3D
+        self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32)   # strides are just 1 for each dimension now
+        self._act_coords = None
 
-
-    # class Representation3D(rep_cls, Representation3DABC):
-        # gen_random_map = Representation3DABC._gen_random_map
-        # _update_bordered_map = Representation3DABC._update_bordered_map
-
-
-    # if issubclass(rep_cls, EgocentricRepresentation):
-        # class EgocentricRepresentation3D(Representation3D):
-        #     _dirs = [(-1,0,0), (1,0,0), (0,-1,0), (0,1,0),(0,0,-1),(0,0,1)]
-
-        #     """
-        #     Resets the current representation where it resets the parent and the current
-        #     turtle location
-
-        #     Parameters:
-        #         length (int): the generated map length
-        #         width (int): the generated map width
-        #         height (int): the generated map height
-        #         prob (dict(int,float)): the probability distribution of each tile value
-        #     """
-        #     def reset(self, dims, prob):
-        #         super().reset(dims, prob)
-        #         self._new_coords = self._pos
-        #         self._old_coords = self._pos
-
-
-        # return EgocentricRepresentation3D
+        # Check the action size is the same dimension as the map
+        assert self.map_dim == len(self.action_size), \
+            f"Action size ({len(self.action_size)}) should be the same dimension as the map size ({self.map_dim})"
+        # Check whether we have a valid action size and stride
+        for i in range(self.map_dim):
+            assert self.map_size[i] - self.action_size[i] + self.strides[i] == self.map_size[i] * self.strides[i], \
+                "Please make sure that the action size and stride are valid for the map size."
     
-    # return Representation3D
+    def get_action_space(self, *args, **kwargs):
+        # the tiles inside the action are not neccearily the same
+        action_space = []
+        for i in range(math.prod(self.action_size)):
+            action_space.append(self.map_size[-1])
+        return spaces.MultiDiscrete(action_space)
+    
+    def get_act_coords(self):
+        '''
+        Get the coordinates of the action space. Regards the top left corner's coordinate (the smallest coords in the 
+        action block) as the coordinate of current action. 
+
+        The formula of calculating the size of 2d convolutional layer is:
+        (W-F+2P)/S + 1
+        where W is the width of input (the map size here), F is the width of filter (action_size here), 
+        P is the padding (0 here), S is the stride. To get the same size of input and output, we have:
+        (W-F)/S + 1 = W
+        => W - F + S = W * S for each dimension
+        '''
+        coords = []
+        for i in range(self.map_dim):
+            coords.append(np.arange(0, self.map_size[i] - self.action_size[i] + self.strides[i], self.strides[i]))
+        return np.array(np.meshgrid(*coords)).T.reshape(-1, self.map_dim)  # tobe checked! copilot writes this but looks good
+            
+    
+    def update(self, action, **kwargs):
+        '''
+        Update the map according to the action, the action is a vector of size action_size
+
+        In previous narrow_multi representation, the action is also a vector (MultiDiscrete). However the action 
+        outside the map will be discarded (do I understand it right?). This will make the entries of the action space 
+        sometimes crucial (inside the map) and sometimes trivial (outside the map). This is not good for RL. (copilot agree 
+        this is not good)
+        '''
+        # unravel the action from a vector to a matrix (of size action_size)
+        action = action.reshape(self.action_size)
+
+        old_state = self.unwrapped._map.copy()
+
+        # replace the map at self.pos with the action TODO: is there any better way to make it dimension independent?
+        top_left = self._pos
+        bottom_right = self._pos + self.action_size - 1
+        if self.map_dim == 2:
+            self.unwrapped._map[top_left[0]:bottom_right[0]+1, top_left[1]:bottom_right[1]+1] = action
+        elif self.map_dim == 3:
+            self.unwrapped._map[top_left[0]:bottom_right[0]+1, top_left[1]:bottom_right[1]+1, top_left[2]:bottom_right[2]+1] = action
+
+        new_state = self.unwrapped._map
+        if self.unwrapped._random_tile:
+            if self.unwrapped.n_step == len(self._act_coords):
+                np.random.shuffle(self._act_coords)
+        self._pos = self._act_coords[self.n_step % len(self._act_coords)]
+        self.unwrapped.n_step += 1
+
+        self.unwrapped._bordered_map[tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])] = self.unwrapped._map
+
+        change = np.any(old_state != new_state)
+
+        return change, self._pos
 
 
-# def wrap_holey(
-#         rep_cls: Representation  # Actually a subclass of the Representation class. Not an instance. Can we specify this?
-#     ):
-#     """Define a subclass for an as-yet unkown parent class."""
 
 
-    # if issubclass(rep_cls, Representation3DABC):
 
-
-    #     return HoleyRepresentation3D
-
-    # return HoleyRepresentation
-
-
-# def wrap_static_build(rep_cls: Representation):
-#     """Define a subclass for an as-yet unkown parent class."""
-
-
-#     return StaticBuildRepresentation
-
-def wrap_rep(rep: Representation, prob_cls: Problem, static_build = False):
+def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
     """Should only happen once!"""
+    if multi:
+        rep = MultiRepresentation(rep, map_dims, **kwargs)
+
     if static_build:
         # rep_cls = StaticBuildRepresentation(rep_cls)
-        rep = StaticBuildRepresentation(rep)
+        rep = StaticBuildRepresentation(rep, **kwargs)
+
 
     # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
     # rep_cls = rep_cls if isclass(rep_cls) else type(rep_cls)
     # if issubclass(prob_cls, Minecraft3Drain):
         # rep = RainRepresentation(rep)
     if issubclass(prob_cls, Problem3D):
-        rep = Representation3D(rep)
+        rep = Representation3D(rep, **kwargs)
         # rep_cls = wrap_3D(rep_cls)
         # if issubclass(rep_cls, EgocentricRepresentation):
             # rep_cls = EgocentricRepresentation3D()
@@ -346,10 +381,10 @@ def wrap_rep(rep: Representation, prob_cls: Problem, static_build = False):
     if issubclass(prob_cls, HoleyProblem):
 
         if issubclass(prob_cls, Problem3D):
-            rep = HoleyRepresentation3D(rep)
+            rep = HoleyRepresentation3D(rep, **kwargs)
         
         else:
-            rep = HoleyRepresentation(rep)
+            rep = HoleyRepresentation(rep, **kwargs)
 
     return rep
     

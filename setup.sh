@@ -10,8 +10,13 @@ python -m pip install -e submodules/qdpy
 # for cpu
 # conda install pytorch torchvision torchaudio -c pytorch
 
-# for most GPUs (?)
-conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+# RUN: nvcc --version to check your CUDA version
+
+# for most GPUs (?) 
+# conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+
+# for cuda version 11.6 on linux
+conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
 
 # for 3090
 # conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
