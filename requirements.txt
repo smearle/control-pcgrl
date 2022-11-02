@@ -20,6 +20,7 @@ psutil
 pyglet
 PyOpenGL
 ribs
+seaborn
 scikit-image
 submitit
 tqdm

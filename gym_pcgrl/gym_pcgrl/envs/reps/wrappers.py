@@ -1,6 +1,7 @@
 from abc import ABC
 from collections import OrderedDict
 from inspect import isclass
+import logging
 import math
 from pdb import set_trace as TT
 
@@ -268,25 +269,46 @@ class RainRepresentation(RepresentationWrapper):
 
 class MultiRepresentation(RepresentationWrapper):
     '''
-    A wrapper that make the action space change multiple tiles at each time step. Maybe useful for all representations 
+    A wrapper that makes the action space change multiple tiles at each time step. Maybe useful for all representations 
     (for 2D, 3D, narrow, turtle, wide, ca, ...).
     NOW JUST FOR EGOCENTRIC REPRESENTATIONS.
     '''
+    def _set_inner_padding(self, action_size):
+        """These are like buffers. The agent should not be centered on these buffers because it will act on them anyway 
+        when at either edge of the map. 
+        For any odd action patch, these are equal (e.g., for 3, they are both 1). For, e.g. 4, they are 1 and 2.
+        We define a left/right (bottom/top, close/far) pair for each map dimension."""
+        self.inner_l_pads = np.floor((action_size - 1) / 2).astype(int)
+        self.inner_r_pads = np.ceil((action_size - 1) / 2).astype(int)
+
     def __init__(self, rep, map_dims, **kwargs):
         super().__init__(rep, **kwargs)
-        self.action_size = kwargs.get('action_size')       # if we arrive here, there must be an action_size in kwargs
+        self.action_size = np.array(kwargs.get('action_size'))       # if we arrive here, there must be an action_size in kwargs
+        self._set_inner_padding(self.action_size)
         self.map_size = map_dims                            # map_dims is a tuple (height, width, n_tiles) in 2D
         self.map_dim = len(map_dims[:-1])                        # 2 for 2D, 3 for 3D
-        self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32)   # strides are just 1 for each dimension now
-        self._act_coords = None
+        # self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32)   # strides are just 1 for each dimension now
+        self.strides = [3, 3]
+
+        # We should not set this here. This is defined in the underlying representation class. In this underlying class,
+        # it is initialized on `reset`.
+        # self._act_coords = None
 
         # Check the action size is the same dimension as the map
         assert self.map_dim == len(self.action_size), \
             f"Action size ({len(self.action_size)}) should be the same dimension as the map size ({self.map_dim})"
         # Check whether we have a valid action size and stride
         for i in range(self.map_dim):
-            assert self.map_size[i] - self.action_size[i] + self.strides[i] == self.map_size[i] * self.strides[i], \
-                "Please make sure that the action size and stride are valid for the map size."
+            logging.warning(f"Not validating your action size ({self.action_size}) and stride ({self.strides}, w.r.t." +
+                " the map size ({self.map_size}). If these are mismatches, the agent may not be able to edit the bottom" +
+                    " right/far edges of the map.")
+            # FIXME: below assertion is thrown whenever stride = 1 and action_size > 1. But these are valid settings.
+            # assert self.map_size[i] - self.action_size[i] + self.strides[i] == self.map_size[i] * self.strides[i], \
+            #     "Please make sure that the action size and stride are valid for the map size."
+        
+        # NOTE: This function will not be called by the object we are wrapping. (Like it would be if we
+        #   inherited from it instead.) So we'll be gross, and overwrite this function in the wrapped class manually.
+        self.unwrapped.get_act_coords = self.get_act_coords
     
     def get_action_space(self, *args, **kwargs):
         # the tiles inside the action are not neccearily the same
@@ -295,6 +317,7 @@ class MultiRepresentation(RepresentationWrapper):
             action_space.append(self.map_size[-1])
         return spaces.MultiDiscrete(action_space)
     
+    # This gets overwritten in the wrapped class in `__init__` above.
     def get_act_coords(self):
         '''
         Get the coordinates of the action space. Regards the top left corner's coordinate (the smallest coords in the 
@@ -309,7 +332,7 @@ class MultiRepresentation(RepresentationWrapper):
         '''
         coords = []
         for i in range(self.map_dim):
-            coords.append(np.arange(0, self.map_size[i] - self.action_size[i] + self.strides[i], self.strides[i]))
+            coords.append(np.arange(self.inner_l_pads[i], self.map_size[i] - self.inner_r_pads[i], self.strides[i]))
         return np.array(np.meshgrid(*coords)).T.reshape(-1, self.map_dim)  # tobe checked! copilot writes this but looks good
             
     
@@ -327,26 +350,47 @@ class MultiRepresentation(RepresentationWrapper):
 
         old_state = self.unwrapped._map.copy()
 
-        # replace the map at self.pos with the action TODO: is there any better way to make it dimension independent?
-        top_left = self._pos
-        bottom_right = self._pos + self.action_size - 1
-        if self.map_dim == 2:
-            self.unwrapped._map[top_left[0]:bottom_right[0]+1, top_left[1]:bottom_right[1]+1] = action
-        elif self.map_dim == 3:
-            self.unwrapped._map[top_left[0]:bottom_right[0]+1, top_left[1]:bottom_right[1]+1, top_left[2]:bottom_right[2]+1] = action
+        # replace the map at self.pos with the action TODO: is there any better way to make it dimension independent? (sam: yes. Slices!)
+        _pos = self.unwrapped._pos  # Why is _pos private again? (copilot: I don't know) Ok thanks copilot. (copilot: you're welcome)
+
+        # Let's center the action patch around _pos. If the agent's observation is centered
+        # around _pos, then we want the action patch to be centered around _pos as well.
+        # The inner padding tells us how many tiles can be acted on to the left/right of _pos.
+        top_left = _pos - self.inner_l_pads
+        bottom_right = _pos + self.inner_r_pads
+
+        slices = [slice(top_left[i], bottom_right[i] + 1) for i in range(self.map_dim)]
+
+        ### Some checks for safety (could comment these out later). ###
+        # Check that the action patch is within the map.
+        assert np.all(top_left >= 0), \
+            f"Action patch is outside the map. Top left corner: {top_left}"
+        assert np.all(bottom_right < self.map_size[:-1]), \
+            f"Action patch is outside the map. Bottom right corner: {bottom_right}"
+        ################################################################
+
+        self.unwrapped._map[tuple(slices)] = action
+        # if self.map_dim == 2:
+        #     self.unwrapped._map[top_left[0]:bottom_right[0]+1, top_left[1]:bottom_right[1]+1] = action
+        # elif self.map_dim == 3:
+        #     self.unwrapped._map[top_left[0]:bottom_right[0]+1, top_left[1]:bottom_right[1]+1, top_left[2]:bottom_right[2]+1] = action
+
 
         new_state = self.unwrapped._map
         if self.unwrapped._random_tile:
             if self.unwrapped.n_step == len(self._act_coords):
                 np.random.shuffle(self._act_coords)
-        self._pos = self._act_coords[self.n_step % len(self._act_coords)]
+
+        # Weird to assign a "private" variable? ... It works I guess!
+        self.unwrapped._pos = self.unwrapped._act_coords[self.n_step % len(self.unwrapped._act_coords)]
+
         self.unwrapped.n_step += 1
 
         self.unwrapped._bordered_map[tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])] = self.unwrapped._map
 
         change = np.any(old_state != new_state)
 
-        return change, self._pos
+        return change, self.unwrapped._pos
 
 
 

@@ -7,7 +7,7 @@ python -m pip install -e submodules/qdpy
 
 ####### Installing torch: #######
 
-# for cpu
+# for CPU
 # conda install pytorch torchvision torchaudio -c pytorch
 
 # RUN: nvcc --version to check your CUDA version

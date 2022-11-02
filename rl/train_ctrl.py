@@ -14,7 +14,6 @@ from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.task_assignment import set_map_fn
 import matplotlib
 from matplotlib import pyplot as plt
-import seaborn as sns
 from typing import Dict
 
 import numpy as np
