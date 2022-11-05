@@ -30,9 +30,11 @@ from ray.rllib.utils import check_env
 from ray.tune import CLIReporter
 from ray.tune.integration.wandb import wandb_mixin, WandbTrainableMixin
 from ray.tune.registry import register_env
+import torch as th
+import torchinfo
+import wandb
 
 import gym_pcgrl
-import wandb
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
     NCA, SeqNCA, SeqNCA3D # noqa : F401
@@ -79,8 +81,12 @@ class PPOTrainer(RlLibPPOTrainer):
 
         for v in param_dict.values():
             n_params += np.prod(v.shape)
+        model = self.get_policy('default_policy').model
         print(f'default_policy has {n_params} parameters.')
-        print('model overview: \n', self.get_policy('default_policy').model)
+        print('Model overview:')
+        # print(model)
+        torchinfo.summary(model, input_data={
+            "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
         return ret
 
     @classmethod
@@ -176,7 +182,6 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
-    DEBUG = True
     DEBUG_RENDER = True
     # if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
         # ("minecraft" not in cfg.problem):
@@ -236,7 +241,7 @@ def main(cfg):
     check_env(dummy_env)
 
     ### DEBUG ###
-    if DEBUG:
+    if cfg.debug:
         for _ in range(100):
             obs = dummy_env.reset()
             for i in range(500):
@@ -278,7 +283,7 @@ def main(cfg):
             'custom_model': 'custom_model',
             'custom_model_config': {
                 **cfg.model_cfg,
-                # 'orig_obs_space': copy.copy(dummy_env.observation_space),
+                "dummy_env_obs_space": copy.copy(dummy_env.observation_space),
             }
         },
         "evaluation_interval" : 1 if cfg.evaluate else 1,
@@ -341,7 +346,8 @@ def main(cfg):
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer or cfg.evaluate:
         trainer_config.update({
-            'record_env': log_dir if cfg.record_env else None,
+            # FIXME: The name of this config arg seems to have changed in rllib?
+            # 'record_env': log_dir if cfg.record_env else None,
         })
         trainer = PPOTrainer(env='pcgrl', config=trainer_config)
 
@@ -415,26 +421,29 @@ def main(cfg):
         id=exp_name_id,
     )]} if cfg.wandb else {}
 
-    # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
-    analysis = tune.run(
-        "CustomPPO",
-        resume=cfg.load,
-        config={
-            **trainer_config,
-        },
-        # checkpoint_score_attr="episode_reward_mean",
-        # TODO: makes timestep total input by user.(n_frame)
-        stop={"timesteps_total": 1e10},
-        checkpoint_at_end=True,
-        checkpoint_freq=10,
-        keep_checkpoints_num=2,
-        local_dir=log_dir,
-        verbose=1,
-        # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
-        # **loggers_dict,
-        **callbacks_dict,
-        progress_reporter=reporter,
-    )
+    try:
+        # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
+        analysis = tune.run(
+            "CustomPPO",
+            resume=cfg.load,
+            config={
+                **trainer_config,
+            },
+            # checkpoint_score_attr="episode_reward_mean",
+            # TODO: makes timestep total input by user.(n_frame)
+            stop={"timesteps_total": 1e10},
+            checkpoint_at_end=True,
+            checkpoint_freq=10,
+            keep_checkpoints_num=2,
+            local_dir=log_dir,
+            verbose=1,
+            # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
+            # **loggers_dict,
+            **callbacks_dict,
+            progress_reporter=reporter,
+        )
+    except KeyboardInterrupt:
+        ray.close()
 
 ################################## MAIN ########################################
 

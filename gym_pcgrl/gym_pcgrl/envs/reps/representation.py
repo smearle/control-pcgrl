@@ -30,6 +30,9 @@ class Representation(ABC):
 
         self.seed()
 
+    def get_pos(self):
+        return self._pos
+
     """
     Seeding the used random variable to get the same result. If the seed is None,
     it will seed it with random start.

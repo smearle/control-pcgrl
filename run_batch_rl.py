@@ -95,11 +95,12 @@ def launch_batch(collect_params=False):
             # Write the config file with the desired settings
             exp_config = copy.deepcopy(default_config)
 
+            # exp_config inherits all arguments from opts
+            exp_config.update(vars(opts))
+
             # Supply the command-line arguments in args.py
             exp_config.update(
                 {
-                    "n_cpu": opts.n_cpu,
-                    "n_gpu": opts.n_gpu,
                     "problem": prob,
                     "representation": rep,
                     "model": model,
@@ -109,19 +110,12 @@ def launch_batch(collect_params=False):
                     "alp_gmm": alp_gmm,
                     "experiment_id": exp_id,
                     "evaluate": EVALUATE,
-                    "render": opts.render,
-                    "load": opts.load,
-                    "infer": opts.infer,
                     "max_board_scans": max_board_scans,
                     "n_aux_tiles": n_aux_tiles,
-                    "overwrite": opts.overwrite,
                     "lr": learning_rate,
-                    "gamma": opts.gamma,
                     "model_cfg": model_cfg,
-                    "record_env": opts.record_env,
                     "static_prob": static_prob,
                     "action_size": action_size,
-                    "wandb": opts.wandb,
                     "observation_size": observation_size,
                     "n_frame": n_frame,
                 }
@@ -215,6 +209,12 @@ if __name__ == "__main__":
     #     default="0",
     # )
     opts.add_argument(
+        "-d",
+        "--debug",
+        help="Debug environment & rendering (render random agent for a bunch of episodes then quit).",
+        action="store_true",
+    )
+    opts.add_argument(
         "-ev",
         "--evaluate",
         help="Evaluate a batch of PCGRL experiments.",
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     opts.add_argument(
         "-np",
         "--no_plot",
-        help="Do no plot output from monitor files during cross-evaluation.",
+        help="Do no plot training curves (output from monitor files) during cross-evaluation (What?).",
         action="store_true",
     )
     opts.add_argument(
@@ -295,14 +295,16 @@ if __name__ == "__main__":
     opts.add_argument(
         '--wandb',
         help='Whether to use wandb for logging.',
-        action=argparse.BooleanOptionalAction,
-        default=True,
+        action='store_true',
+        # action=argparse.BooleanOptionalAction,
+        # default=False,
     )
     opts.add_argument(
         '--record_env',
         help='Whether to record the environment during inference.',
-        action=argparse.BooleanOptionalAction,
-        default=False,
+        action='store_true',
+        # action=argparse.BooleanOptionalAction,
+        # default=False,
     )
     opts.add_argument(
         '--max_board_scans',

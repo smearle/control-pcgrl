@@ -203,7 +203,6 @@ class GtkGUI(Gtk.Window):
         # self.pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(arr, GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], shape[2] * shape[1])
         pixbuf = GdkPixbuf.Pixbuf.new_from_data(arr,
             GdkPixbuf.Colorspace.RGB, False, 8, shape[1], shape[0], 3*shape[1])
-        # TT()
         # else:
         # if self.pixbuf is None:
         self.image.set_from_pixbuf(pixbuf)

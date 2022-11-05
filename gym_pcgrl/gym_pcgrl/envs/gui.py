@@ -82,5 +82,4 @@ if __name__ == "__main__":
     # Add checkbox
     cb = ttk.Checkbutton(frm, text="Checkbox").grid(column=0, row=1)
     for _ in range(100):
-        TT()
         root.mainloop()

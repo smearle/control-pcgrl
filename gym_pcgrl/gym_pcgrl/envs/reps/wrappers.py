@@ -30,6 +30,9 @@ class RepresentationWrapper():
         # self._bordered_map = self.rep._bordered_map  # Doing this results in self._borderd_map != self.rep._bordered_map
         # self._random_start = self.rep._random_start
 
+    def _set_pos(self, pos):
+        self.rep._pos = pos
+
     def adjust_param(self, **kwargs):
         return self.rep.adjust_param(**kwargs)
 
@@ -60,7 +63,7 @@ class RepresentationWrapper():
 
     def __getattr__(self, name):
         # Removing this check causes errors when serializing this object with pickle. E.g. when using ray for parallel
-        # environments.
+        # environments. Variables that start with underscore will need to be unwrapped manually.
         if name.startswith("_"):
             raise AttributeError(
                 "attempted to get missing private attribute '{}'".format(name)
@@ -256,7 +259,6 @@ class RainRepresentation(RepresentationWrapper):
     # TODO:
     def update(self, action, **kwargs):
         # FIXME: Assuming a narrow representation!
-        TT()
         change, pos = super().update(action, **kwargs)
         if change:
             self.unwrapped._map[pos[0], pos[1]] = self.unwrapped._empty_tile
@@ -381,9 +383,7 @@ class MultiRepresentation(RepresentationWrapper):
             if self.unwrapped.n_step == len(self._act_coords):
                 np.random.shuffle(self._act_coords)
 
-        # Weird to assign a "private" variable? ... It works I guess!
-        self.unwrapped._pos = self.unwrapped._act_coords[self.n_step % len(self.unwrapped._act_coords)]
-
+        self._set_pos(self.unwrapped._act_coords[self.n_step % len(self.unwrapped._act_coords)])
         self.unwrapped.n_step += 1
 
         self.unwrapped._bordered_map[tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])] = self.unwrapped._map
@@ -391,6 +391,25 @@ class MultiRepresentation(RepresentationWrapper):
         change = np.any(old_state != new_state)
 
         return change, self.unwrapped._pos
+
+    def render(self, lvl_image, tile_size=16, border_size=None):
+        y, x = self.get_pos()
+        # This is a little image with our border in it
+        im_arr = np.zeros((tile_size * self.action_size[0], tile_size * self.action_size[1], 4), dtype=np.uint8)
+        # Grey color
+        clr = np.array([128, 128, 128, 255], dtype=np.uint8)
+        # Two pixels on each side for column
+        im_arr[(0, 1, -1, -2), :, :] = clr
+        # Two pixels on each side for row
+        im_arr[:, (0, 1, -1, -2), :] = clr
+        x_graphics = Image.fromarray(im_arr)
+        # Paste our border image into the level image at the agent's position
+        lvl_image.paste(x_graphics, (
+            # Left corner of the image we're pasting in
+            (x+border_size[0]-self.inner_l_pads[0])*tile_size, (y+border_size[1]-self.inner_l_pads[1])*tile_size,
+            # Right corner
+            (x+border_size[0]+self.inner_r_pads[0]+1)*tile_size, (y+border_size[1]+self.inner_r_pads[1]+1)*tile_size), x_graphics)
+        return super().render(lvl_image, tile_size, border_size)
 
 
 
@@ -418,7 +437,6 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
         # else:
             # rep_cls = Representation3D(rep_cls)
     
-    # TT()
     # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
     # rep_cls = rep_cls if isclass(rep_cls) else type(rep_cls)
     # if issubclass(prob_cls, HoleyProblem) and not issubclass(type(rep), HoleyRepresentation):

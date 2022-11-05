@@ -1335,7 +1335,7 @@ def simulate(
                     pass
                     time.sleep(0.2)
                     # This will pause inference after each episode when rendering.
-                    TT()
+                    raise Exception
 
             last_int_map = int_map
             n_step += 1

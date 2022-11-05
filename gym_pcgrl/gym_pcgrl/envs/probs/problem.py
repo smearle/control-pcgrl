@@ -191,10 +191,12 @@ class Problem(ABC):
         full_width = len(map[0])+2*self._border_size[0]
         full_height = len(map)+2*self._border_size[1]
         lvl_image = Image.new("RGBA", (full_width*self._tile_size, full_height*self._tile_size), (0,0,0,255))
+
         # Background floor everywhere
         for y in range(full_height):
             for x in range(full_width):
                 lvl_image.paste(self._graphics['empty'], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
+
         # Borders
         for y in range(full_height):
             for x in range(self._border_size[0]):
@@ -204,6 +206,7 @@ class Problem(ABC):
             for y in range(self._border_size[1]):
                 lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, y*self._tile_size, (x+1)*self._tile_size, (y+1)*self._tile_size))
                 lvl_image.paste(self._graphics[self._border_tile], (x*self._tile_size, (full_height-y-1)*self._tile_size, (x+1)*self._tile_size, (full_height-y)*self._tile_size))
+
         # Map tiles
         for y in range(len(map)):
             for x in range(len(map[y])):

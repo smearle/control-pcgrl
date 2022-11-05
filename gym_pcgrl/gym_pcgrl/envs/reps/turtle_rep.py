@@ -30,7 +30,7 @@ class TurtleRepresentation(EgocentricRepresentation):
     """
     def reset(self, dims, prob):
         super().reset(dims, prob)
-        self._pos = [self._random.randint(i) for i in dims]
+        self.pos = [self._random.randint(i) for i in dims]
         # self._x = self._random.randint(width)
         # self._y = self._random.randint(height)
 #       self._x = 0
@@ -76,22 +76,22 @@ class TurtleRepresentation(EgocentricRepresentation):
         change = 0
         if action < len(self._dirs):
             for i, d in enumerate(self._dirs[action]):
-                self._pos[i] += d
-                if self._pos[i] < 0:
+                self.pos[i] += d
+                if self.pos[i] < 0:
                     if self._wrap:
-                        self._pos[i] = self._map.shape[i]
+                        self.pos[i] = self._map.shape[i]
                     else:
-                        self._pos[i] = 0
-                if self._pos[i] >= self._map.shape[i]:
+                        self.pos[i] = 0
+                if self.pos[i] >= self._map.shape[i]:
                     if self._wrap:
-                        self._pos[i] -= self._map.shape[i]
+                        self.pos[i] -= self._map.shape[i]
                     else:
-                        self._pos[i] = self._map.shape[i] - 1
+                        self.pos[i] = self._map.shape[i] - 1
         else:
-            change = [0,1][self._map[tuple(self._pos)] != action - len(self._dirs)]
-            self._map[tuple(self._pos)] = action - len(self._dirs)
+            change = [0,1][self._map[tuple(self.pos)] != action - len(self._dirs)]
+            self._map[tuple(self.pos)] = action - len(self._dirs)
         super().update(action)
-        return change, self._pos
+        return change, self.pos
 
     # """
     # Modify the level image with a red rectangle around the tile that the turtle is on
