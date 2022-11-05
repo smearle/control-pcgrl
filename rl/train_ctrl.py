@@ -37,7 +37,7 @@ import wandb
 import gym_pcgrl
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
 from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
-    NCA, SeqNCA, SeqNCA3D # noqa : F401
+    NCA, SeqNCA, SeqNCA3D, ConvDeconv2d # noqa : F401
 from args import parse_args
 from envs import make_env
 from evaluate import evaluate
@@ -223,8 +223,13 @@ def main(cfg):
             json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
 
     if not is_3D_env:
-        # Using this simple feedforward model for now by default
-        model_cls = globals()[cfg.model] if cfg.model else CustomFeedForwardModel
+        if cfg.model is None:
+            if cfg.representation == "wide":
+                model_cls = ConvDeconv2d
+            else:
+                model_cls = CustomFeedForwardModel
+        else:
+            model_cls = globals()[cfg.model]
     else:
         if cfg.representation == "wide3D":
             model_cls = globals()[cfg.model] if cfg.model else WideModel3D
