@@ -83,8 +83,9 @@ class PPOTrainer(RlLibPPOTrainer):
             n_params += np.prod(v.shape)
         model = self.get_policy('default_policy').model
         print(f'default_policy has {n_params} parameters.')
-        print('Model overview:')
-        # print(model)
+        print('Model overview(s):')
+        print(model)
+        print("=============")
         torchinfo.summary(model, input_data={
             "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
         return ret
@@ -211,6 +212,8 @@ def main(cfg):
             os.mkdir(log_dir)
 
         else:
+            if not os.path.isdir(log_dir):
+                raise Exception(f"Log directory rl_runs/{exp_name_id} does not exist. Run again without `--overwrite`.")
             # Overwrite the log directory.
             shutil.rmtree(log_dir)
             os.mkdir(log_dir)
@@ -443,7 +446,7 @@ def main(cfg):
             progress_reporter=reporter,
         )
     except KeyboardInterrupt:
-        ray.close()
+        ray.shutdown()
 
 ################################## MAIN ########################################
 

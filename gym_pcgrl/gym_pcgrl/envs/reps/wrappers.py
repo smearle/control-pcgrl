@@ -289,8 +289,7 @@ class MultiRepresentation(RepresentationWrapper):
         self._set_inner_padding(self.action_size)
         self.map_size = map_dims                            # map_dims is a tuple (height, width, n_tiles) in 2D
         self.map_dim = len(map_dims[:-1])                        # 2 for 2D, 3 for 3D
-        # self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32)   # strides are just 1 for each dimension now
-        self.strides = [3, 3]
+        self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32) * 3   # strides are just 3 for each dimension now
 
         # We should not set this here. This is defined in the underlying representation class. In this underlying class,
         # it is initialized on `reset`.

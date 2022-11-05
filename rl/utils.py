@@ -15,7 +15,7 @@ import numpy as np
 from gym_pcgrl import wrappers
 
 # NOTE: minecraft has to precede zelda since minecraft zelda maze has both phrases in its name.
-MAP_WIDTHS = [("binary", 16), ("minecraft_3D_rain", 7), ("minecraft_3D", 7), ("zelda", 16), ("sokoban", 5)]
+MAP_WIDTHS = [("binary", 16), ("minecraft_3D_rain", 7), ("minecraft_3D", 15), ("zelda", 16), ("sokoban", 5)]
 
 PROB_CONTROLS = {
     "binary_ctrl": [

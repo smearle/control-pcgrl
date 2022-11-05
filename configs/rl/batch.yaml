@@ -15,13 +15,13 @@
   ],
 
   "problems": [
-    # "minecraft_3D_maze",
+    "minecraft_3D_maze",
     # "minecraft_3D_rain",
     # "minecraft_3D_holey_maze",
     # "minecraft_3D_dungeon_holey",
 
 #   "minecraft_3D_zelda,
-    "binary",
+    # "binary",
     # "binary_holey",
 #   "zelda",
 #   "sokoban",
@@ -151,7 +151,8 @@
   # The size of the action 
   "action_size": [
     # null,
-    [3, 3],
+    # [3, 3],
+    [3, 3, 3],
   ],
 
   "learning_rates": [

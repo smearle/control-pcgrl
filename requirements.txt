@@ -23,6 +23,8 @@ ribs
 seaborn
 scikit-image
 submitit
+tensorboard
+torchinfo
 tqdm
 wandb       # after installing wandb, run `wandb login` to login to wandb
 

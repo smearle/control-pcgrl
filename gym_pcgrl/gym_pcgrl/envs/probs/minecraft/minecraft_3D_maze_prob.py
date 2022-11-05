@@ -26,9 +26,9 @@ class Minecraft3DmazeProblem(Problem3D):
     """
     def __init__(self):
         super().__init__()
-        self._length = 7
-        self._width = 7
-        self._height = 7
+        self._length = 15
+        self._width = 15
+        self._height = 15
         self._passable = set({"AIR"})
         self._prob = {"AIR": 1.0, "DIRT": 0.0}
         self._border_tile = "DIRT"
