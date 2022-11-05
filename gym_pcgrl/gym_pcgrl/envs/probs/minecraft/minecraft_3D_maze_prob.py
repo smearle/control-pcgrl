@@ -15,8 +15,10 @@ from timeit import default_timer as timer
 from gym_pcgrl.envs.probs.problem import Problem, Problem3D
 from gym_pcgrl.envs.helper_3D import get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
     calc_longest_path, debug_path, plot_3D_path, remove_stacked_path_tiles, run_dijkstra
-from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, spawn_3D_maze, spawn_3D_border, spawn_3D_path,
-    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base)
+from gym_pcgrl.envs.probs.minecraft.mc_render import (erase_3D_path, init_player_view, spawn_3D_maze, spawn_3D_border, spawn_3D_path,
+    get_3D_maze_blocks, get_3D_path_blocks, get_erased_3D_path_blocks, render_blocks, spawn_base, set_player_view)
+
+from gym_pcgrl.envs.probs.minecraft.utils import patch_grpc_evocraft_imports
 # from gym_pcgrl.test3D import plot_3d_map
 
 
@@ -122,6 +124,7 @@ class Minecraft3DmazeProblem(Problem3D):
                 if t in self._reward_weights:
                     self._reward_weights[t] = rewards[t]
 
+        self._log_dir = kwargs.get('log_dir')
     """
     Resets the problem to the initial state and save the start_stats from the starting map.
     Also, it can be used to change values between different environment resets
@@ -276,7 +279,11 @@ class Minecraft3DmazeProblem(Problem3D):
             spawn_base(map)
             self._rendered_initial_maze = True
 
+        if iteration_num == 0:
+            init_player_view()
+
         self.render_path_change(map, self.path_coords, self.old_path_coords, ordered_path=self.ordered_path, **kwargs)
+        set_player_view(self._width/2, 5, self._length/2, iteration_num, iteration_num * 10, 60, save_dir=self._log_dir)
 
         # block_dict.update(get_3D_maze_blocks(map))
         # FIXME: these functions which return dictionaries of blocks to be rendered are broken somehow

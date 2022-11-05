@@ -1,4 +1,7 @@
 # import gym
+import math
+import os
+import numpy as np
 from time import sleep
 from turtle import position
 import grpc
@@ -6,8 +9,12 @@ import grpc
 # from minecraft_pb2 import *
 import gym_pcgrl.envs.probs.minecraft.minecraft_pb2_grpc as minecraft_pb2_grpc
 from gym_pcgrl.envs.probs.minecraft.minecraft_pb2 import *
+import pyscreenshot as ImageGrab
 from pdb import set_trace as TT
 
+SCREENSHOT_SIZE = (512, 512)
+BBOX_OFFSET = (0, 66)  # For 16" M1 MacBook Pro
+BBOX = (BBOX_OFFSET[0], BBOX_OFFSET[1], BBOX_OFFSET[0] + SCREENSHOT_SIZE[0], BBOX_OFFSET[1] + SCREENSHOT_SIZE[1])
 CHANNEL = grpc.insecure_channel('localhost:5001')
 CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
@@ -412,6 +419,60 @@ def spawn_3D_doors(map, entrance, exit, base_pos=5):
     #                                   type=CARPET, orientation=NORTH)]))
     return
 
+
+def init_player_view():
+    CLIENT.initDataGen(Point(x=0, y=0, z=0))  # dummy point variable
+
+
+def set_player_view(x0, y0, z0, i, yaw_deg, pitch_deg, save_dir='./'):
+    """Get screenshots viewing a central chunk from 4 cardinal points."""
+    radius = 30
+    xyz_rots = []
+    # for j in range(num_views):
+    # rot_y_deg, rot_y_rad = get_view_rot(j, num_views)
+    # rot_y_deg = int(rot_y_deg)
+    yaw_rad = yaw_deg * np.pi / 180
+    pitch_rad = pitch_deg * np.pi / 180
+    # double sRadians = Math.toRadians( yaw );
+    # double tRadians = Math.toRadians( pitch );
+    # double x = radius * Math.cos( sRadians ) * Math.sin( tRadians );
+    # double y = radius * Math.cos( tRadians );
+    # double z = radius * Math.sin( sRadians ) * Math.sin( tRadians );
+
+    x = radius * math.cos(yaw_rad) * math.sin(pitch_rad)
+    y = radius * math.cos(pitch_rad)
+    z = radius * math.sin(yaw_rad) * math.sin(pitch_rad)
+    # x, z = math.sin(yaw_rad) * radius, math.cos(yaw_rad) * radius
+    # y = int(y0)
+    x += x0
+    y += y0
+    z += z0
+    x, y, z = int(x), int(y), int(z)
+    # y += y0
+    theta = math.asin
+    # Note that `y` is ignored and player is placed on highest possible block.
+    loc = CLIENT.setLocY(Point(x=x, y=y, z=z))
+    # loc = CLIENT.setPlayerLocRot(LocRot(loc=Point(x=x, y=y, z=z), rot=Point(x=0, y=rot_y_deg, z=0)))
+    # rot_y_deg_ = 180 - yaw_deg
+
+    CLIENT.setRot(Point(x=90-pitch_deg, y=90+yaw_deg, z=0))
+    print(f"Set rotation to {yaw_deg}")
+    assert loc.x == x and loc.z == z
+    y = loc.y
+    # foothold_block = read_cube(client, (x, y-1, z), (x, y-1, z))
+
+    top_left_corner_screenshot(f"{i}", bbox=BBOX, save_dir=save_dir)
+    xyz_rots.append((x, y, z, int(yaw_deg)))
+    print(f"Saved sreenshot {i}, rotation {yaw_deg}, location {x}, {y}, {z}")
+    return xyz_rots
+
+
+def top_left_corner_screenshot(name: str, bbox: tuple, save_dir: str):
+    im = ImageGrab.grab(bbox)
+    # Save image to file
+    if np.array(im).shape != (512, 512, 4):
+        raise Exception(f"Screenshot is not 512x512, size is {np.array(im).shape}. Has the display gone to sleep?")
+    im.save(os.path.join(save_dir, f"{name}.png"))
     
 
 if __name__ == '__main__':

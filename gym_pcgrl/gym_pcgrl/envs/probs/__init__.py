@@ -14,6 +14,10 @@ from gym_pcgrl.envs.probs.loderunner_prob import LoderunnerProblem
 from gym_pcgrl.envs.probs.loderunner_ctrl_prob import LoderunnerCtrlProblem
 from gym_pcgrl.envs.probs.face_prob import FaceProblem
 from gym_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructureProblem
+
+from gym_pcgrl.envs.probs.minecraft.utils import patch_grpc_evocraft_imports
+patch_grpc_evocraft_imports()
+
 from gym_pcgrl.envs.probs.minecraft.minecraft_2D_maze_prob import Minecraft2DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_maze_prob import Minecraft3DmazeProblem
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_rain import Minecraft3Drain

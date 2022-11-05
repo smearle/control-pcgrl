@@ -334,7 +334,9 @@ class MultiRepresentation(RepresentationWrapper):
         coords = []
         for i in range(self.map_dim):
             coords.append(np.arange(self.inner_l_pads[i], self.map_size[i] - self.inner_r_pads[i], self.strides[i]))
-        return np.array(np.meshgrid(*coords)).T.reshape(-1, self.map_dim)  # tobe checked! copilot writes this but looks good
+        act_coords = np.array(np.meshgrid(*coords)).T.reshape(-1, self.map_dim)  # tobe checked! copilot writes this but looks good
+        act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first.
+        return act_coords
             
     
     def update(self, action, **kwargs):

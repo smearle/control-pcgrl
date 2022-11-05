@@ -3,8 +3,7 @@
 import grpc
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-# import minecraft_pb2 as minecraft__pb2
-import gym_pcgrl.envs.probs.minecraft.minecraft_pb2 as minecraft__pb2
+from gym_pcgrl.envs.probs.minecraft import minecraft_pb2 as src_dot_main_dot_proto_dot_minecraft__pb2
 
 
 class MinecraftServiceStub(object):
@@ -20,18 +19,58 @@ class MinecraftServiceStub(object):
         """
         self.spawnBlocks = channel.unary_unary(
                 '/dk.itu.real.ooe.MinecraftService/spawnBlocks',
-                request_serializer=minecraft__pb2.Blocks.SerializeToString,
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Blocks.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.readEntities = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/readEntities',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Uuids.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Entities.FromString,
+                )
+        self.spawnEntities = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/spawnEntities',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.SpawnEntities.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Uuids.FromString,
                 )
         self.readCube = channel.unary_unary(
                 '/dk.itu.real.ooe.MinecraftService/readCube',
-                request_serializer=minecraft__pb2.Cube.SerializeToString,
-                response_deserializer=minecraft__pb2.Blocks.FromString,
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Cube.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Blocks.FromString,
                 )
         self.fillCube = channel.unary_unary(
                 '/dk.itu.real.ooe.MinecraftService/fillCube',
-                request_serializer=minecraft__pb2.FillCubeRequest.SerializeToString,
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.FillCubeRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.readEntitiesInSphere = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/readEntitiesInSphere',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Sphere.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Entities.FromString,
+                )
+        self.setLoc = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/setLoc',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                )
+        self.setRot = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/setRot',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.initDataGen = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/initDataGen',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+                response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+                )
+        self.getHighestYAt = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/getHighestYAt',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                )
+        self.setLocY = channel.unary_unary(
+                '/dk.itu.real.ooe.MinecraftService/setLocY',
+                request_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+                response_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
                 )
 
 
@@ -41,22 +80,74 @@ class MinecraftServiceServicer(object):
     """
 
     def spawnBlocks(self, request, context):
-        """* Spawn multiple blocks.
+        """* Spawn multiple blocks. 
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def readEntities(self, request, context):
+        """* Reads multiple entities *
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def spawnEntities(self, request, context):
+        """* Spawn multiple entities. 
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def readCube(self, request, context):
-        """* Return all blocks in a cube
+        """* Return all blocks in a cube 
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def fillCube(self, request, context):
-        """* Fill a cube with a block type
+        """* Fill a cube with a block type 
         """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def readEntitiesInSphere(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def setLoc(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def setRot(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def initDataGen(self, request, context):
+        """rpc setPlayerLocRot(LocRotMsg) returns (google.protobuf.Empty);
+
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def getHighestYAt(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def setLocY(self, request, context):
+        """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -66,18 +157,58 @@ def add_MinecraftServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'spawnBlocks': grpc.unary_unary_rpc_method_handler(
                     servicer.spawnBlocks,
-                    request_deserializer=minecraft__pb2.Blocks.FromString,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Blocks.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'readEntities': grpc.unary_unary_rpc_method_handler(
+                    servicer.readEntities,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Uuids.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Entities.SerializeToString,
+            ),
+            'spawnEntities': grpc.unary_unary_rpc_method_handler(
+                    servicer.spawnEntities,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.SpawnEntities.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Uuids.SerializeToString,
             ),
             'readCube': grpc.unary_unary_rpc_method_handler(
                     servicer.readCube,
-                    request_deserializer=minecraft__pb2.Cube.FromString,
-                    response_serializer=minecraft__pb2.Blocks.SerializeToString,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Cube.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Blocks.SerializeToString,
             ),
             'fillCube': grpc.unary_unary_rpc_method_handler(
                     servicer.fillCube,
-                    request_deserializer=minecraft__pb2.FillCubeRequest.FromString,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.FillCubeRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'readEntitiesInSphere': grpc.unary_unary_rpc_method_handler(
+                    servicer.readEntitiesInSphere,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Sphere.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Entities.SerializeToString,
+            ),
+            'setLoc': grpc.unary_unary_rpc_method_handler(
+                    servicer.setLoc,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            ),
+            'setRot': grpc.unary_unary_rpc_method_handler(
+                    servicer.setRot,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'initDataGen': grpc.unary_unary_rpc_method_handler(
+                    servicer.initDataGen,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                    response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+            ),
+            'getHighestYAt': grpc.unary_unary_rpc_method_handler(
+                    servicer.getHighestYAt,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            ),
+            'setLocY': grpc.unary_unary_rpc_method_handler(
+                    servicer.setLocY,
+                    request_deserializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+                    response_serializer=src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -103,8 +234,42 @@ class MinecraftService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/spawnBlocks',
-            minecraft__pb2.Blocks.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Blocks.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def readEntities(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/readEntities',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Uuids.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Entities.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def spawnEntities(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/spawnEntities',
+            src_dot_main_dot_proto_dot_minecraft__pb2.SpawnEntities.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Uuids.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -120,8 +285,8 @@ class MinecraftService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/readCube',
-            minecraft__pb2.Cube.SerializeToString,
-            minecraft__pb2.Blocks.FromString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Cube.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Blocks.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -137,7 +302,109 @@ class MinecraftService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/fillCube',
-            minecraft__pb2.FillCubeRequest.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.FillCubeRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def readEntitiesInSphere(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/readEntitiesInSphere',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Sphere.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Entities.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def setLoc(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/setLoc',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def setRot(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/setRot',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def initDataGen(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/initDataGen',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def getHighestYAt(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/getHighestYAt',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def setLocY(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dk.itu.real.ooe.MinecraftService/setLocY',
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.SerializeToString,
+            src_dot_main_dot_proto_dot_minecraft__pb2.Point.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
