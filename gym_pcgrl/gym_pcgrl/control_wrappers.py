@@ -45,7 +45,7 @@ class ControlWrapper(gym.Wrapper):
         self.metric_weights = copy.copy(self.unwrapped._reward_weights)
         #       cond_trgs = self.unwrapped.cond_trgs
 
-        self.ctrl_metrics = ctrl_metrics  # controllable metrics
+        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else []  # controllable metrics
 #       self.ctrl_metrics = ctrl_metrics[::-1] # Fucking stupid bug resulting from a fix introduced partway through training a relevant batch of experiments. Delete this in favor of line above eventually.
         # fixed metrics (i.e. playability constraints)
         self.static_metric_names = set(env.static_trgs.keys())

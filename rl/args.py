@@ -46,13 +46,12 @@ def parse_pcgrl_args(args):
 
         if opts.max_step == -1:
             opts.max_step = None
-    if opts.conditionals == ["NONE", "NONE"]:
-        opts.conditionals = []
+    if opts.controls == []:
         opts.conditional = False
-    elif opts.conditionals == ["DEFAULT"]:
-        opts.conditionals = prob_cond_metrics[opts.problem]
-    elif opts.conditionals == ["ALL"]:
-        opts.conditionals = all_metrics[opts.problem]
+    elif opts.controls == ["DEFAULT"]:
+        opts.controls = prob_cond_metrics[opts.problem]
+    elif opts.controls == ["ALL"]:
+        opts.controls = all_metrics[opts.problem]
 
     return opts
 
@@ -94,10 +93,10 @@ def get_args():
     )
     args.add_argument(
         "-c",
-        "--conditionals",
+        "--controls",
         nargs="+",
-        help="Which game level metrics to use as conditionals for the generator",
-        default=["NONE"],
+        help="Which game level metrics to use as controls for the generator",
+        default=None,
     )
 #   opts.add_argument(
 #       "--resume",
@@ -105,7 +104,7 @@ def get_args():
 #       action="store_true",
 #   )
     args.add_argument(
-        "--experiment_id",
+        "--exp_id",
         help="An experiment ID for tracking different runs of experiments with identical hyperparameters.",
         type=int, 
         default=0,

@@ -668,3 +668,18 @@ class RCTWrapper(gym.Wrapper):
         obs = obs.transpose(1, 2, 0)
 
         return obs
+
+# TODO
+class MultiAgentWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        multiagent_args = kwargs.get('multiagent')
+        self.env = game
+        super(MultiAgentWrapper, self).__init__(self.env)
+        n_agents = multiagent_args.get('n_agents', 2)
+        self.observation_space = gym.spaces.Dict({})
+        for i in range(n_agents):
+            self.observation_space.spaces[f'agent_{i}'] = self.env.observation_space
+
+    def reset(self):
+        obs = super().reset()
+        return {i: obs for i in range(self.n_agents)}

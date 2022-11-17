@@ -27,10 +27,10 @@ keys = [
     "model",
     "n_aux_tiles",
     "max_board_scans",
-    "conditionals",
+    "controls",
     "lr",
-    "experiment_id",
-    # "conditionals", 
+    "exp_id",
+    # "controls", 
     # "alp_gmm", 
     # "change_percentage"
 ]
@@ -83,7 +83,7 @@ header_text = {
 #   '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
 #   "alp_gmm": newline("ALP", "GMM"),
     "alp_gmm": newline("control", "regime"),
-    "conditionals": newline("learned", " controls"),
+    "controls": newline("learned", " controls"),
 }
 
 # flatten the dictionary here
@@ -139,7 +139,7 @@ def flatten_stats(stats, controllable=False):
 
 
 def compile_results(settings_list, no_plot=False):
-    batch_exp_name = settings_list[0]["experiment_id"]
+    batch_exp_name = settings_list[0]["exp_id"]
     #   if batch_exp_name == "2":
     #   elif batch_exp_name == "1":
     #       EVO_DIR = "evo_runs_06-13"
@@ -177,7 +177,7 @@ def compile_results(settings_list, no_plot=False):
         controllable = False
         for k in keys:
             val = settings[k]
-            if k == 'conditionals':
+            if k == 'controls':
                 if k != ['NONE', 'NONE']:
                     controllable = True
             if isinstance(settings[k], list):
@@ -201,8 +201,8 @@ def compile_results(settings_list, no_plot=False):
         args = argparse.Namespace(**settings)
         arg_dict = vars(args)
         # FIXME: well this is stupid
-        exp_name = get_exp_name(args) + '_' + str(arg_dict["experiment_id"]) + '_log'  # FIXME: this should be done elsewhere??
-        arg_dict["cond_metrics"] = arg_dict.pop("conditionals")
+        exp_name = get_exp_name(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
+        arg_dict["cond_metrics"] = arg_dict.pop("controls")
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
         exp_name = os.path.join(RUNS_DIR, exp_name)
@@ -251,7 +251,7 @@ def compile_results(settings_list, no_plot=False):
     # Rename headers
     new_keys = []
     # alp_gmm is always "False" for non-controllable agents. But we don't want to display them as having any control regime.
-    # controls_id = keys.index('conditionals')
+    # controls_id = keys.index('controls')
     # regime_id = keys.index('alp_gmm')
     # for i, tpl in enumerate(tuples):
     #     if tpl[controls_id] == 'NONE':

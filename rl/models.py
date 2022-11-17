@@ -207,8 +207,8 @@ class ConvDeconv2d(TorchModelV2, nn.Module):
 
         # TODO: use more convolutions here? Change and check that we can still overfit on binary problem.
         # self.conv_1 = nn.Conv2d(obs_shape[-1] + n_aux_chan, out_channels=conv_filters + n_aux_chan, kernel_size=3, stride=1, padding=0)
-        self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=7, stride=2, padding=0)
-        self.conv_2 = nn.Conv2d(conv_filters, out_channels=conv_filters, kernel_size=7, stride=1, padding=3)
+        self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=7, stride=2, padding=3)
+        self.conv_2 = nn.Conv2d(conv_filters, out_channels=conv_filters, kernel_size=7, stride=2, padding=3)
         self.deconv_1 = nn.ConvTranspose2d(conv_filters, conv_filters, kernel_size=7, stride=1, padding=3)
         n_actions = int(num_outputs / (obs_shape[-2] * obs_shape[-3]))
         self.deconv_2 = nn.ConvTranspose2d(conv_filters, n_actions, kernel_size=7, stride=2, padding=0)

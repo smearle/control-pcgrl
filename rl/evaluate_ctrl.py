@@ -60,7 +60,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     infer_kwargs = {**infer_kwargs, "inference": True, "evaluate": True}
     #   max_trials = kwargs.get("max_trials", -1)
 #   n = kwargs.get("n", None)
-    exp_id = infer_kwargs.get('experiment_id')
+    exp_id = infer_kwargs.get('exp_id')
     #   map_width = infer_kwargs.get("map_width")
     max_steps = infer_kwargs.get("max_step")
     eval_controls = infer_kwargs.get("eval_controls")
@@ -840,7 +840,7 @@ if not opts.HPC:
     EXPERIMENT_DIR = "../rl_runs"
 else:
     EXPERIMENT_DIR = "hpc_runs"
-EXPERIMENT_ID = opts.experiment_id
+EXPERIMENT_ID = opts.exp_id
 problem = opts.problem
 
 if "RCT" in problem:
@@ -853,7 +853,7 @@ if "Micropolis" in problem:
 else:
     SC = False
 representation = opts.representation
-cond_metrics = opts.conditionals
+cond_metrics = opts.controls
 conditional = len(cond_metrics) > 0
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
@@ -917,7 +917,7 @@ infer_kwargs = {
     "map_width": map_width,
     "eval_controls": opts.eval_controls,
     "crop_size": opts.crop_size,
-    "experiment_id": opts.experiment_id,
+    "exp_id": opts.exp_id,
 }
 
 global N_BINS

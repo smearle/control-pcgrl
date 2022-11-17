@@ -11,7 +11,7 @@ import pickle
 import ray
 import seaborn as sns
 
-from utils import IdxCounter
+from rl.utils import IdxCounter
 
 
 LOAD_STATS = True
@@ -36,7 +36,7 @@ def evaluate(trainer, env, cfg):
 
     # Test the generator's ability to meet controllable metric targets.
     if CONTROLS:
-        if len(cfg.conditionals) == 1:
+        if len(cfg.controls) == 1:
             control_stats = test_control(trainer, env, cfg)
             eval_stats.update(control_stats)
         else:

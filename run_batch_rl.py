@@ -4,25 +4,36 @@ Launch a batch of experiments on a SLURM cluster.
 dead processes.
 """
 import argparse
-from collections import namedtuple
+from argparse import Namespace
 import copy
 import itertools
 import json
 import os
 from pdb import set_trace as TT
 import re
-from typing import Dict, List
 import yaml
-
-import numpy as np
 
 from rl.cross_eval import compile_results
 from rl.utils import get_exp_name
+from rl import train_ctrl
 
 
 with open("configs/rl/batch.yaml", "r") as f:
     batch_config = yaml.safe_load(f)
-batch_config = namedtuple('batch_config', batch_config.keys())(**batch_config)
+
+# HACK: deal with nested hyperparameters.
+local_controls, global_controls = batch_config.pop("local_controls"), batch_config.pop("global_controls")
+
+# Take product of lists of all hyperparameters in `batch_config`.
+keys, vals = zip(*batch_config.items())
+exp_hypers = itertools.product(*vals)
+
+# Turn lists in `exp_hypers` into dictionaries.
+exp_hypers = [dict(zip(keys, exp_hyper)) for exp_hyper in exp_hypers]
+
+# Turn `batch_config` into a namespace.
+batch_config = Namespace(**batch_config)
+
 
 def launch_batch(collect_params=False):
     if collect_params:
@@ -41,27 +52,48 @@ def launch_batch(collect_params=False):
         print("Launching batch of experiments on SLURM.")
         n_maps = 50
         n_bins = 10
-    with open("configs/rl/auto/default_settings.json", "r") as f:
-        default_config = json.load(f)
-    print("Loaded default config:\n{}".format(default_config))
 
 #   if LOCAL:
 #       # if running locally, just run a quick test
 #       default_config["n_frames"] = 100000
     i = 0
 
-    # Take product of lists
-    exp_hypers = itertools.product(batch_config.problems, batch_config.representations_models, batch_config.model_configs,
-        batch_config.alp_gmms, batch_config.change_percentages, batch_config.learning_rates, batch_config.exp_names,
-        batch_config.max_board_scans, batch_config.n_aux_tiles, batch_config.static_probs, batch_config.action_size, 
-        batch_config.observation_size, batch_config.n_frame,)
 
-    for (prob, (rep, model), model_cfg, alp_gmm, change_percentage, learning_rate, exp_id, max_board_scans, n_aux_tiles,
-         static_prob, action_size, observation_size, n_frame) in exp_hypers:
+    for exp_cfg in exp_hypers:
+        # exp_config inherits all arguments from opts
+        exp_cfg.update(vars(opts))
 
-        prob_controls = batch_config.global_controls + batch_config.local_controls[prob]
+        # Supply the command-line arguments in args.py
+        exp_cfg.update(
+            {
+                "evaluate": EVALUATE,
+                "representation": exp_cfg['representation_model'][0],
+                "model": exp_cfg['representation_model'][1],
+            }
+        )
 
+#             if EVALUATE:
+#                 exp_config.update(
+#                     {
+#                         # "load": True,
+#                         "n_maps": n_maps,
+#                         # "render": False,
+# #                                   "render_levels": opts.render_levels,
+#                         "n_bins": (n_bins,),
+#                         "vis_only": opts.vis_only,
+#                     }
+            # )
+
+
+        # FIXME: This is a hack. How to iterate through nested hyperparameter loops in a better way?
+        # TODO: Hydra would solve this. Empty this file to make room for hydra.
+        prob_controls = global_controls + local_controls[exp_cfg['problem']]
         for controls in prob_controls:
+            exp_prob_cfg = copy.deepcopy(exp_cfg)
+            exp_prob_cfg.update({
+                "controls": controls
+            })
+            exp_prob_cfg = Namespace(**exp_prob_cfg)
 #                   if controls != ["NONE"] and change_percentage != 1:
 
 #                       continue
@@ -75,7 +107,7 @@ def launch_batch(collect_params=False):
             #             'do not match. Skipping experiment.')
             #     continue
 
-            if alp_gmm and controls == ["NONE", "NONE"]:
+            if exp_prob_cfg.alp_gmm and controls is None:
                 continue
 
 #                       if (not alp_gmm) and len(controls) < 2 and controls != ["NONE"]:
@@ -93,52 +125,14 @@ def launch_batch(collect_params=False):
             sbatch_name = "rl/train.sh"
             
             # Write the config file with the desired settings
-            exp_config = copy.deepcopy(default_config)
+            # exp_config = copy.deepcopy(default_config)
 
-            # exp_config inherits all arguments from opts
-            exp_config.update(vars(opts))
-
-            # Supply the command-line arguments in args.py
-            exp_config.update(
-                {
-                    "problem": prob,
-                    "representation": rep,
-                    "model": model,
-                    "conditional": controls != ["NONE", "NONE"],  # HAAAACK
-                    "conditionals": controls,
-                    "change_percentage": change_percentage,
-                    "alp_gmm": alp_gmm,
-                    "experiment_id": exp_id,
-                    "evaluate": EVALUATE,
-                    "max_board_scans": max_board_scans,
-                    "n_aux_tiles": n_aux_tiles,
-                    "lr": learning_rate,
-                    "model_cfg": model_cfg,
-                    "static_prob": static_prob,
-                    "action_size": action_size,
-                    "observation_size": observation_size,
-                    "n_frame": n_frame,
-                }
-            )
-
-#             if EVALUATE:
-#                 exp_config.update(
-#                     {
-#                         # "load": True,
-#                         "n_maps": n_maps,
-#                         # "render": False,
-# #                                   "render_levels": opts.render_levels,
-#                         "n_bins": (n_bins,),
-#                         "vis_only": opts.vis_only,
-#                     }
-                # )
-            print(f"Saving experiment config:\n{exp_config}")
+            print(f"Saving experiment config:\n{exp_cfg}")
             
             # get the experiment name to name the config file
             # config_name = f"{prob}_{rep}_{exp_name}"
-            configure_name = namedtuple('configure_name', exp_config.keys())(**exp_config)
-            config_name = get_exp_name(configure_name)
-            config_name += f"_{exp_id}"
+            config_name = get_exp_name(exp_prob_cfg)
+            config_name += f"_{exp_prob_cfg.exp_id}"
             # Edit the sbatch file to load the correct config file
             if not opts.render:
                 if  not LOCAL:
@@ -168,20 +162,22 @@ def launch_batch(collect_params=False):
                         f.write(content)
             
             with open(f"configs/rl/auto/settings_{config_name}.json", "w") as f:
-                json.dump(exp_config, f, ensure_ascii=False, indent=4)
+                json.dump(vars(exp_prob_cfg), f, ensure_ascii=False, indent=4)
             # Launch the experiment. It should load the saved settings
 
             if not (EVALUATE and not opts.overwrite_eval and \
                 os.path.isfile(os.path.join('rl_runs', f'{config_name}_log', 'eval_stats.json'))):
                 if collect_params:
-                    settings_list.append(exp_config)
+                    settings_list.append(exp_cfg)
                 elif LOCAL:
                     full_cmd = f"python {py_script_name} --load_args {config_name}"
                     # Printout for convenience: when debugging on a Mac calling this from a script will break `set_trace()`
                     # so we print the command here to be entered-in manually.
                     print(f"Running command:\n{full_cmd}")
-                    os.system(full_cmd)
+                    # os.system(full_cmd)
+                    train_ctrl.main(exp_prob_cfg)
                 else:
+                    # TODO: User submitit.
                     os.system(f"sbatch {sbatch_name}")
             else:
                 print('Skipping evaluation (already have stats saved).')

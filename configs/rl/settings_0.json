@@ -2,12 +2,12 @@
     "n_cpu": 6,
     "problem": "minecraft_3D_maze_ctrl",
     "representation": "narrow3D",
-    "conditionals": [
+    "controls": [
         "NONE"
     ],
     "change_percentage": 1.0,
     "alp_gmm": false,
-    "experiment_id": "scratch",
+    "exp_id": "scratch",
     "render": true,
     "load": true,
     "infer": true,

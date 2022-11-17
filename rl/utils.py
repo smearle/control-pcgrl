@@ -220,7 +220,7 @@ def get_exp_name(cfg):
         exp_name += "_" + cfg.model
 
     if hasattr(cfg, "conditional") and cfg.conditional:
-        exp_name += "_" + "-".join(["ctrl"] + cfg.conditionals)
+        exp_name += "_" + "-".join(["ctrl"] + cfg.controls)
     if cfg.change_percentage is not None:
         exp_name += "_chng-{}".format(cfg.change_percentage)
 
@@ -236,7 +236,7 @@ def get_exp_name(cfg):
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
         exp_name += "_ALPGMM"    
 
-    if len(cfg.model_cfg) > 0:
+    if cfg.model_cfg is not None:
         exp_name += f"_{cfg.model_cfg['conv_filters']}-convSz" if cfg.model_cfg['conv_filters'] != 64 else ""
         exp_name += f"_{cfg.model_cfg['fc_size']}-fcSz" if cfg.model_cfg['fc_size'] != 64 and cfg.model != 'NCA' else ""
 
@@ -246,14 +246,16 @@ def get_exp_name(cfg):
     if cfg.static_prob is not None:
         exp_name += f"_{cfg.static_prob}-static"
     
-    if cfg.lr:
-        exp_name += f"_lr-{cfg.lr:.1e}"
+    if cfg.learning_rate:
+        exp_name += f"_lr-{cfg.learning_rate:.1e}"
     
     if cfg.observation_size is not None:
         exp_name += f"_obs-{cfg.observation_size}"
 
-    if cfg.n_frame is not None:
-        exp_name += f"_nframe-{cfg.n_frame}"
+    # Can't control `n_frame`, but if we did, wouldn't want to have this in experiment name in case we watned to extent
+    # training later.
+    # if cfg.n_frame is not None:
+    #     exp_name += f"_nframe-{cfg.n_frame}"
 
     return exp_name
 

@@ -26,7 +26,7 @@ def infer(game, representation, infer_kwargs, **kwargs):
     infer_kwargs = {**infer_kwargs, "inference": True, "render": True, "compute_stats": True}
     max_trials = kwargs.get("max_trials", -1)
 #   n = kwargs.get("n", None)
-    exp_id = infer_kwargs.get('experiment_id')
+    exp_id = infer_kwargs.get('exp_id')
     map_width = infer_kwargs.get("map_width")
     env_name = get_env_name(game, representation)
     exp_name = get_exp_name(game, representation, **infer_kwargs)
@@ -145,10 +145,10 @@ if not opts.HPC:
     EXPERIMENT_DIR = "../rl_runs"
 else:
     EXPERIMENT_DIR = "hpc_runs"
-EXPERIMENT_ID = opts.experiment_id
+EXPERIMENT_ID = opts.exp_id
 problem = opts.problem
 representation = opts.representation
-conditional = len(opts.conditionals) > 0
+conditional = len(opts.controls) > 0
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 alp_gmm = opts.alp_gmm
@@ -170,7 +170,7 @@ max_step = opts.max_step
 change_percentage = opts.change_percentage
 
 if conditional:
-    cond_metrics = opts.conditionals
+    cond_metrics = opts.controls
 
     if ca_action:
         max_step = 50
@@ -195,7 +195,7 @@ infer_kwargs = {
     "map_width": opts.map_width,
     "crop_size": opts.crop_size,
     "alp_gmm": alp_gmm,
-    "experiment_id": opts.experiment_id,
+    "exp_id": opts.exp_id,
 }
 
 if __name__ == "__main__":

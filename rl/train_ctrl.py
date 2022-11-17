@@ -36,13 +36,13 @@ import wandb
 
 import gym_pcgrl
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
-from models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
+from rl.models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
     NCA, SeqNCA, SeqNCA3D, ConvDeconv2d # noqa : F401
-from args import parse_args
-from envs import make_env
-from evaluate import evaluate
-from utils import IdxCounter, get_env_name, get_exp_name, get_map_width
-from callbacks import StatsCallbacks
+from rl.args import parse_args
+from rl.envs import make_env
+from rl.evaluate import evaluate
+from rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
+from rl.callbacks import StatsCallbacks
 
 # Set most normal backend
 matplotlib.use('Agg')
@@ -67,7 +67,7 @@ class PPOTrainer(RlLibPPOTrainer):
         super().__init__(*args, **kwargs)
         # wandb.init(**self.config['wandb'])
         self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
-        self.ctrl_metrics = self.config['env_config']['conditionals']
+        self.ctrl_metrics = self.config['env_config']['controls']
         cbs = self.workers.foreach_env(lambda env: env.unwrapped.cond_bounds)
         cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
         cond_bounds = cbs[0]
@@ -184,6 +184,20 @@ class PPOTrainer(RlLibPPOTrainer):
 
 def main(cfg):
     DEBUG_RENDER = True
+
+    cfg.ca_actions = False  # Not using NCA-type actions.
+    cfg.logging = True  # Always log
+
+
+    # NOTE: change percentage currently has no effect! Be warned!! (We fix number of steps for now.)
+
+    cfg.map_width = get_map_width(cfg.problem)
+    cfg.length = cfg.height = cfg.width = cfg.map_width  # Temporary. Should make this nicer :)
+    if "holey" in cfg.problem:
+        crop_size = cfg.map_width * 2 + 1
+    else:
+        crop_size = cfg.map_width * 2
+    cfg.crop_size = crop_size
     # if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
         # ("minecraft" not in cfg.problem):
         # raise Exception(
@@ -197,7 +211,7 @@ def main(cfg):
     cfg.env_name = get_env_name(cfg.problem, cfg.representation)
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
-    exp_name_id = f'{exp_name}_{cfg.experiment_id}'
+    exp_name_id = f'{exp_name}_{cfg.exp_id}'
     cfg.log_dir = log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
 
     if not cfg.load:
@@ -213,9 +227,10 @@ def main(cfg):
 
         else:
             if not os.path.isdir(log_dir):
-                raise Exception(f"Log directory rl_runs/{exp_name_id} does not exist. Run again without `--overwrite`.")
-            # Overwrite the log directory.
-            shutil.rmtree(log_dir)
+                print(f"Log directory rl_runs/{exp_name_id} does not exist. Will `overwrite` it anyway ;)")
+            else:
+                # Overwrite the log directory.
+                shutil.rmtree(log_dir)
             os.mkdir(log_dir)
 
         # Save the experiment settings for future reference.
@@ -269,6 +284,7 @@ def main(cfg):
     cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
     cfg.eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
+    cfg.model_cfg = {} if cfg.model_cfg is None else cfg.model_cfg
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
@@ -285,7 +301,7 @@ def main(cfg):
         # },
         'num_envs_per_worker': num_envs_per_worker,
         'render_env': cfg.render,
-        'lr': cfg.lr,
+        'lr': cfg.learning_rate,
         'gamma': cfg.gamma,
         'model': {
             'custom_model': 'custom_model',
@@ -455,23 +471,6 @@ def main(cfg):
 
 ################################## MAIN ########################################
 
-cfg = parse_args()
-
-cfg.ca_actions = False  # Not using NCA-type actions.
-cfg.logging = True  # Always log
-
-
-# NOTE: change percentage currently has no effect! Be warned!! (We fix number of steps for now.)
-
-cfg.map_width = get_map_width(cfg.problem)
-cfg.length = cfg.height = cfg.width = cfg.map_width  # Temporary. Should make this nicer :)
-crop_size = cfg.crop_size
-if "holey" in cfg.problem:
-    crop_size = cfg.map_width * 2 + 1 if crop_size == -1 else crop_size
-else:
-    crop_size = cfg.map_width * 2 if crop_size == -1 else crop_size
-cfg.crop_size = crop_size
-
-
 if __name__ == '__main__':
+    cfg = parse_args()
     main(cfg)

@@ -37,11 +37,15 @@ def make_env(cfg_dict: Dict):
                 # raise NotImplementedError("3D wide representation not implemented")
             env = wrappers.ActionMap3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
         else:
-            if 'holey' in cfg.problem:  # HACK
+            # HACK
+            if 'holey' in cfg.problem:
             # if issubclass(rep_cls, HoleyRepresentationABC):
                 env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, **cfg_dict)
             else:
                 env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+        # if cfg.multiagent is not None:
+        #     env = wrappers.MultiAgentWrapper(env, **cfg_dict)
+        #     TT()
 
 
     elif rep_cls == CARepresentation:
@@ -65,7 +69,7 @@ def make_env(cfg_dict: Dict):
 #   if log_dir is not None and cfg.get('add_bootstrap', False):
 #       env = wrappers.EliteBootStrapping(env,
 #                                           os.path.join(log_dir, "bootstrap{}/".format(rank)))
-    env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.conditionals, **cfg_dict)
+    env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.controls, **cfg_dict)
     if not cfg.evaluate:
         if not cfg.alp_gmm:
             env = control_wrappers.UniformNoiseyTargets(env, **cfg_dict)
