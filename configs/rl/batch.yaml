@@ -35,9 +35,9 @@ problem: [
 representation_model: [
       ["narrow", SeqNCA],
       # ["narrow", SeqNCA3D],
-      ["narrow", null],
+      # ["narrow", null],
 
-      # ['turtle', null],
+      # ['turtle', SeqNCA],
       # ["wide", null],
         # ["wide", NCA],
     #   ["wideholey", null],
@@ -160,13 +160,13 @@ static_prob: [
   # 1,
   # 0.5,
   # 0.01,
-    # 0.001,
-    # 0.0001,
-    # 0.00005,
-    # 0.00001,
-    0.000005,
-    # 0.000001,
-    # 1e-7,
+  # 0.001,
+  # 0.0001,
+  # 0.00005,
+  # 0.00001,
+  0.000005,
+  # 0.000001,
+  # 1e-7,
 ]
 
 "max_board_scans": [
@@ -179,18 +179,6 @@ static_prob: [
   0,
   # 4,
   # 8,
-]
-
-# Either single agent (None) or we specify a dict of multi-agent specific settings. (Can put these in separate yaml's 
-# later.)
-multiagent: [
-# None,
-{
-  "n_agents": [
-    # 1,
-    2,
-  ],
-},
 ]
 
 # The size of the observation space: null means full observation space.
@@ -206,4 +194,16 @@ null,
 # The number of frames of the training process to run. null means the default value. (1e10 for now.)
 "n_frame": [
 null,
+]
+
+# Either single agent (None) or we specify a dict of multi-agent specific settings. (Can put these in separate yaml's 
+# later.)
+multiagent: [
+  null,
+  # {
+  #   n_agents: 2,
+  # },
+  # {
+  #   n_agents: 3,
+  # },
 ]

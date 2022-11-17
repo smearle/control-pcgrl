@@ -187,7 +187,7 @@ class PcgrlEnv(gym.Env):
         self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
         observation = self._rep.get_observation()
-        observation["heatmap"] = self._heatmap.copy()
+        # observation["heatmap"] = self._heatmap.copy()
 
         return observation
 
@@ -300,7 +300,7 @@ class PcgrlEnv(gym.Env):
         observation = self._rep.get_observation()
         observation = self._prob.process_observation(observation)
 
-        observation["heatmap"] = self._heatmap.copy()
+        # observation["heatmap"] = self._heatmap.copy()
 
         # NOTE: in control-pcgrl, the ParamRew wrapper now handles rewards for all environments (even when not training a
         # "controllable" RL agent). Just need to specify the metrics of interest and their targets in __init__.

@@ -43,10 +43,6 @@ def make_env(cfg_dict: Dict):
                 env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, **cfg_dict)
             else:
                 env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
-        # if cfg.multiagent is not None:
-        #     env = wrappers.MultiAgentWrapper(env, **cfg_dict)
-        #     TT()
-
 
     elif rep_cls == CARepresentation:
         # env = wrappers.CAWrapper(env_name, **kwargs)
@@ -79,5 +75,8 @@ def make_env(cfg_dict: Dict):
 #   if render or log_dir is not None and len(log_dir) > 0:
 #       # RenderMonitor must come last
 #       env = RenderMonitor(env, rank, log_dir, **kwargs)
+
+    if cfg.multiagent is not None:
+        env = wrappers.MultiAgentWrapper(env, **cfg_dict)
 
     return env

@@ -174,7 +174,7 @@ class EgocentricRepresentation(Representation):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Whether the agent begins on a random tile.
+        # Whether the agent begins on a random tile. (Not using this consistently atm.)
         self._random_tile: bool = False
         # An x, y, (z) position
         self._pos: np.ndarray = None

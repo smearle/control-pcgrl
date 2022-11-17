@@ -1,9 +1,11 @@
+from functools import partial
 from pdb import set_trace as TT
 
 import gym
 from gym import spaces
 from gym_pcgrl.envs.probs.problem import Problem3D
 import numpy as np
+from ray.rllib import MultiAgentEnv
 
 # try:
 #     import gym_city
@@ -84,16 +86,16 @@ class AuxTiles(gym.Wrapper):
 
     def reset(self):
         obs = self.env.reset()
-        self.pos = obs['pos']
+        self._pos = obs['pos']
         aux = np.zeros((*self.env.observation_space.spaces['map'].shape[:-1], self.n_aux_tiles), dtype=np.float32)
         obs['aux'] = aux
         self.aux_map = aux
         return obs
 
     def step(self, action):
-        self._write_to_aux(self.pos, action['aux'])
+        self._write_to_aux(self._pos, action['aux'])
         obs, reward, done, info = self.env.step(action['action'])
-        self.pos = obs['pos']
+        self._pos = obs['pos']
         obs['aux'] = self.aux_map
         return obs, reward, done, info
 
@@ -101,7 +103,23 @@ class AuxTiles(gym.Wrapper):
         self.aux_map[tuple(pos)] = aux
 
 
-class ToImage(gym.Wrapper):
+class TransformObs(gym.Wrapper):
+    """Lil' hack to transform nested observation dicts when dealing with multi-agent environments."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(self.env)
+        if kwargs.get("multiagent") is not None:
+            self.transform = self._transform_multiagent
+        else:
+            self.transform = self._transform
+
+    def _transform_multiagent(self, obs):
+        # Assuming these are agent keys
+        for k in obs:
+            obs[k] = self._transform(obs[k])
+        return obs
+
+
+class ToImage(TransformObs):
     """
     Return a Box instead of dictionary by stacking different similar objects
 
@@ -113,7 +131,7 @@ class ToImage(gym.Wrapper):
         else:
             self.env = game
         self.env.unwrapped.adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
+        super().__init__(self, self.env)
         self.shape = None
         depth = 0
         max_value = 0
@@ -161,7 +179,7 @@ class ToImage(gym.Wrapper):
 
         return obs
 
-    def transform(self, obs):
+    def _transform(self, obs):
         final = np.empty([])
 
         for n in self.names:
@@ -197,7 +215,7 @@ class ToImageCA(ToImage):
         return obs, reward, done, info
 
 
-class OneHotEncoding(gym.Wrapper):
+class OneHotEncoding(TransformObs):
     """
     Transform any object in the dictionary to one hot encoding
     can be stacked
@@ -214,7 +232,7 @@ class OneHotEncoding(gym.Wrapper):
         else:
             self.env = game
         self.env.unwrapped.adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
+        super().__init__(self, self.env)
 
         assert (
             name in self.env.observation_space.spaces.keys()
@@ -243,7 +261,7 @@ class OneHotEncoding(gym.Wrapper):
         )
 
     def step(self, action, **kwargs):
-        action = get_action(action)
+        # action = get_action(action)
         obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
@@ -255,7 +273,7 @@ class OneHotEncoding(gym.Wrapper):
 
         return obs
 
-    def transform(self, obs):
+    def _transform(self, obs):
         old = obs[self.name]
         if self.padded:
             # Replace out-of-bounds values with all-zeros.
@@ -346,7 +364,7 @@ class CAMap(ActionMap):
         return self.env.step(action, **kwargs)
 
 
-class Cropped(gym.Wrapper):
+class Cropped(TransformObs):
     """
     Crops and centers the view around the agent and replace the map with cropped version
     The crop size can be larger than the actual view, it just pads the outside
@@ -358,7 +376,7 @@ class Cropped(gym.Wrapper):
         else:
             self.env = game
         self.env.unwrapped.adjust_param(**kwargs)
-        gym.Wrapper.__init__(self, self.env)
+        super().__init__(self, self.env)
 
         assert (
             "pos" in self.env.observation_space.spaces.keys()
@@ -384,7 +402,7 @@ class Cropped(gym.Wrapper):
         )
 
     def step(self, action, **kwargs):
-        action = get_action(action)
+        # action = get_action(action)
         obs, reward, done, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
@@ -396,7 +414,7 @@ class Cropped(gym.Wrapper):
 
         return obs
 
-    def transform(self, obs):
+    def _transform(self, obs):
         # Incrementing all tile indices by 1 to avoid 0s (out-of-bounds).
         map = obs[self.name] + 1
         # x, y = obs["pos"]
@@ -669,17 +687,45 @@ class RCTWrapper(gym.Wrapper):
 
         return obs
 
+
 # TODO
-class MultiAgentWrapper(gym.Wrapper):
+class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def __init__(self, game, **kwargs):
         multiagent_args = kwargs.get('multiagent')
         self.env = game
         super(MultiAgentWrapper, self).__init__(self.env)
-        n_agents = multiagent_args.get('n_agents', 2)
+        self.n_agents = multiagent_args.get('n_agents', 2)
         self.observation_space = gym.spaces.Dict({})
-        for i in range(n_agents):
+        self.action_space = gym.spaces.Dict({})
+        for i in range(self.n_agents):
             self.observation_space.spaces[f'agent_{i}'] = self.env.observation_space
+            self.action_space.spaces[f'agent_{i}'] = self.env.action_space
 
-    def reset(self):
-        obs = super().reset()
-        return {i: obs for i in range(self.n_agents)}
+    # def reset(self):
+    #     obs = super().reset()
+    #     return multi_obs
+
+    def step(self, action, **kwargs):
+        obs = {}
+        rew = {}
+        done = {}
+        info = {}
+
+        # print(f"Step:")
+        # print(f"Action: {action}")
+        obs, rew, done, info = super().step(action, **kwargs)
+        # obs = self.unwrapped._rep.transform_obs(obs)
+        rew = {f'agent_{i}': rew for i in range(self.n_agents)}
+        done = {f'agent_{i}': done for i in range(self.n_agents)}
+        info = {f'agent_{i}': info for i in range(self.n_agents)}
+
+        # for i in range(self.n_agents):
+        #     act_i = action[f'agent_{i}']
+        #     print(act_i)
+        #     obs_i, rew_i, done_i, info_i = super().step(act_i, **kwargs)
+        #     obs.update({f'agent_{i}': obs_i})
+        #     rew.update({f'agent_{i}': rew_i})
+        #     done.update({f'agent_{i}': done_i})
+        #     info.update({f'agent_{i}': info_i})
+
+        return obs, rew, done, info

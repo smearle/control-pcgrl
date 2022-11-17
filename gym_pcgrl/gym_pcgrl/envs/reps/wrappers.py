@@ -19,6 +19,7 @@ from gym_pcgrl.envs.helper_3D import gen_random_map as gen_random_map_3D
 from gym_pcgrl.envs.reps.ca_rep import CARepresentation
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from gym_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
+from gym_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
 
 
 # class RepresentationWrapper(Representation):
@@ -269,7 +270,7 @@ class RainRepresentation(RepresentationWrapper):
         spawn_3D_maze(map)
 
 
-class MultiRepresentation(RepresentationWrapper):
+class MultiActionRepresentation(RepresentationWrapper):
     '''
     A wrapper that makes the action space change multiple tiles at each time step. Maybe useful for all representations 
     (for 2D, 3D, narrow, turtle, wide, ca, ...).
@@ -353,7 +354,7 @@ class MultiRepresentation(RepresentationWrapper):
 
         old_state = self.unwrapped._map.copy()
 
-        # replace the map at self.pos with the action TODO: is there any better way to make it dimension independent? (sam: yes. Slices!)
+        # replace the map at self._pos with the action TODO: is there any better way to make it dimension independent? (sam: yes. Slices!)
         _pos = self.unwrapped._pos  # Why is _pos private again? (copilot: I don't know) Ok thanks copilot. (copilot: you're welcome)
 
         # Let's center the action patch around _pos. If the agent's observation is centered
@@ -413,13 +414,61 @@ class MultiRepresentation(RepresentationWrapper):
         return super().render(lvl_image, tile_size, border_size)
 
 
+class MultiAgentRepresentation(RepresentationWrapper):
+    def __init__(self, rep, **kwargs):
+        self.n_agents = kwargs['multiagent']['n_agents']
+        super().__init__(rep, **kwargs)
 
+    def reset(self, dims, prob, **kwargs):
+        ret = super().reset(dims, prob, **kwargs)
 
+        # FIXME: specific to turtle
+        self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
+
+    def update(self, action):
+        change = False
+
+        # FIXME: mostly specific to turtle
+        for i, pos_0 in enumerate(self._positions):
+            change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
+            change = change or change_i
+            self._positions[i] = pos
+
+        return change, self._positions
+
+    def render(self, lvl_image, tile_size=16, border_size=None):
+        agent_colors = [
+            (255, 255, 255, 255),
+            (0, 255, 0, 255),
+            (255, 0, 0, 255),
+            (0, 0, 255, 255),
+            (255, 255, 0, 255),
+            (255, 0, 255, 255),
+            (0, 255, 255, 255),
+        ]
+
+        for (y, x), clr in zip(self._positions, agent_colors):
+            im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
+
+            im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
+            x_graphics = Image.fromarray(im_arr)
+            lvl_image.paste(x_graphics, ((x+border_size[0])*tile_size, (y+border_size[1])*tile_size,
+                                            (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
+        return lvl_image
+
+    def get_observation(self, *args, **kwargs):
+        base_obs = super().get_observation(*args, **kwargs)
+        multiagent_obs = {}
+        for i in range(self.n_agents):
+            obs_i = base_obs.copy()
+            obs_i['pos'] = self._positions[i]
+            multiagent_obs[f'agent_{i}'] = obs_i
+        return multiagent_obs
 
 def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
     """Should only happen once!"""
     if multi:
-        rep = MultiRepresentation(rep, map_dims, **kwargs)
+        rep = MultiActionRepresentation(rep, map_dims, **kwargs)
 
     if static_build:
         # rep_cls = StaticBuildRepresentation(rep_cls)
@@ -448,6 +497,11 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
         
         else:
             rep = HoleyRepresentation(rep, **kwargs)
+
+    if kwargs.get("multiagent") is not None:
+        if not issubclass(type(rep), TurtleRepresentation):
+            raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
+        rep = MultiAgentRepresentation(rep, **kwargs)
 
     return rep
     

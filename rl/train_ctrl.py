@@ -19,14 +19,15 @@ from typing import Dict
 import numpy as np
 import ray
 from ray import tune
+from ray.rllib import MultiAgentEnv
 from ray.rllib.agents import ppo
-from ray.tune.integration.wandb import WandbLoggerCallback
-from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
 # from ray.rllib.agents.a3c import A2CTrainer
 # from ray.rllib.agents.impala import ImpalaTrainer
 from ray.rllib.models import ModelCatalog
 from ray.rllib.utils import check_env
+from ray.tune.integration.wandb import WandbLoggerCallback
+from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.tune import CLIReporter
 from ray.tune.integration.wandb import wandb_mixin, WandbTrainableMixin
 from ray.tune.registry import register_env
@@ -86,6 +87,7 @@ class PPOTrainer(RlLibPPOTrainer):
         print('Model overview(s):')
         print(model)
         print("=============")
+        # torchinfo summaries are very confusing at the moment
         torchinfo.summary(model, input_data={
             "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
         return ret
@@ -262,6 +264,10 @@ def main(cfg):
     dummy_cfg["evaluation_env"] = False
     dummy_env = make_env(dummy_cfg)
     check_env(dummy_env)
+    if issubclass(type(dummy_env), MultiAgentEnv):
+        agent_obs_space = dummy_env.observation_space["agent_0"]
+    else:
+        agent_obs_space = dummy_env.observation_space
 
     ### DEBUG ###
     if cfg.debug:
@@ -307,7 +313,7 @@ def main(cfg):
             'custom_model': 'custom_model',
             'custom_model_config': {
                 **cfg.model_cfg,
-                "dummy_env_obs_space": copy.copy(dummy_env.observation_space),
+                "dummy_env_obs_space": copy.copy(agent_obs_space),
             }
         },
         "evaluation_interval" : 1 if cfg.evaluate else 1,
