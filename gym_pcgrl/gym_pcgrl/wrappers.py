@@ -709,11 +709,6 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     #     return multi_obs
 
     def step(self, action, **kwargs):
-        obs = {}
-        rew = {}
-        done = {}
-        info = {}
-
         # print(f"Step:")
         # print(f"Action: {action}")
         obs, rew, done, info = super().step(action, **kwargs)

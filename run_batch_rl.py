@@ -302,12 +302,12 @@ if __name__ == "__main__":
         # action=argparse.BooleanOptionalAction,
         # default=False,
     )
-    opts.add_argument(
-        '--max_board_scans',
-        help='Number of max iterations in terms of maximum number of times the board can be scanned by the agent.',
-        type=int,
-        default=1,
-    )
+    # opts.add_argument(
+    #     '--max_board_scans',
+    #     help='Number of max iterations in terms of maximum number of times the board can be scanned by the agent.',
+    #     type=int,
+    #     default=1,
+    # )
     opts.add_argument(
         '--overwrite_eval',
         help='Whether to overwrite stats resulting from a previous evaluation.',

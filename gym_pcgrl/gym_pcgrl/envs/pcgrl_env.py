@@ -307,8 +307,7 @@ class PcgrlEnv(gym.Env):
         reward = None
         # reward = self._prob.get_reward(self._rep_stats, old_stats)
 
-        # TODO: actually we do want to allow max_change_percentage to terminate the episode!
-        # NOTE: not ending the episode if we reach targets in our metrics of interest for now.
+        # NOTE: not ending the episode when we reach targets in our metrics of interest for now.
         # done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
         done = self._iteration > self._max_iterations
         if self._change_percentage is not None:
