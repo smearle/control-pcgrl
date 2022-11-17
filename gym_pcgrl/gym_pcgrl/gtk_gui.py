@@ -50,8 +50,8 @@ class GtkGUI(Gtk.Window):
         hbox_1.pack_start(reset_button, False, False, 0) 
 
         auto_reset_button = Gtk.CheckButton("auto reset")
-        auto_reset_button.connect('clicked', lambda item: self.env.enable_auto_reset(item))
         self.env.auto_reset = False
+        auto_reset_button.connect('clicked', lambda item: self._enable_auto_reset(item.get_active()))
         hbox_1.pack_start(auto_reset_button, False, False, 0)
 
         vbox.pack_start(hbox_1, False, False, 0)
@@ -127,6 +127,9 @@ class GtkGUI(Gtk.Window):
         self._user_clicks = []
         self._tool_down = False
         self._paused = False
+
+    def _enable_auto_reset(self, enable):
+        self.env.auto_reset = enable
 
     def _pause(self):
             self._paused = True

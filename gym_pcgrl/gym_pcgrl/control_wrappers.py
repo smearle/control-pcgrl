@@ -306,15 +306,8 @@ class ControlWrapper(gym.Wrapper):
         self.last_metrics = copy.deepcopy(self.metrics)
         self.n_step += 1
 
-        if self.auto_reset:
-            # either exceeded number of changes, steps, or reached target
-
-            # I have no idea wtf `get_done()` is for. Maybe early termination during evaluation, where we give the agent
-            # a ton of steps to reach its goals? Omitting for now.
-            # done = done or self.get_done()
-            done = done
-        else:
-#           assert self.infer
+        # This should only happen during inference, when user is interacting with GUI.
+        if not self.auto_reset:
             done = False
 
         return ob, reward, done, info

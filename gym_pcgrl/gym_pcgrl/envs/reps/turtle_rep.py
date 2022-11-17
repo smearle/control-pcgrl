@@ -17,7 +17,7 @@ class TurtleRepresentation(EgocentricRepresentation):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._wrap = True
+        self._wrap = False
 
     """
     Resets the current representation where it resets the parent and the current
@@ -84,10 +84,10 @@ class TurtleRepresentation(EgocentricRepresentation):
                 pos[i] += d
                 if pos[i] < 0:
                     if self._wrap:
-                        pos[i] = self._map.shape[i]
+                        pos[i] = self._map.shape[i] - 1
                     else:
                         pos[i] = 0
-                if pos[i] >= self._map.shape[i]:
+                elif pos[i] >= self._map.shape[i]:
                     if self._wrap:
                         pos[i] -= self._map.shape[i]
                     else:

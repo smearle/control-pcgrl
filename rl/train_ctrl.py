@@ -191,8 +191,6 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
-    DEBUG_RENDER = False
-
     cfg.ca_actions = False  # Not using NCA-type actions.
     cfg.logging = True  # Always log
 
@@ -289,7 +287,7 @@ def main(cfg):
                     # act = 0
                 obs, rew, done, info = dummy_env.step(act)
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
-                if DEBUG_RENDER:
+                if cfg.render:
                     dummy_env.render()
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()

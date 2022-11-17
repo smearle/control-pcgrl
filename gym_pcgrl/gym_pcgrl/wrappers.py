@@ -693,7 +693,8 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def __init__(self, game, **kwargs):
         multiagent_args = kwargs.get('multiagent')
         self.env = game
-        super(MultiAgentWrapper, self).__init__(self.env)
+        gym.Wrapper.__init__(self, self.env)
+        MultiAgentEnv.__init__(self.env)
         self.n_agents = multiagent_args.get('n_agents', 2)
         self.observation_space = gym.spaces.Dict({})
         self.action_space = gym.spaces.Dict({})
