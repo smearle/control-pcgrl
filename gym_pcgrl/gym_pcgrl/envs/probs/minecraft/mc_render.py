@@ -15,8 +15,6 @@ from pdb import set_trace as TT
 SCREENSHOT_SIZE = (512, 512)
 BBOX_OFFSET = (0, 66)  # For 16" M1 MacBook Pro
 BBOX = (BBOX_OFFSET[0], BBOX_OFFSET[1], BBOX_OFFSET[0] + SCREENSHOT_SIZE[0], BBOX_OFFSET[1] + SCREENSHOT_SIZE[1])
-CHANNEL = grpc.insecure_channel('localhost:5001')
-CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
 
 SOLID_BLOCK = STAINED_GLASS
 # SOLID_BLOCK = STAINED_GLASS
@@ -34,6 +32,7 @@ inv_block_map = dict(zip(b_map, string_map))
 
 N_BLOCK_TYPE = 3
 # RENDER_PATH_SEQUENCE = False
+CLIENT = None
 
 
 def render_blocks(blocks, base_pos=5):
@@ -476,6 +475,8 @@ def top_left_corner_screenshot(name: str, bbox: tuple, save_dir: str):
     
 
 if __name__ == '__main__':
+    CHANNEL = grpc.insecure_channel('localhost:5001')
+    CLIENT = minecraft_pb2_grpc.MinecraftServiceStub(CHANNEL)
     # clear(20,20)
     CLIENT.fillCube(FillCubeRequest(
         cube=Cube(

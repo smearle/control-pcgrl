@@ -119,6 +119,9 @@ class SeqNCA(TorchModelV2, nn.Module):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
+        # HACK: Because rllib silently squashes our multi-agent observation somewhere along the way??? :D
+        obs_space = model_config['custom_model_config']['dummy_env_obs_space']
+
         # self.n_aux_chan = n_aux_chan
         self.conv_filters = conv_filters
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size

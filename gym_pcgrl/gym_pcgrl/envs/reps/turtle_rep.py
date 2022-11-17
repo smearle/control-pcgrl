@@ -30,7 +30,7 @@ class TurtleRepresentation(EgocentricRepresentation):
     """
     def reset(self, dims, prob):
         super().reset(dims, prob)
-        self._pos = [self._random.randint(i) for i in dims]
+        self._pos = [int(self._random.random() * i) for i in dims]
         # self._x = self._random.randint(width)
         # self._y = self._random.randint(height)
 #       self._x = 0

@@ -80,8 +80,8 @@ class PcgrlEnv(gym.Env):
         self.action_space = self._rep.get_action_space(map_dims[:-1], map_dims[-1])
         obs_map_dims = self.get_observable_map_dims()
         self.observation_space = self._rep.get_observation_space(obs_map_dims[:-1], obs_map_dims[-1])
-        self.observation_space.spaces['heatmap'] = spaces.Box(
-            low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
+        # self.observation_space.spaces['heatmap'] = spaces.Box(
+        #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
         # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
         
@@ -253,8 +253,8 @@ class PcgrlEnv(gym.Env):
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
             self.get_map_dims()[:-1], self.get_num_observable_tiles())
-        self.observation_space.spaces['heatmap'] = spaces.Box(
-            low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
+        # self.observation_space.spaces['heatmap'] = spaces.Box(
+        #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
 
     """

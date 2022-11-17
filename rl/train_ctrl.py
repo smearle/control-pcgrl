@@ -1,23 +1,24 @@
 
 import copy
-from functools import partial
 import json
 import os
-from pathlib import Path
-from pdb import set_trace as TT
 import pickle
 import shutil
 import sys
 import time
-import gym
-from gym_pcgrl.envs.probs import PROBLEMS
-from gym_pcgrl.task_assignment import set_map_fn
-import matplotlib
-from matplotlib import pyplot as plt
+from functools import partial
+from pathlib import Path
+from pdb import set_trace as TT
 from typing import Dict
 
+import gym
+import matplotlib
 import numpy as np
 import ray
+import torch as th
+import torchinfo
+import wandb
+from matplotlib import pyplot as plt
 from ray import tune
 from ray.rllib import MultiAgentEnv
 from ray.rllib.agents import ppo
@@ -25,25 +26,30 @@ from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
 # from ray.rllib.agents.a3c import A2CTrainer
 # from ray.rllib.agents.impala import ImpalaTrainer
 from ray.rllib.models import ModelCatalog
+from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.utils import check_env
-from ray.tune.integration.wandb import WandbLoggerCallback
-from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.tune import CLIReporter
-from ray.tune.integration.wandb import wandb_mixin, WandbTrainableMixin
+from ray.tune.integration.wandb import (WandbLoggerCallback,
+                                        WandbTrainableMixin, wandb_mixin)
+from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.tune.registry import register_env
-import torch as th
-import torchinfo
-import wandb
 
 import gym_pcgrl
-from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import Minecraft3DholeymazeProblem
-from rl.models import CustomFeedForwardModel, CustomFeedForwardModel3D, WideModel3D, WideModel3DSkip, Decoder, DenseNCA, \
-    NCA, SeqNCA, SeqNCA3D, ConvDeconv2d # noqa : F401
+from gym_pcgrl.envs.probs import PROBLEMS
+from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
+    Minecraft3DholeymazeProblem
+from gym_pcgrl.task_assignment import set_map_fn
 from rl.args import parse_args
+from rl.callbacks import StatsCallbacks
 from rl.envs import make_env
 from rl.evaluate import evaluate
+from rl.models import (NCA, ConvDeconv2d,  # noqa : F401
+                       CustomFeedForwardModel, CustomFeedForwardModel3D,
+                       Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
+                       WideModel3DSkip)
 from rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
-from rl.callbacks import StatsCallbacks
+
+# import PolicySpec
 
 # Set most normal backend
 matplotlib.use('Agg')
@@ -185,7 +191,7 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
-    DEBUG_RENDER = True
+    DEBUG_RENDER = False
 
     cfg.ca_actions = False  # Not using NCA-type actions.
     cfg.logging = True  # Always log
@@ -228,12 +234,11 @@ def main(cfg):
             os.mkdir(log_dir)
 
         else:
-            if not os.path.isdir(log_dir):
+            if not os.path.exists(log_dir):
                 print(f"Log directory rl_runs/{exp_name_id} does not exist. Will `overwrite` it anyway ;)")
-            else:
-                # Overwrite the log directory.
-                shutil.rmtree(log_dir)
-            os.mkdir(log_dir)
+            # Overwrite the log directory.
+            shutil.rmtree(log_dir, ignore_errors=True)
+            os.makedirs(log_dir, exist_ok=True)
 
         # Save the experiment settings for future reference.
         with open(os.path.join(log_dir, 'settings.json'), 'w', encoding='utf-8') as f:
@@ -264,10 +269,13 @@ def main(cfg):
     dummy_cfg["evaluation_env"] = False
     dummy_env = make_env(dummy_cfg)
     check_env(dummy_env)
+
     if issubclass(type(dummy_env), MultiAgentEnv):
         agent_obs_space = dummy_env.observation_space["agent_0"]
+        agent_act_space = dummy_env.action_space["agent_0"]
     else:
         agent_obs_space = dummy_env.observation_space
+        agent_act_space = dummy_env.action_space
 
     ### DEBUG ###
     if cfg.debug:
@@ -292,9 +300,26 @@ def main(cfg):
     cfg.eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
     cfg.model_cfg = {} if cfg.model_cfg is None else cfg.model_cfg
 
+    if cfg.multiagent is not None:
+        multiagent_config = {
+            "policies": {
+                f"default_policy": PolicySpec(
+                    policy_class=None,
+                    observation_space=agent_obs_space,
+                    action_space=agent_act_space,
+                    config=None,)
+            },
+            "policy_mapping_fn": lambda agent_id: "default_policy",
+            "count_steps_by": "agent_steps",
+        }
+        multiagent_config = {"multiagent": multiagent_config}
+    else:
+        multiagent_config = {}
+
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
     trainer_config = {
         'env': 'pcgrl',
+        **multiagent_config,
         'framework': 'torch',
         'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
         'num_gpus': cfg.n_gpu,

@@ -131,7 +131,7 @@ class ToImage(TransformObs):
         else:
             self.env = game
         self.env.unwrapped.adjust_param(**kwargs)
-        super().__init__(self, self.env)
+        super().__init__(self, self.env, **kwargs)
         self.shape = None
         depth = 0
         max_value = 0
@@ -232,7 +232,7 @@ class OneHotEncoding(TransformObs):
         else:
             self.env = game
         self.env.unwrapped.adjust_param(**kwargs)
-        super().__init__(self, self.env)
+        super().__init__(self, self.env, **kwargs)
 
         assert (
             name in self.env.observation_space.spaces.keys()
@@ -376,7 +376,7 @@ class Cropped(TransformObs):
         else:
             self.env = game
         self.env.unwrapped.adjust_param(**kwargs)
-        super().__init__(self, self.env)
+        super().__init__(self, self.env, **kwargs)
 
         assert (
             "pos" in self.env.observation_space.spaces.keys()
@@ -700,6 +700,9 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
         for i in range(self.n_agents):
             self.observation_space.spaces[f'agent_{i}'] = self.env.observation_space
             self.action_space.spaces[f'agent_{i}'] = self.env.action_space
+        # otherwise gym utils throws an error???
+        self.unwrapped.observation_space = self.observation_space
+        self.unwrapped.action_space = self.action_space
 
     # def reset(self):
     #     obs = super().reset()
@@ -717,6 +720,7 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
         # obs = self.unwrapped._rep.transform_obs(obs)
         rew = {f'agent_{i}': rew for i in range(self.n_agents)}
         done = {f'agent_{i}': done for i in range(self.n_agents)}
+        done['__all__'] = np.all(list(done.values()))
         info = {f'agent_{i}': info for i in range(self.n_agents)}
 
         # for i in range(self.n_agents):

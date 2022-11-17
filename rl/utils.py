@@ -236,6 +236,9 @@ def get_exp_name(cfg):
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
         exp_name += "_ALPGMM"    
 
+    if cfg.multiagent is not None:
+        exp_name += f"_{cfg.multiagent['n_agents']}-player"
+
     if cfg.model_cfg is not None:
         exp_name += f"_{cfg.model_cfg['conv_filters']}-convSz" if cfg.model_cfg['conv_filters'] != 64 else ""
         exp_name += f"_{cfg.model_cfg['fc_size']}-fcSz" if cfg.model_cfg['fc_size'] != 64 and cfg.model != 'NCA' else ""
