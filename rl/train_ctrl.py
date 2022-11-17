@@ -75,6 +75,7 @@ class PPOTrainer(RlLibPPOTrainer):
         # wandb.init(**self.config['wandb'])
         self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
         self.ctrl_metrics = self.config['env_config']['controls']
+        self.ctrl_metrics = {} if self.ctrl_metrics is None else self.ctrl_metrics
         cbs = self.workers.foreach_env(lambda env: env.unwrapped.cond_bounds)
         cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
         cond_bounds = cbs[0]
@@ -125,7 +126,7 @@ class PPOTrainer(RlLibPPOTrainer):
         log_result['info: learner:'] = result['info']['learner']
 
         # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-        result['fps'] = result['num_env_steps_sampled_this_iter'] / result['time_this_iter_s']
+        result['fps'] = result['num_agent_steps_sampled_this_iter'] / result['time_this_iter_s']
 
         # TODO: Send a heatmap to tb/wandb representing success reaching various control targets?
         if len(result['custom_metrics']) > 0:
