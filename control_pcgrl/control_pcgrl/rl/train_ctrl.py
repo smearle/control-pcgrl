@@ -34,20 +34,20 @@ from ray.tune.integration.wandb import (WandbLoggerCallback,
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.tune.registry import register_env
 
+from control_pcgrl.rl.args import parse_args
+from control_pcgrl.rl.callbacks import StatsCallbacks
+from control_pcgrl.rl.envs import make_env
+from control_pcgrl.rl.evaluate import evaluate
+from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
+                       CustomFeedForwardModel, CustomFeedForwardModel3D,
+                       Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
+                       WideModel3DSkip)
+from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 import gym_pcgrl
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from gym_pcgrl.task_assignment import set_map_fn
-from rl.args import parse_args
-from rl.callbacks import StatsCallbacks
-from rl.envs import make_env
-from rl.evaluate import evaluate
-from rl.models import (NCA, ConvDeconv2d,  # noqa : F401
-                       CustomFeedForwardModel, CustomFeedForwardModel3D,
-                       Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
-                       WideModel3DSkip)
-from rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 
 # import PolicySpec
 
@@ -192,6 +192,10 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
+    # HACK (breaks relative `from ` imports)
+    print(os.getcwd())
+    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
     cfg.ca_actions = False  # Not using NCA-type actions.
     cfg.logging = True  # Always log
 
@@ -479,7 +483,7 @@ def main(cfg):
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
         analysis = tune.run(
             "CustomPPO",
-            resume=cfg.load,
+            resume="AUTO" if cfg.load else False,
             config={
                 **trainer_config,
             },

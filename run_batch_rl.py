@@ -11,11 +11,12 @@ import json
 import os
 from pdb import set_trace as TT
 import re
+import submitit
 import yaml
 
-from rl.cross_eval import compile_results
-from rl.utils import get_exp_name
-from rl import train_ctrl
+from control_pcgrl.rl.cross_eval import compile_results
+from control_pcgrl.rl.utils import get_exp_name
+from control_pcgrl.rl import train_ctrl
 
 
 with open("configs/rl/batch.yaml", "r") as f:
@@ -33,6 +34,7 @@ exp_hypers = [dict(zip(keys, exp_hyper)) for exp_hyper in exp_hypers]
 
 # Turn `batch_config` into a namespace.
 batch_config = Namespace(**batch_config)
+
 
 
 def launch_batch(collect_params=False):
@@ -59,6 +61,7 @@ def launch_batch(collect_params=False):
     i = 0
 
 
+    jobs = []
     for exp_cfg in exp_hypers:
         # exp_config inherits all arguments from opts
         exp_cfg.update(vars(opts))
@@ -72,17 +75,18 @@ def launch_batch(collect_params=False):
             }
         )
 
-#             if EVALUATE:
-#                 exp_config.update(
-#                     {
-#                         # "load": True,
-#                         "n_maps": n_maps,
-#                         # "render": False,
-# #                                   "render_levels": opts.render_levels,
-#                         "n_bins": (n_bins,),
-#                         "vis_only": opts.vis_only,
-#                     }
-            # )
+        # TODO: Revive this functionality and put it somewhere
+        #             if EVALUATE:
+        #                 exp_config.update(
+        #                     {
+        #                         # "load": True,
+        #                         "n_maps": n_maps,
+        #                         # "render": False,
+        #                                   "render_levels": opts.render_levels,
+        #                         "n_bins": (n_bins,),
+        #                         "vis_only": opts.vis_only,
+        #                     }
+                    # )
 
 
         # FIXME: This is a hack. How to iterate through nested hyperparameter loops in a better way?
@@ -121,8 +125,8 @@ def launch_batch(collect_params=False):
 # #                       elif opts.infer:
 # #                           py_script_name = "infer_ctrl_sb2.py"
             # else:
-            py_script_name = "rl/train_ctrl.py"
-            sbatch_name = "rl/train.sh"
+            py_script_name = "control_pcgrl/control_pcgrl/rl/train_ctrl.py"
+            sbatch_name = "control_pcgrl/control_pcgrl/rl/train.sh"
             
             # Write the config file with the desired settings
             # exp_config = copy.deepcopy(default_config)
@@ -161,7 +165,9 @@ def launch_batch(collect_params=False):
                     with open(sbatch_name, "w") as f:
                         f.write(content)
             
-            with open(f"configs/rl/auto/settings_{config_name}.json", "w") as f:
+            # Get directory of current file
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            with open(os.path.join(dir_path, f"configs/rl/auto/settings_{config_name}.json"), "w") as f:
                 json.dump(vars(exp_prob_cfg), f, ensure_ascii=False, indent=4)
             # Launch the experiment. It should load the saved settings
 
@@ -170,15 +176,18 @@ def launch_batch(collect_params=False):
                 if collect_params:
                     settings_list.append(exp_cfg)
                 elif LOCAL:
-                    full_cmd = f"python {py_script_name} --load_args {config_name}"
+                    # full_cmd = f"python {py_script_name} --load_args {config_name}"
                     # Printout for convenience: when debugging on a Mac calling this from a script will break `set_trace()`
                     # so we print the command here to be entered-in manually.
-                    print(f"Running command:\n{full_cmd}")
+                    # print(f"Running command:\n{full_cmd}")
                     # os.system(full_cmd)
                     train_ctrl.main(exp_prob_cfg)
                 else:
                     # TODO: User submitit.
                     os.system(f"sbatch {sbatch_name}")
+                    # job = executor.submit(train_ctrl.main, exp_prob_cfg)
+
+                    # jobs.append(job)
             else:
                 print('Skipping evaluation (already have stats saved).')
             i += 1
@@ -319,8 +328,12 @@ if __name__ == "__main__":
     # EXP_NAME = opts.experiment_name
     EVALUATE = opts.evaluate
     LOCAL = opts.local
+    executor = submitit.AutoExecutor(os.path.join("rl_runs", "submitit"))
+    executor.update_parameters(gpus_per_node=1, slurm_mem="30GB", cpus_per_task=max(1, opts.n_cpu), slurm_time="5:00:00",
+                                job_name="pcgrl",)
     if opts.cross_eval:
         settings_list = launch_batch(collect_params=True)
         compile_results(settings_list, no_plot=opts.no_plot)
     else:
-        launch_batch()
+        with executor.batch():
+            launch_batch()

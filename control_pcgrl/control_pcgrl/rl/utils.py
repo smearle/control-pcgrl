@@ -219,7 +219,7 @@ def get_exp_name(cfg):
     if cfg.model:
         exp_name += "_" + cfg.model
 
-    if hasattr(cfg, "conditional") and cfg.conditional:
+    if cfg.controls is not None:
         exp_name += "_" + "-".join(["ctrl"] + cfg.controls)
     if cfg.change_percentage is not None:
         exp_name += "_chng-{}".format(cfg.change_percentage)

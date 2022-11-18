@@ -11,7 +11,7 @@ import pickle
 import ray
 import seaborn as sns
 
-from rl.utils import IdxCounter
+from control_pcgrl.rl.utils import IdxCounter
 
 
 LOAD_STATS = True

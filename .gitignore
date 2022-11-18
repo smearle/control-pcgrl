@@ -49,6 +49,8 @@ runs/
 
 evo_runs*/*
 !evo_runs/.gitkeep
+control_pcgrl/control_pcgrl/rl_runs/*
+!control_pcgrl/control_pcgrl/rl_runs/.gitkeep
 rl_runs/*
 !rl_runs/.gitkeep
 rl_runs/*

@@ -19,18 +19,16 @@ import ray
 # FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ControlWrapper(gym.Wrapper):
-    def __init__(self, env, ctrl_metrics=[], rand_params=False, **kwargs):
+    def __init__(self, env, ctrl_metrics=None, rand_params=False, **kwargs):
         self.win = None
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
-        self.conditional = kwargs.get("conditional")
+        self.controllable = ctrl_metrics is not None
         # We'll use these for calculating loss (for evaluation during inference) but not worry about oberving them
         # (we didn't necessarily train with all of them)
         ctrl_loss_metrics = kwargs.get("eval_controls")
         if not ctrl_loss_metrics:
             ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
-        if self.conditional:
-            assert ctrl_metrics
         else:
             if ctrl_metrics:
                 print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
@@ -113,7 +111,7 @@ class ControlWrapper(gym.Wrapper):
         self.action_space = self.env.action_space
 
         # TODO: generalize this for 3D environments.
-        if self.conditional:
+        if self.controllable:
             orig_obs_shape = self.observation_space.shape
             # TODO: adapt to (c, w, h) vs (w, h, c)
 
@@ -234,7 +232,7 @@ class ControlWrapper(gym.Wrapper):
             self.do_set_trgs()
         ob = super().reset()
         self.metrics = self.unwrapped._rep_stats
-        if self.conditional:
+        if self.controllable:
             ob = self.observe_metric_trgs(ob)
         self.last_metrics = copy.deepcopy(self.metrics)
         if self.unwrapped._get_stats_on_step:
@@ -296,7 +294,7 @@ class ControlWrapper(gym.Wrapper):
 
         # Add target values of metrics of interest to the agent's obervation, so that it can learn to reproduce them 
         # while editing the level. 
-        if self.conditional:
+        if self.controllable:
             ob = self.observe_metric_trgs(ob)
 
         # Provide reward only at the last step
@@ -508,7 +506,7 @@ class ControlWrapper(gym.Wrapper):
     #     return done
 
     def close(self):
-        if self.render_gui and self.conditional:
+        if self.render_gui and self.controllable:
             self.win.destroy()
 
 # TODO: What by jove this actually doing and why does it kind of work?
