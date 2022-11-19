@@ -230,18 +230,15 @@ def get_exp_name(cfg):
     if hasattr(cfg, "midep_trgs") and cfg.midep_trgs:
         exp_name += "_midEpTrgs"
 
-    if hasattr(cfg, "ca_actions") and cfg.ca_actions:
-        exp_name += "_CAaction"
-
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
         exp_name += "_ALPGMM"    
 
     if cfg.multiagent is not None:
         exp_name += f"_{cfg.multiagent['n_agents']}-player"
 
-    if cfg.model_cfg is not None:
-        exp_name += f"_{cfg.model_cfg['conv_filters']}-convSz" if cfg.model_cfg['conv_filters'] != 64 else ""
-        exp_name += f"_{cfg.model_cfg['fc_size']}-fcSz" if cfg.model_cfg['fc_size'] != 64 and cfg.model != 'NCA' else ""
+    if cfg.model is not None:
+        exp_name += f"_{cfg.model['conv_filters']}-convSz" if cfg.model['conv_filters'] != 64 else ""
+        exp_name += f"_{cfg.model['fc_size']}-fcSz" if cfg.model['fc_size'] != 64 and cfg.model != 'NCA' else ""
 
     if cfg.n_aux_tiles > 0:
         exp_name += f"_{cfg.n_aux_tiles}-aux"

@@ -1,9 +1,11 @@
+from argparse import Namespace
 from collections import namedtuple
 import os
 from pdb import set_trace as TT
 from typing import Dict
 
 from gym import spaces
+from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
 import numpy as np
 
 from gym_pcgrl import control_wrappers, wrappers
@@ -18,16 +20,20 @@ from gym_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
 # from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 # from utils import RenderMonitor, get_map_width
 
-def make_env(cfg_dict: Dict):
+def make_env(cfg):
     """
     Initialize and wrap the environment.
 
     Args:
         cfg_dict: dictionary of configuration parameters
     """
-    # Turn dictionary into an object with attributes instead of keys.
-    cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
+    cfg_dict = cfg # tehe
+    cfg = Namespace(**cfg)
 
+    # Turn dictionary into an object with attributes instead of keys.
+    # cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
+
+    env: PcgrlEnv = None
     rep_cls = REPRESENTATIONS[cfg.representation], 
     if cfg.representation in ['wide']:
     # if issubclass(rep_cls, WideRepresentation):
@@ -67,10 +73,11 @@ def make_env(cfg_dict: Dict):
 #                                           os.path.join(log_dir, "bootstrap{}/".format(rank)))
     env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.controls, **cfg_dict)
     if not cfg.evaluate:
-        if not cfg.alp_gmm:
-            env = control_wrappers.UniformNoiseyTargets(env, **cfg_dict)
-        else:
-            env = control_wrappers.ALPGMMTeacher(env, **cfg_dict)
+        if cfg.controls is not None:
+            if cfg.controls.alp_gmm:
+                env = control_wrappers.ALPGMMTeacher(env, **cfg_dict)
+            else:
+                env = control_wrappers.UniformNoiseyTargets(env, **cfg_dict)
     # it not conditional, the ParamRew wrapper should just be fixed at default static targets
 #   if render or log_dir is not None and len(log_dir) > 0:
 #       # RenderMonitor must come last

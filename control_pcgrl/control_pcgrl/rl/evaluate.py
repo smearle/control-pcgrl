@@ -27,7 +27,7 @@ def evaluate(trainer, env, cfg):
 
     # Test the generator's ability to adapt to controllable door placement.
     if CONTROL_DOORS:
-        if 'holey' in cfg.env_name:
+        if 'holey' in cfg.problem:
             door_stats = test_doors(trainer, env, cfg)
             eval_stats.update(door_stats)
         else:
@@ -114,9 +114,7 @@ def test_doors(trainer, env, cfg):
                 # print(hole_stats)
                 pickle.dump(ctrl_stats, open(ctrl_stats_fname, 'wb'))
     # print([e.unwrapped._prob.hole_queue for e in envs])
-    width = cfg.width
-    height = cfg.height
-    length = cfg.length
+    width, height, length = cfg.map_shape
 
     HEATMAP = 1
     # if HEATMAP == 0:

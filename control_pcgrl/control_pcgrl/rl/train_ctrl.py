@@ -12,8 +12,11 @@ from pdb import set_trace as TT
 from typing import Dict
 
 import gym
+import hydra
 import matplotlib
 import numpy as np
+from hydra.core.config_store import ConfigStore
+from omegaconf import DictConfig, OmegaConf
 import ray
 import torch as th
 import torchinfo
@@ -22,13 +25,11 @@ from matplotlib import pyplot as plt
 from ray import tune
 from ray.rllib import MultiAgentEnv
 from ray.rllib.agents import ppo
-from ray.rllib.agents.ppo import PPOTrainer as RlLibPPOTrainer
 # from ray.rllib.agents.a3c import A2CTrainer
 # from ray.rllib.agents.impala import ImpalaTrainer
 from ray.rllib.models import ModelCatalog
 from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.utils import check_env
-from ray.tune import CLIReporter
 from ray.tune.integration.wandb import (WandbLoggerCallback,
                                         WandbTrainableMixin, wandb_mixin)
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
@@ -43,6 +44,8 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
+from control_pcgrl.rl.rllib_utils import TrialProgressReporter, PPOTrainer
+from control_pcgrl.rl.conf.config import ControlPCGRLConfig
 import gym_pcgrl
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
@@ -55,9 +58,8 @@ from gym_pcgrl.task_assignment import set_map_fn
 matplotlib.use('Agg')
 
 n_steps = 0
-PROJ_DIR = Path(__file__).parent.parent.parent.parent  # Great great granddir
+PROJ_DIR = Path(__file__).parent.parent.parent.parent # great-great granddir
 best_mean_reward, n_steps = -np.inf, 0
-log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
 
 
 # TODO: Render this bloody scatter plot of control targets/vals!
@@ -69,156 +71,19 @@ log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', '
 #                 wandb.log({k: v}, step=result['training_iteration'])
 
 
-class PPOTrainer(RlLibPPOTrainer):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # wandb.init(**self.config['wandb'])
-        self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
-        self.ctrl_metrics = self.config['env_config']['controls']
-        self.ctrl_metrics = {} if self.ctrl_metrics is None else self.ctrl_metrics
-        cbs = self.workers.foreach_env(lambda env: env.unwrapped.cond_bounds)
-        cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
-        cond_bounds = cbs[0]
-        self.metric_ranges = {k: v[1] - v[0] for k, v in cond_bounds.items()}
-        # self.checkpoint_path_file = checkpoint_path_file
 
-    def setup(self, config):
-        ret = super().setup(config)
-        n_params = 0
-        param_dict = self.get_weights()['default_policy']
+@hydra.main(version_base=None, config_name='pcgrl')
+def main(cfg: ControlPCGRLConfig) -> None:
+    print(OmegaConf.to_yaml(cfg))
+    print("Current working directory:", os.getcwd())
 
-        for v in param_dict.values():
-            n_params += np.prod(v.shape)
-        model = self.get_policy('default_policy').model
-        print(f'default_policy has {n_params} parameters.')
-        print('Model overview(s):')
-        print(model)
-        print("=============")
-        # torchinfo summaries are very confusing at the moment
-        torchinfo.summary(model, input_data={
-            "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
-        return ret
-
-    @classmethod
-    def get_default_config(cls):
-        # def_cfg = super().get_default_config()
-        def_cfg = RlLibPPOTrainer.get_default_config()
-        def_cfg.update({
-            'checkpoint_path_file': None,
-            'wandb': {
-                'project': 'PCGRL',
-                'name': 'default_name',
-                'id': 'default_id',
-            },
-        })
-        return def_cfg
-
-    def save(self, *args, **kwargs):
-        ckp_path = super().save(*args, **kwargs)
-        with open(self.checkpoint_path_file, 'w') as f:
-            f.write(ckp_path)
-        return ckp_path
-
-    # @wandb_mixin
-    def train(self, *args, **kwargs):
-        result = super().train(*args, **kwargs)
-        log_result = {k: v for k, v in result.items() if k in log_keys}
-        log_result['info: learner:'] = result['info']['learner']
-
-        # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-        # result['fps'] = result['num_agent_steps_sampled_this_iter'] / result['time_this_iter_s']
-
-        # bugfix for rllib 2.1.0
-        # print("###########################", result['num_env_steps_trained_this_iter'])
-        # should we change fps to this?  result['num_env_steps_trained_this_iter'] is always 4000
-        # but using more cpu does help to increase the fps now (n_cpu=1 -> 270+ fps, n_cpu=5 -> 390+ fps)
-        result['fps'] = result['num_env_steps_trained_this_iter'] / result['time_this_iter_s']
-
-        # TODO: Send a heatmap to tb/wandb representing success reaching various control targets?
-        if len(result['custom_metrics']) > 0:
-            n_bins = 20
-            result['custom_plots'] = {}
-            for metric in self.ctrl_metrics:
-
-                # Scatter plots via wandb
-                # trgs = result['hist_stats'][f'{metric}-trg']
-                # vals = result['hist_stats'][f'{metric}-val']
-                # data = [[x, y] for (x, y) in zip(trgs, vals)]
-                # table = wandb.Table(data=data, columns=['trg', 'val'])
-                # scatter = wandb.plot.scatter(table, "trg", "val", title=f"{metric}-trg-val")
-                # result['custom_plots']["scatter_{}".format(metric)] = scatter
-                # scatter.save(f"{metric}-trg-val.png")
-                # wandb.log({f'{metric}-scc': scatter}, step=self.iteration)
-
-                # Spoofed histograms
-                # FIXME: weird interpolation behavior here???
-                bin_size = self.metric_ranges[metric] / n_bins  # 30 is the default number of tensorboard histogram bins (HACK)
-                trg_dict = {}
-
-                for i, trg in enumerate(result['hist_stats'][f'{metric}-trg']):
-                    val = result['hist_stats'][f'{metric}-val'][i]
-                    scc = 1 - abs(val - trg) / self.metric_ranges[metric]
-                    trg_bin = trg // bin_size
-                    if trg not in trg_dict:
-                        trg_dict[trg_bin] = [scc]
-                    else:
-                        trg_dict[trg_bin] += [scc]
-                # Get average success rate in meeting each target.
-                trg_dict = {k: np.mean(v) for k, v in trg_dict.items()}
-                # Repeat each target based on how successful we were in reaching it. (Appears at least once if sampled)
-                spoof_data = [[trg * bin_size] * (1 + int(20 * scc)) for trg, scc in trg_dict.items()]
-                spoof_data = [e for ee in spoof_data for e in ee]  # flatten the list
-                result['hist_stats'][f'{metric}-scc'] = spoof_data
-
-                # Make a heatmap.
-                # ax, fig = plt.subplots(figsize=(10, 10))
-                # data = np.zeros(n_bins)
-                # for trg, scc in trg_dict.items():
-                    # data[trg] = scc
-                # wandb.log({f'{metric}-scc': wandb.Histogram(data, n_bins=n_bins)})
-
-                # plt.imshow(data, cmap='hot')
-                # plt.savefig(f'{metric}.png')
-
-            
-
-        # for k, v in result['hist_stats'].items():
-            # if '-trg' in k or '-val' in k:
-                # result['custom_metrics'][k] = [v]
-
-        # print('-----------------------------------------')
-        # print(pretty_print(log_result))
-        return result
-
-    def evaluate(self):
-        # TODO: Set the evaluation maps here!
-        # self.eval_workers.foreach_env_with_context(fn)
-        result = super().evaluate()
-        return result
-
-
-def main(cfg):
-    # HACK (breaks relative `from ` imports)
-    print(os.getcwd())
-    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-    cfg.ca_actions = False  # Not using NCA-type actions.
-    cfg.logging = True  # Always log
-
-
-    # NOTE: change percentage currently has no effect! Be warned!! (We fix number of steps for now.)
-
-    cfg.map_width = get_map_width(cfg.problem)
-    cfg.length = cfg.height = cfg.width = cfg.map_width  # Temporary. Should make this nicer :)
-    if "holey" in cfg.problem:
-        crop_size = cfg.map_width * 2 + 1
-    else:
-        crop_size = cfg.map_width * 2
-    cfg.crop_size = crop_size
-    # if (cfg.problem not in ["binary_ctrl", "binary_ctrl_holey", "sokoban_ctrl", "zelda_ctrl", "smb_ctrl", "MicropolisEnv", "RCT"]) and \
-        # ("minecraft" not in cfg.problem):
-        # raise Exception(
-            # "Not a controllable environment. Maybe add '_ctrl' to the end of the name? E.g. 'sokoban_ctrl'")
+    if cfg.crop_shape is None:
+        # This guy gotta observe the holes.
+        if "holey" in cfg.problem:
+            crop_shape = cfg.map_shape * 2 + 1
+        else:
+            crop_shape = cfg.map_shape * 2
+        cfg.crop_shape = crop_shape
 
     # FIXME: Check for a 3D problem parent class.
     is_3D_env = False
@@ -272,12 +137,12 @@ def main(cfg):
     ModelCatalog.register_custom_model("custom_model", model_cls)
 
     # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
-    cfg.num_workers = num_workers = 0 if cfg.n_cpu == 1 else cfg.n_cpu
+    num_workers = num_workers = 0 if cfg.hardware.n_cpu == 1 else cfg.hardware.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
-    dummy_cfg = copy.copy(vars(cfg))
+    dummy_cfg = copy.copy(cfg)
     # dummy_cfg["render"] = False
-    dummy_cfg["evaluation_env"] = False
+    dummy_cfg.evaluation_env = False
     dummy_env = make_env(dummy_cfg)
     check_env(dummy_env)
 
@@ -306,10 +171,11 @@ def main(cfg):
         sys.exit()
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
-    cfg.num_envs_per_worker = num_envs_per_worker = 20 if not cfg.infer else 1
+    # FIXME: nope
+    num_envs_per_worker = cfg.hardware.num_envs_per_worker if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
-    cfg.eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
-    cfg.model_cfg = {} if cfg.model_cfg is None else cfg.model_cfg
+    eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
+    model_cfg = {} if cfg.model is None else cfg.model
 
     if cfg.multiagent is not None:
         multiagent_config = {
@@ -333,9 +199,9 @@ def main(cfg):
         **multiagent_config,
         'framework': 'torch',
         'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
-        'num_gpus': cfg.n_gpu,
+        'num_gpus': cfg.hardware.n_gpu,
         'env_config': {
-            **vars(cfg),  # Maybe env should get its own config? (A subset of the original?)
+            **cfg,  # Maybe env should get its own config? (A subset of the original?)
             "evaluation_env": False,
         },
         # 'env_config': {
@@ -348,7 +214,7 @@ def main(cfg):
         'model': {
             'custom_model': 'custom_model',
             'custom_model_config': {
-                **cfg.model_cfg,
+                **model_cfg,
                 "dummy_env_obs_space": copy.copy(agent_obs_space),
             }
         },
@@ -359,7 +225,7 @@ def main(cfg):
         "env_task_fn": set_map_fn,
         "evaluation_config": {
             "env_config": {
-                **vars(cfg),
+                **cfg,
                 "evaluation_env": True,
                 "num_eval_envs": num_envs_per_worker * eval_num_workers,
             },
@@ -447,19 +313,6 @@ def main(cfg):
 
     tune.register_trainable("CustomPPO", PPOTrainer)
 
-    class TrialProgressReporter(CLIReporter):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.num_timesteps = []
-
-        def should_report(self, trials, done=False):
-            """Reports only on trial termination events."""
-            old_num_timesteps = self.num_timesteps
-            self.num_timesteps = [t.last_result['timesteps_total'] if 'timesteps_total' in t.last_result else 0 for t in trials]
-            # self.num_terminated = len([t for t in trials if t.status == Trial.TERMINATED])
-            done = np.any(self.num_timesteps > old_num_timesteps)
-            return done
-
     # Limit the number of rows.
     reporter = TrialProgressReporter(
         metric_columns={
@@ -514,5 +367,6 @@ def main(cfg):
 ################################## MAIN ########################################
 
 if __name__ == '__main__':
-    cfg = parse_args()
-    main(cfg)
+    main()
+    # cfg = parse_args()
+    # main(cfg)

@@ -13,9 +13,9 @@ from matplotlib import pyplot as plt
 from numpy import asarray
 from PIL import Image
 
-from args import get_args, parse_pcgrl_args, prob_cond_metrics
-from envs import make_vec_envs
-from utils import (
+from control_pcgrl.rl.args import get_args, parse_pcgrl_args, prob_cond_metrics
+from control_pcgrl.rl.envs import make_vec_envs
+from control_pcgrl.rl.utils import (
     get_action,
     get_crop_size,
     get_map_width,
@@ -84,10 +84,10 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
 #       raise Exception(
 #           "Did not find ranked saved model of experiment: {}".format(exp_name)
 #       )
-    crop_size = infer_kwargs.get("crop_size")
+    crop_shape = infer_kwargs.get("crop_shape")
 
-    if crop_size == -1:
-        infer_kwargs["crop_size"] = get_crop_size(game)
+    # if crop_size == -1:
+    #     infer_kwargs["crop_size"] = get_crop_size(game)
     log_dir = os.path.join(EXPERIMENT_DIR, '{}_{}_log'.format(exp_name, exp_id))
     eval_dir = os.path.join(log_dir, 'eval')
     if not os.path.isdir(eval_dir):
@@ -448,8 +448,8 @@ def eval_episodes(
             image = env.render("rgb_array")
 
             if SC and i == max_steps - 1:
-                # FIXME lmao fucking stupid as all heck
-                im_path = os.path.join(log_dir, "{}_level.png".format(trg_dict))
+                # FIXME lmao fucking stupid as all heck (wait is this the right directory? No)
+                im_path = os.path.join(eval_dir, "{}_level.png".format(trg_dict))
                 image = env.win1.editMapView.buffer.write_to_png(
                     im_path
                 )

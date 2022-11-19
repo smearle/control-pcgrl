@@ -16,7 +16,7 @@ class StatsCallbacks(DefaultCallbacks):
     def __init__(self, cfg, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.metrics_callback = {}
-        self.holey = 'holey' in cfg.env_name
+        self.holey = 'holey' in cfg.problem
 
     def on_episode_start(
         self,

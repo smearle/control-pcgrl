@@ -1,5 +1,6 @@
 from functools import partial
 from pdb import set_trace as TT
+from typing import Iterable
 
 import gym
 from gym import spaces
@@ -370,7 +371,8 @@ class Cropped(TransformObs):
     The crop size can be larger than the actual view, it just pads the outside
     This wrapper only works on games with a position coordinate can be stacked
     """
-    def __init__(self, game, crop_size, pad_value, name, **kwargs):
+    def __init__(self, game, crop_shape: Iterable, pad_value: int, name: str, **kwargs):
+        crop_shape = np.array(crop_shape)
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -388,8 +390,8 @@ class Cropped(TransformObs):
             len(self.env.observation_space.spaces[name].shape) in [2, 3]
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
-        self.size = crop_size
-        self.pad = crop_size // 2
+        self.shape = crop_shape
+        self.pad = crop_shape // 2
         self.pad_value = pad_value
 
         self.observation_space = gym.spaces.Dict({})
@@ -398,7 +400,7 @@ class Cropped(TransformObs):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value, shape=tuple([crop_size for _ in self.get_map_dims()[:-1]]), dtype=np.uint8
+            low=0, high=high_value, shape=tuple(crop_shape), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -424,7 +426,9 @@ class Cropped(TransformObs):
         # padded = np.pad(map, self.pad, constant_values=self.pad_value)
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
         # cropped = padded[x : x + self.size, y : y + self.size]
-        cropped = padded[tuple([slice(i, i + self.size) for i in pos])]
+
+        # Compensate for the bottom-left padding.
+        cropped = padded[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
         obs[self.name] = cropped
 
         return obs
@@ -471,10 +475,10 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
     """
     The wrappers we use for narrow and turtle experiments
     """
-    def __init__(self, game, crop_size, n_aux_tiles, **kwargs):
+    def __init__(self, game, n_aux_tiles, crop_shape, **kwargs):
         static_prob = kwargs.get('static_prob')
-        obs_size = kwargs.get('observation_size')
-        crop_size = obs_size if obs_size is not None else crop_size
+        # obs_size = kwargs.get('observation_size')
+        # crop_size = obs_size if obs_size is not None else crop_size
         env = gym.make(game)
         env.adjust_param(**kwargs)
 
@@ -485,7 +489,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Cropping map, etc. to the correct crop_size
         for k in flat_indices:
             env = Cropped(
-                game=env, crop_size=crop_size, pad_value=env.get_border_tile(), name=k, 
+                game=env, crop_shape=crop_shape, pad_value=env.get_border_tile(), name=k, 
                 **kwargs,
             )
             

@@ -54,6 +54,7 @@ rl_runs/*
 rl_runs/*
 configs/evo/auto/settings_*.json
 configs/rl/auto/settings_*.json
+outputs/*
 evopcgrl*.out
 evalevopcgrl*.out
 

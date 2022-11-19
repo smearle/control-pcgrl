@@ -15,5 +15,6 @@ setup(name='control_pcgrl',
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
-      ]
+      ],
+      scripts=['bin/train_pcgrl'],
 )

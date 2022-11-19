@@ -22,8 +22,8 @@ class BinaryProblem(Problem):
     """
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._width = 16
-        self._height = 16
+        self._width = kwargs.get('map_width', 16)
+        self._height = kwargs.get('map_width', 16)
 
         # The probability of placing a tile of a given type when initializing a new (uniform) random map at the
         # beginning of a level-generation episode.

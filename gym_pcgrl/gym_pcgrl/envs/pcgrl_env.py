@@ -123,10 +123,11 @@ class PcgrlEnv(gym.Env):
     def get_observable_map_dims(self):
         return (self._prob._width, self._prob._height, self.get_num_observable_tiles())
 
-    def configure(self, map_width, **kwargs):  # , max_step=300):
-        self._prob._width = map_width
-        self._prob._height = map_width
-        self.width = map_width
+    def configure(self, map_shape, **kwargs):  # , max_step=300):
+        # What is this garbage??
+        self._prob._width = map_shape[0]
+        self._prob._height = map_shape[1]
+        self.width = map_shape[0]  #UGH 
 #       self._prob.max_step = max_step
 
 
