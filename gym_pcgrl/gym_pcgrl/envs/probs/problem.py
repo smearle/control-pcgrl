@@ -1,7 +1,9 @@
 from abc import ABC
 from pathlib import Path
 from pdb import set_trace as TT
+
 from gym.utils import seeding
+import numpy as np
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -168,6 +170,16 @@ class Problem(ABC):
     def get_observable_tile_types(self):
         return self.get_tile_types()
 
+    def init_grayscale_graphics(self):
+        render_path = True
+        tiles = self.get_tile_types()
+        self._graphics = {}
+        for i in range(len(tiles)):
+            color = i * 255 // len(tiles), i * 255 // len(tiles), i * 255 // len(tiles), 255
+            self._graphics[tiles[i]] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
+        if render_path:
+            self._graphics["path"] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
+
     """
     Get an image on how the map will look like for a specific map
 
@@ -179,14 +191,8 @@ class Problem(ABC):
         graphics or default grey scale colors
     """
     def render(self, map, render_path=None):
-        tiles = self.get_tile_types()
         if self._graphics == None:
-            self._graphics = {}
-            for i in range(len(tiles)):
-                color = (i*255/len(tiles),i*255/len(tiles),i*255/len(tiles),255)
-                self._graphics[tiles[i]] = Image.new("RGBA",(self._tile_size,self._tile_size),color)
-            if render_path:
-                self._graphics["path"] = Image.new("RGBA", (self._tile_size, self._tile_size), color)
+            self.init_grayscale_graphics()
 
         full_width = len(map[0])+2*self._border_size[0]
         full_height = len(map)+2*self._border_size[1]

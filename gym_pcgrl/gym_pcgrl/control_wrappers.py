@@ -7,6 +7,9 @@ from pdb import set_trace as TT
 from timeit import default_timer as timer
 from typing import Dict, OrderedDict
 
+import gi 
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 import gym
 import numpy as np
 
@@ -19,18 +22,16 @@ import ray
 # FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ControlWrapper(gym.Wrapper):
-    def __init__(self, env, ctrl_metrics=[], rand_params=False, **kwargs):
+    def __init__(self, env, ctrl_metrics=None, rand_params=False, **kwargs):
         self.win = None
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
-        self.conditional = kwargs.get("conditional")
+        self.controllable = ctrl_metrics is not None
         # We'll use these for calculating loss (for evaluation during inference) but not worry about oberving them
         # (we didn't necessarily train with all of them)
         ctrl_loss_metrics = kwargs.get("eval_controls")
         if not ctrl_loss_metrics:
             ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
-        if self.conditional:
-            assert ctrl_metrics
         else:
             if ctrl_metrics:
                 print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
@@ -77,11 +78,10 @@ class ControlWrapper(gym.Wrapper):
             self.metric_weights[k] = self.unwrapped._ctrl_reward_weights[k]
         #           self.max_improvement += improvement * self.unwrapped._reward_weights[k]
 
-        self.metric_trgs = {}
-        # we might be using a subset of possible conditional targets supplied by the problem
+        # We might be using a subset of possible conditional targets supplied by the problem
 
-        for k in self.ctrl_metrics:
-            self.metric_trgs[k] = self.unwrapped.static_trgs[k]
+        # for k in self.metrics:
+        self.metric_trgs = self.unwrapped.static_trgs
 
         # All metrics that we will consider for reward
         self.all_metrics = set()
@@ -113,7 +113,7 @@ class ControlWrapper(gym.Wrapper):
         self.action_space = self.env.action_space
 
         # TODO: generalize this for 3D environments.
-        if self.conditional:
+        if self.controllable:
             orig_obs_shape = self.observation_space.shape
             # TODO: adapt to (c, w, h) vs (w, h, c)
 
@@ -161,7 +161,7 @@ class ControlWrapper(gym.Wrapper):
             # else:
             #     raise Exception
 
-        self.next_trgs = None
+        # Does this need to be a queue? Do we ever queue up more than one set of targets?
         self._ctrl_trg_queue = []
 
         # if self.render_gui:  # and self.conditional:
@@ -176,6 +176,8 @@ class ControlWrapper(gym.Wrapper):
         screen_height = 100 * self.num_params
         from gym_pcgrl.gtk_gui import GtkGUI
 
+        if self.unwrapped._prob._graphics is None:
+            self.unwrapped._prob.init_graphics()
         win = GtkGUI(env=self, tile_types=self.unwrapped._prob.get_tile_types(), tile_images=self.unwrapped._prob._graphics, 
             metrics=self.metrics, metric_trgs=self.metric_trgs, metric_bounds=self.cond_bounds)
         # win.connect("destroy", Gtk.main_quit)
@@ -212,29 +214,19 @@ class ControlWrapper(gym.Wrapper):
         self._ctrl_trg_queue = ray.get(idx_counter.get.remote(hash(self)))
 
     def set_trgs(self, trgs):
-        self.next_trgs = trgs
+        self._ctrl_trg_queue = [trgs]
 
-    def do_set_trgs(self):
-        trgs = self.next_trgs
-        i = 0
-        self.init_metrics = copy.deepcopy(self.metrics)
-
-        for k, trg in trgs.items():
-            # Here we will allow setting targets that are not controlled for in training.
-            # These will not be observed, but will factor into reward.
-            #           if k in self.ctrl_metrics:
-            self.metric_trgs[k] = trg
-
+    def do_set_trgs(self, trgs):
+        self.metric_trgs.update(trgs)
         self.display_metric_trgs()
 
     def reset(self):
         if len(self._ctrl_trg_queue) > 0:
-            self.next_trgs, self._ctrl_trg_queue = self._ctrl_trg_queue[0], self._ctrl_trg_queue[1:]
-        if self.next_trgs:
-            self.do_set_trgs()
+            next_trgs = self._ctrl_trg_queue.pop(0)
+            self.do_set_trgs(next_trgs)
         ob = super().reset()
         self.metrics = self.unwrapped._rep_stats
-        if self.conditional:
+        if self.controllable:
             ob = self.observe_metric_trgs(ob)
         self.last_metrics = copy.deepcopy(self.metrics)
         if self.unwrapped._get_stats_on_step:
@@ -296,7 +288,7 @@ class ControlWrapper(gym.Wrapper):
 
         # Add target values of metrics of interest to the agent's obervation, so that it can learn to reproduce them 
         # while editing the level. 
-        if self.conditional:
+        if self.controllable:
             ob = self.observe_metric_trgs(ob)
 
         # Provide reward only at the last step
@@ -310,6 +302,7 @@ class ControlWrapper(gym.Wrapper):
         if not self.auto_reset:
             done = False
 
+        # print("step: ", self.n_step, " done: ", done, " reward: ", reward, " action: ", action, " metrics: ", self.metrics)
         return ob, reward, done, info
 
     def render(self, mode='human'):
@@ -365,9 +358,9 @@ class ControlWrapper(gym.Wrapper):
     def get_cond_bounds(self):
         return self.cond_bounds
 
-    def set_cond_bounds(self, bounds):
-        for k, (l, h) in bounds.items():
-            self.cond_bounds[k] = (l, h)
+    # def set_cond_bounds(self, bounds):
+    #     for k, (l, h) in bounds.items():
+    #         self.cond_bounds[k] = (l, h)
 
     def display_metric_trgs(self):
         if self.render_gui:
@@ -433,44 +426,8 @@ class ControlWrapper(gym.Wrapper):
 
         return loss
 
-    def get_static_loss(self):
-        loss = 0
-
-        for metric in self.static_metric_names:
-            # We already pop these from static_metrics during init
-            # if metric in self.ctrl_metrics:
-            #     continue
-            trg = self.static_trgs[metric]
-            val = self.metrics[metric]
-
-            if isinstance(trg, tuple):
-                loss_m = -abs(np.arange(*trg) - val).min()
-            else:
-                loss_m = -abs(trg - val)
-            loss_m = loss_m * self.metric_weights[metric]
-            loss += loss_m
-
-        return loss
-
     def get_reward(self):
         reward = 0
-        # for k in self.all_metrics:
-        #    if k in self.ctrl_metrics:
-        #        trg = self.cond_trgs[k]
-        #    elif k in self.static_trgs:
-        #        trg = self.static_trgs[k]
-        #    else:
-        #        raise Exception("Invalid metric")
-        #    if not isinstance(trg, tuple):
-        #        low = trg
-        #        high = trg
-        #    else:
-        #        low, high = trg
-        #    reward += get_range_reward(self.metrics[k], self.last_metrics[k], low, high) * self.unwrapped._prob._reward_weights[k]
-        #       print(self.metrics)
-        #       print(reward)
-        # return reward
-        #           reward = loss
 
         if not self.SC_RCT:
             loss = self.get_loss()
@@ -480,8 +437,6 @@ class ControlWrapper(gym.Wrapper):
 
         # max_loss is positive, loss is negative. Normalize reward between 0 and 1.
         # reward = (self.max_loss + loss) / (self.max_loss)
-
-        # return reward
 
         reward = loss - self.last_loss
         self.last_loss = loss
@@ -508,7 +463,7 @@ class ControlWrapper(gym.Wrapper):
     #     return done
 
     def close(self):
-        if self.render_gui and self.conditional:
+        if self.render_gui and self.controllable:
             self.win.destroy()
 
 # TODO: What by jove this actually doing and why does it kind of work?

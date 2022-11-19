@@ -3,10 +3,10 @@
 
 exp_id: [
     # testStaticBuilds,
-    testing,
-    # 0,
-    # 1,
-    # 2,
+    # testing_0,
+    0,
+    1,
+    2,
     # 3,
     # 10,
     # 11,
@@ -33,11 +33,12 @@ problem: [
 
 # lol this is dumb
 representation_model: [
-      ["narrow", SeqNCA],
+      # ["narrow", SeqNCA],
       # ["narrow", SeqNCA3D],
       # ["narrow", null],
 
       # ['turtle', SeqNCA],
+      ['turtle', null],
       # ["wide", null],
         # ["wide", NCA],
     #   ["wideholey", null],
@@ -48,7 +49,6 @@ representation_model: [
         # ["cellular", NCA],
         # [cellular, DenseNCA],
         # [cellular, Decoder],
-    #   ['turtle', null],
 ]
 
 model_cfg: [
@@ -162,10 +162,10 @@ static_prob: [
   # 0.01,
   # 0.001,
   # 0.0001,
-  # 0.00005,
-  # 0.00001,
-  0.000005,
-  # 0.000001,
+  0.00005,
+  0.00001,
+  # 0.000005,
+  0.000001,
   # 1e-7,
 ]
 
@@ -199,10 +199,10 @@ null,
 # Either single agent (None) or we specify a dict of multi-agent specific settings. (Can put these in separate yaml's 
 # later.)
 multiagent: [
-  null,
-  # {
-  #   n_agents: 2,
-  # },
+  # null,
+  {
+    n_agents: 2,
+  },
   # {
   #   n_agents: 3,
   # },

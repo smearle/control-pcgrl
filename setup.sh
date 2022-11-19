@@ -27,7 +27,7 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvi
 #################################
 
 # GUI libraries for rendering (and controlling) controllable agents.
-conda install -c conda-forge pygobject gtk3
+# conda install -c conda-forge pygobject gtk3
 
 # Installing minerl:
 # python -m pip install --upgrade minerl

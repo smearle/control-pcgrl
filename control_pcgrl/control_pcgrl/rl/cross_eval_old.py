@@ -8,10 +8,10 @@ from pdb import set_trace as TT
 
 import numpy as np
 from matplotlib import pyplot as plt
-import pandas as pd
 
-from rl.args import parse_args
-from rl.utils import get_exp_name, PROB_CONTROLS
+import pandas as pd
+from args import parse_args
+from utils import get_exp_name, PROB_CONTROLS
 from tex_formatting import newline, pandas_to_latex
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
@@ -20,20 +20,6 @@ from tex_formatting import newline, pandas_to_latex
 
 RUNS_DIR = os.path.join(Path(__file__).parent.parent, 'rl_runs')
 EVAL_DIR = os.path.join(Path(__file__).parent.parent, 'rl_eval')
-
-keys = [
-    "problem", 
-    "representation", 
-    "model",
-    "n_aux_tiles",
-    "max_board_scans",
-    "controls",
-    "lr",
-    "exp_id",
-    # "controls", 
-    # "alp_gmm", 
-    # "change_percentage"
-]
 
 local_controls = {
     "binary_ctrl": [
@@ -108,21 +94,21 @@ def bold_extreme_values(data, data_max=-1):
 def flatten_stats(stats, controllable=False):
     flat_stats = {}
 
-    # def add_key_val(key, val):
-#         if controllable and key != "% train archive full":
-# #           key = "(controls) " + key
-#             if key in header_text:
-#                 key = header_text[key]
-#             key = ', '.join([c for c in stats['controls'] if c is not None]) + '||' + key
+    def add_key_val(key, val):
+        if controllable and key != "% train archive full":
+#           key = "(controls) " + key
+            if key in header_text:
+                key = header_text[key]
+            key = ', '.join([c for c in stats['controls'] if c is not None]) + '||' + key
 
-        # if "%" in key:
-            # val *= 100
-        # elif "playability" in key:
-            # val /= 10
+        if "%" in key:
+            val *= 100
+        elif "playability" in key:
+            val /= 10
 
-        # if key in header_text:
-            # key = header_text[key]
-        # flat_stats[key] = val
+        if key in header_text:
+            key = header_text[key]
+        flat_stats[key] = val
 
     for k, v in stats.items():
         if isinstance(v, dict):
@@ -131,9 +117,9 @@ def flatten_stats(stats, controllable=False):
             for k1, v1 in v.items():
                 key = "{} ({})".format(key_0, k1)
                 value = v1
-                flat_stats[key] = value
+                add_key_val(key, value)
         else:
-            flat_stats[k] = v
+            add_key_val(k, v)
 
     return flat_stats
 
@@ -167,6 +153,13 @@ def compile_results(settings_list, no_plot=False):
     #   for k in settings_list[0].keys():
     #       if k not in ignored_keys:
     #           keys.append(k)
+    keys = [
+            "problem", 
+            "representation", 
+            "controls", 
+            "alp_gmm", 
+            "change_percentage"
+            ]
     columns = None
     data = []
     vals = []
@@ -176,33 +169,33 @@ def compile_results(settings_list, no_plot=False):
 
         controllable = False
         for k in keys:
-            val = settings[k]
+            v = settings[k]
             if k == 'controls':
-                if k != ['NONE', 'NONE']:
+                if k != ['NONE']:
                     controllable = True
             if isinstance(settings[k], list):
                 if len(settings[k]) < 2:
-                    val = ", ".join(settings[k])
+                    val_lst.append(", ".join(settings[k]))
                 else:
-                    val = newline(settings[k][0]+', ', val[1])
+                    val_lst.append(newline(settings[k][0]+', ', v[1]))
             elif k == 'alp_gmm':
                 if not controllable:
-                    val = ''
-                elif val:
-                    val = 'ALP-GMM'
+                    v = ''
+                elif v:
+                    v = 'ALP-GMM'
                 else:
-                    val = newline('uniform', 'random')
-            if isinstance(val, str):
-                val = val.replace('_', ' ')
-            val_lst.append(val)
+                    v = newline('uniform', 'random')
+                val_lst.append(v)
+            else:
+                val_lst.append(v)
         # args = parse_args(load_args=settings)
         # arg_dict = vars(args)
         # dict to namespace
         args = argparse.Namespace(**settings)
         arg_dict = vars(args)
         # FIXME: well this is stupid
-        exp_name = get_exp_name(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
         arg_dict["cond_metrics"] = arg_dict.pop("controls")
+        exp_name = get_exp_name(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
         exp_name = os.path.join(RUNS_DIR, exp_name)
@@ -251,21 +244,20 @@ def compile_results(settings_list, no_plot=False):
     # Rename headers
     new_keys = []
     # alp_gmm is always "False" for non-controllable agents. But we don't want to display them as having any control regime.
-    # controls_id = keys.index('controls')
-    # regime_id = keys.index('alp_gmm')
-    # for i, tpl in enumerate(tuples):
-    #     if tpl[controls_id] == 'NONE':
-    #         tpl = list(tpl)
-    #         tpl[regime_id] = '---'
-    #         tpl = tuple(tpl)
-    #         tuples[i] = tpl
+    controls_id = keys.index('controls')
+    regime_id = keys.index('alp_gmm')
+    for i, tpl in enumerate(tuples):
+        if tpl[controls_id] == 'NONE':
+            tpl = list(tpl)
+            tpl[regime_id] = '---'
+            tpl = tuple(tpl)
+            tuples[i] = tpl
 
     for k in keys:
         if k in header_text:
-            k = header_text[k]
-        k = k.replace("_", " ")
-        new_keys.append(k)
-    
+            new_keys.append(header_text[k])
+        else:
+            new_keys.append(k)
     for (i, lst) in enumerate(tuples):
         new_lst = []
         for v in lst:
@@ -279,14 +271,14 @@ def compile_results(settings_list, no_plot=False):
     #   df = index.sort_values().to_frame(index=True)
     # Hierarchical columns!
     col_tuples = []
-    # for col in columns:
-    #     if '||' not in col:
-    #         col_tuples.append(('fixed targets', '---', col))
-    #     else:
-    #         controls = col.split('||')[0]
-    #         col_tuples.append(('controlled targets', controls, col.split('||')[-1]))
+    for col in columns:
+        if '||' not in col:
+            col_tuples.append(('fixed targets', '---', col))
+        else:
+            controls = col.split('||')[0]
+            col_tuples.append(('controlled targets', controls, col.split('||')[-1]))
     # columns = pd.MultiIndex.from_tuples(col_tuples, names=['', newline('evaluated', 'controls'), ''])
-    # columns = pd.MultiIndex.from_tuples(col_tuples, names=['', 'evaluated controls', ''])
+    columns = pd.MultiIndex.from_tuples(col_tuples, names=['', 'evaluated controls', ''])
     df = pd.DataFrame(data=data, index=index, columns=columns)
 #   df = df.sort_values(by=new_keys, axis=0)
 #   new_keys = [tuple(t) for t in tuples]
@@ -298,83 +290,82 @@ def compile_results(settings_list, no_plot=False):
     df.to_html(html_name)
 #   print(df)
 
-    columns = [c.replace('_', ' ') for c in columns]
-    df_tex = pd.DataFrame(data=data, index=index, columns=columns)
     #   tex_name = r"{}/zelda_empty-path_cell_{}.tex".format(OVERLEAF_DIR, batch_exp_name)
 
     # TODO: dust off latex table-generation for new domains.
 
-    # for p in ["binary", "zelda", "sokoban", "minecraft_3D_maze"]:
+    for p in ["binary", "zelda", "sokoban", "minecraft_3D_maze"]:
 #   for p in ["binary", "zelda"]:
 #   for p in ["binary"]:
-    tex_name = os.path.join(EVAL_DIR, "cross_eval.tex")
-# #       print(p)
-#         p_name = p + '_ctrl'
-#         lcl_conds = ['---'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0] + ', ', pi[1]) for pi in local_controls[p_name]]
-# #       print(lcl_conds)
-# #       df_tex = df_tex.loc[lcl_conds]
-# #       df_tex = df_tex.sort_values(by=['ALP GMM'])
-#         z_cols_fixed = [
-#             header_text["net_score (mean)"],
-#             header_text["diversity_score (mean)"],
-#         ]
-#         z_cols_ctrl = [
-# #           col_keys["net_score (mean)"],
-#             header_text["ctrl_score (mean)"],
-# #           col_keys["(controls) fixed_score (mean)"],
-#             header_text["diversity_score (mean)"],
-#         ]
-#         n_col_heads = len(z_cols_fixed)
-#         z_cols = list(zip(['fixed targets'] * n_col_heads, ['---'] * n_col_heads, z_cols_fixed))
-#         for ctrl_set in PROB_CONTROLS[p + '_ctrl']:
-#             if 'sol-length' in ctrl_set:
-#                 ctrl_set[ctrl_set.index('sol-length')] = 'solution-length'
-#             n_col_heads = len(z_cols_ctrl)
-#             z_cols += list(zip(['controlled targets'] * n_col_heads, [', '.join(ctrl_set)] * n_col_heads, z_cols_ctrl))
-#         df_tex = df_tex[z_cols]
-#         #   df_tex = df.drop(columns=z_cols)
-# #       df_tex['fixed targets'] = df_tex['fixed targets'][z_cols[0:2]]
-# #       df_tex['controlled targets'] = df_tex['fixed targets'][z_cols[2:]]
-#         df_tex = df_tex * 100
-#         df_tex = df_tex.astype(float).round(0)
-#         dual_conds = ['---', lcl_conds[1]]
-#         for k in z_cols:
-#             print(k)
-#             if k in df_tex:
-#                 print(k)
-# #               df_tex.loc[dual_conds][k] = df_tex.loc[dual_conds][k].apply(
-# #                   lambda data: bold_extreme_values(data, data_max=df_tex.loc[dual_conds][k].max())
-# #               )
-#                 print(df_tex[k].max())
-#                 df_tex[k] = df_tex[k].apply(
-#                     lambda data: bold_extreme_values(data, data_max=df_tex[k].max())
-#                 )
-# #       df_tex = df_tex.round(2)
-# #       df_tex.reset_index(level=0, inplace=True)
-# #       print(df_tex)
+        tex_name = "{}/{}_{}.tex".format(EVAL_DIR, p, batch_exp_name)
+        try:
+            df_tex = df.loc[p, "narrow"]
+        except KeyError:
+            continue
+#       print(p)
+        p_name = p + '_ctrl'
+        lcl_conds = ['---'] + ['-'.join(pi) if len(pi) < 2 else newline(pi[0] + ', ', pi[1]) for pi in local_controls[p_name]]
+#       print(lcl_conds)
+#       df_tex = df_tex.loc[lcl_conds]
+#       df_tex = df_tex.sort_values(by=['ALP GMM'])
+        z_cols_fixed = [
+            header_text["net_score (mean)"],
+            header_text["diversity_score (mean)"],
+        ]
+        z_cols_ctrl = [
+#           col_keys["net_score (mean)"],
+            header_text["ctrl_score (mean)"],
+#           col_keys["(controls) fixed_score (mean)"],
+            header_text["diversity_score (mean)"],
+        ]
+        n_col_heads = len(z_cols_fixed)
+        z_cols = list(zip(['fixed targets'] * n_col_heads, ['---'] * n_col_heads, z_cols_fixed))
+        for ctrl_set in PROB_CONTROLS[p + '_ctrl']:
+            if 'sol-length' in ctrl_set:
+                ctrl_set[ctrl_set.index('sol-length')] = 'solution-length'
+            n_col_heads = len(z_cols_ctrl)
+            z_cols += list(zip(['controlled targets'] * n_col_heads, [', '.join(ctrl_set)] * n_col_heads, z_cols_ctrl))
+        df_tex = df_tex[z_cols]
+        #   df_tex = df.drop(columns=z_cols)
+#       df_tex['fixed targets'] = df_tex['fixed targets'][z_cols[0:2]]
+#       df_tex['controlled targets'] = df_tex['fixed targets'][z_cols[2:]]
+        df_tex = df_tex * 100
+        df_tex = df_tex.astype(float).round(0)
+        dual_conds = ['---', lcl_conds[1]]
+        for k in z_cols:
+            print(k)
+            if k in df_tex:
+                print(k)
+#               df_tex.loc[dual_conds][k] = df_tex.loc[dual_conds][k].apply(
+#                   lambda data: bold_extreme_values(data, data_max=df_tex.loc[dual_conds][k].max())
+#               )
+                print(df_tex[k].max())
+                df_tex[k] = df_tex[k].apply(
+                    lambda data: bold_extreme_values(data, data_max=df_tex[k].max())
+                )
+#       df_tex = df_tex.round(2)
+#       df_tex.reset_index(level=0, inplace=True)
+#       print(df_tex)
 
-# #       with open(tex_name, "w") as tex_f:
-# #           col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}"
-    pandas_to_latex(
-        df_tex,
+#       with open(tex_name, "w") as tex_f:
+#           col_widths = "p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.5cm}p{0.8cm}p{0.8cm}p{0.8cm}"
+        pandas_to_latex(
+            df_tex,
 #           df_tex.to_latex(
-        tex_name,
-        vertical_bars=True,
-        index=True,
-        bold_rows=True,
-        header=True,
-        columns=columns,
-        multirow=True,
-        multicolumn=True,
-        multicolumn_format='c|',
-        # column_format= 'r|' * len(index) + 'c|' * len(df_tex.columns),
-        escape=False,
-        # caption=("Performance of controllable {} level-generating agents with learning-progress-informed (ALP-GMM) and uniform-random control regimes, and baseline (single-objective) agents, with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
-        # label={"tbl:{}".format(p)},
-    )
-
-    tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
-    os.system(f"pdflatex {tables_tex_fname}")
+            tex_name,
+            vertical_bars=True,
+            index=True,
+            bold_rows=True,
+            header=True,
+            columns=z_cols,
+            multirow=True,
+            multicolumn=True,
+            multicolumn_format='c|',
+            # column_format= 'r|' * len(index) + 'c|' * len(df_tex.columns),
+            escape=False,
+            caption=("Performance of controllable {} level-generating agents with learning-progress-informed (ALP-GMM) and uniform-random control regimes, and baseline (single-objective) agents, with various change percentage allowances. Agents are tested both on a baseline task with metric targets fixed at their default values, and control tasks, in which controllable metric targets are sampled over a grid.".format(p)),
+            label={"tbl:{}".format(p)},
+        )
 
     #   # Remove duplicate row indices for readability in the csv
     #   df.reset_index(inplace=True)

@@ -34,20 +34,20 @@ from ray.tune.integration.wandb import (WandbLoggerCallback,
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.tune.registry import register_env
 
+from control_pcgrl.rl.args import parse_args
+from control_pcgrl.rl.callbacks import StatsCallbacks
+from control_pcgrl.rl.envs import make_env
+from control_pcgrl.rl.evaluate import evaluate
+from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
+                       CustomFeedForwardModel, CustomFeedForwardModel3D,
+                       Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
+                       WideModel3DSkip)
+from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 import gym_pcgrl
 from gym_pcgrl.envs.probs import PROBLEMS
 from gym_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from gym_pcgrl.task_assignment import set_map_fn
-from rl.args import parse_args
-from rl.callbacks import StatsCallbacks
-from rl.envs import make_env
-from rl.evaluate import evaluate
-from rl.models import (NCA, ConvDeconv2d,  # noqa : F401
-                       CustomFeedForwardModel, CustomFeedForwardModel3D,
-                       Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
-                       WideModel3DSkip)
-from rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 
 # import PolicySpec
 
@@ -55,7 +55,7 @@ from rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
 matplotlib.use('Agg')
 
 n_steps = 0
-PROJ_DIR = Path(__file__).parent.parent
+PROJ_DIR = Path(__file__).parent.parent.parent.parent  # Great great granddir
 best_mean_reward, n_steps = -np.inf, 0
 log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
 
@@ -198,6 +198,10 @@ class PPOTrainer(RlLibPPOTrainer):
 
 
 def main(cfg):
+    # HACK (breaks relative `from ` imports)
+    print(os.getcwd())
+    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
     cfg.ca_actions = False  # Not using NCA-type actions.
     cfg.logging = True  # Always log
 
@@ -229,20 +233,22 @@ def main(cfg):
 
     if not cfg.load:
 
+        # New experiment, or automatically load
         if not cfg.overwrite:
-            # New experiment
             if os.path.isdir(log_dir):
-                raise Exception(f"Log directory rl_runs/{exp_name_id} exists. Please delete it first (or use command "
-                "line argument `--load` to load experiment, or `--overwrite` to overwrite it).")
+                print(f"Log directory {log_dir} already exists. Will attempt to load.")
 
-            # Create the log directory if training from scratch.
-            os.mkdir(log_dir)
+            else:
+                os.makedirs(log_dir)
+                print(f"Created new log directory {log_dir}")
 
+        # Try to overwrite the saved directory.
         else:
             if not os.path.exists(log_dir):
-                print(f"Log directory rl_runs/{exp_name_id} does not exist. Will `overwrite` it anyway ;)")
-            # Overwrite the log directory.
-            shutil.rmtree(log_dir, ignore_errors=True)
+                print(f"Log directory rl_runs/{exp_name_id} does not exist. Will create new directory.")
+            else:
+                # Overwrite the log directory.
+                shutil.rmtree(log_dir, ignore_errors=True)
             os.makedirs(log_dir, exist_ok=True)
 
         # Save the experiment settings for future reference.
@@ -270,7 +276,7 @@ def main(cfg):
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
     dummy_cfg = copy.copy(vars(cfg))
-    dummy_cfg["render"] = False
+    # dummy_cfg["render"] = False
     dummy_cfg["evaluation_env"] = False
     dummy_env = make_env(dummy_cfg)
     check_env(dummy_env)
@@ -416,7 +422,7 @@ def main(cfg):
                 checkpoint_path = f.read()
         
             # HACK (should probably be logging relative paths in the first place?)
-            checkpoint_path = checkpoint_path.split('control-pcgrl/')[1]
+            checkpoint_path = checkpoint_path.split('control-pcgrl/')[-1]
         
             # HACK wtf (if u edit the checkpoint path some funkiness lol)
             if not os.path.exists(checkpoint_path):
@@ -485,7 +491,7 @@ def main(cfg):
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
         analysis = tune.run(
             "CustomPPO",
-            resume=cfg.load,
+            resume="AUTO" if cfg.load else False,
             config={
                 **trainer_config,
             },
