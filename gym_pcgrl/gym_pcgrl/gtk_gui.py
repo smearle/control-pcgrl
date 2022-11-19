@@ -85,24 +85,39 @@ class GtkGUI(Gtk.Window):
                 # hbox_t.pack_start(Gtk.Label(tile), False, False, 0)
                 vbox.pack_start(hbox_t, False, False, 0)
 
+        # HACK
+        self.trg_bars = {}
+
         prog_bars = {}
         scales = {}
         prog_labels = {}
-        for k in self.env.ctrl_metrics:
+        self.metric_ranges = {k: abs(metric_bounds[k][1] - metric_bounds[k][0]) for k in metrics}
+        for k in self.env.metrics:
+        # if False:
             metric = metrics[k]
             label = Gtk.Label()
             label.set_text(k)
             vbox.pack_start(label, True, True, 0)
             if metric is None:
                 metric = 0
-            ad = Gtk.Adjustment(metric, metric_bounds[k][0], metric_bounds[k][1],
-                                env.param_ranges[k] / 20, env.param_ranges[k] / 10, 0)
-            scale = Gtk.HScale(adjustment=ad)
-            scale.set_name(k)
-            scale.set_show_fill_level(True)
-            scales[k] = scale
-            vbox.pack_start(scale, True, True, 0)
-            scale.connect("value-changed", self.scale_moved)
+
+            # FIXME: Issues here. Can't find bullet svg, install `conda install -c conda-forge librsvg`, this message 
+            #  disappears, then left with segfault.
+            # ad = Gtk.Adjustment(metric, metric_bounds[k][0], metric_bounds[k][1],
+            #                     # env.param_ranges[k] / 20, env.param_ranges[k] / 10, 0)
+            #                     self.metric_ranges[k] / 20, self.metric_ranges[k] / 10, 0)
+            # scale = Gtk.HScale(adjustment=ad)
+            # scale.set_name(k)
+            # scale.set_show_fill_level(True)
+            # scales[k] = scale
+            # scale.connect("value-changed", self.scale_moved)
+            # vbox.pack_start(scale, True, True, 10)
+
+            #HACK: Just use another progress bar for not, smh (no user input!)
+            metric_trg = Gtk.ProgressBar()
+#           metric_prog.set_draw_value(True)
+            self.trg_bars[k] = metric_trg
+            vbox.pack_start(metric_trg, True, True, 10)
 
             prog_label = Gtk.Label()
             prog_label.set_text(str(metric))
@@ -218,13 +233,18 @@ class GtkGUI(Gtk.Window):
 
     def display_metric_trgs(self):
         for k, v in self.env.metric_trgs.items():
-            if k in self.env.ctrl_metrics:
-                self.scales[k].set_value(v)
+            self.trg_bars[k].set_fraction(v / self.metric_ranges[k])
+
+         #TODO:
+        # for k, v in self.env.metric_trgs.items():
+        #     if k in self.env.ctrl_metrics:
+        #         self.scales[k].set_value(v)
 
     def display_metrics(self):
         for k, prog_bar in self.prog_bars.items():
             metric_val = self.env.metrics[k]
-            prog_bar.set_fraction(metric_val / self.env.param_ranges[k])
+            prog_bar.set_fraction(metric_val / self.metric_ranges[k])
+            # prog_bar.set_fraction(metric_val / self.env.param_ranges[k])
             prog_label = self.prog_labels[k]
             prog_label.set_text(str(metric_val))
 

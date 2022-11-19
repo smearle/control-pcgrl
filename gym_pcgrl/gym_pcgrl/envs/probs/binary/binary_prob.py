@@ -209,6 +209,20 @@ class BinaryProblem(Problem):
             # "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
 
+    def init_graphics(self):
+        if self.GVGAI_SPRITES:
+            self._graphics = {
+                "empty": Image.open(os.path.dirname(__file__) + "/sprites/oryx/floor3.png").convert('RGBA'),
+                "solid": Image.open(os.path.dirname(__file__) + "/sprites/oryx/wall3.png").convert('RGBA'),
+                "path" : Image.open(os.path.dirname(__file__) + "/sprites/newset/snowmanchest.png").convert('RGBA'),
+            }
+        else:
+            self._graphics = {
+                "empty": Image.open(PROB_DIR + "/common/empty.png").convert('RGBA'),
+                "solid": Image.open(PROB_DIR + "/common/solid.png").convert('RGBA'),
+                "path" : Image.open(PROB_DIR + "/common/path_g.png").convert('RGBA'),
+            }
+
     """
     Get an image on how the map will look like for a specific map
 
@@ -220,17 +234,6 @@ class BinaryProblem(Problem):
     """
     def render(self, map):
         if self._graphics == None:
-            if self.GVGAI_SPRITES:
-                self._graphics = {
-                    "empty": Image.open(os.path.dirname(__file__) + "/sprites/oryx/floor3.png").convert('RGBA'),
-                    "solid": Image.open(os.path.dirname(__file__) + "/sprites/oryx/wall3.png").convert('RGBA'),
-                    "path" : Image.open(os.path.dirname(__file__) + "/sprites/newset/snowmanchest.png").convert('RGBA'),
-                }
-            else:
-                self._graphics = {
-                    "empty": Image.open(PROB_DIR + "/common/empty.png").convert('RGBA'),
-                    "solid": Image.open(PROB_DIR + "/common/solid.png").convert('RGBA'),
-                    "path" : Image.open(PROB_DIR + "/common/path_g.png").convert('RGBA'),
-                }
+            self.init_graphics()
         return super().render(map, render_path=self.path_coords)
         # spawn_2Dmaze(map, self._border_tile, self._border_size)
