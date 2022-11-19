@@ -19,11 +19,13 @@ pingouin
 psutil
 pyglet
 PyOpenGL
+pyscreenshot
 ribs
 seaborn
 scikit-image
 submitit
 tensorboard
+tensorboardX      # for having the tensorboard logging (rllib use this to write the logging!)
 torchinfo
 tqdm
 wandb       # after installing wandb, run `wandb login` to login to wandb
@@ -37,7 +39,7 @@ wandb       # after installing wandb, run `wandb login` to login to wandb
 ./submodules/pytorch-neat
 
 # ray[rllib]
-ray==2.0    # not older than 2.0 
+ray==2.1.0  
 
 
 

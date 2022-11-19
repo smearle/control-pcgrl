@@ -126,7 +126,13 @@ class PPOTrainer(RlLibPPOTrainer):
         log_result['info: learner:'] = result['info']['learner']
 
         # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-        result['fps'] = result['num_agent_steps_sampled_this_iter'] / result['time_this_iter_s']
+        # result['fps'] = result['num_agent_steps_sampled_this_iter'] / result['time_this_iter_s']
+
+        # bugfix for rllib 2.1.0
+        # print("###########################", result['num_env_steps_trained_this_iter'])
+        # should we change fps to this?  result['num_env_steps_trained_this_iter'] is always 4000
+        # but using more cpu does help to increase the fps now (n_cpu=1 -> 270+ fps, n_cpu=5 -> 390+ fps)
+        result['fps'] = result['num_env_steps_trained_this_iter'] / result['time_this_iter_s']
 
         # TODO: Send a heatmap to tb/wandb representing success reaching various control targets?
         if len(result['custom_metrics']) > 0:

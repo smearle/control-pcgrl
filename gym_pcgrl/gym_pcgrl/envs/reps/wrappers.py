@@ -354,7 +354,7 @@ class MultiActionRepresentation(RepresentationWrapper):
 
         old_state = self.unwrapped._map.copy()
 
-        # replace the map at self._pos with the action TODO: is there any better way to make it dimension independent? (sam: yes. Slices!)
+        # replace the map at self._pos with the action TODO: is there any better way to make it dimension independent? (sam: yes. Slices!) (copilot: yes, np.take_along_axis)(zehua:is this right?) (copilot:I think so)
         _pos = self.unwrapped._pos  # Why is _pos private again? (copilot: I don't know) Ok thanks copilot. (copilot: you're welcome)
 
         # Let's center the action patch around _pos. If the agent's observation is centered
@@ -364,6 +364,9 @@ class MultiActionRepresentation(RepresentationWrapper):
         bottom_right = _pos + self.inner_r_pads
 
         slices = [slice(top_left[i], bottom_right[i] + 1) for i in range(self.map_dim)]
+        # (zehua: yes use slices!)
+        # not tested: map[tuple(starmap(slice, zip(top_left, bottom_right)))] = action
+        # Or this(more similar to sam's code but single line): map[tuple(slice(*indexes) for indexes in zip(top_left, bottom_right))] = action
 
         ### Some checks for safety (could comment these out later). ###
         # Check that the action patch is within the map.
