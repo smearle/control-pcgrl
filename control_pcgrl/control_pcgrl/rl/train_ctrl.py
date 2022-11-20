@@ -117,8 +117,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
             os.makedirs(log_dir, exist_ok=True)
 
         # Save the experiment settings for future reference.
-        with open(os.path.join(log_dir, 'settings.json'), 'w', encoding='utf-8') as f:
-            json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
+        # with open(os.path.join(log_dir, 'settings.json'), 'w', encoding='utf-8') as f:
+        #     json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
 
     if not is_3D_env:
         if cfg.model is None:
@@ -344,7 +344,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
         analysis = tune.run(
             "CustomPPO",
-            resume="AUTO" if cfg.load else False,
+            resume="AUTO" if (cfg.load or not cfg.overwrite) else False,
             config={
                 **trainer_config,
             },

@@ -5,12 +5,12 @@ with open("README.md", "r") as fh:
 
 setup(name='control_pcgrl',
       version='0.4.0',
-      author="Sam Earle",
-      author_email="ahmed@akhalifa.com",
-      description="A package for \"Procedural Content Generation via Reinforcement Learning\" OpenAI Gym interface.",
+      author="NYU Game Innovation Lab",
+      author_email="sam.earle@nyu.edu",
+      description="A package for controllable \"Procedural Content Generation via Reinforcement Learning\" OpenAI Gym interface.",
       long_description=long_description,
       long_description_content_type="text/markdown",
-      url="https://github.com/amidos2006/gym-pcgrl",
+      url="https://github.com/smearle/gym-pcgrl",
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

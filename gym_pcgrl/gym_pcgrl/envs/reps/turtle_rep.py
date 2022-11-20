@@ -29,12 +29,17 @@ class TurtleRepresentation(EgocentricRepresentation):
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, dims, prob):
-        super().reset(dims, prob)
-        self._pos = [int(self._random.random() * i) for i in dims]
+        self._pos = self.get_pos_at_step(dims, -1)
+        return super().reset(dims, prob)
         # self._x = self._random.randint(width)
         # self._y = self._random.randint(height)
 #       self._x = 0
 #       self._y = 0
+
+    def get_pos_at_step(self, dims, n_step):
+        if n_step == -1:
+            self._pos = [int(self._random.random() * i) for i in dims]
+        return self._pos
 
     """
     Adjust the current used parameters
@@ -63,7 +68,6 @@ class TurtleRepresentation(EgocentricRepresentation):
     def get_action_space(self, dims, num_tiles):
         return spaces.Discrete(len(self._dirs) + num_tiles)
 
-        
     def update(self, action):
         action, self._pos = self.update_pos(action, self._pos)
         return action, self._pos

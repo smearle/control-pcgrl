@@ -126,3 +126,7 @@ class NarrowRepresentation(EgocentricRepresentation):
     #     lvl_image.paste(x_graphics, ((self._x+border_size[0])*tile_size, (self._y+border_size[1])*tile_size,
     #                                     (self._x+border_size[0]+1)*tile_size,(self._y+border_size[1]+1)*tile_size), x_graphics)
     #     return lvl_image
+
+
+    def get_pos_at_step(self, step):
+        return self._act_coords[step % len(self._act_coords)]

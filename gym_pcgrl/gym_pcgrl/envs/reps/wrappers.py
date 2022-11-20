@@ -388,7 +388,8 @@ class MultiActionRepresentation(RepresentationWrapper):
             if self.unwrapped.n_step == len(self._act_coords):
                 np.random.shuffle(self._act_coords)
 
-        self._set_pos(self.unwrapped._act_coords[self.n_step % len(self.unwrapped._act_coords)])
+        # self._set_pos(self.unwrapped._act_coords[self.n_step % len(self.unwrapped._act_coords)])
+        self._set_pos(self.get_pos_at_step(self.n_step))
         self.unwrapped.n_step += 1
 
         self.unwrapped._bordered_map[tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])] = self.unwrapped._map
@@ -418,6 +419,15 @@ class MultiActionRepresentation(RepresentationWrapper):
 
 
 class MultiAgentRepresentation(RepresentationWrapper):
+    agent_colors = [
+        (255, 255, 255, 255),
+        (0, 255, 0, 255),
+        (255, 0, 0, 255),
+        (0, 0, 255, 255),
+        (255, 255, 0, 255),
+        (255, 0, 255, 255),
+        (0, 255, 255, 255),
+    ]
     def __init__(self, rep, **kwargs):
         self.n_agents = kwargs['multiagent']['n_agents']
         super().__init__(rep, **kwargs)
@@ -440,17 +450,8 @@ class MultiAgentRepresentation(RepresentationWrapper):
         return change, self._positions
 
     def render(self, lvl_image, tile_size=16, border_size=None):
-        agent_colors = [
-            (255, 255, 255, 255),
-            (0, 255, 0, 255),
-            (255, 0, 0, 255),
-            (0, 0, 255, 255),
-            (255, 255, 0, 255),
-            (255, 0, 255, 255),
-            (0, 255, 255, 255),
-        ]
 
-        for (y, x), clr in zip(self._positions, agent_colors):
+        for (y, x), clr in zip(self._positions, self.agent_colors):
             im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
 
             im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
