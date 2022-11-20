@@ -29,8 +29,8 @@ class MultiagentConfig:
     n_agents: int = MISSING
 
 @dataclass
-class TwoAgentConfig(MultiagentConfig):
-    n_agents: int = 2
+class SharedPolicyConfig(MultiagentConfig):
+    n_agents: int = 1
 
 
 @dataclass
@@ -56,11 +56,12 @@ class RemoteHardwareConfig(HardwareConfig):
 
 @dataclass
 class ControlPCGRLConfig:
-    hardware: Any = MISSING
     defaults: List[Any] = field(default_factory=lambda: [
-        '_self_',
         {'hardware': 'remote'},
+        {'multiagent': 'shared_policy'},
+        '_self_',
     ])
+    hardware: Any = MISSING
 
     debug: bool = False
     render: bool = False
@@ -92,8 +93,7 @@ class ControlPCGRLConfig:
     # action_size: List[Any] = field(default_factory=lambda: 
     #     [3, 3]
     # )
-    multiagent: Optional[MultiagentConfig] = None
-    # multiagent: Optional[MultiagentConfig] = TwoAgentConfig()
+    multiagent: Optional[MultiagentConfig] = SharedPolicyConfig()
 
     # Gets set later :)
     log_dir: Optional[Path] = None
@@ -110,6 +110,6 @@ cs.store(name="pcgrl", node=ControlPCGRLConfig)
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)
 
-cs.store(name="two_agent", group="multiagent", node=TwoAgentConfig)
+cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
 cs.store(name="binary_control", group="controls", node=BinaryControlConfig)

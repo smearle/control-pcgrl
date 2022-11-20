@@ -47,6 +47,7 @@ runs/
 # Saved models
 *.zip
 
+# Custom logging
 evo_runs*/*
 !evo_runs/.gitkeep
 rl_runs/*
@@ -54,9 +55,12 @@ rl_runs/*
 rl_runs/*
 configs/evo/auto/settings_*.json
 configs/rl/auto/settings_*.json
-outputs/*
 evopcgrl*.out
 evalevopcgrl*.out
+
+# Hydra
+outputs/*
+multirun/*
 
 # Slurm logs
 *.out

@@ -34,4 +34,5 @@ conda install -c conda-forge pygobject gtk3
 
 
 # Installing hydra:
-python -m pip install hydra-core --upgrade
+python -m pip install --upgrade hydra-core
+python -m pip install --upgrade hydra-submitit-launcher

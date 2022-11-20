@@ -1,0 +1,5 @@
+defaults:
+  - pcgrl
+  - _self_
+  # - override hydra/launcher: submitit_local
+  - override hydra/launcher: submitit_slurm

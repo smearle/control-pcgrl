@@ -72,7 +72,7 @@ best_mean_reward, n_steps = -np.inf, 0
 
 
 
-@hydra.main(version_base=None, config_name='pcgrl')
+@hydra.main(version_base=None, config_path='conf', config_name='config')
 def main(cfg: ControlPCGRLConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())

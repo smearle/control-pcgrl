@@ -1,4 +1,22 @@
-These installation instructions are under construction. Please contribute!
+These installation instructions are under construction. Feel free to contribute.
+ 
+***NOTE: Currently porting RL experiment loop to hydra/submitit:***
+
+Config files and hyperparemeter sweeps can be found in `control_pcgrl/control_pcgrl/rl/conf`
+
+```
+train_pcgrl
+``` 
+will train an RL generator with the default settings given in `config.yaml`. (The main config class `ControlPCGRLConfig` can be found in `config.py`.)
+
+```
+train_pcgrl -m +experiment=learning_rates
+``` 
+will conduct a hyperparameter sweep over learning rates as defined in `learning_rates.yaml`
+
+This multirun will laumch on SLURM by default. This can be changed in `config.yaml` or by adding `+hydra.launcher=submitit_local` to the command line.
+
+***END NOTE!!!***
 
 First, clone this directory _and_ its submodules (necessary for only for evolving diverse generators):
 
