@@ -58,7 +58,7 @@ class Representation(ABC):
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, dims: tuple, prob: Problem, next_map: np.ndarray = None):
-        self._bordered_map = np.empty(tuple([i + 2 for i in dims[::-1]]), dtype=np.int)
+        self._bordered_map = np.empty(tuple([i + 2 for i in dims[::-1]]), dtype=int)
         self._bordered_map.fill(self._border_tile_index)
         if next_map is not None:
             self._map = next_map

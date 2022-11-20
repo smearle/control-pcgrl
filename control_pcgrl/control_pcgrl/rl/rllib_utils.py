@@ -77,8 +77,12 @@ class PPOTrainer(RlLibPPOTrainer):
         log_result = {k: v for k, v in result.items() if k in self.log_keys}
         log_result['info: learner:'] = result['info']['learner']
 
-        # FIXME: sometimes timesteps_this_iter is 0. Maybe a ray version problem? Weird.
-        result['fps'] = result['num_agent_steps_sampled'] / result['time_this_iter_s']
+        # Either doing multi-agent...
+        if 'num_agent_steps_sampled_this_iter' in result:
+            result['fps'] = result['num_agent_steps_trained_this_iter'] / result['time_this_iter_s']
+        # or single-agent.
+        else:
+            result['fps'] = result['num_env_steps_trained_this_iter'] / result['time_this_iter_s']
 
         # TODO: Send a heatmap to tb/wandb representing success reaching various control targets?
         if len(result['custom_metrics']) > 0:

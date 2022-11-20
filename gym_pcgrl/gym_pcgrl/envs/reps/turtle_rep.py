@@ -97,7 +97,8 @@ class TurtleRepresentation(EgocentricRepresentation):
                     else:
                         pos[i] = self._map.shape[i] - 1
         else:
-            change = [0,1][self._map[tuple(pos)] != action - len(self._dirs)]
+            change: bool = self._map[tuple(pos)] != action - len(self._dirs)
+            change: int = int(change)
             self._map[tuple(pos)] = action - len(self._dirs)
         super().update(action)
         return change, pos

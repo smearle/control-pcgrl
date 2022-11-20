@@ -344,7 +344,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
         analysis = tune.run(
             "CustomPPO",
-            resume="AUTO" if (cfg.load or not cfg.overwrite) else False,
+            resume="AUTO" if (cfg.load and not cfg.overwrite) else False,
             config={
                 **trainer_config,
             },

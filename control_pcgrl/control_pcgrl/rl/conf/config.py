@@ -1,7 +1,8 @@
 from hydra.core.config_store import ConfigStore
 from pathlib import Path
 from typing import Any, List, Optional
-from dataclasses import MISSING, dataclass, field
+from dataclasses import dataclass, field
+from omegaconf import MISSING
 
 
 @dataclass
@@ -52,15 +53,21 @@ class RemoteHardwareConfig(HardwareConfig):
 # Register hardware configs as group
 
 
+
 @dataclass
 class ControlPCGRLConfig:
+    hardware: Any = MISSING
+    defaults: List[Any] = field(default_factory=lambda: [
+        '_self_',
+        {'hardware': 'remote'},
+    ])
+
     debug: bool = False
     render: bool = False
     infer: bool = False
     evaluate: bool = False
     load: bool = True
     overwrite: bool = False
-    hardware: HardwareConfig = LocalHardwareConfig()
     wandb: bool = False
 
     exp_id: str = '0'
