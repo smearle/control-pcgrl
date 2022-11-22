@@ -711,17 +711,20 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
 
     # def reset(self):
     #     obs = super().reset()
-    #     return multi_obs
+    #     return obs
 
     def step(self, action, **kwargs):
         # print(f"Step:")
         # print(f"Action: {action}")
-        obs, rew, done, info = super().step(action, **kwargs)
-        # obs = self.unwrapped._rep.transform_obs(obs)
-        rew = {f'agent_{i}': rew for i in range(self.n_agents)}
-        done = {f'agent_{i}': done for i in range(self.n_agents)}
+        obs, rew, done, info = {}, {}, {}, {}
+        for k, v in action.items():
+            self.unwrapped._rep.set_active_agent(k)
+            obs_k, rew[k], done[k], info[k] = super().step(action={k: v}, **kwargs)
+            obs.update(obs_k)
+        # rew = {f'agent_{i}': rew for i in range(self.n_agents)}
+        # done = {f'agent_{i}': done for i in range(self.n_agents)}
         done['__all__'] = np.all(list(done.values()))
-        info = {f'agent_{i}': info for i in range(self.n_agents)}
+        # info = {f'agent_{i}': info for i in range(self.n_agents)}
 
         # for i in range(self.n_agents):
         #     act_i = action[f'agent_{i}']

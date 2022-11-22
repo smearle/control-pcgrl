@@ -430,9 +430,11 @@ class MultiAgentRepresentation(RepresentationWrapper):
     ]
     def __init__(self, rep, **kwargs):
         self.n_agents = kwargs['multiagent']['n_agents']
+        self._active_agent = None
         super().__init__(rep, **kwargs)
 
     def reset(self, dims, prob, **kwargs):
+        self._active_agent = None
         ret = super().reset(dims, prob, **kwargs)
 
         # FIXME: specific to turtle
@@ -442,7 +444,10 @@ class MultiAgentRepresentation(RepresentationWrapper):
         change = False
 
         # FIXME: mostly specific to turtle
-        for i, pos_0 in enumerate(self._positions):
+        # for i, pos_0 in enumerate(self._positions):
+        for k, v in action.items():
+            i = int(k.split('_')[-1])
+            pos_0 = self._positions[i]
             change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
             change = change or change_i
             self._positions[i] = pos
@@ -461,13 +466,26 @@ class MultiAgentRepresentation(RepresentationWrapper):
         return lvl_image
 
     def get_observation(self, *args, **kwargs):
+        # Note that this returns a dummy/meaningless position that never changes...
         base_obs = super().get_observation(*args, **kwargs)
+
+        agent_name = self._active_agent
         multiagent_obs = {}
-        for i in range(self.n_agents):
-            obs_i = base_obs.copy()
-            obs_i['pos'] = self._positions[i]
-            multiagent_obs[f'agent_{i}'] = obs_i
-        return multiagent_obs
+        if agent_name is None:
+            for i in range(self.n_agents):
+                obs_i = base_obs.copy()
+                obs_i['pos'] = self._positions[i]
+                multiagent_obs[f'agent_{i}'] = obs_i
+            return multiagent_obs
+        else:
+            multiagent_obs[agent_name] = base_obs
+            multiagent_obs[agent_name]['pos'] = self._positions[int(agent_name.split('_')[-1])]
+            return multiagent_obs
+            # base_obs['pos'] = self._positions[int(agent_name.split('_')[-1])]
+            # return base_obs
+
+    def set_active_agent(self, agent_name):
+        self._active_agent = agent_name
 
 def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
     """Should only happen once!"""

@@ -15,6 +15,7 @@ class ControlConfig:
     contrls: List[Any] = MISSING
     alp_gmm: bool = MISSING
 
+
 @dataclass
 class BinaryControlConfig(ControlConfig):
     controls: List[Any] = field(default_factory= lambda: [
@@ -28,9 +29,16 @@ class BinaryControlConfig(ControlConfig):
 class MultiagentConfig:
     n_agents: int = MISSING
 
+
+@dataclass
+class SinglePolicyConfig(MultiagentConfig):
+    """Use this to validate our multiagent implementation."""
+    n_agents: int = 1
+
+
 @dataclass
 class SharedPolicyConfig(MultiagentConfig):
-    n_agents: int = 1
+    n_agents: int = 2
 
 
 @dataclass
@@ -56,12 +64,15 @@ class RemoteHardwareConfig(HardwareConfig):
 
 @dataclass
 class ControlPCGRLConfig:
+    # Specify defaults for sub-configs so that we can override them on the command line. (Whereas we can override other
+    # settings as-is.)
     defaults: List[Any] = field(default_factory=lambda: [
         {'hardware': 'remote'},
         {'multiagent': 'shared_policy'},
         '_self_',
     ])
-    hardware: Any = MISSING
+    hardware: HardwareConfig = MISSING
+    multiagent: MultiagentConfig = MISSING
 
     debug: bool = False
     render: bool = False
@@ -93,7 +104,6 @@ class ControlPCGRLConfig:
     # action_size: List[Any] = field(default_factory=lambda: 
     #     [3, 3]
     # )
-    multiagent: Optional[MultiagentConfig] = SharedPolicyConfig()
 
     # Gets set later :)
     log_dir: Optional[Path] = None
@@ -110,6 +120,7 @@ cs.store(name="pcgrl", node=ControlPCGRLConfig)
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)
 
+cs.store(name="single_agent", group="multiagent", node=SinglePolicyConfig)
 cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
 cs.store(name="binary_control", group="controls", node=BinaryControlConfig)

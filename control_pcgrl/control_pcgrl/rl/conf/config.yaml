@@ -1,8 +1,8 @@
 defaults:
-  - pcgrl
+  - pcgrl  # This points to `ControlPCGRLConfig` class in `config.py`
   - _self_
-  # - override hydra/launcher: submitit_local
-  - override hydra/launcher: submitit_slurm
+  - override hydra/launcher: submitit_local
+  # - override hydra/launcher: submitit_slurm
 
 hydra:
   launcher:

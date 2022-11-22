@@ -1,0 +1,8 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      exp_id: 0, 1, 2
+      learning_rate: 5e-4, 1e-4, 5e-5, 1e-5, 5e-6, 1e-6
+      multiagent: single_agent, shared_policy
+
