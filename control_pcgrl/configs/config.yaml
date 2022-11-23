@@ -1,6 +1,8 @@
 defaults:
   - pcgrl  # This points to `ControlPCGRLConfig` class in `config.py`
   - _self_
+
+  # Why can't we override this on the command line?
   # - override hydra/launcher: submitit_local
   - override hydra/launcher: submitit_slurm
 
@@ -12,7 +14,10 @@ hydra:
 
   launcher:
     tasks_per_node: 1
+
+    #FIXME: Can't set this to 1 or 2 even when only asking from 1 ("0") worker from ray...
     cpus_per_task: 10
+
     gpus_per_node: 1
     timeout_min: 1440
     mem_gb: 30

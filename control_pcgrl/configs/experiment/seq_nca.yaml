@@ -1,0 +1,11 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      exp_id: 0
+      learning_rate: 1e-5
+      model: seqnca
+      model.conv_filters: 128, 256, 512
+      model.fc_size: 128, 256, 512
+      # multiagent.n_agents: 0, 2, 3, 4
+      multiagent.n_agents: 2

@@ -8,8 +8,16 @@ from typing import Dict
 
 @dataclass
 class ModelConfig:
-    pass
+    name: Optional[str] = None
+    conv_filters: Optional[int] = 64
+    fc_size: Optional[int] = 64
 
+
+@dataclass
+class SeqNCAConfig(ModelConfig):
+    name: str = "SeqNCA"
+    conv_filters: int = 64    
+    fc_size: int = 64
 
 @dataclass
 class ProblemConfig:
@@ -79,9 +87,6 @@ class RemoteHardwareConfig(HardwareConfig):
     n_gpu: int = 1
 
 
-# Register hardware configs as group
-
-
 
 @dataclass
 class ControlPCGRLConfig:
@@ -90,12 +95,15 @@ class ControlPCGRLConfig:
     defaults: List[Any] = field(default_factory=lambda: [
         {'problem': 'binary_path'},
         {'hardware': 'remote'},
+        # TODO: Picking the default should happen here, in the configs, instead of in the main code, perhaps.
+        {'model': 'default_model'},
         {'multiagent': 'single_agent'},
         '_self_',
     ])
 
     # If you specify defaults here there will be problems when you try to overwrite on CL.
     hardware: HardwareConfig = MISSING
+    model: ModelConfig = MISSING
     multiagent: MultiagentConfig = MISSING
     problem: ProblemConfig = MISSING
 
@@ -109,7 +117,6 @@ class ControlPCGRLConfig:
 
     exp_id: str = '0'
     representation: str = 'turtle'
-    model: Optional[ModelConfig] = None
     learning_rate: float = 5e-6
     gamma: float = 0.99
     map_shape: List[Any] = field(default_factory=lambda: 
@@ -149,3 +156,6 @@ cs.store(name="single_agent_dummy_multi", group="multiagent", node=SingleAgentDu
 cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
 cs.store(name="binary_path", group="problem", node=BinaryPathConfig)
+
+cs.store(name="default_model", group="model", node=ModelConfig)
+cs.store(name="seqnca", group="model", node=SeqNCAConfig)

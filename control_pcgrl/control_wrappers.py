@@ -430,7 +430,6 @@ class ControlWrapper(gym.Wrapper):
             loss_m = loss_m * self.metric_weights[metric]
             loss += loss_m
 
-        TT()
         return loss
 
     def get_reward(self):

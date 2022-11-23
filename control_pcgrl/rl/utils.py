@@ -224,8 +224,8 @@ def get_exp_name(cfg: ControlPCGRLConfig):
 
     exp_name += '/'
 
-    if cfg.model:
-        exp_name += cfg.model
+    if cfg.model.name is not None:
+        exp_name += cfg.model.name
 
     if cfg.controls is not None:
         exp_name += "_" + "-".join(["ctrl"] + cfg.controls)
@@ -245,9 +245,10 @@ def get_exp_name(cfg: ControlPCGRLConfig):
     if cfg.multiagent.n_agents != 0:
         exp_name += f"_{cfg.multiagent['n_agents']}-player"
 
-    if cfg.model is not None:
-        exp_name += f"_{cfg.model['conv_filters']}-convSz" if cfg.model['conv_filters'] != 64 else ""
-        exp_name += f"_{cfg.model['fc_size']}-fcSz" if cfg.model['fc_size'] != 64 and cfg.model != 'NCA' else ""
+    # TODO: Can have subdirectories for given settings of a given model type.
+    if cfg.model.name is not None:
+        exp_name += f"_{cfg.model.conv_filters}-convSz" if cfg.model.conv_filters != 64 else ""
+        exp_name += f"_{cfg.model.fc_size}-fcSz" if cfg.model.fc_size != 64 and cfg.model.name != 'NCA' else ""
 
     if cfg.n_aux_tiles > 0:
         exp_name += f"_{cfg.n_aux_tiles}-aux"

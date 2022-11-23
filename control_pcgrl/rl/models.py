@@ -119,15 +119,18 @@ class SeqNCA(TorchModelV2, nn.Module):
                  num_outputs,
                  model_config,
                  name,
-                 conv_filters=64,
-                 fc_size=64,
                 #  n_aux_chan=0,
                  ):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
+        
+        custom_model_config = model_config["custom_model_config"]
         # HACK: Because rllib silently squashes our multi-agent observation somewhere along the way??? :D
-        obs_space = model_config['custom_model_config']['dummy_env_obs_space']
+        obs_space = custom_model_config['dummy_env_obs_space']
+
+        conv_filters = custom_model_config['conv_filters']
+        fc_size = custom_model_config['fc_size']
 
         # self.n_aux_chan = n_aux_chan
         self.conv_filters = conv_filters
@@ -438,7 +441,7 @@ def init_weights(m):
 class NCA(TorchModelV2, nn.Module):
     """ A neural cellular automata-type NN to generate levels or wide-representation action distributions."""
 
-    def __init__(self, obs_space, action_space, num_outputs, model_config,name):
+    def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)

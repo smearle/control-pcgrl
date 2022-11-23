@@ -1,22 +1,20 @@
 from pdb import set_trace as TT
 import numpy as np
 from ray.rllib.algorithms.ppo import PPO as RlLibPPOTrainer
-from ray.tune import CLIReporter
 import torchinfo
 import torch as th
 
-class TrialProgressReporter(CLIReporter):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.num_timesteps = []
+# class TrialProgressReporter(CLIReporter):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.num_timesteps = []
 
-    def should_report(self, trials, done=False):
-        """Reports only on trial termination events."""
-        old_num_timesteps = self.num_timesteps
-        self.num_timesteps = [t.last_result['timesteps_total'] if 'timesteps_total' in t.last_result else 0 for t in trials]
-        # self.num_terminated = len([t for t in trials if t.status == Trial.TERMINATED])
-        done = np.any(self.num_timesteps > old_num_timesteps)
-        return done
+#     def should_report(self, trials, done=False):
+#         old_num_timesteps = self.num_timesteps
+#         self.num_timesteps = [t.last_result['timesteps_total'] if 'timesteps_total' in t.last_result else 0 for t in trials]
+#         # self.num_terminated = len([t for t in trials if t.status == Trial.TERMINATED])
+#         done = np.any(self.num_timesteps > old_num_timesteps)
+#         return done
 
 
 class PPOTrainer(RlLibPPOTrainer):

@@ -29,6 +29,7 @@ from ray.rllib.algorithms import ppo
 from ray.rllib.models import ModelCatalog
 from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.utils import check_env
+from ray.tune import CLIReporter
 from ray.tune.integration.wandb import (WandbLoggerCallback,
                                         WandbTrainableMixin, wandb_mixin)
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
@@ -43,7 +44,7 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
-from control_pcgrl.rl.rllib_utils import TrialProgressReporter, PPOTrainer
+from control_pcgrl.rl.rllib_utils import PPOTrainer
 from control_pcgrl.configs.config import ControlPCGRLConfig
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
@@ -51,9 +52,9 @@ from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
 
-# import PolicySpec
+# Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
+MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
 
-# Set most normal backend
 matplotlib.use('Agg')
 
 n_steps = 0
@@ -114,7 +115,6 @@ def main(cfg: ControlPCGRLConfig) -> None:
             # Overwrite the log directory.
             print(f"Overwriting log directory rl_runs/{exp_name_id}")
             shutil.rmtree(log_dir, ignore_errors=True)
-            TT()
         os.makedirs(log_dir, exist_ok=True)
 
     # Save the experiment settings for future reference.
@@ -122,18 +122,18 @@ def main(cfg: ControlPCGRLConfig) -> None:
     #     json.dump(cfg.__dict__, f, ensure_ascii=False, indent=4)
 
     if not is_3D_env:
-        if cfg.model is None:
+        if cfg.model.name is None:
             if cfg.representation == "wide":
                 model_cls = ConvDeconv2d
             else:
                 model_cls = CustomFeedForwardModel
         else:
-            model_cls = globals()[cfg.model]
+            model_cls = MODELS[cfg.model.name]
     else:
         if cfg.representation == "wide3D":
-            model_cls = globals()[cfg.model] if cfg.model else WideModel3D
+            model_cls = MODELS[cfg.model.name] if cfg.model else WideModel3D
         else:
-            model_cls = globals()[cfg.model] if cfg.model else CustomFeedForwardModel3D
+            model_cls = MODELS[cfg.model.name] if cfg.model else CustomFeedForwardModel3D
 
     ModelCatalog.register_custom_model("custom_model", model_cls)
 
@@ -176,7 +176,10 @@ def main(cfg: ControlPCGRLConfig) -> None:
     num_envs_per_worker = cfg.hardware.num_envs_per_worker if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
     eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
-    model_cfg = {} if cfg.model is None else cfg.model
+    model_cfg = {} if cfg.model.name is None else {**cfg.model}
+
+    # rllib will pass its own `name`
+    model_cfg.pop('name')
 
     if cfg.multiagent.n_agents != 0:
         multiagent_config = {
@@ -215,9 +218,9 @@ def main(cfg: ControlPCGRLConfig) -> None:
         'model': {
             'custom_model': 'custom_model',
             'custom_model_config': {
-                **model_cfg,
                 "dummy_env_obs_space": copy.copy(agent_obs_space),
-            }
+            **model_cfg,
+            },
         },
         "evaluation_interval" : 1 if cfg.evaluate else 1,
         "evaluation_duration": max(1, num_workers),
@@ -315,7 +318,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     tune.register_trainable("CustomPPO", PPOTrainer)
 
     # Limit the number of rows.
-    reporter = TrialProgressReporter(
+    reporter = CLIReporter(
         metric_columns={
             # "training_iteration": "itr",
             "timesteps_total": "timesteps",
