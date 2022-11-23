@@ -1,5 +1,0 @@
-#!/user/bin/env python
-
-from control_pcgrl.rl.train_ctrl import main
-
-main()

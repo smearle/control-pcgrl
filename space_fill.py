@@ -4,11 +4,11 @@ from time import sleep
 
 import gym
 from pyrsistent import s
-from gym_pcgrl.envs.helper import get_string_map
+from control_pcgrl.envs.helper import get_string_map
 import numpy as np
 from ray.util.multiprocessing import Pool
 
-import gym_pcgrl
+import control_pcgrl
 
 
 # TODO: Adapt this function to work around static builds where possible.
