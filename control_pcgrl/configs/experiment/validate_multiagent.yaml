@@ -1,0 +1,6 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      multiagent: single_agent, single_agent_dummy_multi
+

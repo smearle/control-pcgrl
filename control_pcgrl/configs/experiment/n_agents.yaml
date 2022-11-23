@@ -1,0 +1,9 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      # multiagent.n_agents: 1, 2, 3
+      multiagent.n_agents: 2, 3, 4
+
+multiagent: shared_policy
+
