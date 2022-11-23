@@ -7,9 +7,9 @@ from pdb import set_trace as TT
 from timeit import default_timer as timer
 from typing import Dict, OrderedDict
 
-import gi 
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk
+# import gi 
+# gi.require_version("Gtk", "3.0")
+# from gi.repository import Gtk
 import gym
 import numpy as np
 
