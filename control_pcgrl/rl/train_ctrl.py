@@ -176,7 +176,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     num_envs_per_worker = cfg.hardware.num_envs_per_worker if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
     eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
-    model_cfg = {} if cfg.model.name is None else {**cfg.model}
+    model_cfg = {**cfg.model}
 
     # rllib will pass its own `name`
     model_cfg.pop('name')
