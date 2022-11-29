@@ -97,14 +97,6 @@ def test_multiagent_turtle(basic_env_config, action_0, action_1):
             rep.rep._map
             )
 
-def validate_narrow_actions(actions, old_positions, new_positions, old_map, new_map):
-    def validate_action(action, old_pos, new_pos):
-        pass
-
-    for agent, old_pos, new_pos in zip(actions, old_positions, new_positions):
-        action = actions[agent]
-        validate_action(action, old_pos, new_pos)
-
 def test_multiagent_narrow(basic_env_config):
     # GIVEN
     env_config = basic_env_config
