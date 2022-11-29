@@ -355,6 +355,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
             # checkpoint_score_attr="episode_reward_mean",
             # TODO: makes timestep total input by user.(n_frame)
             stop={"timesteps_total": 1e10},
+            mode='max',
+            checkpoint_score_attr='episode_reward_mean',
             checkpoint_at_end=True,
             checkpoint_freq=10,
             keep_checkpoints_num=2,

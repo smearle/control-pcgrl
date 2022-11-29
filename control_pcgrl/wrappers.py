@@ -693,10 +693,27 @@ class RCTWrapper(gym.Wrapper):
 
 
 # TODO
+
+def disable_passive_env_checker(env):
+    # remove the passive environment checker wrapper from the env attribute of an env
+    # base case -> the environment is not a wrapper
+    if not hasattr(env, 'env'):
+        return env
+
+    root = env
+    prev = env 
+    while hasattr(prev, 'env'):
+        next_ = prev.env
+        if isinstance(next_, gym.wrappers.env_checker.PassiveEnvChecker):
+            prev.env = next_.env
+        prev = next_
+            
+    return root
+
 class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def __init__(self, game, **kwargs):
         multiagent_args = kwargs.get('multiagent')
-        self.env = game
+        self.env = disable_passive_env_checker(game) # DISABLE GYM PASSIVE ENVIRONMENT CHECKER
         gym.Wrapper.__init__(self, self.env)
         MultiAgentEnv.__init__(self.env)
         self.n_agents = multiagent_args.get('n_agents', 2)
@@ -717,22 +734,11 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
         # print(f"Step:")
         # print(f"Action: {action}")
         obs, rew, done, info = {}, {}, {}, {}
+
         for k, v in action.items():
             self.unwrapped._rep.set_active_agent(k)
             obs_k, rew[k], done[k], info[k] = super().step(action={k: v})
             obs.update(obs_k)
-        # rew = {f'agent_{i}': rew for i in range(self.n_agents)}
-        # done = {f'agent_{i}': done for i in range(self.n_agents)}
         done['__all__'] = np.all(list(done.values()))
-        # info = {f'agent_{i}': info for i in range(self.n_agents)}
-
-        # for i in range(self.n_agents):
-        #     act_i = action[f'agent_{i}']
-        #     print(act_i)
-        #     obs_i, rew_i, done_i, info_i = super().step(act_i, **kwargs)
-        #     obs.update({f'agent_{i}': obs_i})
-        #     rew.update({f'agent_{i}': rew_i})
-        #     done.update({f'agent_{i}': done_i})
-        #     info.update({f'agent_{i}': info_i})
 
         return obs, rew, done, info

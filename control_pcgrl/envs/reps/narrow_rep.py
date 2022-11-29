@@ -97,6 +97,9 @@ class NarrowRepresentation(EgocentricRepresentation):
         self.n_step += 1
         super().update(action)
         return change, self._pos
+    
+    def update_state(self, action):
+        return self.update(action)
 
     # """
     # Modify the level image with a red rectangle around the tile that is

@@ -3,15 +3,15 @@ defaults:
   - _self_
 
   # Why can't we override this on the command line?
-  # - override hydra/launcher: submitit_local
-  - override hydra/launcher: submitit_slurm
+  - override hydra/launcher: submitit_local
+  #- override hydra/launcher: submitit_slurm
 
 hydra:
-  sweeper:
-    params:
-      exp_id: 0, 1, 2
-      learning_rate: 5e-4, 1e-4, 5e-5, 1e-5, 5e-6, 1e-6
-
+#  sweeper:
+#    params:
+#      exp_id: 0, 1, 2
+#      learning_rate: 5e-4, 1e-4, 5e-5, 1e-5, 5e-6, 1e-6
+#
   launcher:
     tasks_per_node: 1
 
