@@ -1,4 +1,5 @@
 from abc import ABC
+from copy import deepcopy
 from collections import OrderedDict
 from inspect import isclass
 import logging
@@ -20,7 +21,6 @@ from control_pcgrl.envs.reps.ca_rep import CARepresentation
 from control_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from control_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
 from control_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
-from control_pcgrl.envs.reps.wide_rep import WideRepresentation
 
 
 # class RepresentationWrapper(Representation):
@@ -419,7 +419,7 @@ class MultiActionRepresentation(RepresentationWrapper):
         return super().render(lvl_image, tile_size, border_size)
 
 
-class MultiAgentWrapper(RepresentationWrapper):
+class MultiAgentRepresentation(RepresentationWrapper):
     agent_colors = [
         (255, 255, 255, 255),
         (0, 255, 0, 255),
@@ -431,14 +431,63 @@ class MultiAgentWrapper(RepresentationWrapper):
     ]
     def __init__(self, rep, **kwargs):
         self.n_agents = kwargs['multiagent']['n_agents']
+        # create a single representation for each agent
+        # all representations share maps
+        self._rep = rep
+        self.reps = {f'agent_{i}': deepcopy(rep) for i in range(self.n_agents)}
         self._active_agent = None
         super().__init__(rep, **kwargs)
-    
+
+    def get_rep_map(self):
+        return self.reps['agent_0']._map
+
     def reset(self, dims, prob, **kwargs):
+        self._active_agent = None
+        shared_map = None
+        for agent, r in self.reps.items():
+            r.reset(dims, prob, **kwargs)
+            if shared_map is None:
+                shared_map = r._map
+            else:
+                r._map = shared_map
+            # default to random initialization
+            import pdb; pdb.set_trace()
+            r._pos = [int(r._random.random() * i) for i in dims]
+
         super().reset(dims, prob, **kwargs)
-    
-    def update(self):
-        raise NotImplementedError("This must be overriden by a child class")
+        self.unwrapped._map = shared_map
+
+        # FIXME: specific to turtle
+        #self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
+
+    #def update(self, action):
+    #    change = False
+
+    #    # FIXME: mostly specific to turtle
+    #    # for i, pos_0 in enumerate(self._positions):
+    #    for k, v in action.items():
+    #        i = int(k.split('_')[-1])
+    #        pos_0 = self._positions[i]
+    #        change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
+    #        change = change or change_i
+    #        self._positions[i] = pos
+
+    #    return change, self._positions
+
+    def update(self, action):
+        change = False
+        for k, v in action.items():
+            change_i, new_pos = self.reps[k].update(v)
+            #i = int(k.split('_')[-1])
+            #self.rep._pos = self._positions[i]
+            #change_i, new_pos = self.rep.update(v)
+            change = change or change_i
+            self.reps[k]._pos = new_pos
+            for r in self.reps:
+                r._map = self.reps[k]._map
+            self._map = self.reps[k]._map
+            #self._positions[i] = new_pos
+        return change, self._positions
 
     def render(self, lvl_image, tile_size=16, border_size=None):
 
@@ -451,6 +500,9 @@ class MultiAgentWrapper(RepresentationWrapper):
                                             (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image
 
+    def get_positions(self):
+        return [r._pos for _, r in self.reps.items()]
+
     def get_observation(self, *args, **kwargs):
         # Note that this returns a dummy/meaningless position that never changes...
         base_obs = super().get_observation(*args, **kwargs)
@@ -458,72 +510,23 @@ class MultiAgentWrapper(RepresentationWrapper):
         agent_name = self._active_agent
         multiagent_obs = {}
         if agent_name is None:
-            for i in range(self.n_agents):
-                obs_i = base_obs.copy()
-                obs_i['pos'] = self._positions[i]
-                multiagent_obs[f'agent_{i}'] = obs_i
+            for agent, r in self.reps.items():
+                multiagent_obs[agent] = r.get_observation(*args, **kwargs)
+            #for i in range(self.n_agents):
+            #    obs_i = base_obs.copy()
+            #    obs_i['pos'] = self._positions[i]
+            #    multiagent_obs[f'agent_{i}'] = obs_i
             return multiagent_obs
         else:
-            multiagent_obs[agent_name] = base_obs
-            multiagent_obs[agent_name]['pos'] = self._positions[int(agent_name.split('_')[-1])]
+            multiagent_obs[agent_name] = self.reps[agent_name].get_observation(*args, **kwargs)
+            #multiagent_obs[agent_name] = base_obs
+            #multiagent_obs[agent_name]['pos'] = self._positions[int(agent_name.split('_')[-1])]
             return multiagent_obs
             # base_obs['pos'] = self._positions[int(agent_name.split('_')[-1])]
             # return base_obs
-    
+
     def set_active_agent(self, agent_name):
         self._active_agent = agent_name
-
-
-class MultiAgentTurtleRepresentation(MultiAgentWrapper):
-    def __init__(self, rep, **kwargs):
-        super().__init__(rep, **kwargs)
-
-    def reset(self, dims, prob, **kwargs):
-        super().reset(dims, prob, **kwargs)
-        self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
-
-    def update(self, action):
-        change = False
-
-        # FIXME: mostly specific to turtle
-        # for i, pos_0 in enumerate(self._positions):
-        for k, v in action.items():
-            i = int(k.split('_')[-1])
-            pos_0 = self._positions[i]
-            change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
-            change = change or change_i
-            self._positions[i] = pos
-
-        return change, self._positions
-
-    def get_positions(self):
-        return self._positions
-
-class MultiAgentNarrowRepresentation(MultiAgentWrapper):
-    
-    def __init__(self, rep, **kwargs):
-        super().__init__(rep, **kwargs)
-
-    def reset(self, dims, prob, **kwargs):
-        self.rep.reset(dims, prob, **kwargs)
-        self.coords = self.get_act_coords()
-        self._n_steps = {i: i for i in range(self.n_agents)}
-        self._positions = {i: self.coords[i] for i in range(self.n_agents)}
-
-    def update(self, action):
-        change = False
-        for agent, act in action.items():
-            i = int(agent.split('_')[-1])
-            self.rep.n_step = self._n_steps[i]
-            self.rep._pos = tuple(self.coords[self.n_step])
-            change_i, _ = self.rep.update(act)
-            self._n_steps[i] += 1
-            self._positions[i] = self.coords[self._n_steps[i]]
-            change = change or change_i
-        return change, self.get_positions()
-
-    def get_positions(self):
-        return self._positions
 
 def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
     """Should only happen once!"""
@@ -559,16 +562,9 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
             rep = HoleyRepresentation(rep, **kwargs)
 
     if kwargs.get("multiagent")['n_agents'] != 0:
-        if issubclass(type(rep), TurtleRepresentation):
-            rep = MultiAgentTurtleRepresentation(rep, **kwargs)
-        elif issubclass(type(rep), NarrowRepresentation):
-            rep = MultiAgentNarrowRepresentation(rep, **kwargs)
-            pass
-        elif issubclass(type(rep), WideRepresentation):
-            pass
-        else:
-            raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
-
+        #if not issubclass(type(rep), TurtleRepresentation):
+        #    raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
+        rep = MultiAgentRepresentation(rep, **kwargs)
 
     return rep
     

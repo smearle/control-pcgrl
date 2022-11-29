@@ -68,7 +68,7 @@ class TurtleRepresentation(EgocentricRepresentation):
     def get_action_space(self, dims, num_tiles):
         return spaces.Discrete(len(self._dirs) + num_tiles)
 
-    def update(self, action):
+    def update(self, action, pos=None):
         action, self._pos = self.update_pos(action, self._pos)
         return action, self._pos
 
