@@ -518,6 +518,8 @@ class MultiAgentNarrowRepresentation(MultiAgentWrapper):
             self.rep._pos = tuple(self.coords[self.n_step])
             change_i, _ = self.rep.update(act)
             self._n_steps[i] += 1
+            if self._n_steps[i] == len(self.coords):
+                self._n_steps = 0
             self._positions[i] = self.coords[self._n_steps[i]]
             change = change or change_i
         return change, self.get_positions()
