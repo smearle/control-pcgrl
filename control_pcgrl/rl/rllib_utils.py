@@ -36,8 +36,11 @@ class PPOTrainer(RlLibPPOTrainer):
         ret = super().setup(config)
         n_params = 0
         #agent_id = config['multiagent']
-        sample_agent_id = list(config['multiagent']['policies'].keys())[0]
-        #param_dict = self.get_weights()['default_policy']
+        multiagent = config.get('multiagent', None)
+        if multiagent is None:
+            sample_agent_id = 'default_policy'
+        else:
+            sample_agent_id = list(multiagent['policies'].keys())[0]
         param_dict = self.get_weights()[sample_agent_id]
 
         for v in param_dict.values():
