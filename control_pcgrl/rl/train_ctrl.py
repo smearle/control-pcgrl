@@ -94,7 +94,10 @@ def main(cfg: ControlPCGRLConfig) -> None:
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.exp_id}'
-    cfg.log_dir = log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
+    cfg.log_dir = log_dir = os.path.join(
+            PROJ_DIR,
+            f'{cfg.log_dir if cfg.log_dir is not None else "rl_runs"}/{exp_name_id}_log'
+        )
 
     if not cfg.load:
 
@@ -182,18 +185,49 @@ def main(cfg: ControlPCGRLConfig) -> None:
     model_cfg.pop('name')
 
     if cfg.multiagent.n_agents != 0:
-        multiagent_config = {
-            "policies": {
-                f"default_policy": PolicySpec(
+        multiagent_config = {}
+        if cfg.multiagent.policies == "shared":
+            multiagent_config['policies'] = {
+                'default_policy': PolicySpec(
                     policy_class=None,
                     observation_space=agent_obs_space,
                     action_space=agent_act_space,
-                    config=None,)
-            },
-            "policy_mapping_fn": lambda agent_id: "default_policy",
-            "count_steps_by": "agent_steps",
-        }
+                    cofig=None 
+                )
+            }
+            multiagent_config['policy_mapping_fn'] = lambda agent_id: 'default_policy'
+            multiagent_config['count_steps_by'] = 'agent_steps'
+        elif cfg.multiagent.policies == "independent":
+            multiagent_config['policies'] = {
+                f'agent_{i}': PolicySpec(
+                    policy_class=None,
+                    observation_space=agent_obs_space,
+                    action_space=agent_act_space,
+                    config={
+                        'custom_model': 'custom_model',
+                        'custom_model_config': {
+                            "dummy_env_obs_space": copy.copy(agent_obs_space),
+                            **model_cfg,
+                        }
+                    }
+                ) for i in range(cfg.multiagent.n_agents)
+            }
+            multiagent_config['policy_mapping_fn'] = lambda agent_id: agent_id
+            multiagent_config['count_steps_by'] = 'agent_steps'
+        # add case for shared weights
+        #multiagent_config = {
+        #    "policies": {
+        #        f"default_policy": PolicySpec(
+        #            policy_class=None,
+        #            observation_space=agent_obs_space,
+        #            action_space=agent_act_space,
+        #            config=None,)
+        #    },
+        #    "policy_mapping_fn": lambda agent_id: "default_policy",
+        #    "count_steps_by": "agent_steps",
+        #}
         multiagent_config = {"multiagent": multiagent_config}
+        
     else:
         multiagent_config = {}
 

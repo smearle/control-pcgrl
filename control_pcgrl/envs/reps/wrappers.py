@@ -527,6 +527,26 @@ class MultiAgentNarrowRepresentation(MultiAgentWrapper):
     def get_positions(self):
         return self._positions
 
+class MultiAgentWideRepresentation(MultiAgentWrapper):
+    
+    def __init__(self, rep, **kwargs):
+        super().__init__(rep, **kwargs)
+
+    def reset(self, dims, prob, **kwargs):
+        self.rep.reset(dims, prob, **kwargs)
+        # store the last known positions of the agents
+        self._positions = {i: i for i in range(self.n_agents)}
+
+    def update(self, actions):
+        change = False
+        positions = []
+        for agent, act in actions.items():
+            change_i, pos = self.rep.update(act)
+            positions.append(pos)
+            change = change or change_i
+        self._positions = positions
+        return change, self._positions
+
 def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
     """Should only happen once!"""
     if multi:
@@ -567,7 +587,7 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
             rep = MultiAgentNarrowRepresentation(rep, **kwargs)
             pass
         elif issubclass(type(rep), WideRepresentation):
-            pass
+            rep = MultiAgentWideRepresentation(rep, **kwargs)
         else:
             raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
 

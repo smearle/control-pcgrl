@@ -15,9 +15,9 @@ from control_pcgrl.rl.utils import IdxCounter
 
 
 LOAD_STATS = True
-CONTROL_DOORS = True
+CONTROL_DOORS = False
 CONTROLS = False
-GENERAL_EVAL = False
+GENERAL_EVAL = True
 
 
 def evaluate(trainer, env, cfg):

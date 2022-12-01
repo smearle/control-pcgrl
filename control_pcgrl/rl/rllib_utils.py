@@ -35,11 +35,14 @@ class PPOTrainer(RlLibPPOTrainer):
     def setup(self, config):
         ret = super().setup(config)
         n_params = 0
-        param_dict = self.get_weights()['default_policy']
+        #agent_id = config['multiagent']
+        sample_agent_id = list(config['multiagent']['policies'].keys())[0]
+        #param_dict = self.get_weights()['default_policy']
+        param_dict = self.get_weights()[sample_agent_id]
 
         for v in param_dict.values():
             n_params += np.prod(v.shape)
-        model = self.get_policy('default_policy').model
+        model = self.get_policy(sample_agent_id).model
         print(f'default_policy has {n_params} parameters.')
         print('Model overview(s):')
         print(model)
