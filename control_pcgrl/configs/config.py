@@ -52,7 +52,7 @@ class BinaryControlConfig(ProblemConfig):
 class MultiagentConfig:
     n_agents: int = MISSING
     # valid values: (shared, independent, JSON string)
-    policies: str = "shared"  # use shared weights by default
+    policies: str = "centralized"  # use shared weights by default
 
 
 @dataclass
