@@ -1,7 +1,9 @@
 import pytest
+from random import randint
 from copy import deepcopy
 from pathlib import Path
-from itertools import permutations
+from itertools import permutations, product
+import numpy as np
 from control_pcgrl import wrappers
 from control_pcgrl.rl.envs import make_env
 
@@ -97,7 +99,11 @@ def test_multiagent_turtle(basic_env_config, action_0, action_1):
             rep.rep._map
             )
 
-def test_multiagent_narrow(basic_env_config):
+@pytest.mark.parametrize(
+    'action_0,action_1',
+    permutations(list(range(2)), 2)
+)
+def test_multiagent_narrow(basic_env_config, action_0, action_1):
     # GIVEN
     env_config = basic_env_config
     env_config['representation'] = 'narrow'
@@ -108,7 +114,7 @@ def test_multiagent_narrow(basic_env_config):
     rep = env.unwrapped._rep
     init_map = deepcopy(rep.rep._map)
     init_positions = deepcopy(rep._positions)
-    actions = {'agent_0': 0, 'agent_1': 0}
+    actions = {'agent_0': action_0, 'agent_1': action_1}
     # WHEN
     rep.update(actions)
     new_map = rep.rep._map
@@ -122,3 +128,42 @@ def test_multiagent_narrow(basic_env_config):
     # check that map is updated correctly
     assert new_map[tuple(init_positions[0])] == actions['agent_0']
     assert new_map[tuple(init_positions[1])] == actions['agent_1']
+
+# INCOMPLETE TEST
+@pytest.mark.parametrize(
+    'position_x_0,position_y_0,action_0,position_x_1,position_y_1,action_1',
+     [[randint(0, 15), randint(0, 15), randint(0, 1), randint(0, 15), randint(0, 15), randint(0, 1)]]
+)
+def test_multiagent_wide(
+    basic_env_config,
+    position_x_0,
+    position_y_0,
+    action_0,
+    position_x_1,
+    position_y_1,
+    action_1
+    ):
+    # GIVEN
+    env_config = basic_env_config
+    env_config['representation'] = 'wide'
+    env_name = 'binary-wide-v0'
+    env = wrappers.ActionMapImagePCGRLWrapper(env_name, **env_config)
+    env = wrappers.MultiAgentWrapper(env, **env_config)
+    env.reset()
+    rep = env.unwrapped._rep
+    init_map = deepcopy(rep.rep._map)
+    init_positions = deepcopy(rep._positions)
+    actions = {
+        'agent_0': [position_y_0, position_x_0, action_0],
+        'agent_1': [position_y_1, position_x_1, action_1]
+        }
+
+    # WHEN
+    rep.update(actions)
+
+    # THEN check that map is changed correctly
+    new_map = rep.rep._map
+    assert new_map[position_y_0][position_x_0] == action_0
+    assert new_map[position_y_1][position_x_1] == action_1
+    # make sure that the map being modified is the same one that the pcgrl env uses
+    np.testing.assert_array_equal(new_map, rep.unwrapped._map)

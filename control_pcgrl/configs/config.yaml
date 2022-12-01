@@ -19,6 +19,6 @@ hydra:
     cpus_per_task: 10
 
     gpus_per_node: 1
-    timeout_min: 1440
+    timeout_min: 5760 # 4 days of training
     mem_gb: 30
     # Emails maybe?

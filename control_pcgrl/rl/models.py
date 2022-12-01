@@ -258,8 +258,8 @@ class ConvDeconv2d(TorchModelV2, nn.Module):
         x = self.fc_1(x)
         self._features = x
         x = x.reshape(*pre_fc_shape)
-        x = nn.functional.relu(self.deconv_1(x)) 
-        x = x + x1
+        x = nn.functional.relu(self.deconv_1(x))
+        x = x.repeat(1, 1, 2, 2) + x1
         x = nn.functional.relu(self.deconv_2(x))
         action_out = x.reshape(x.size(0), -1)
 
