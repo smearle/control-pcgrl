@@ -192,7 +192,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
                     policy_class=None,
                     observation_space=agent_obs_space,
                     action_space=agent_act_space,
-                    cofig=None 
+                    config=None 
                 )
             }
             multiagent_config['policy_mapping_fn'] = lambda agent_id: 'default_policy'
