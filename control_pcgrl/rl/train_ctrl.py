@@ -95,8 +95,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.exp_id}'
     cfg.log_dir = log_dir = os.path.join(
-            PROJ_DIR,
-            f'{cfg.log_dir if cfg.log_dir is not None else "rl_runs"}/{exp_name_id}_log'
+            f'{cfg.log_dir if cfg.log_dir is not None else "rl_runs"}',
+            f'{exp_name_id}_log'
         )
 
     if not cfg.load:
