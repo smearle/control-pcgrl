@@ -186,7 +186,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
 
     if cfg.multiagent.n_agents != 0:
         multiagent_config = {}
-        if cfg.multiagent.policies == "shared":
+        if cfg.multiagent.policies == "centralized":
             multiagent_config['policies'] = {
                 'default_policy': PolicySpec(
                     policy_class=None,
@@ -196,8 +196,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
                 )
             }
             multiagent_config['policy_mapping_fn'] = lambda agent_id: 'default_policy'
-            multiagent_config['count_steps_by'] = 'agent_steps'
-        elif cfg.multiagent.policies == "independent":
+        elif cfg.multiagent.policies == "decentralized":
             multiagent_config['policies'] = {
                 f'agent_{i}': PolicySpec(
                     policy_class=None,
@@ -213,19 +212,10 @@ def main(cfg: ControlPCGRLConfig) -> None:
                 ) for i in range(cfg.multiagent.n_agents)
             }
             multiagent_config['policy_mapping_fn'] = lambda agent_id: agent_id
-            multiagent_config['count_steps_by'] = 'agent_steps'
-        # add case for shared weights
-        #multiagent_config = {
-        #    "policies": {
-        #        f"default_policy": PolicySpec(
-        #            policy_class=None,
-        #            observation_space=agent_obs_space,
-        #            action_space=agent_act_space,
-        #            config=None,)
-        #    },
-        #    "policy_mapping_fn": lambda agent_id: "default_policy",
-        #    "count_steps_by": "agent_steps",
-        #}
+        else:
+            raise ValueError('Unrecognized policy type. Policy values can either be centralized or decentralized')
+
+        multiagent_config['count_steps_by'] = 'agent_steps'
         multiagent_config = {"multiagent": multiagent_config}
         
     else:
