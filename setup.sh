@@ -1,5 +1,6 @@
 python -m pip install -r requirements.txt
-python -m pip install -e gym_pcgrl
+python -m pip install -e .
+# python -m pip install -e gym_pcgrl
 
 # NOTE: only need this for evolving diverse generators, not RL.
 python -m pip install -e submodules/qdpy
@@ -34,5 +35,6 @@ conda install -c conda-forge pygobject gtk3
 
 
 # Installing hydra:
-python -m pip install --upgrade hydra-core
+python -m pip install --upgrade hydra-core                 
+# store hyperparam sweeps in separate files (in "experiments") will only work with hydra 1.2.0, but not 100% sure.
 python -m pip install --upgrade hydra-submitit-launcher
