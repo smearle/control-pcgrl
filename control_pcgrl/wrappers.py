@@ -1,4 +1,5 @@
 from functools import partial
+import json
 from pdb import set_trace as TT
 from typing import Iterable
 
@@ -108,7 +109,12 @@ class TransformObs(gym.Wrapper):
     """Lil' hack to transform nested observation dicts when dealing with multi-agent environments."""
     def __init__(self, *args, **kwargs):
         super().__init__(self.env)
-        if kwargs.get("multiagent")['n_agents'] != 0:
+        try:
+            n_agents = kwargs.get('multiagent')['n_agents']
+        except TypeError:
+            n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+        if n_agents != 0:
+            #if kwargs.get("multiagent")['n_agents'] != 0:
             self.transform = self._transform_multiagent
         else:
             self.transform = self._transform
@@ -391,7 +397,13 @@ class Cropped(TransformObs):
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
         self.shape = crop_shape
-        self.pad = crop_shape // 2
+        try:
+            self.pad = crop_shape // 2
+        except TypeError:
+            #import pdb; pdb.set_trace()
+            self.shape = np.array(json.loads(str(crop_shape)))
+            self.pad = self.shape // 2
+        #self.pad = crop_shape // 2
         self.pad_value = pad_value
 
         self.observation_space = gym.spaces.Dict({})
@@ -400,7 +412,7 @@ class Cropped(TransformObs):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value, shape=tuple(crop_shape), dtype=np.uint8
+            low=0, high=high_value, shape=tuple(self.shape), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -710,13 +722,33 @@ def disable_passive_env_checker(env):
             
     return root
 
+"""
+gym wrappers do not allow for consistent seeding
+add a seed method to each wrapper
+"""
+#def seedify(env):
+#    def seed(self, s):
+#        print(self)
+#        return self.env.seed(s)
+#    
+#    root = env
+#    curr = env
+#    while hasattr(curr, 'env'):
+#        type(curr).seed = seed
+#        curr = curr.env
+#    return root
+
+
 class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def __init__(self, game, **kwargs):
         multiagent_args = kwargs.get('multiagent')
         self.env = disable_passive_env_checker(game) # DISABLE GYM PASSIVE ENVIRONMENT CHECKER
         gym.Wrapper.__init__(self, self.env)
         MultiAgentEnv.__init__(self.env)
-        self.n_agents = multiagent_args.get('n_agents', 2)
+        try:
+            self.n_agents = multiagent_args.get('n_agents', 2)
+        except AttributeError:
+            self.n_agents = json.loads(multiagent_args.replace('\'', '\"'))['n_agents']
         self.observation_space = gym.spaces.Dict({})
         self.action_space = gym.spaces.Dict({})
         for i in range(self.n_agents):
@@ -729,6 +761,9 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def reset(self):
         obs = super().reset()
         return obs
+
+    def seed(self, s):
+        return self.unwrapped.seed(s)
 
     def step(self, action):
         # print(f"Step:")

@@ -3,6 +3,7 @@ from collections import OrderedDict
 from inspect import isclass
 import logging
 import math
+import json
 from pdb import set_trace as TT
 
 from gym import spaces
@@ -430,7 +431,12 @@ class MultiAgentWrapper(RepresentationWrapper):
         (0, 255, 255, 255),
     ]
     def __init__(self, rep, **kwargs):
-        self.n_agents = kwargs['multiagent']['n_agents']
+        try:
+            n_agents = kwargs.get('multiagent')['n_agents']
+        except TypeError:
+            n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+        #self.n_agents = kwargs['multiagent']['n_agents']
+        self.n_agents = n_agents
         self._active_agent = None
         super().__init__(rep, **kwargs)
     
@@ -579,8 +585,18 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
         
         else:
             rep = HoleyRepresentation(rep, **kwargs)
-
-    if kwargs.get("multiagent")['n_agents'] != 0:
+    
+    try:
+        n_agents = kwargs.get('multiagent')['n_agents']
+    except TypeError:
+        n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+    #if isinstance(kwargs.get('multiagent'), str):
+    #    kwargs['multiagent'] = json.loads(kwargs.get('multiagent').replace('\'', '\"'))
+    #    #import pdb; pdb.set_trace()
+    #if not isinstance(multiagent_config, int):
+    #    import pdb; pdb.set_trace()
+    if n_agents != 0:
+        #if kwargs.get("multiagent")['n_agents'] != 0:
         if issubclass(type(rep), TurtleRepresentation):
             rep = MultiAgentTurtleRepresentation(rep, **kwargs)
         elif issubclass(type(rep), NarrowRepresentation):
