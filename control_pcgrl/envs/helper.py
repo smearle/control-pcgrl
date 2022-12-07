@@ -2,6 +2,7 @@
 A helper module that can be used by all problems
 """
 import numpy as np
+from gym.utils import seeding
 from pdb import set_trace as TT
 
 """
@@ -486,7 +487,7 @@ Parameters:
 Returns:
     int[][]: the random generated map
 """
-def gen_random_map(random, dims, prob):
+def gen_random_map(random, dims, prob, seed=None):
 # def gen_random_map(random, width, height, prob):
     map = random.choice(list(prob.keys()),size=dims[::-1],p=list(prob.values())).astype(np.uint8)
     return map

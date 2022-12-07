@@ -1,4 +1,3 @@
-
 import copy
 import json
 import os
@@ -12,6 +11,7 @@ from pdb import set_trace as TT
 from typing import Dict
 
 import gym
+from tqdm import tqdm
 import hydra
 import matplotlib
 import numpy as np
@@ -159,7 +159,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
 
     ### DEBUG ###
     if cfg.debug:
-        for _ in range(100):
+        #import pdb; pdb.set_trace()
+        for _ in tqdm(range(100)):
             obs = dummy_env.reset()
             for i in range(500):
                 # if i > 3:

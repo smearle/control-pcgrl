@@ -71,7 +71,7 @@ class PPOTrainer(RlLibPPOTrainer):
 
     def save(self, *args, **kwargs):
         ckp_path = super().save(*args, **kwargs)
-        with open(self.checkpoint_path_file, 'w') as f:
+        with open(self.checkpoint_path_file, 'w+') as f:
             f.write(ckp_path)
         return ckp_path
 

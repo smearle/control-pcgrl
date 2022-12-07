@@ -3,6 +3,7 @@
 ################################################################################
 import collections
 import copy
+import json
 from pdb import set_trace as TT
 from timeit import default_timer as timer
 from typing import Dict, OrderedDict
@@ -46,7 +47,12 @@ class ControlWrapper(gym.Wrapper):
 
         metric_weights = copy.copy(self.unwrapped._reward_weights)
         self.metric_weights = {k: 0 for k in metric_weights}
-        self.metric_weights.update(kwargs['problem']['weights'])
+        try:
+            config_weights = kwargs['problem']['weights']
+        except TypeError:
+            config_weights = json.loads(kwargs['problem'].replace('\'', '\"'))['weights']
+
+        self.metric_weights.update(config_weights)
 
         #       cond_trgs = self.unwrapped.cond_trgs
 

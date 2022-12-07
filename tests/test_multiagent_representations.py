@@ -167,3 +167,10 @@ def test_multiagent_wide(
     assert new_map[position_y_1][position_x_1] == action_1
     # make sure that the map being modified is the same one that the pcgrl env uses
     np.testing.assert_array_equal(new_map, rep.unwrapped._map)
+
+
+def test_rep_seeding():
+    """
+    When creating a new environment, how can we seed it so that we get the same level map
+    """
+    pass
