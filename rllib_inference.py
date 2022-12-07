@@ -116,7 +116,7 @@ def rollout(env_config, trainer, policy_mapping_fn, seed=None):
     env = make_env(env_config)
     env.seed(seed)
     env.reset()
-    env.seed(10)
+    env.seed(seed)
     obs = env.reset()
     done = False
     acts, obss, rews, infos, frames = [], [], [], [], []
@@ -182,7 +182,7 @@ def evaluate(experiment_path):
     logdir = Path(experiment_path, f'eval_best_{uuid.uuid4()}')
     logdir.mkdir()
     for trial in tqdm(range(40)):
-        results = rollout(config['env_config'], trainer, config['multiagent']['policy_mapping_fn'])
+        results = rollout(config['env_config'], trainer, config['multiagent']['policy_mapping_fn'], seed=trial*100)
         trial_log_dir = Path(logdir, f'{trial}')
         trial_log_dir.mkdir()
         save_metrics(results, trial_log_dir)
