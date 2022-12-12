@@ -190,21 +190,12 @@ class ToImage(TransformObs):
         final = np.empty([])
 
         for n in self.names:
-#           if len(self.env.observation_space.spaces[n].shape) == 3:
             if len(final.shape) == 0:
                 final = obs[n].reshape(*self.shape[:-1], -1)
             else:
                 final = np.append(
                     final, obs[n].reshape(*self.shape[:-1], -1), axis=-1
                 )
-#           else:
-#               if len(final.shape) == 0:
-#                   final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
-#               else:
-#                   final = np.append(
-#                       final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2
-#                   )
-
         return final
 
 class ToImageCA(ToImage):
@@ -260,12 +251,16 @@ class OneHotEncoding(TransformObs):
             + 1
         )
 
-        for v in shape:
-            new_shape.append(v)
-        new_shape.append(self.dim)
+        new_shape.extend(shape)
+        if len(new_shape) > 2:
+            new_shape[-1] += self.dim - 1
+        else:
+            new_shape.append(self.dim)
+        #import pdb; pdb.set_trace()
         self.observation_space.spaces[self.name] = gym.spaces.Box(
             low=0, high=1, shape=new_shape, dtype=np.uint8
         )
+        self.show_agents = kwargs.get('show_agents', False)
 
     def step(self, action, **kwargs):
         # action = get_action(action)
@@ -281,14 +276,21 @@ class OneHotEncoding(TransformObs):
         return obs
 
     def _transform(self, obs):
-        old = obs[self.name]
+        named_obs = obs[self.name]
+        if self.show_agents: # if agent positions are a part of the observation, then the map observation will already have an extra dimension
+            old = named_obs[:, :, 0]
+        else:
+            old = named_obs
+
         if self.padded:
             # Replace out-of-bounds values with all-zeros.
             new = np.eye(self.dim + 1)[old]
             new = new[..., 1:]
-
         else:
             new = np.eye(self.dim)[old]
+
+        # add the agent positions back into the observation
+        new = np.concatenate((new, named_obs[:, :, -1][:, :, None]), axis=-1)
 
         obs[self.name] = new
 
@@ -396,13 +398,17 @@ class Cropped(TransformObs):
             len(self.env.observation_space.spaces[name].shape) in [2, 3]
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
-        self.shape = crop_shape
+        self.shape = list(crop_shape)
+        self.show_agents = kwargs.get('show_agents', False)
         try:
             self.pad = crop_shape // 2
         except TypeError:
             #import pdb; pdb.set_trace()
-            self.shape = np.array(json.loads(str(crop_shape)))
+            self.shape = json.loads(str(crop_shape))
             self.pad = self.shape // 2
+        if self.show_agents:
+            self.shape.append(2) # add extra two channels for the positions
+        self.shape = np.array(self.shape)
         #self.pad = crop_shape // 2
         self.pad_value = pad_value
 
@@ -434,13 +440,30 @@ class Cropped(TransformObs):
         # x, y = obs["pos"]
         pos = obs['pos']
 
-        # View Centering
-        # padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        # View Padding
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
-        # cropped = padded[x : x + self.size, y : y + self.size]
 
         # Compensate for the bottom-left padding.
+        # View Centering
         cropped = padded[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+
+        # if show positions is turned on: add an extra channel that shows agent positions
+        # NOTE: Wide representaion cannot use this, since positions are not stored in representation
+        if self.show_agents:
+            #import pdb; pdb.set_trace()
+            #map_expanded = map[:, :, None]
+            agent_positions = self.unwrapped.get_agent_position()
+            agent_positions_map = np.zeros(map.shape)
+            agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
+            # view padding
+            padded_positions = np.pad(agent_positions_map, self.pad, constant_values=0)
+
+            # view centering
+            cropped_positions = padded_positions[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+
+            cropped = np.concatenate((cropped[:, :, None], cropped_positions[:, :, None]), axis=-1).astype(np.uint8)
+
+        #import pdb; pdb.set_trace()
         obs[self.name] = cropped
 
         return obs
@@ -777,3 +800,36 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
         done['__all__'] = np.all(list(done.values()))
 
         return obs, rew, done, info
+
+
+class GroupedEnvironmentWrapper(MultiAgentEnv):
+    def __init__(self, env, **kwargs):
+        #import pdb; pdb.set_trace()
+        MultiAgentEnv.__init__(self)
+        #gym.Wrapper.__init__(self, env.env)
+        self.env = env
+        self.groups = self.env.groups
+        self.agent_id_to_group = self.env.agent_id_to_group
+        self._unwrapped = self.env.env.unwrapped
+        #self.thing = 5
+        #super().__init__(env) # inherit the attributes of the base environment
+        #self.env = env
+        self.observation_space = self.env.observation_space
+        self.action_space = self.env.action_space
+        self.ctrl_metrics = self.env.env.ctrl_metrics
+        self.metrics = self.env.env.metrics
+
+    def reset(self):
+        return self.env.reset()
+
+    def step(self, actions):
+        return self.env.step(actions)
+
+    def _ungroup_items(self, items):
+        return self.env._ungroup_items(items)
+    
+    def _group_items(self, items):
+        return self.env._group_items(items)
+
+
+

@@ -26,7 +26,7 @@ def load_config(experiment_path):
         config['multiagent']['policy_mapping_fn'] = lambda agent_id: agent_id
 
     config['evaluation_env'] = True
-    config['explore'] = True # turn off exploration for evaluation
+    config['explore'] = False # turn off exploration for evaluation
     config['env_config']['multiagent'] = json.loads(config['env_config']['multiagent'].replace("\'", "\""))
     config['env_config']['crop_shape'] = json.loads(config['env_config']['crop_shape'])
     config['env_config']['problem'] = json.loads(config['env_config']['problem'].replace("\'", "\""))

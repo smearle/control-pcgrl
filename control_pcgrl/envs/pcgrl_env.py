@@ -11,7 +11,7 @@ from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 from ray.rllib.env.env_context import EnvContext
 from ray.rllib.utils.annotations import override
 
-from control_pcgrl.envs.reps.wrappers import wrap_rep 
+from control_pcgrl.envs.reps.wrappers import wrap_rep, MultiAgentWrapper
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.problem import Problem, Problem3D
 from control_pcgrl.envs.reps import REPRESENTATIONS
@@ -203,7 +203,11 @@ class PcgrlEnv(gym.Env):
         self._prob._prob = probs
         self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
-        observation = self._rep.get_observation()
+        if issubclass(type(self._rep), MultiAgentWrapper):
+            observation = self._rep.get_observation(all_agents=True)
+        else:
+            observation = self._rep.get_observation() # all_agents parameter does not exist for representations without MultiAgentWrapper
+
         # observation["heatmap"] = self._heatmap.copy()
 
         return observation
@@ -275,6 +279,8 @@ class PcgrlEnv(gym.Env):
         # self.observation_space.spaces['heatmap'] = spaces.Box(
         #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
+    def get_agent_position(self):
+        return self._rep._positions
 
     """
     Advance the environment using a specific action

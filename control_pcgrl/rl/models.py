@@ -31,6 +31,7 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
 
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
         obs_shape = obs_space.shape
+        self.img_shape = obs_shape
         obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
         self.fc_size = fc_size
 
@@ -52,6 +53,11 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
         return th.reshape(self.value_branch(self._features), [-1])
 
     def forward(self, input_dict, state, seq_lens):
+        #raise ValueError(input_dict['obs'].shape)
+        input_dict['obs'] = input_dict['obs'].reshape(
+            input_dict['obs'].size(0),
+            *self.img_shape
+        )
         input = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = nn.functional.relu(self.conv_1(input.float()))
         x = nn.functional.relu(self.conv_2(x))

@@ -457,13 +457,13 @@ class MultiAgentWrapper(RepresentationWrapper):
                                             (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image
 
-    def get_observation(self, *args, **kwargs):
+    def get_observation(self, *args, all_agents=False, **kwargs):
         # Note that this returns a dummy/meaningless position that never changes...
         base_obs = super().get_observation(*args, **kwargs)
 
         agent_name = self._active_agent
         multiagent_obs = {}
-        if agent_name is None:
+        if agent_name is None or all_agents:
             for i in range(self.n_agents):
                 obs_i = base_obs.copy()
                 obs_i['pos'] = self._positions[i]
@@ -514,7 +514,8 @@ class MultiAgentNarrowRepresentation(MultiAgentWrapper):
         self.rep.reset(dims, prob, **kwargs)
         self.coords = self.get_act_coords()
         self._n_steps = {i: i for i in range(self.n_agents)}
-        self._positions = {i: self.coords[i] for i in range(self.n_agents)}
+        self._positions = np.array([self.coords[i] for i in range(self.n_agents)])
+        #self._positions = {i: self.coords[i] for i in range(self.n_agents)}
 
     def update(self, action):
         change = False
