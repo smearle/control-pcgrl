@@ -29,7 +29,7 @@ def basic_env_config():
         'change_percentage': None,
         'static_prob': None,
         'action_size': None,
-        'log_dir': Path('./')
+        'log_dir': Path('./'),
     }
 
 
@@ -169,8 +169,37 @@ def test_multiagent_wide(
     np.testing.assert_array_equal(new_map, rep.unwrapped._map)
 
 
-def test_rep_seeding():
-    """
-    When creating a new environment, how can we seed it so that we get the same level map
-    """
+def print_agent_positions(agent):
+    print()
+    pass
+
+def test_multiagent_position_sharing(basic_env_config):
+    # GIVEN
+    env_config = basic_env_config
+    env_config['env_name'] = 'binary-narrow-v0'
+    env_config['show_agents'] = True
+    env_config['evaluate'] = False
+
+    env = make_env(env_config)
+    
+    # WHEN
+    obs = env.reset()
+    print(obs['agent_0'].shape)
+    actions = {'agent_0': 0, 'agent_1': 0}
+    
+    newobs, _, _, _ = env.step(actions)
+    agent_positions = np.where(newobs['agent_0'][:, :, -1]==1)
+    print(agent_positions)
+    agent_positions = np.where(newobs['agent_1'][:, :, -1]==1)
+    print(agent_positions)
+    newobs, _, _, _ = env.step(actions)
+    agent_positions = np.where(newobs['agent_0'][:, :, -1]==1)
+    print(agent_positions)
+    agent_positions = np.where(newobs['agent_1'][:, :, -1]==1)
+    print(agent_positions)
+    print(env.unwrapped._rep._positions)
+    import pdb; pdb.set_trace()
+
+
+    # THEN
     pass

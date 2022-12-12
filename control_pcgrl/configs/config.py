@@ -109,6 +109,7 @@ class ControlPCGRLConfig:
     multiagent: MultiagentConfig = MISSING
     problem: ProblemConfig = MISSING
 
+    algorithm: str = 'PPO'
     debug: bool = False
     render: bool = False
     infer: bool = False
@@ -119,6 +120,7 @@ class ControlPCGRLConfig:
 
     exp_id: str = '0'
     representation: str = 'turtle'
+    show_agents: bool = True
     learning_rate: float = 5e-6
     gamma: float = 0.99
     map_shape: List[Any] = field(default_factory=lambda: 

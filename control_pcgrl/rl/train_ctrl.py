@@ -43,8 +43,8 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        CustomFeedForwardModel, CustomFeedForwardModel3D,
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
-from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
-from control_pcgrl.rl.rllib_utils import PPOTrainer
+from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width, TrainerConfigParsers
+from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
 from control_pcgrl.configs.config import ControlPCGRLConfig
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
@@ -96,6 +96,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     exp_name_id = f'{exp_name}_{cfg.exp_id}'
     cfg.log_dir = log_dir = os.path.join(
             f'{cfg.log_dir if cfg.log_dir is not None else "rl_runs"}',
+            cfg.algorithm,
             f'{exp_name_id}_log'
         )
 
@@ -223,76 +224,20 @@ def main(cfg: ControlPCGRLConfig) -> None:
         multiagent_config = {}
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
-    trainer_config = {
-        'env': 'pcgrl',
-        **multiagent_config,
-        'framework': 'torch',
-        'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
-        'num_gpus': cfg.hardware.n_gpu,
-        'env_config': {
-            **cfg,  # Maybe env should get its own config? (A subset of the original?)
-            "evaluation_env": False,
-        },
-        # 'env_config': {
-            # 'change_percentage': cfg.change_percentage,
-        # },
-        'num_envs_per_worker': num_envs_per_worker,
-        'render_env': cfg.render,
-        'lr': cfg.learning_rate,
-        'gamma': cfg.gamma,
-        'model': {
-            'custom_model': 'custom_model',
-            'custom_model_config': {
-                "dummy_env_obs_space": copy.copy(agent_obs_space),
-            **model_cfg,
-            },
-        },
-        "evaluation_interval" : 1 if cfg.evaluate else 1,
-        "evaluation_duration": max(1, num_workers),
-        "evaluation_duration_unit": "episodes",
-        "evaluation_num_workers": eval_num_workers,
-        "env_task_fn": set_map_fn,
-        "evaluation_config": {
-            "env_config": {
-                **cfg,
-                "evaluation_env": True,
-                "num_eval_envs": num_envs_per_worker * eval_num_workers,
-            },
-            "explore": True,
-        },
-        "logger_config": {
-                # "wandb": {
-                    # "project": "PCGRL",
-                    # "name": exp_name_id,
-                    # "id": exp_name_id,
-                    # "api_key_file": "~/.wandb_api_key"
-            # },
-            **logger_type,
-            # Optional: Custom logdir (do not define this here
-            # for using ~/ray_results/...).
-            "logdir": log_dir,
-        },
-#       "exploration_config": {
-#           "type": "Curiosity",
-#       }
-#       "log_level": "INFO",
-        # "train_batch_size": 50,
-        # "sgd_minibatch_size": 50,
-        'callbacks': stats_callbacks,
-
-        # To take random actions while changing all tiles at once seems to invite too much chaos.
-        'explore': True,
-
-        # `ray.tune` seems to need these spaces specified here.
-        # 'observation_space': dummy_env.observation_space,
-        # 'action_space': dummy_env.action_space,
-
-        # 'create_env_on_driver': True,
-        'checkpoint_path_file': checkpoint_path_file,
-        # 'record_env': log_dir,
-        # 'stfu': True,
-        'disable_env_checking': True,
-    }
+    num_workers = num_workers if not (cfg.evaluate or cfg.infer) else 1
+    trainer_config = TrainerConfigParsers[cfg.algorithm](
+                        cfg,
+                        agent_obs_space,
+                        log_dir,
+                        logger_type,
+                        stats_callbacks,
+                        checkpoint_path_file,
+                        model_cfg,
+                        multiagent_config,
+                        num_workers=num_workers,
+                        num_envs_per_worker=num_envs_per_worker,
+                        eval_num_workers=eval_num_workers
+                    )
 
     register_env('pcgrl', make_env)
 
@@ -340,7 +285,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
         # Quit the program before agent starts training.
         sys.exit()
 
-    tune.register_trainable("CustomPPO", PPOTrainer)
+    #tune.register_trainable("CustomPPO", PPOTrainer)
+    tune.register_trainable(f"CustomTrainer", ControllablaTrainerFactory(cfg.algorithm))
 
     # Limit the number of rows.
     reporter = CLIReporter(
@@ -372,7 +318,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     try:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
         analysis = tune.run(
-            "CustomPPO",
+            "CustomTrainer",
             resume="AUTO" if (cfg.load and not cfg.overwrite) else False,
             config={
                 **trainer_config,
