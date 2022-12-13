@@ -187,8 +187,8 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         # avoid default probabilities with normal distribution if we seed manually
         if hasattr(self._prob, '_random'):
-            probs = self._prob._random.random(size=len(self._prob._tile_types))
-            self._prob._prob = {tile: prob for tile, prob in zip(self._prob._tile_types, probs)}
+            probs = self._prob._random.random(size=len(self._prob.get_tile_types()))
+            self._prob._prob = {tile: prob for tile, prob in zip(self._prob.get_tile_types(), probs)}
         if self.switch_env:
             self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()),
                 next_map=self._prob.eval_maps[self.cur_map_idx])

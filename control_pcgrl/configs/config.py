@@ -120,7 +120,7 @@ class ControlPCGRLConfig:
 
     exp_id: str = '0'
     representation: str = 'turtle'
-    show_agents: bool = True
+    show_agents: bool = False
     learning_rate: float = 5e-6
     gamma: float = 0.99
     map_shape: List[Any] = field(default_factory=lambda: 

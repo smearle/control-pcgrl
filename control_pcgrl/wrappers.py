@@ -167,8 +167,9 @@ class ToImage(TransformObs):
                 max_value = self.env.observation_space[n].high.max()
         self.names = names
 
+        self.show_agents = kwargs.get('show_agents', False)
         self.observation_space = spaces.Box(
-            low=0, high=max_value, shape=(*self.shape[:-1], depth)
+            low=0, high=max_value if self.show_agents else max(max_value, kwargs['multiagent']['n_agents']), shape=(*self.shape[:-1], depth)
         )
 
 
@@ -257,10 +258,10 @@ class OneHotEncoding(TransformObs):
         else:
             new_shape.append(self.dim)
         #import pdb; pdb.set_trace()
-        self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=1, shape=new_shape, dtype=np.uint8
-        )
         self.show_agents = kwargs.get('show_agents', False)
+        self.observation_space.spaces[self.name] = gym.spaces.Box(
+            low=0, high=1 if not self.show_agents else max(1, kwargs['multiagent']['n_agents']), shape=new_shape, dtype=np.uint8
+        )
 
     def step(self, action, **kwargs):
         # action = get_action(action)
@@ -290,9 +291,11 @@ class OneHotEncoding(TransformObs):
             new = np.eye(self.dim)[old]
 
         # add the agent positions back into the observation
-        new = np.concatenate((new, named_obs[:, :, -1][:, :, None]), axis=-1)
+        if self.show_agents:
+            new = np.concatenate((new, named_obs[:, :, -1][:, :, None]), axis=-1)
 
         obs[self.name] = new
+        #import pdb; pdb.set_trace()
 
         return obs
 
@@ -418,7 +421,7 @@ class Cropped(TransformObs):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value, shape=tuple(self.shape), dtype=np.uint8
+            low=0, high=high_value if not self.show_agents else max(high_value, kwargs['multiagent']['n_agents']), shape=tuple(self.shape), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -454,7 +457,9 @@ class Cropped(TransformObs):
             #map_expanded = map[:, :, None]
             agent_positions = self.unwrapped.get_agent_position()
             agent_positions_map = np.zeros(map.shape)
-            agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
+            for i, pos in enumerate(agent_positions):
+                agent_positions_map[tuple(pos)] = i + 1
+            #agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
             # view padding
             padded_positions = np.pad(agent_positions_map, self.pad, constant_values=0)
 

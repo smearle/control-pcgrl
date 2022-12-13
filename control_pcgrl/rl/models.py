@@ -142,6 +142,7 @@ class SeqNCA(TorchModelV2, nn.Module):
         self.conv_filters = conv_filters
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
         obs_shape = obs_space.shape
+        self.obs_shape = obs_shape
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
         # obs_shape = orig_obs_space['map'].shape
         # metrics_size = orig_obs_space['ctrl_metrics'].shape \
@@ -176,6 +177,11 @@ class SeqNCA(TorchModelV2, nn.Module):
         return th.reshape(self.value_branch(self._features), [-1])
 
     def forward(self, input_dict, state, seq_lens):
+        #import pdb; pdb.set_trace()
+        input_dict['obs'] = input_dict['obs'].reshape(
+            input_dict['obs'].size(0),
+            *self.obs_shape
+        )
         input = input_dict['obs'].permute(0, 3, 1, 2)
         # input = th.cat([input, self._last_aux_activ], dim=1)
         x = nn.functional.relu(self.conv_1(input.float()))
