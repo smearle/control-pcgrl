@@ -188,14 +188,14 @@ def test_multiagent_position_sharing(basic_env_config):
     actions = {'agent_0': 0, 'agent_1': 0}
     
     newobs, _, _, _ = env.step(actions)
-    agent_positions = np.where(newobs['agent_0'][:, :, -1]==1)
+    agent_positions = np.where(newobs['agent_0'][:, :, -1]>0)
     print(agent_positions)
-    agent_positions = np.where(newobs['agent_1'][:, :, -1]==1)
+    agent_positions = np.where(newobs['agent_1'][:, :, -1]>0)
     print(agent_positions)
     newobs, _, _, _ = env.step(actions)
-    agent_positions = np.where(newobs['agent_0'][:, :, -1]==1)
+    agent_positions = np.where(newobs['agent_0'][:, :, -1]>0)
     print(agent_positions)
-    agent_positions = np.where(newobs['agent_1'][:, :, -1]==1)
+    agent_positions = np.where(newobs['agent_1'][:, :, -1]>0)
     print(agent_positions)
     print(env.unwrapped._rep._positions)
     import pdb; pdb.set_trace()
