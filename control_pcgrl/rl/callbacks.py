@@ -108,9 +108,8 @@ class StatsCallbacks(DefaultCallbacks):
             })
         for k in env.metrics:
             # avoid adding non-numeric values
-            if isinstance(env.metrics[k], int) or isinstance(env.metrics[k], float):
-                assert env.metrics[k] is not None
-                episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
+            #if isinstance(env.metrics[k], int) or isinstance(env.metrics[k], float):
+            episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
 
 
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
