@@ -42,6 +42,7 @@ class StatsCallbacks(DefaultCallbacks):
         for k in env.metrics:
             episode.hist_data.update({f'{k}-val': None,
         })
+
         if self.holey:
             episode.hist_data.update({
                 'holes_start': None,
@@ -96,6 +97,7 @@ class StatsCallbacks(DefaultCallbacks):
         # write to tensorboard file (if enabled)
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items()})
         episode.custom_metrics.update({k: [v] for k, v in episode_stats.items()})
+        
 
         # TODO: log ctrl targets and success rate as heatmap: x is timestep, y is ctrl target, heatmap is success rate
 
@@ -105,7 +107,11 @@ class StatsCallbacks(DefaultCallbacks):
                 f'{k}-trg': [env.metric_trgs[k]],  # rllib needs these values to be lists :)
             })
         for k in env.metrics:
-            episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
+            # avoid adding non-numeric values
+            if isinstance(env.metrics[k], int) or isinstance(env.metrics[k], float):
+                assert env.metrics[k] is not None
+                episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
+
 
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
