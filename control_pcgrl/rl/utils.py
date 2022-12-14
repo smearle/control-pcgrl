@@ -449,7 +449,7 @@ def parse_qmix_config(
         'train_batch_size': 32,
         'framework': 'torch',
         'num_workers': num_workers if not (config.evaluate or config.infer) else 0,
-        'num_gpus': config.hardware.n_gpu,
+        'num_gpus': 0, # config.hardware.n_gpu GPU's don't work for QMIX
         'env_config': {
             **config,  # Maybe env should get its own config? (A subset of the original?)
             "evaluation_env": False,

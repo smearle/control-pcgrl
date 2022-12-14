@@ -174,7 +174,6 @@ class SokobanProblem(Problem):
                 map, map_locations, ["empty", "player", "crate", "target"]
             ),
             "dist-win": self._width * self._height * (self._width + self._height),
-            "solution": [],
         }
 
         if (
@@ -270,7 +269,7 @@ class SokobanProblem(Problem):
             "target": new_stats["target"],
             "regions": new_stats["regions"],
             "dist-win": new_stats["dist-win"],
-            "sol-length": len(new_stats["solution"]),
+            "sol-length": len(new_stats.get('solution', []))
         }
 
     """

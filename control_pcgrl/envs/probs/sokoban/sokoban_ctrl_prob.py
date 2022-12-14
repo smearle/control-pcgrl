@@ -57,7 +57,7 @@ class SokobanCtrlProblem(SokobanProblem):
 
     def get_stats(self, map):
         stats = super().get_stats(map)
-        stats["sol-length"] = len(stats["solution"])
+        stats["sol-length"] = len(stats.get('solution', []))
         stats["ratio"] = abs(stats["crate"] - stats["target"])
         #       if stats['dist-win'] == self._width * self._height * (self._width + self._height):
         #           stats['dist-win'] = 0

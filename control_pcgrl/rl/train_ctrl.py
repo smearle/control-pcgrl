@@ -173,6 +173,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
                     dummy_env.render()
+            #import pdb; pdb.set_trace()
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()
 
