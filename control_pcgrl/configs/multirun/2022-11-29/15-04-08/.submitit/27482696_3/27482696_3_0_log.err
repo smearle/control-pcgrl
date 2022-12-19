@@ -1,0 +1,70 @@
+/scratch/rd2893/miniconda3/envs/pcgrl/lib/python3.7/site-packages/gym/utils/passive_env_checker.py:32: UserWarning: [33mWARN: A Box observation space has an unconventional shape (neither an image, nor a 1D vector). We recommend flattening the observation to have only a 1D vector or use a custom policy to properly process the data. Actual observation shape: (16, 16)[0m
+  "A Box observation space has an unconventional shape (neither an image, nor a 1D vector). "
+2022-11-29 15:05:25,249	WARNING env.py:236 -- Your MultiAgentEnv <MultiAgentWrapper<ControlWrapper<CroppedImagePCGRLWrapper<ToImage<OneHotEncoding<Cropped<OrderEnforcing<PcgrlCtrlEnv<binary-turtle-v0>>>>>>>>> does not have some or all of the needed base-class attributes! Make sure you call `super().__init__` from within your MutiAgentEnv's constructor. This will raise an error in the future.
+2022-11-29 15:05:27,900	INFO worker.py:1518 -- Started a local Ray instance.
+2022-11-29 15:05:42,607	WARNING trial_runner.py:331 -- The maximum number of pending trials has been automatically set to the number of available cluster CPUs, which is high (176 CPUs/pending trials). If you're running an experiment with a large number of trials, this could lead to scheduling overhead. In this case, consider setting the `TUNE_MAX_PENDING_TRIALS_PG` environment variable to the desired maximum number of concurrent trials.
+[2m[36m(PPOTrainer pid=1389415)[0m 2022-11-29 15:05:48,172	INFO ppo.py:379 -- In multi-agent mode, policies will be optimized sequentially by the multi-GPU optimizer. Consider setting simple_optimizer=True if this doesn't work for you.
+[2m[36m(PPOTrainer pid=1389415)[0m 2022-11-29 15:05:48,174	INFO algorithm.py:358 -- Current log_level is WARN. For more information, set 'log_level': 'INFO' / 'DEBUG' or use the -v and -vv flags.
+[2m[36m(PPOTrainer pid=1389415)[0m /scratch/rd2893/miniconda3/envs/pcgrl/lib/python3.7/site-packages/gym/utils/passive_env_checker.py:32: UserWarning: [33mWARN: A Box observation space has an unconventional shape (neither an image, nor a 1D vector). We recommend flattening the observation to have only a 1D vector or use a custom policy to properly process the data. Actual observation shape: (16, 16)[0m
+[2m[36m(PPOTrainer pid=1389415)[0m   "A Box observation space has an unconventional shape (neither an image, nor a 1D vector). "
+[2m[36m(PPOTrainer pid=1389415)[0m 2022-11-29 15:05:55,949	WARNING deprecation.py:48 -- DeprecationWarning: `simple_optimizer` has been deprecated. This will raise an error in the future!
+[2m[36m(PPOTrainer pid=1389415)[0m 2022-11-29 15:05:56,175	WARNING util.py:66 -- Install gputil for GPU system monitoring.
+[2m[36m(PPOTrainer pid=1389415)[0m 2022-11-29 15:05:56,299	WARNING deprecation.py:48 -- DeprecationWarning: `policy_mapping_fn(agent_id)` has been deprecated. Use `policy_mapping_fn(agent_id, episode, worker, **kwargs)` instead. This will raise an error in the future!
+[2m[36m(PPOTrainer pid=1389415)[0m 2022-11-29 15:05:58,764	WARNING deprecation.py:48 -- DeprecationWarning: `concat_samples` has been deprecated. Use `concat_samples() from rllib.policy.sample_batch` instead. This will raise an error in the future!
+[2m[36m(PPOTrainer pid=1389415)[0m /scratch/rd2893/miniconda3/envs/pcgrl/lib/python3.7/site-packages/ray/rllib/utils/metrics/learner_info.py:110: RuntimeWarning: Mean of empty slice
+[2m[36m(PPOTrainer pid=1389415)[0m   return np.nanmean(tower_data)
+2022-11-30 01:30:35,354	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 7.989 s, which may be a performance bottleneck.
+2022-11-30 01:30:35,358	WARNING util.py:244 -- The `process_trial_result` operation took 7.994 s, which may be a performance bottleneck.
+2022-11-30 01:30:35,359	WARNING util.py:244 -- Processing trial results took 7.996 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 01:30:35,362	WARNING util.py:244 -- The `process_trial_result` operation took 8.001 s, which may be a performance bottleneck.
+2022-11-30 01:32:50,896	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 5.364 s, which may be a performance bottleneck.
+2022-11-30 01:32:50,901	WARNING util.py:244 -- The `process_trial_result` operation took 5.372 s, which may be a performance bottleneck.
+2022-11-30 01:32:50,902	WARNING util.py:244 -- Processing trial results took 5.372 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 01:32:50,902	WARNING util.py:244 -- The `process_trial_result` operation took 5.375 s, which may be a performance bottleneck.
+2022-11-30 01:46:43,788	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 8.858 s, which may be a performance bottleneck.
+2022-11-30 01:46:43,810	WARNING util.py:244 -- The `process_trial_result` operation took 8.881 s, which may be a performance bottleneck.
+2022-11-30 01:46:43,810	WARNING util.py:244 -- Processing trial results took 8.882 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 01:46:43,810	WARNING util.py:244 -- The `process_trial_result` operation took 8.885 s, which may be a performance bottleneck.
+2022-11-30 01:48:00,389	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 8.216 s, which may be a performance bottleneck.
+2022-11-30 01:48:00,394	WARNING util.py:244 -- The `process_trial_result` operation took 8.223 s, which may be a performance bottleneck.
+2022-11-30 01:48:00,394	WARNING util.py:244 -- Processing trial results took 8.223 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 01:48:00,394	WARNING util.py:244 -- The `process_trial_result` operation took 8.226 s, which may be a performance bottleneck.
+2022-11-30 01:50:26,268	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 10.092 s, which may be a performance bottleneck.
+2022-11-30 01:50:26,287	WARNING util.py:244 -- The `process_trial_result` operation took 10.112 s, which may be a performance bottleneck.
+2022-11-30 01:50:26,287	WARNING util.py:244 -- Processing trial results took 10.112 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 01:50:26,287	WARNING util.py:244 -- The `process_trial_result` operation took 10.114 s, which may be a performance bottleneck.
+2022-11-30 01:51:35,706	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 8.865 s, which may be a performance bottleneck.
+2022-11-30 01:51:35,710	WARNING util.py:244 -- The `process_trial_result` operation took 8.872 s, which may be a performance bottleneck.
+2022-11-30 01:51:35,712	WARNING util.py:244 -- Processing trial results took 8.873 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 01:51:35,712	WARNING util.py:244 -- The `process_trial_result` operation took 8.877 s, which may be a performance bottleneck.
+2022-11-30 04:05:42,396	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 0.530 s, which may be a performance bottleneck.
+2022-11-30 04:05:42,416	WARNING util.py:244 -- The `process_trial_result` operation took 0.552 s, which may be a performance bottleneck.
+2022-11-30 04:05:42,416	WARNING util.py:244 -- Processing trial results took 0.553 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 04:05:42,416	WARNING util.py:244 -- The `process_trial_result` operation took 0.555 s, which may be a performance bottleneck.
+2022-11-30 07:25:45,666	WARNING util.py:244 -- The `callbacks.on_trial_result` operation took 0.690 s, which may be a performance bottleneck.
+2022-11-30 07:25:45,684	WARNING util.py:244 -- The `process_trial_result` operation took 0.711 s, which may be a performance bottleneck.
+2022-11-30 07:25:45,685	WARNING util.py:244 -- Processing trial results took 0.712 s, which may be a performance bottleneck. Please consider reporting results less frequently to Ray Tune.
+2022-11-30 07:25:45,685	WARNING util.py:244 -- The `process_trial_result` operation took 0.714 s, which may be a performance bottleneck.
+2022-11-30 13:45:51,631	WARNING util.py:244 -- The `on_step_begin` operation took 0.592 s, which may be a performance bottleneck.
+submitit WARNING (2022-11-30 15:02:51,594) - Caught signal SIGUSR2 on ga019.hpc.nyu.edu: this job is timed-out.
+submitit WARNING (2022-11-30 15:02:51,898) - Bypassing signal SIGCONT
+Traceback (most recent call last):
+  File "/scratch/rd2893/miniconda3/envs/pcgrl/lib/python3.7/site-packages/submitit/core/job_environment.py", line 226, in checkpoint_and_try_requeue
+    raise utils.UncompletedJobError(message)
+submitit.core.utils.UncompletedJobError: Job not requeued because: timed-out too many times.
+Exception ignored in: 'ray._raylet.check_signals'
+Traceback (most recent call last):
+  File "/scratch/rd2893/miniconda3/envs/pcgrl/lib/python3.7/site-packages/submitit/core/job_environment.py", line 226, in checkpoint_and_try_requeue
+    raise utils.UncompletedJobError(message)
+submitit.core.utils.UncompletedJobError: Job not requeued because: timed-out too many times.
+slurmstepd: error: *** STEP 27482696.0 ON ga019 CANCELLED AT 2022-11-30T15:05:22 DUE TO TIME LIMIT ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 27482696 ON ga019 CANCELLED AT 2022-11-30T15:05:22 DUE TO TIME LIMIT ***
+*** SIGTERM received at time=1669838722 on cpu 85 ***
+PC: @     0x145586a8864a  (unknown)  pthread_cond_timedwait@@GLIBC_2.3.2
+    @     0x145586a8cb20  (unknown)  (unknown)
+[2022-11-30 15:05:22,219 E 1384324 1384324] logging.cc:361: *** SIGTERM received at time=1669838722 on cpu 85 ***
+[2022-11-30 15:05:22,219 E 1384324 1384324] logging.cc:361: PC: @     0x145586a8864a  (unknown)  pthread_cond_timedwait@@GLIBC_2.3.2
+[2022-11-30 15:05:22,219 E 1384324 1384324] logging.cc:361:     @     0x145586a8cb20  (unknown)  (unknown)
+submitit WARNING (2022-11-30 15:05:22,623) - Bypassing signal SIGTERM
+submitit WARNING (2022-11-30 15:05:22,624) - Bypassing signal SIGCONT
