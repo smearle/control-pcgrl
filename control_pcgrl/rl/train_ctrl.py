@@ -44,7 +44,7 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width, TrainerConfigParsers
-from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
+from control_pcgrl.rl.rllib_utils import ControllableTrainerFactory
 from control_pcgrl.configs.config import ControlPCGRLConfig
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
@@ -94,8 +94,9 @@ def main(cfg: ControlPCGRLConfig) -> None:
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.exp_id}'
+    default_dir = os.path.join(PROJ_DIR, 'rl_runs')
     cfg.log_dir = log_dir = os.path.join(
-            f'{cfg.log_dir if cfg.log_dir is not None else "rl_runs"}',
+            cfg.log_dir if cfg.log_dir is not None else default_dir,
             cfg.algorithm,
             f'{exp_name_id}_log'
         )
@@ -287,7 +288,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
         sys.exit()
 
     #tune.register_trainable("CustomPPO", PPOTrainer)
-    tune.register_trainable(f"CustomTrainer", ControllablaTrainerFactory(cfg.algorithm))
+    tune.register_trainable(f"CustomTrainer", ControllableTrainerFactory(cfg.algorithm))
 
     # Limit the number of rows.
     reporter = CLIReporter(
