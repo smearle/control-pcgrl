@@ -280,11 +280,7 @@ def evaluate(experiment_path):
         #changes.append(results['infos'][-1]['changes'] / results['infos'][-1]['iterations'])
         save_trial_metrics(results, trial_log_dir)
 
-    print('-------')
-    print(np.mean(paths))
-    print(np.std(paths))
-    print('-------')
-    print(logdir)
+    print(f'Wrote logs to: {logdir}')
 
 
 
