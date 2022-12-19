@@ -168,8 +168,12 @@ class ToImage(TransformObs):
         self.names = names
 
         self.show_agents = kwargs.get('show_agents', False)
+        try:
+            n_agents = kwargs['multiagent']['n_agents']
+        except:
+            n_agents = json.loads(kwargs['multiagent'].replace('\'', '\"'))['n_agents']
         self.observation_space = spaces.Box(
-            low=0, high=max_value if self.show_agents else max(max_value, kwargs['multiagent']['n_agents']), shape=(*self.shape[:-1], depth)
+            low=0, high=max_value if self.show_agents else max(max_value, n_agents), shape=(*self.shape[:-1], depth)
         )
 
 
@@ -401,13 +405,13 @@ class Cropped(TransformObs):
             len(self.env.observation_space.spaces[name].shape) in [2, 3]
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
-        self.shape = list(crop_shape)
         self.show_agents = kwargs.get('show_agents', False)
         try:
+            self.shape = np.array(list(crop_shape))
             self.pad = crop_shape // 2
         except TypeError:
             #import pdb; pdb.set_trace()
-            self.shape = json.loads(str(crop_shape))
+            self.shape = np.array(json.loads(str(crop_shape)))
             self.pad = self.shape // 2
         if self.show_agents:
             self.shape.append(2) # add extra two channels for the positions

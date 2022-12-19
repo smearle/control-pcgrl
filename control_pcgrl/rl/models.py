@@ -1,4 +1,5 @@
 from typing import Dict, List
+import json
 
 from einops import rearrange
 import numpy as np
@@ -141,7 +142,8 @@ class SeqNCA(TorchModelV2, nn.Module):
         # self.n_aux_chan = n_aux_chan
         self.conv_filters = conv_filters
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        obs_shape = obs_space.shape
+        obs_shape = (32, 32, 3)
+        #obs_shape = obs_space.shape
         self.obs_shape = obs_shape
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
         # obs_shape = orig_obs_space['map'].shape

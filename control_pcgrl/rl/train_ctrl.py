@@ -44,7 +44,7 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width, TrainerConfigParsers
-from control_pcgrl.rl.rllib_utils import ControllableTrainerFactory
+from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
 from control_pcgrl.configs.config import ControlPCGRLConfig
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
@@ -288,7 +288,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
         sys.exit()
 
     #tune.register_trainable("CustomPPO", PPOTrainer)
-    tune.register_trainable(f"CustomTrainer", ControllableTrainerFactory(cfg.algorithm))
+    tune.register_trainable(f"CustomTrainer", ControllablaTrainerFactory(cfg.algorithm))
 
     # Limit the number of rows.
     reporter = CLIReporter(
@@ -331,7 +331,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
             mode='max',
             checkpoint_score_attr='episode_reward_mean',
             checkpoint_at_end=True,
-            checkpoint_freq=10,
+            checkpoint_freq=1,
             keep_checkpoints_num=2,
             local_dir=log_dir,
             verbose=1,
