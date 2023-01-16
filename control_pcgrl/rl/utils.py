@@ -2,18 +2,24 @@
 Helper functions for train, infer, and eval modules.
 """
 from pdb import set_trace as TT
+import copy
 import glob
 import os
 import ray
 import re
 
 import numpy as np
+import gym
+from ray.tune import register_env
+from gym.spaces import Tuple
 # from stable_baselines import PPO2
 # from stable_baselines.bench import Monitor
 #from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from control_pcgrl.configs.config import ControlPCGRLConfig
 from control_pcgrl import wrappers
+from control_pcgrl.task_assignment import set_map_fn
+from control_pcgrl.rl.envs import make_env
 
 # NOTE: minecraft has to precede zelda since minecraft zelda maze has both phrases in its name.
 MAP_WIDTHS = [("binary", 16), ("minecraft_3D_rain", 7), ("minecraft_3D", 15), ("zelda", 16), ("sokoban", 5)]
@@ -220,8 +226,8 @@ def get_exp_name(cfg: ControlPCGRLConfig):
         cfg.problem.name, 
         "weights_" + "-".join(f"{k}-{v}" for k, v in cfg.problem.weights.items()),
         cfg.representation,
+        cfg.multiagent.policies, # default to single policy
     )
-
     exp_name += '/'
 
     if cfg.model.name is not None:
@@ -316,3 +322,199 @@ def max_exp_idx(exp_name):
         n = max(log_ns)
     return int(n)
 
+
+def parse_ppo_config(
+    config,
+    agent_obs_space,
+    log_dir,
+    logger_type,
+    stats_callbacks,
+    checkpoint_path_file,
+    model_cfg,
+    multiagent_config={},
+    **kwargs
+    ):
+    num_workers = kwargs.get('num_workers', 0)
+    num_envs_per_worker = kwargs.get('num_envs_per_worker', 1)
+    eval_num_workers = kwargs.get('num_workers', 0)
+    
+    return {
+        'env': 'pcgrl',
+        **multiagent_config,
+        'framework': 'torch',
+        'num_workers': num_workers if not (config.evaluate or config.infer) else 0,
+        'num_gpus': config.hardware.n_gpu,
+        'env_config': {
+            **config,  # Maybe env should get its own config? (A subset of the original?)
+            "evaluation_env": False,
+        },
+        # 'env_config': {
+            # 'change_percentage': cfg.change_percentage,
+        # },
+        'num_envs_per_worker': num_envs_per_worker,
+        'render_env': config.render,
+        'lr': config.learning_rate,
+        'gamma': config.gamma,
+        'model': {
+            'custom_model': 'custom_model',
+            'custom_model_config': {
+                "dummy_env_obs_space": copy.copy(agent_obs_space),
+            **model_cfg,
+            },
+        },
+        "evaluation_interval" : 1 if config.evaluate else 1,
+        "evaluation_duration": max(1, num_workers),
+        "evaluation_duration_unit": "episodes",
+        "evaluation_num_workers": eval_num_workers,
+        "env_task_fn": set_map_fn,
+        "evaluation_config": {
+            "env_config": {
+                **config,
+                "evaluation_env": True,
+                "num_eval_envs": num_envs_per_worker * eval_num_workers,
+            },
+            "explore": True,
+        },
+        "logger_config": {
+                # "wandb": {
+                    # "project": "PCGRL",
+                    # "name": exp_name_id,
+                    # "id": exp_name_id,
+                    # "api_key_file": "~/.wandb_api_key"
+            # },
+            **logger_type,
+            # Optional: Custom logdir (do not define this here
+            # for using ~/ray_results/...).
+            "logdir": log_dir,
+        },
+#       "exploration_config": {
+#           "type": "Curiosity",
+#       }
+#       "log_level": "INFO",
+        # "train_batch_size": 50,
+        # "sgd_minibatch_size": 50,
+        'callbacks': stats_callbacks,
+
+        # To take random actions while changing all tiles at once seems to invite too much chaos.
+        'explore': True,
+
+        # `ray.tune` seems to need these spaces specified here.
+        # 'observation_space': dummy_env.observation_space,
+        # 'action_space': dummy_env.action_space,
+
+        # 'create_env_on_driver': True,
+        'checkpoint_path_file': checkpoint_path_file,
+        # 'record_env': log_dir,
+        # 'stfu': True,
+        'disable_env_checking': True,
+    }
+
+
+def make_grouped_env(config):
+    
+    n_agents = config.multiagent.n_agents
+    dummy_env = make_env(config)
+    groups = {'group_1': list(dummy_env.observation_space.keys())}
+    obs_space = Tuple(dummy_env.observation_space.values())
+    act_space = Tuple(dummy_env.action_space.values())
+    #import pdb; pdb.set_trace()
+    register_env(
+        'grouped_pcgrl',
+        lambda config: wrappers.GroupedEnvironmentWrapper(make_env(config).with_agent_groups(
+            groups, obs_space=obs_space, act_space=act_space))
+        
+    )
+
+
+def parse_qmix_config(
+    config,
+    agent_obs_space,
+    log_dir,
+    logger_type,
+    stats_callbacks,
+    checkpoint_path_file,
+    model_cfg,
+    multiagent_config={},
+    **kwargs
+    ):
+    # register grouped version of environment
+    #import pdb; pdb.set_trace()
+    make_grouped_env(config)
+    num_workers = kwargs.get('num_workers', 0)
+    num_envs_per_worker = kwargs.get('num_envs_per_worker', 1)
+    eval_num_workers = kwargs.get('num_workers', 0)
+    return {
+        'env': 'grouped_pcgrl', # replace with grouped environment
+        'rollout_fragment_length': 1,
+        'train_batch_size': 32,
+        'framework': 'torch',
+        'num_workers': num_workers if not (config.evaluate or config.infer) else 0,
+        'num_gpus': 0, # config.hardware.n_gpu GPU's don't work for QMIX
+        'env_config': {
+            **config,  # Maybe env should get its own config? (A subset of the original?)
+            "evaluation_env": False,
+        },
+        #'mixer': 'qmix',
+        'num_envs_per_worker': num_envs_per_worker,
+        'render_env': config.render,
+        'lr': config.learning_rate,
+        'gamma': config.gamma,
+        'model': {
+            'custom_model': 'custom_model',
+            'custom_model_config': {
+                "dummy_env_obs_space": copy.copy(agent_obs_space),
+            **model_cfg,
+            },
+        },
+        "evaluation_interval" : 1 if config.evaluate else 1,
+        "evaluation_duration": max(1, num_workers),
+        "evaluation_duration_unit": "episodes",
+        "evaluation_num_workers": eval_num_workers,
+        #"env_task_fn": set_map_fn,
+        "evaluation_config": {
+            "env_config": {
+                **config,
+                "evaluation_env": True,
+                "num_eval_envs": num_envs_per_worker * eval_num_workers,
+            },
+            "explore": True,
+        },
+        "logger_config": {
+                # "wandb": {
+                    # "project": "PCGRL",
+                    # "name": exp_name_id,
+                    # "id": exp_name_id,
+                    # "api_key_file": "~/.wandb_api_key"
+            # },
+            **logger_type,
+            # Optional: Custom logdir (do not define this here
+            # for using ~/ray_results/...).
+            "logdir": log_dir,
+        },
+#       "exploration_config": {
+#           "type": "Curiosity",
+#       }
+#       "log_level": "INFO",
+        # "train_batch_size": 50,
+        # "sgd_minibatch_size": 50,
+        'callbacks': stats_callbacks,
+
+        # To take random actions while changing all tiles at once seems to invite too much chaos.
+        'explore': True,
+
+        # `ray.tune` seems to need these spaces specified here.
+        # 'observation_space': dummy_env.observation_space,
+        # 'action_space': dummy_env.action_space,
+
+        # 'create_env_on_driver': True,
+        'checkpoint_path_file': checkpoint_path_file,
+        # 'record_env': log_dir,
+        # 'stfu': True,
+        'disable_env_checking': True,
+    }
+
+
+TrainerConfigParsers = {
+   'PPO': parse_ppo_config,
+   'QMIX': parse_qmix_config 
+}

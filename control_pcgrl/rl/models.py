@@ -1,4 +1,5 @@
 from typing import Dict, List
+import json
 
 from einops import rearrange
 import numpy as np
@@ -31,6 +32,7 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
 
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
         obs_shape = obs_space.shape
+        self.img_shape = obs_shape
         obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
         self.fc_size = fc_size
 
@@ -52,6 +54,11 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
         return th.reshape(self.value_branch(self._features), [-1])
 
     def forward(self, input_dict, state, seq_lens):
+        #raise ValueError(input_dict['obs'].shape)
+        input_dict['obs'] = input_dict['obs'].reshape(
+            input_dict['obs'].size(0),
+            *self.img_shape
+        )
         input = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
         x = nn.functional.relu(self.conv_1(input.float()))
         x = nn.functional.relu(self.conv_2(x))
@@ -135,7 +142,9 @@ class SeqNCA(TorchModelV2, nn.Module):
         # self.n_aux_chan = n_aux_chan
         self.conv_filters = conv_filters
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        obs_shape = obs_space.shape
+        obs_shape = (32, 32, 3)
+        #obs_shape = obs_space.shape
+        self.obs_shape = obs_shape
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
         # obs_shape = orig_obs_space['map'].shape
         # metrics_size = orig_obs_space['ctrl_metrics'].shape \
@@ -170,6 +179,11 @@ class SeqNCA(TorchModelV2, nn.Module):
         return th.reshape(self.value_branch(self._features), [-1])
 
     def forward(self, input_dict, state, seq_lens):
+        #import pdb; pdb.set_trace()
+        input_dict['obs'] = input_dict['obs'].reshape(
+            input_dict['obs'].size(0),
+            *self.obs_shape
+        )
         input = input_dict['obs'].permute(0, 3, 1, 2)
         # input = th.cat([input, self._last_aux_activ], dim=1)
         x = nn.functional.relu(self.conv_1(input.float()))
@@ -258,8 +272,8 @@ class ConvDeconv2d(TorchModelV2, nn.Module):
         x = self.fc_1(x)
         self._features = x
         x = x.reshape(*pre_fc_shape)
-        x = nn.functional.relu(self.deconv_1(x)) 
-        x = x + x1
+        x = nn.functional.relu(self.deconv_1(x))
+        x = x.repeat(1, 1, 2, 2) + x1
         x = nn.functional.relu(self.deconv_2(x))
         action_out = x.reshape(x.size(0), -1)
 

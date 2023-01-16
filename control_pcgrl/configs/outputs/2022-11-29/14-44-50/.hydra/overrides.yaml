@@ -1,0 +1,3 @@
+- hardware.n_gpu=0
+- load=False
+- multiagent.n_agents=2

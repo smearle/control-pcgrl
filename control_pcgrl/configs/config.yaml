@@ -3,22 +3,22 @@ defaults:
   - _self_
 
   # Why can't we override this on the command line?
-  # - override hydra/launcher: submitit_local
+  #- override hydra/launcher: submitit_local
   - override hydra/launcher: submitit_slurm
 
 hydra:
   sweeper:
     params:
-      exp_id: 0, 1, 2
-      learning_rate: 5e-4, 1e-4, 5e-5, 1e-5, 5e-6, 1e-6
+      #exp_id: 0, 1, 2
+      learning_rate: 5e-5
 
   launcher:
     tasks_per_node: 1
 
     #FIXME: Can't set this to 1 or 2 even when only asking from 1 ("0") worker from ray...
-    cpus_per_task: 10
+    cpus_per_task: 22
 
     gpus_per_node: 1
-    timeout_min: 1440
+    timeout_min: 1440 # 1 days of training
     mem_gb: 30
     # Emails maybe?

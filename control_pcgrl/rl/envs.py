@@ -2,6 +2,7 @@ from argparse import Namespace
 from collections import namedtuple
 import os
 from pdb import set_trace as TT
+import json
 from typing import Dict
 from control_pcgrl import wrappers
 
@@ -84,7 +85,12 @@ def make_env(cfg):
 #       # RenderMonitor must come last
 #       env = RenderMonitor(env, rank, log_dir, **kwargs)
 
-    if cfg.multiagent.n_agents != 0:
+    try:
+        n_agents = cfg_dict['multiagent']['n_agents']
+    except TypeError:
+        n_agents = json.loads(cfg_dict['multiagent'].replace('\'', '\"'))['n_agents']
+
+    if n_agents != 0:
         env = wrappers.MultiAgentWrapper(env, **cfg_dict)
 
     return env

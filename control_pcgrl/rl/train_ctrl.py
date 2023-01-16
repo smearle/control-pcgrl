@@ -1,4 +1,3 @@
-
 import copy
 import json
 import os
@@ -12,6 +11,7 @@ from pdb import set_trace as TT
 from typing import Dict
 
 import gym
+from tqdm import tqdm
 import hydra
 import matplotlib
 import numpy as np
@@ -43,8 +43,8 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        CustomFeedForwardModel, CustomFeedForwardModel3D,
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
-from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width
-from control_pcgrl.rl.rllib_utils import PPOTrainer
+from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width, TrainerConfigParsers
+from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
 from control_pcgrl.configs.config import ControlPCGRLConfig
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
@@ -94,7 +94,12 @@ def main(cfg: ControlPCGRLConfig) -> None:
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
     exp_name_id = f'{exp_name}_{cfg.exp_id}'
-    cfg.log_dir = log_dir = os.path.join(PROJ_DIR, f'rl_runs/{exp_name_id}_log')
+    default_dir = os.path.join(PROJ_DIR, 'rl_runs')
+    cfg.log_dir = log_dir = os.path.join(
+            cfg.log_dir if cfg.log_dir is not None else default_dir,
+            cfg.algorithm,
+            f'{exp_name_id}_log'
+        )
 
     if not cfg.load:
 
@@ -156,7 +161,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
 
     ### DEBUG ###
     if cfg.debug:
-        for _ in range(100):
+        #import pdb; pdb.set_trace()
+        for _ in tqdm(range(100)):
             obs = dummy_env.reset()
             for i in range(500):
                 # if i > 3:
@@ -168,6 +174,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
                     dummy_env.render()
+            #import pdb; pdb.set_trace()
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()
 
@@ -182,92 +189,57 @@ def main(cfg: ControlPCGRLConfig) -> None:
     model_cfg.pop('name')
 
     if cfg.multiagent.n_agents != 0:
-        multiagent_config = {
-            "policies": {
-                f"default_policy": PolicySpec(
+        multiagent_config = {}
+        if cfg.multiagent.policies == "centralized":
+            multiagent_config['policies'] = {
+                'default_policy': PolicySpec(
                     policy_class=None,
                     observation_space=agent_obs_space,
                     action_space=agent_act_space,
-                    config=None,)
-            },
-            "policy_mapping_fn": lambda agent_id: "default_policy",
-            "count_steps_by": "agent_steps",
-        }
+                    config=None 
+                )
+            }
+            multiagent_config['policy_mapping_fn'] = lambda agent_id: 'default_policy'
+        elif cfg.multiagent.policies == "decentralized":
+            multiagent_config['policies'] = {
+                f'agent_{i}': PolicySpec(
+                    policy_class=None,
+                    observation_space=agent_obs_space,
+                    action_space=agent_act_space,
+                    config={
+                        'custom_model': 'custom_model',
+                        'custom_model_config': {
+                            "dummy_env_obs_space": copy.copy(agent_obs_space),
+                            **model_cfg,
+                        }
+                    }
+                ) for i in range(cfg.multiagent.n_agents)
+            }
+            multiagent_config['policy_mapping_fn'] = lambda agent_id: agent_id
+        else:
+            raise ValueError('Unrecognized policy type. Policy values can either be centralized or decentralized')
+
+        multiagent_config['count_steps_by'] = 'agent_steps'
         multiagent_config = {"multiagent": multiagent_config}
+        
     else:
         multiagent_config = {}
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
-    trainer_config = {
-        'env': 'pcgrl',
-        **multiagent_config,
-        'framework': 'torch',
-        'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
-        'num_gpus': cfg.hardware.n_gpu,
-        'env_config': {
-            **cfg,  # Maybe env should get its own config? (A subset of the original?)
-            "evaluation_env": False,
-        },
-        # 'env_config': {
-            # 'change_percentage': cfg.change_percentage,
-        # },
-        'num_envs_per_worker': num_envs_per_worker,
-        'render_env': cfg.render,
-        'lr': cfg.learning_rate,
-        'gamma': cfg.gamma,
-        'model': {
-            'custom_model': 'custom_model',
-            'custom_model_config': {
-                "dummy_env_obs_space": copy.copy(agent_obs_space),
-            **model_cfg,
-            },
-        },
-        "evaluation_interval" : 1 if cfg.evaluate else 1,
-        "evaluation_duration": max(1, num_workers),
-        "evaluation_duration_unit": "episodes",
-        "evaluation_num_workers": eval_num_workers,
-        "env_task_fn": set_map_fn,
-        "evaluation_config": {
-            "env_config": {
-                **cfg,
-                "evaluation_env": True,
-                "num_eval_envs": num_envs_per_worker * eval_num_workers,
-            },
-            "explore": True,
-        },
-        "logger_config": {
-                # "wandb": {
-                    # "project": "PCGRL",
-                    # "name": exp_name_id,
-                    # "id": exp_name_id,
-                    # "api_key_file": "~/.wandb_api_key"
-            # },
-            **logger_type,
-            # Optional: Custom logdir (do not define this here
-            # for using ~/ray_results/...).
-            "logdir": log_dir,
-        },
-#       "exploration_config": {
-#           "type": "Curiosity",
-#       }
-#       "log_level": "INFO",
-        # "train_batch_size": 50,
-        # "sgd_minibatch_size": 50,
-        'callbacks': stats_callbacks,
-
-        # To take random actions while changing all tiles at once seems to invite too much chaos.
-        'explore': True,
-
-        # `ray.tune` seems to need these spaces specified here.
-        # 'observation_space': dummy_env.observation_space,
-        # 'action_space': dummy_env.action_space,
-
-        # 'create_env_on_driver': True,
-        'checkpoint_path_file': checkpoint_path_file,
-        # 'record_env': log_dir,
-        # 'stfu': True,
-        'disable_env_checking': True,
-    }
+    num_workers = num_workers if not (cfg.evaluate or cfg.infer) else 1
+    trainer_config = TrainerConfigParsers[cfg.algorithm](
+                        cfg,
+                        agent_obs_space,
+                        log_dir,
+                        logger_type,
+                        stats_callbacks,
+                        checkpoint_path_file,
+                        model_cfg,
+                        multiagent_config,
+                        num_workers=num_workers,
+                        num_envs_per_worker=num_envs_per_worker,
+                        eval_num_workers=eval_num_workers
+                    )
 
     register_env('pcgrl', make_env)
 
@@ -315,7 +287,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
         # Quit the program before agent starts training.
         sys.exit()
 
-    tune.register_trainable("CustomPPO", PPOTrainer)
+    #tune.register_trainable("CustomPPO", PPOTrainer)
+    tune.register_trainable(f"CustomTrainer", ControllablaTrainerFactory(cfg.algorithm))
 
     # Limit the number of rows.
     reporter = CLIReporter(
@@ -347,7 +320,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     try:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
         analysis = tune.run(
-            "CustomPPO",
+            "CustomTrainer",
             resume="AUTO" if (cfg.load and not cfg.overwrite) else False,
             config={
                 **trainer_config,
@@ -355,8 +328,10 @@ def main(cfg: ControlPCGRLConfig) -> None:
             # checkpoint_score_attr="episode_reward_mean",
             # TODO: makes timestep total input by user.(n_frame)
             stop={"timesteps_total": 1e10},
+            mode='max',
+            checkpoint_score_attr='episode_reward_mean',
             checkpoint_at_end=True,
-            checkpoint_freq=10,
+            checkpoint_freq=1,
             keep_checkpoints_num=2,
             local_dir=log_dir,
             verbose=1,

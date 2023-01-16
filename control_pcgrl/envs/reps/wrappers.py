@@ -3,6 +3,7 @@ from collections import OrderedDict
 from inspect import isclass
 import logging
 import math
+import json
 from pdb import set_trace as TT
 
 from gym import spaces
@@ -20,6 +21,7 @@ from control_pcgrl.envs.reps.ca_rep import CARepresentation
 from control_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from control_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
 from control_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
+from control_pcgrl.envs.reps.wide_rep import WideRepresentation
 
 
 # class RepresentationWrapper(Representation):
@@ -418,7 +420,7 @@ class MultiActionRepresentation(RepresentationWrapper):
         return super().render(lvl_image, tile_size, border_size)
 
 
-class MultiAgentRepresentation(RepresentationWrapper):
+class MultiAgentWrapper(RepresentationWrapper):
     agent_colors = [
         (255, 255, 255, 255),
         (0, 255, 0, 255),
@@ -429,30 +431,20 @@ class MultiAgentRepresentation(RepresentationWrapper):
         (0, 255, 255, 255),
     ]
     def __init__(self, rep, **kwargs):
-        self.n_agents = kwargs['multiagent']['n_agents']
+        try:
+            n_agents = kwargs.get('multiagent')['n_agents']
+        except TypeError:
+            n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+        #self.n_agents = kwargs['multiagent']['n_agents']
+        self.n_agents = n_agents
         self._active_agent = None
         super().__init__(rep, **kwargs)
-
+    
     def reset(self, dims, prob, **kwargs):
-        self._active_agent = None
-        ret = super().reset(dims, prob, **kwargs)
-
-        # FIXME: specific to turtle
-        self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
-
-    def update(self, action):
-        change = False
-
-        # FIXME: mostly specific to turtle
-        # for i, pos_0 in enumerate(self._positions):
-        for k, v in action.items():
-            i = int(k.split('_')[-1])
-            pos_0 = self._positions[i]
-            change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
-            change = change or change_i
-            self._positions[i] = pos
-
-        return change, self._positions
+        super().reset(dims, prob, **kwargs)
+    
+    def update(self):
+        raise NotImplementedError("This must be overriden by a child class")
 
     def render(self, lvl_image, tile_size=16, border_size=None):
 
@@ -465,13 +457,13 @@ class MultiAgentRepresentation(RepresentationWrapper):
                                             (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image
 
-    def get_observation(self, *args, **kwargs):
+    def get_observation(self, *args, all_agents=False, **kwargs):
         # Note that this returns a dummy/meaningless position that never changes...
         base_obs = super().get_observation(*args, **kwargs)
 
         agent_name = self._active_agent
         multiagent_obs = {}
-        if agent_name is None:
+        if agent_name is None or all_agents:
             for i in range(self.n_agents):
                 obs_i = base_obs.copy()
                 obs_i['pos'] = self._positions[i]
@@ -483,9 +475,92 @@ class MultiAgentRepresentation(RepresentationWrapper):
             return multiagent_obs
             # base_obs['pos'] = self._positions[int(agent_name.split('_')[-1])]
             # return base_obs
-
+    
     def set_active_agent(self, agent_name):
         self._active_agent = agent_name
+
+
+class MultiAgentTurtleRepresentation(MultiAgentWrapper):
+    def __init__(self, rep, **kwargs):
+        super().__init__(rep, **kwargs)
+
+    def reset(self, dims, prob, **kwargs):
+        super().reset(dims, prob, **kwargs)
+        self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
+        self.heatmaps = np.zeros((self.n_agents, 16, 16))
+
+    def update(self, action):
+        change = False
+
+        # FIXME: mostly specific to turtle
+        # for i, pos_0 in enumerate(self._positions):
+        for k, v in action.items():
+            i = int(k.split('_')[-1])
+            pos_0 = self._positions[i]
+            change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
+            if change_i:
+                y, x = pos_0[1], pos_0[0]
+                self.heatmaps[i][y][x] += 1
+            change = change or change_i
+            self._positions[i] = pos
+
+        return change, self._positions
+
+    def get_positions(self):
+        return self._positions
+
+class MultiAgentNarrowRepresentation(MultiAgentWrapper):
+    
+    def __init__(self, rep, **kwargs):
+        super().__init__(rep, **kwargs)
+        self.heatmaps = np.zeros((self.n_agents, 16, 16))
+
+    def reset(self, dims, prob, **kwargs):
+        self.rep.reset(dims, prob, **kwargs)
+        self.coords = self.get_act_coords()
+        self._n_steps = {i: i for i in range(self.n_agents)}
+        self._positions = np.array([self.coords[i] for i in range(self.n_agents)])
+        #self._positions = {i: self.coords[i] for i in range(self.n_agents)}
+
+    def update(self, action):
+        change = False
+        for agent, act in action.items():
+            i = int(agent.split('_')[-1])
+            self.rep.n_step = self._n_steps[i]
+            self.rep._pos = tuple(self.coords[self.n_step])
+            change_i, _ = self.rep.update(act)
+            self._n_steps[i] += 1
+            if self._n_steps[i] == len(self.coords):
+                self._n_steps[i] = 0
+            if change_i:
+                y, x = self.rep._pos[1], self.rep._pos[0]
+                self.heatmaps[i][y][x] += 1
+            self._positions[i] = self.coords[self._n_steps[i]]
+            change = change or change_i
+        return change, self.get_positions()
+
+    def get_positions(self):
+        return self._positions
+
+class MultiAgentWideRepresentation(MultiAgentWrapper):
+    
+    def __init__(self, rep, **kwargs):
+        super().__init__(rep, **kwargs)
+
+    def reset(self, dims, prob, **kwargs):
+        self.rep.reset(dims, prob, **kwargs)
+        # store the last known positions of the agents
+        self._positions = {i: i for i in range(self.n_agents)}
+
+    def update(self, actions):
+        change = False
+        positions = []
+        for agent, act in actions.items():
+            change_i, pos = self.rep.update(act)
+            positions.append(pos)
+            change = change or change_i
+        self._positions = positions
+        return change, self._positions
 
 def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
     """Should only happen once!"""
@@ -519,11 +594,28 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
         
         else:
             rep = HoleyRepresentation(rep, **kwargs)
-
-    if kwargs.get("multiagent")['n_agents'] != 0:
-        if not issubclass(type(rep), TurtleRepresentation):
+    
+    try:
+        n_agents = kwargs.get('multiagent')['n_agents']
+    except TypeError:
+        n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+    #if isinstance(kwargs.get('multiagent'), str):
+    #    kwargs['multiagent'] = json.loads(kwargs.get('multiagent').replace('\'', '\"'))
+    #    #import pdb; pdb.set_trace()
+    #if not isinstance(multiagent_config, int):
+    #    import pdb; pdb.set_trace()
+    if n_agents != 0:
+        #if kwargs.get("multiagent")['n_agents'] != 0:
+        if issubclass(type(rep), TurtleRepresentation):
+            rep = MultiAgentTurtleRepresentation(rep, **kwargs)
+        elif issubclass(type(rep), NarrowRepresentation):
+            rep = MultiAgentNarrowRepresentation(rep, **kwargs)
+            pass
+        elif issubclass(type(rep), WideRepresentation):
+            rep = MultiAgentWideRepresentation(rep, **kwargs)
+        else:
             raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
-        rep = MultiAgentRepresentation(rep, **kwargs)
+
 
     return rep
     

@@ -32,6 +32,15 @@ class BinaryPathConfig(ProblemConfig):
     name: str = 'binary'
     # Regions weight will be 0 by default.
     weights: Dict[str, int] = field(default_factory = lambda: ({
+    #    'player': 1,
+    #    'create': 1,
+    #    'target': 1,
+    #    'regions': 1,
+    #    'ratio': 1,
+    #    'dist-win': 1,
+    #    'sol-length': 2
+
+
         'path-length': 100,
     }))
 
@@ -51,6 +60,8 @@ class BinaryControlConfig(ProblemConfig):
 @dataclass
 class MultiagentConfig:
     n_agents: int = MISSING
+    # valid values: (shared, independent, JSON string)
+    policies: str = "centralized"  # use shared weights by default
 
 
 @dataclass
@@ -107,6 +118,7 @@ class ControlPCGRLConfig:
     multiagent: MultiagentConfig = MISSING
     problem: ProblemConfig = MISSING
 
+    algorithm: str = 'PPO'
     debug: bool = False
     render: bool = False
     infer: bool = False
@@ -117,6 +129,7 @@ class ControlPCGRLConfig:
 
     exp_id: str = '0'
     representation: str = 'turtle'
+    show_agents: bool = False
     learning_rate: float = 5e-6
     gamma: float = 0.99
     map_shape: List[Any] = field(default_factory=lambda: 

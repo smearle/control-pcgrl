@@ -40,8 +40,11 @@ class StatsCallbacks(DefaultCallbacks):
                 f'{k}-trg': None,
             })
         for k in env.metrics:
+            if k == 'solution':
+                continue
             episode.hist_data.update({f'{k}-val': None,
         })
+
         if self.holey:
             episode.hist_data.update({
                 'holes_start': None,
@@ -88,13 +91,15 @@ class StatsCallbacks(DefaultCallbacks):
         #     'path-length': np.mean(path_lengths),
         # }
         env = base_env.get_sub_environments()[env_index]
-        episode_stats = env.unwrapped._rep_stats
+        unwrapped = env._unwrapped if hasattr(env, '_unwrapped') else env.unwrapped
+        episode_stats = unwrapped._rep_stats
         
 
         # stats_list = ['regions', 'connectivity', 'path-length']
         # write to tensorboard file (if enabled)
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items()})
-        episode.custom_metrics.update({k: [v] for k, v in episode_stats.items()})
+        episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k != 'solution'})
+        
 
         # TODO: log ctrl targets and success rate as heatmap: x is timestep, y is ctrl target, heatmap is success rate
 
@@ -104,12 +109,17 @@ class StatsCallbacks(DefaultCallbacks):
                 f'{k}-trg': [env.metric_trgs[k]],  # rllib needs these values to be lists :)
             })
         for k in env.metrics:
+            # avoid adding non-numeric values
+            #if isinstance(env.metrics[k], int) or isinstance(env.metrics[k], float):
+            if k == 'solution':
+                continue
             episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
+
 
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
 
-        if hasattr(env.unwrapped._prob, '_hole_queue'):
+        if hasattr(unwrapped._prob, '_hole_queue'):
             entrance_coords, exit_coords = env.unwrapped._prob.entrance_coords, env.unwrapped._prob.exit_coords
             if len(entrance_coords.shape) == 1:
                 # Then it's 2D.
@@ -120,6 +130,6 @@ class StatsCallbacks(DefaultCallbacks):
             else:
                 # Just record the foot-room if 3D
                 episode.hist_data.update({
-                    'holes_start': [tuple(env.unwrapped._prob.entrance_coords[0])],
-                    'holes_end': [tuple(env.unwrapped._prob.exit_coords[0])],
+                    'holes_start': [tuple(unwrapped._prob.entrance_coords[0])],
+                    'holes_end': [tuple(unwrapped._prob.exit_coords[0])],
                 })

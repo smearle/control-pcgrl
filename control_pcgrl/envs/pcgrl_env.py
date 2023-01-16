@@ -1,4 +1,5 @@
 import collections
+import json
 from pdb import set_trace as TT
 import PIL
 
@@ -10,7 +11,7 @@ from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 from ray.rllib.env.env_context import EnvContext
 from ray.rllib.utils.annotations import override
 
-from control_pcgrl.envs.reps.wrappers import wrap_rep 
+from control_pcgrl.envs.reps.wrappers import wrap_rep, MultiAgentWrapper
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.problem import Problem, Problem3D
 from control_pcgrl.envs.reps import REPRESENTATIONS
@@ -45,6 +46,7 @@ class PcgrlEnv(gym.Env):
         # Attach this function to the env, since it will be different for, e.g., 3D environments.
         self.get_string_map = get_string_map
 
+        
         self._prob: Problem = PROBLEMS[prob](**kwargs)
         self._prob.init_tile_int_dict()
         self._rep_cls = REPRESENTATIONS[rep]
@@ -117,6 +119,12 @@ class PcgrlEnv(gym.Env):
             self.cur_map_idx = map_idx
             self.switch_env = True
 
+    def get_rep(self):
+        return self._rep
+
+    def get_map(self):
+        return self._rep._map
+
     def get_map_dims(self):
         return (self._prob._width, self._prob._height, self.get_num_tiles())
 
@@ -125,6 +133,9 @@ class PcgrlEnv(gym.Env):
 
     def configure(self, map_shape, **kwargs):  # , max_step=300):
         # What is this garbage??
+        if isinstance(map_shape, str):
+            map_shape = json.loads(map_shape)
+        
         self._prob._width = map_shape[0]
         self._prob._height = map_shape[1]
         self.width = map_shape[0]  #UGH 
@@ -174,6 +185,10 @@ class PcgrlEnv(gym.Env):
     def reset(self):
         self._changes = 0
         self._iteration = 0
+        # avoid default probabilities with normal distribution if we seed manually
+        if hasattr(self._prob, '_random'):
+            probs = self._prob._random.random(size=len(self._prob.get_tile_types()))
+            self._prob._prob = {tile: prob for tile, prob in zip(self._prob.get_tile_types(), probs)}
         if self.switch_env:
             self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()),
                 next_map=self._prob.eval_maps[self.cur_map_idx])
@@ -185,9 +200,14 @@ class PcgrlEnv(gym.Env):
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
         self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
+        self._prob._prob = probs
         self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
-        observation = self._rep.get_observation()
+        if issubclass(type(self._rep), MultiAgentWrapper):
+            observation = self._rep.get_observation(all_agents=True)
+        else:
+            observation = self._rep.get_observation() # all_agents parameter does not exist for representations without MultiAgentWrapper
+
         # observation["heatmap"] = self._heatmap.copy()
 
         return observation
@@ -249,6 +269,8 @@ class PcgrlEnv(gym.Env):
         else:
             max_board_scans = kwargs.get('max_board_scans', 1)
             self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
+        if isinstance(kwargs['map_shape'], str):
+            kwargs['map_shape'] = json.loads(kwargs['map_shape'])
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
@@ -257,6 +279,8 @@ class PcgrlEnv(gym.Env):
         # self.observation_space.spaces['heatmap'] = spaces.Box(
         #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 
+    def get_agent_position(self):
+        return self._rep._positions
 
     """
     Advance the environment using a specific action

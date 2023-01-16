@@ -9,6 +9,7 @@ from control_pcgrl.envs.probs.sokoban.sokoban_prob import SokobanProblem
 class SokobanCtrlProblem(SokobanProblem):
     def __init__(self):
         super(SokobanCtrlProblem, self).__init__()
+        #import pdb; pdb.set_trace()
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         # like _reward_weights but for use with ParamRew
         #       self._reward_weights = self._reward_weights
@@ -56,7 +57,7 @@ class SokobanCtrlProblem(SokobanProblem):
 
     def get_stats(self, map):
         stats = super().get_stats(map)
-        stats["sol-length"] = len(stats["solution"])
+        stats["sol-length"] = len(stats.get('solution', []))
         stats["ratio"] = abs(stats["crate"] - stats["target"])
         #       if stats['dist-win'] == self._width * self._height * (self._width + self._height):
         #           stats['dist-win'] = 0

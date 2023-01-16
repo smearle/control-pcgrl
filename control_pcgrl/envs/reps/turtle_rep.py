@@ -30,7 +30,9 @@ class TurtleRepresentation(EgocentricRepresentation):
     """
     def reset(self, dims, prob):
         self._pos = self.get_pos_at_step(dims, -1)
-        return super().reset(dims, prob)
+        ret = super().reset(dims, prob)
+        return ret
+
         # self._x = self._random.randint(width)
         # self._y = self._random.randint(height)
 #       self._x = 0
@@ -68,7 +70,7 @@ class TurtleRepresentation(EgocentricRepresentation):
     def get_action_space(self, dims, num_tiles):
         return spaces.Discrete(len(self._dirs) + num_tiles)
 
-    def update(self, action):
+    def update(self, action, pos=None):
         action, self._pos = self.update_pos(action, self._pos)
         return action, self._pos
 

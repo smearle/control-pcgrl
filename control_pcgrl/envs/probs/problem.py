@@ -55,6 +55,7 @@ class Problem(ABC):
     def get_tile_int(self, tile):
         return self._tile_int_dict[tile]
 
+
     def is_continuous(self):
         return False
 

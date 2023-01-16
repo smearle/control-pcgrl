@@ -27,6 +27,7 @@ class Representation(ABC):
         self._border_tile_index = border_tile_index
         self._empty_tile = empty_tile_index
         self._random_start: bool = True
+        self.seed_val: int = None
 
         self.seed()
 
@@ -44,6 +45,7 @@ class Representation(ABC):
         int: the used seed (same as input if not None)
     """
     def seed(self, seed=None):
+        self.seed_val = seed
         self._random, seed = seeding.np_random(seed)
         return seed
 
@@ -64,7 +66,7 @@ class Representation(ABC):
             self._map = next_map
             self._old_map = self._map.copy()
         elif self._random_start or self._old_map is None:
-            self._map = type(self).gen_random_map(self._random, dims, prob)
+            self._map = type(self).gen_random_map(self._random, dims, prob, self.seed_val)
             self._old_map = self._map.copy()
         else:
             self._map = self._old_map.copy()

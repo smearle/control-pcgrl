@@ -33,6 +33,7 @@ PROBLEMS = {
     "ddave": DDaveProblem,
     "mdungeon": MDungeonProblem,
     "sokoban": SokobanCtrlProblem,
+    #"sokoban": SokobanProblem,
     # "sokoban_ctrl": SokobanCtrlProblem,
     # "zelda": ZeldaProblem,
     "smb": SMBCtrlProblem,

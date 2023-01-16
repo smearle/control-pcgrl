@@ -1,4 +1,5 @@
 from functools import partial
+import json
 from pdb import set_trace as TT
 from typing import Iterable
 
@@ -108,7 +109,12 @@ class TransformObs(gym.Wrapper):
     """Lil' hack to transform nested observation dicts when dealing with multi-agent environments."""
     def __init__(self, *args, **kwargs):
         super().__init__(self.env)
-        if kwargs.get("multiagent")['n_agents'] != 0:
+        try:
+            n_agents = kwargs.get('multiagent')['n_agents']
+        except TypeError:
+            n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+        if n_agents != 0:
+            #if kwargs.get("multiagent")['n_agents'] != 0:
             self.transform = self._transform_multiagent
         else:
             self.transform = self._transform
@@ -161,8 +167,13 @@ class ToImage(TransformObs):
                 max_value = self.env.observation_space[n].high.max()
         self.names = names
 
+        self.show_agents = kwargs.get('show_agents', False)
+        try:
+            n_agents = kwargs['multiagent']['n_agents']
+        except:
+            n_agents = json.loads(kwargs['multiagent'].replace('\'', '\"'))['n_agents']
         self.observation_space = spaces.Box(
-            low=0, high=max_value, shape=(*self.shape[:-1], depth)
+            low=0, high=max_value if self.show_agents else max(max_value, n_agents), shape=(*self.shape[:-1], depth)
         )
 
 
@@ -184,21 +195,12 @@ class ToImage(TransformObs):
         final = np.empty([])
 
         for n in self.names:
-#           if len(self.env.observation_space.spaces[n].shape) == 3:
             if len(final.shape) == 0:
                 final = obs[n].reshape(*self.shape[:-1], -1)
             else:
                 final = np.append(
                     final, obs[n].reshape(*self.shape[:-1], -1), axis=-1
                 )
-#           else:
-#               if len(final.shape) == 0:
-#                   final = obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1)
-#               else:
-#                   final = np.append(
-#                       final, obs[n].reshape(self.shape[0], self.shape[1], self.shape[2], -1), axis=2
-#                   )
-
         return final
 
 class ToImageCA(ToImage):
@@ -254,11 +256,15 @@ class OneHotEncoding(TransformObs):
             + 1
         )
 
-        for v in shape:
-            new_shape.append(v)
-        new_shape.append(self.dim)
+        new_shape.extend(shape)
+        if len(new_shape) > 2:
+            new_shape[-1] += self.dim - 1
+        else:
+            new_shape.append(self.dim)
+        #import pdb; pdb.set_trace()
+        self.show_agents = kwargs.get('show_agents', False)
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=1, shape=new_shape, dtype=np.uint8
+            low=0, high=1 if not self.show_agents else max(1, kwargs['multiagent']['n_agents']), shape=new_shape, dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -275,16 +281,25 @@ class OneHotEncoding(TransformObs):
         return obs
 
     def _transform(self, obs):
-        old = obs[self.name]
+        named_obs = obs[self.name]
+        if self.show_agents: # if agent positions are a part of the observation, then the map observation will already have an extra dimension
+            old = named_obs[:, :, 0]
+        else:
+            old = named_obs
+
         if self.padded:
             # Replace out-of-bounds values with all-zeros.
             new = np.eye(self.dim + 1)[old]
             new = new[..., 1:]
-
         else:
             new = np.eye(self.dim)[old]
 
+        # add the agent positions back into the observation
+        if self.show_agents:
+            new = np.concatenate((new, named_obs[:, :, -1][:, :, None]), axis=-1)
+
         obs[self.name] = new
+        #import pdb; pdb.set_trace()
 
         return obs
 
@@ -390,8 +405,18 @@ class Cropped(TransformObs):
             len(self.env.observation_space.spaces[name].shape) in [2, 3]
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
-        self.shape = crop_shape
-        self.pad = crop_shape // 2
+        self.show_agents = kwargs.get('show_agents', False)
+        try:
+            self.shape = np.array(list(crop_shape))
+            self.pad = crop_shape // 2
+        except TypeError:
+            #import pdb; pdb.set_trace()
+            self.shape = np.array(json.loads(str(crop_shape)))
+            self.pad = self.shape // 2
+        if self.show_agents:
+            self.shape.append(2) # add extra two channels for the positions
+        self.shape = np.array(self.shape)
+        #self.pad = crop_shape // 2
         self.pad_value = pad_value
 
         self.observation_space = gym.spaces.Dict({})
@@ -400,7 +425,7 @@ class Cropped(TransformObs):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value, shape=tuple(crop_shape), dtype=np.uint8
+            low=0, high=high_value if not self.show_agents else max(high_value, kwargs['multiagent']['n_agents']), shape=tuple(self.shape), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -422,13 +447,32 @@ class Cropped(TransformObs):
         # x, y = obs["pos"]
         pos = obs['pos']
 
-        # View Centering
-        # padded = np.pad(map, self.pad, constant_values=self.pad_value)
+        # View Padding
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
-        # cropped = padded[x : x + self.size, y : y + self.size]
 
         # Compensate for the bottom-left padding.
+        # View Centering
         cropped = padded[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+
+        # if show positions is turned on: add an extra channel that shows agent positions
+        # NOTE: Wide representaion cannot use this, since positions are not stored in representation
+        if self.show_agents:
+            #import pdb; pdb.set_trace()
+            #map_expanded = map[:, :, None]
+            agent_positions = self.unwrapped.get_agent_position()
+            agent_positions_map = np.zeros(map.shape)
+            for i, pos in enumerate(agent_positions):
+                agent_positions_map[tuple(pos)] = i + 1
+            #agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
+            # view padding
+            padded_positions = np.pad(agent_positions_map, self.pad, constant_values=0)
+
+            # view centering
+            cropped_positions = padded_positions[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+
+            cropped = np.concatenate((cropped[:, :, None], cropped_positions[:, :, None]), axis=-1).astype(np.uint8)
+
+        #import pdb; pdb.set_trace()
         obs[self.name] = cropped
 
         return obs
@@ -693,13 +737,50 @@ class RCTWrapper(gym.Wrapper):
 
 
 # TODO
+
+def disable_passive_env_checker(env):
+    # remove the passive environment checker wrapper from the env attribute of an env
+    # base case -> the environment is not a wrapper
+    if not hasattr(env, 'env'):
+        return env
+
+    root = env
+    prev = env 
+    while hasattr(prev, 'env'):
+        next_ = prev.env
+        if isinstance(next_, gym.wrappers.env_checker.PassiveEnvChecker):
+            prev.env = next_.env
+        prev = next_
+            
+    return root
+
+"""
+gym wrappers do not allow for consistent seeding
+add a seed method to each wrapper
+"""
+#def seedify(env):
+#    def seed(self, s):
+#        print(self)
+#        return self.env.seed(s)
+#    
+#    root = env
+#    curr = env
+#    while hasattr(curr, 'env'):
+#        type(curr).seed = seed
+#        curr = curr.env
+#    return root
+
+
 class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def __init__(self, game, **kwargs):
         multiagent_args = kwargs.get('multiagent')
-        self.env = game
+        self.env = disable_passive_env_checker(game) # DISABLE GYM PASSIVE ENVIRONMENT CHECKER
         gym.Wrapper.__init__(self, self.env)
         MultiAgentEnv.__init__(self.env)
-        self.n_agents = multiagent_args.get('n_agents', 2)
+        try:
+            self.n_agents = multiagent_args.get('n_agents', 2)
+        except AttributeError:
+            self.n_agents = json.loads(multiagent_args.replace('\'', '\"'))['n_agents']
         self.observation_space = gym.spaces.Dict({})
         self.action_space = gym.spaces.Dict({})
         for i in range(self.n_agents):
@@ -713,26 +794,51 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
         obs = super().reset()
         return obs
 
+    def seed(self, s):
+        return self.unwrapped.seed(s)
+
     def step(self, action):
         # print(f"Step:")
         # print(f"Action: {action}")
         obs, rew, done, info = {}, {}, {}, {}
+
         for k, v in action.items():
             self.unwrapped._rep.set_active_agent(k)
             obs_k, rew[k], done[k], info[k] = super().step(action={k: v})
             obs.update(obs_k)
-        # rew = {f'agent_{i}': rew for i in range(self.n_agents)}
-        # done = {f'agent_{i}': done for i in range(self.n_agents)}
         done['__all__'] = np.all(list(done.values()))
-        # info = {f'agent_{i}': info for i in range(self.n_agents)}
-
-        # for i in range(self.n_agents):
-        #     act_i = action[f'agent_{i}']
-        #     print(act_i)
-        #     obs_i, rew_i, done_i, info_i = super().step(act_i, **kwargs)
-        #     obs.update({f'agent_{i}': obs_i})
-        #     rew.update({f'agent_{i}': rew_i})
-        #     done.update({f'agent_{i}': done_i})
-        #     info.update({f'agent_{i}': info_i})
 
         return obs, rew, done, info
+
+
+class GroupedEnvironmentWrapper(MultiAgentEnv):
+    def __init__(self, env, **kwargs):
+        #import pdb; pdb.set_trace()
+        MultiAgentEnv.__init__(self)
+        #gym.Wrapper.__init__(self, env.env)
+        self.env = env
+        self.groups = self.env.groups
+        self.agent_id_to_group = self.env.agent_id_to_group
+        self._unwrapped = self.env.env.unwrapped
+        #self.thing = 5
+        #super().__init__(env) # inherit the attributes of the base environment
+        #self.env = env
+        self.observation_space = self.env.observation_space
+        self.action_space = self.env.action_space
+        self.ctrl_metrics = self.env.env.ctrl_metrics
+        self.metrics = self.env.env.metrics
+
+    def reset(self):
+        return self.env.reset()
+
+    def step(self, actions):
+        return self.env.step(actions)
+
+    def _ungroup_items(self, items):
+        return self.env._ungroup_items(items)
+    
+    def _group_items(self, items):
+        return self.env._group_items(items)
+
+
+
