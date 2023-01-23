@@ -7,6 +7,7 @@ defaults:
   - override hydra/launcher: submitit_slurm
 
 hydra:
+  verbose: true
   sweeper:
     params:
       #exp_id: 0, 1, 2

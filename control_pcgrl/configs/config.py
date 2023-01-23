@@ -18,6 +18,7 @@ class SeqNCAConfig(ModelConfig):
     name: str = "SeqNCA"
     conv_filters: int = 64    
     fc_size: int = 64
+    patch_width: int = 3
 
 @dataclass
 class ProblemConfig:
@@ -85,16 +86,16 @@ class SharedPolicyConfig(MultiagentConfig):
 class HardwareConfig:
     n_cpu: int = MISSING
     n_gpu: int = MISSING
-    num_envs_per_worker: int = 10
+    num_envs_per_worker: int = 60
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
-    n_cpu: int = 1
-    n_gpu: int = 0
+    n_cpu: int = 12
+    n_gpu: int = 1
 
 @dataclass
 class RemoteHardwareConfig(HardwareConfig):
-    n_cpu: int = 1
+    n_cpu: int = 12
     n_gpu: int = 1
 
 

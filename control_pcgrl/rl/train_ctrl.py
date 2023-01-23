@@ -51,6 +51,7 @@ from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
+from rllib_inference import get_best_checkpoint
 
 # Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
 MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
@@ -93,12 +94,11 @@ def main(cfg: ControlPCGRLConfig) -> None:
     cfg.env_name = get_env_name(cfg.problem.name, cfg.representation)
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
-    exp_name_id = f'{exp_name}_{cfg.exp_id}'
     default_dir = os.path.join(PROJ_DIR, 'rl_runs')
     cfg.log_dir = log_dir = os.path.join(
             cfg.log_dir if cfg.log_dir is not None else default_dir,
             cfg.algorithm,
-            f'{exp_name_id}_log'
+            f'{exp_name}_log'
         )
 
     if not cfg.load:
@@ -115,10 +115,10 @@ def main(cfg: ControlPCGRLConfig) -> None:
         # Try to overwrite the saved directory.
     if cfg.overwrite:
         if not os.path.exists(log_dir):
-            print(f"Log directory rl_runs/{exp_name_id} does not exist. Will create new directory.")
+            print(f"Log directory rl_runs/{exp_name} does not exist. Will create new directory.")
         else:
             # Overwrite the log directory.
-            print(f"Overwriting log directory rl_runs/{exp_name_id}")
+            print(f"Overwriting log directory rl_runs/{exp_name}")
             shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir, exist_ok=True)
 
@@ -257,7 +257,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
             # FIXME: The name of this config arg seems to have changed in rllib?
             # 'record_env': log_dir if cfg.record_env else None,
         })
-        trainer = PPOTrainer(env='pcgrl', config=trainer_config)
+        # trainer = PPOTrainer(env='pcgrl', config=trainer_config)
+        trainer = get_best_checkpoint(cfg.log_dir, cfg)
 
         if cfg.load:
             with open(checkpoint_path_file, 'r') as f:
@@ -313,8 +314,8 @@ def main(cfg: ControlPCGRLConfig) -> None:
     # loggers_dict = {'loggers': [CustomWandbLogger]} if cfg.wandb else {}
     callbacks_dict = {'callbacks': [WandbLoggerCallback(
         project="PCGRL_AIIDE_0",
-        name=exp_name_id,
-        id=exp_name_id,
+        name=exp_name,
+        id=exp_name,
     )]} if cfg.wandb else {}
 
     try:

@@ -142,9 +142,10 @@ class SeqNCA(TorchModelV2, nn.Module):
         # self.n_aux_chan = n_aux_chan
         self.conv_filters = conv_filters
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        obs_shape = (32, 32, 3)
-        #obs_shape = obs_space.shape
+        # obs_shape = (32, 32, 3)
+        obs_shape = obs_space.shape
         self.obs_shape = obs_shape
+        breakpoint()
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
         # obs_shape = orig_obs_space['map'].shape
         # metrics_size = orig_obs_space['ctrl_metrics'].shape \
@@ -159,10 +160,13 @@ class SeqNCA(TorchModelV2, nn.Module):
         # self.conv_1 = nn.Conv2d(obs_shape[-1] + n_aux_chan, out_channels=conv_filters + n_aux_chan, kernel_size=3, stride=1, padding=0)
         self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
 
+        self.patch_width = model_config['custom_model_config']['patch_width']
+        pw = self.patch_width is self.patch_width is not None else 
+
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
         self.action_branch = nn.Sequential(
             # SlimFC(3 * 3 * conv_filters + metrics_size, self.fc_size),
-            SlimFC(3 * 3 * conv_filters, self.fc_size),
+            SlimFC( * 3 * conv_filters, self.fc_size),
             nn.ReLU(),
             SlimFC(self.fc_size, num_outputs),)
         self.value_branch = nn.Sequential(
@@ -184,11 +188,26 @@ class SeqNCA(TorchModelV2, nn.Module):
             input_dict['obs'].size(0),
             *self.obs_shape
         )
-        input = input_dict['obs'].permute(0, 3, 1, 2)
+        # input = input_dict['obs'].permute(0, 3, 1, 2)
+        input = rearrange(input_dict['obs'], 'b h w c -> b c h w')
+
         # input = th.cat([input, self._last_aux_activ], dim=1)
         x = nn.functional.relu(self.conv_1(input.float()))
         #NOTE: assuming that the input is padded, and centered at the agent!
-        x_act = x[:, :, x.shape[2] // 2 - 1: x.shape[2] // 2 + 2, x.shape[3] // 2 - 1: x.shape[3] // 2 + 2].reshape(x.size(0), -1)
+        patch_width = self.patch_width
+        if patch_width == -1:
+            x_act = x
+        else:
+            if patch_width % 2 == 0:
+                lw = rw = patch_width // 2
+            else:
+                lw = (patch_width - 1) // 2
+                rw = lw + 1
+            x_act = x[:, :, x.shape[2] // 2 - lw: x.shape[2] // 2 + rw, x.shape[3] // 2 - lw: x.shape[3] // 2 + rw]
+        # x_act = x[:, :, x.shape[2] // 2 - 1: x.shape[2] // 2 + rw + 2, x.shape[3] // 2 - 1: x.shape[3] // 2 + 2]  # for patch_width=3
+        x_act = x_act.reshape(x_act.size(0), -1)
+        breakpoint()
+
         x = x.reshape(x.size(0), -1)
 
         # input = input_dict['obs']
@@ -485,7 +504,10 @@ class NCA(TorchModelV2, nn.Module):
 
     def forward(self, input_dict, state, seq_lens):
         x0 = input_dict["obs"].permute(0, 3, 1, 2)  # Because rllib order tensors the tensorflow way (channel last)
+
+        # FIXME: Shouldn't have to try moving indices to device at each pass
         x = th.cat([x0, th.tile(self.indices.to(device=x0.device), (x0.shape[0], 1, 1, 1))], dim=1)
+
         x = self.l1(x)
         x = th.relu(x)
         x = self.l2(x)
