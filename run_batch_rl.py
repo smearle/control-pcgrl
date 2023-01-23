@@ -136,7 +136,6 @@ def launch_batch(collect_params=False):
             # get the experiment name to name the config file
             # config_name = f"{prob}_{rep}_{exp_name}"
             config_name = get_exp_name(exp_prob_cfg)
-            config_name += f"_{exp_prob_cfg.exp_id}"
             # Edit the sbatch file to load the correct config file
             if not opts.render:
                 if  not LOCAL:

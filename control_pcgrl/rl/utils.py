@@ -231,47 +231,52 @@ def get_exp_name(cfg: ControlPCGRLConfig):
     exp_name += '/'
 
     if cfg.model.name is not None:
-        exp_name += cfg.model.name
+        exp_name += cfg.model.name + '_'
 
     if cfg.controls is not None:
-        exp_name += "_" + "-".join(["ctrl"] + cfg.controls)
+        exp_name += "" + "-".join(["ctrl"] + cfg.controls + '_')
     
     if cfg.change_percentage is not None:
-        exp_name += "_chng-{}".format(cfg.change_percentage)
+        exp_name += "chng-{}_".format(cfg.change_percentage)
 
     if cfg.max_board_scans != 1:
-        exp_name += "_{}-scans".format(cfg.max_board_scans)
+        exp_name += "{}-scans_".format(cfg.max_board_scans)
 
     if hasattr(cfg, "midep_trgs") and cfg.midep_trgs:
-        exp_name += "_midEpTrgs"
+        exp_name += "midEpTrgs_"
 
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
-        exp_name += "_ALPGMM"    
+        exp_name += "ALPGMM_"  
 
     if cfg.multiagent.n_agents != 0:
-        exp_name += f"_{cfg.multiagent['n_agents']}-player"
+        exp_name += f"{cfg.multiagent['n_agents']}-player_"
 
     # TODO: Can have subdirectories for given settings of a given model type.
     if cfg.model.name is not None:
-        exp_name += f"_{cfg.model.conv_filters}-convSz" if cfg.model.conv_filters != 64 else ""
-        exp_name += f"_{cfg.model.fc_size}-fcSz" if cfg.model.fc_size != 64 and cfg.model.name != 'NCA' else ""
+        exp_name += f"{cfg.model.conv_filters}-convSz_" if cfg.model.conv_filters != 64 else ""
+        exp_name += f"{cfg.model.fc_size}-fcSz_" if cfg.model.fc_size != 64 and cfg.model.name != 'NCA' else ""
+
+    if cfg.model.name == 'SeqNCA':
+        exp_name += f"pw-{cfg.model.patch_width}_"
 
     if cfg.n_aux_tiles > 0:
-        exp_name += f"_{cfg.n_aux_tiles}-aux"
+        exp_name += f"{cfg.n_aux_tiles}-aux_"
 
     if cfg.static_prob is not None:
-        exp_name += f"_{cfg.static_prob}-static"
+        exp_name += f"{cfg.static_prob}-static_"
     
     if cfg.learning_rate:
-        exp_name += f"_lr-{cfg.learning_rate:.1e}"
+        exp_name += f"lr-{cfg.learning_rate:.1e}_"
     
     if cfg.observation_size is not None:
-        exp_name += f"_obs-{cfg.observation_size}"
+        exp_name += f"obs-{cfg.observation_size}_"
 
     # Can't control `n_frame`, but if we did, wouldn't want to have this in experiment name in case we watned to extent
     # training later.
     # if cfg.n_frame is not None:
     #     exp_name += f"_nframe-{cfg.n_frame}"
+
+    exp_name += f"{cfg.exp_id}"
 
     return exp_name
 
