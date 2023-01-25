@@ -2120,7 +2120,7 @@ class EvoPCGRL:
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
         self.env = ControlWrapper(self.env, problem={"weights": {}})
-        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0, evaluation_env=False)
+        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0, evaluation_env=False, multiagent={"n_agents": 0}, action_size=None)
         self.env.unwrapped._get_stats_on_step = False
 
 #       if CMAES:
