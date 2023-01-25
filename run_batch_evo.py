@@ -325,7 +325,7 @@ if __name__ == "__main__":
     RENDER_LEVELS = args.render_levels
 
     if args.cross_eval or args.gif:
-        from evo.cross_eval import compile_results
+        from control_pcgrl.evo.cross_eval import compile_results
         settings_list = launch_batch(args, EXP_NAME, collect_params=True)
     if args.cross_eval:
         compile_results(settings_list, tex=args.tex)
