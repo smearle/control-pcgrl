@@ -15,8 +15,8 @@ import re
 from pdb import set_trace as TT
 from typing import List
 
-from evo.args import get_exp_name
-from evo.render_gifs import render_gifs
+from control_pcgrl.evo.args import get_exp_name
+from control_pcgrl.evo.render_gifs import render_gifs
 
 
 GECCO_CROSS_EVAL = False
@@ -197,16 +197,16 @@ def launch_batch(args, exp_name, collect_params=False):
 
             # Edit the sbatch file to load the correct config file
             if EVALUATE:
-                script_name = "evo/eval.sh"
+                script_name = "control_pcgrl/evo/eval.sh"
             else:
-                script_name = "evo/train.sh"
+                script_name = "control_pcgrl/evo/train.sh"
             with open(script_name, "r") as f:
                 content = f.read()
 
                 # Replace the ``python scriptname --cl_args`` line.
                 new_content = re.sub(
-                    "python evo/evolve.py -la \d+",
-                    f"python evo/evolve.py -la {i}",
+                    "python3 control_pcgrl/evo/evolve.py -la \d+",
+                    f"python3 control_pcgrl/evo/evolve.py -la {i}",
                     content,
                 )
 
@@ -223,7 +223,7 @@ def launch_batch(args, exp_name, collect_params=False):
             if collect_params:
                 settings_list.append(exp_config)
             elif LOCAL:
-                os.system("python evo/evolve.py -la {}".format(i))
+                os.system("python3 control_pcgrl/evo/evolve.py -la {}".format(i))
                 # Turned off for mid-training evals
 #                                           os.system("ray stop")
             else:
