@@ -1,6 +1,7 @@
 # TODO: separate requirements for evo/rl (while ensuring they do not conflict).
 # under the gcc verison of: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0 (Tirona) ; python 3.10
 
+chardet       # something is missing this to import name 'COMMON_SAFE_ASCII_CHARACTERS'
 deap
 dm-tree        # rllib dependency
 einops
@@ -8,9 +9,10 @@ graphviz
 gym==0.26.2
 # gym==0.21.0   
 # gym==0.19.0     # minerl will require 0.19.0
-hydra-core==1.2.0
-hydra-core-submitit
+# hydra-core==1.2.0             # hydra stuff will be handled by setup.sh, (need --upgrade flag to install)
+# # hydra-core-submitit
 imageio
+lz4                 # for hydra
 neat-python
 numba
 numpy==1.23.4
@@ -25,7 +27,7 @@ pyscreenshot
 ribs
 seaborn
 scikit-image
-submitit
+# submitit
 tensorboard
 tensorboardX      # for having the tensorboard logging (rllib use this to write the logging!)
 torchinfo

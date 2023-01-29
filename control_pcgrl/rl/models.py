@@ -161,7 +161,7 @@ class SeqNCA(TorchModelV2, nn.Module):
         self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
 
         self.patch_width = model_config['custom_model_config']['patch_width']
-        pw = self.patch_width is self.patch_width is not None else 
+        pw = self.patch_width if self.patch_width is not None else 3
 
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
         self.action_branch = nn.Sequential(

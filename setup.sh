@@ -1,5 +1,6 @@
 python -m pip install -r requirements.txt
-python -m pip install -e gym_pcgrl
+# python -m pip install -e gym_pcgrl
+python -m pip install -e .
 
 # NOTE: only need this for evolving diverse generators, not RL.
 python -m pip install -e submodules/qdpy
