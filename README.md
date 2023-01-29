@@ -14,7 +14,7 @@ train_pcgrl -m +experiment=learning_rates
 ``` 
 will conduct a hyperparameter sweep over learning rates as defined in `learning_rates.yaml`
 
-This multirun will laumch on SLURM by default. This can be changed in `config.yaml` or by adding `+hydra.launcher=submitit_local` to the command line.
+This multirun will launch on SLURM by default. This can be changed in `config.yaml` or by adding `+hydra.launcher=submitit_local` to the command line.
 
 ***END NOTE!!!***
 

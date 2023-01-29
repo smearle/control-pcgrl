@@ -7,7 +7,7 @@ hydra:
       model.conv_filters: 128, 256
       model.fc_size: 128, 256
       model.patch_width: 3, 5, 7, -1
-      # multiagent.n_agents: 0, 2, 3, 4
+      multiagent.n_agents: 0, 2, 3, 4
 
-multiagent.n_agents: 0
-model: seqnca
+# multiagent.n_agents: 0
+      model: seqnca
