@@ -353,6 +353,7 @@ class ControlWrapper(gym.Wrapper):
             N = 100
             start_time = timer()
             for _ in range(N):
+                super().reset()
                 super().render(mode=mode)
             print(f'mean pyglet image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
             ###
