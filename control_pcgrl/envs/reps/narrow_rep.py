@@ -98,7 +98,7 @@ class NarrowRepresentation(EgocentricRepresentation):
         super().update(action)
         return change, self._pos
     
-    def update_state(self, action):
+    def update_state(self, action):        # ZJ: why do we need this?
         return self.update(action)
 
     # """

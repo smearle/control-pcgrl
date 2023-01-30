@@ -143,7 +143,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     ModelCatalog.register_custom_model("custom_model", model_cls)
 
     # If n_cpu is 0 or 1, we only use the local rllib worker. Specifying n_cpu > 1 results in use of remote workers.
-    num_workers = num_workers = 0 if cfg.hardware.n_cpu == 1 else cfg.hardware.n_cpu
+    num_workers = 0 if cfg.hardware.n_cpu == 1 else cfg.hardware.n_cpu
     stats_callbacks = partial(StatsCallbacks, cfg=cfg)
 
     dummy_cfg = copy.copy(cfg)
@@ -182,7 +182,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
     # FIXME: nope
     num_envs_per_worker = cfg.hardware.num_envs_per_worker if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
-    eval_num_workers = eval_num_workers = num_workers if cfg.evaluate else 0
+    eval_num_workers = num_workers if cfg.evaluate else 0
     model_cfg = {**cfg.model}
 
     # rllib will pass its own `name`
@@ -226,7 +226,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
         multiagent_config = {}
 
     # The rllib trainer config (see the docs here: https://docs.ray.io/en/latest/rllib/rllib-training.html)
-    num_workers = num_workers if not (cfg.evaluate or cfg.infer) else 1
+    num_workers = num_workers if not (cfg.evaluate or cfg.infer) else 1 #
     trainer_config = TrainerConfigParsers[cfg.algorithm](
                         cfg,
                         agent_obs_space,
@@ -317,6 +317,7 @@ def main(cfg: ControlPCGRLConfig) -> None:
         name=exp_name,
         id=exp_name,
     )]} if cfg.wandb else {}
+    breakpoint()
 
     try:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?

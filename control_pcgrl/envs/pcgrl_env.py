@@ -119,10 +119,10 @@ class PcgrlEnv(gym.Env):
             self.cur_map_idx = map_idx
             self.switch_env = True
 
-    def get_rep(self):
+    def get_rep(self):       # ZJ: why do we need this?
         return self._rep
 
-    def get_map(self):
+    def get_map(self):      # ZJ: why not use self._get_rep_map()?
         return self._rep._map
 
     def get_map_dims(self):
@@ -133,6 +133,7 @@ class PcgrlEnv(gym.Env):
 
     def configure(self, map_shape, **kwargs):  # , max_step=300):
         # What is this garbage??
+        # ZJ: I think map_shape comes as a list? why do we need to check if it is a string?
         if isinstance(map_shape, str):
             map_shape = json.loads(map_shape)
         
