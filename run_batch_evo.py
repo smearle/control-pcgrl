@@ -15,8 +15,8 @@ import re
 from pdb import set_trace as TT
 from typing import List
 
-from evo.args import get_exp_name
-from evo.render_gifs import render_gifs
+from control_pcgrl.evo.args import get_exp_name
+from control_pcgrl.evo.render_gifs import render_gifs
 
 
 GECCO_CROSS_EVAL = False
@@ -146,7 +146,7 @@ def launch_batch(args, exp_name, collect_params=False):
                     "model": model,
                     "multi_thread": not args.single_thread,
                     "n_aux_chan": n_aux_chan,
-                    "n_generations": 1000000,
+                    "n_generations": args.n_generations,
                     "n_init_states": n_init_states,
                     "n_steps": n_steps,
                     "problem": prob,
@@ -156,6 +156,7 @@ def launch_batch(args, exp_name, collect_params=False):
                     "step_size": step_size,
                     "render": args.render,
                     "n_cpu": args.n_cpu,
+                    "render_profiling": args.render_profiling
                 }
             )
             if args.render:
@@ -197,16 +198,16 @@ def launch_batch(args, exp_name, collect_params=False):
 
             # Edit the sbatch file to load the correct config file
             if EVALUATE:
-                script_name = "evo/eval.sh"
+                script_name = "control_pcgrl/evo/eval.sh"
             else:
-                script_name = "evo/train.sh"
+                script_name = "control_pcgrl/evo/train.sh"
             with open(script_name, "r") as f:
                 content = f.read()
 
                 # Replace the ``python scriptname --cl_args`` line.
                 new_content = re.sub(
-                    "python evo/evolve.py -la \d+",
-                    f"python evo/evolve.py -la {i}",
+                    "python3 control_pcgrl/evo/evolve.py -la \d+",
+                    f"python3 control_pcgrl/evo/evolve.py -la {i}",
                     content,
                 )
 
@@ -223,7 +224,7 @@ def launch_batch(args, exp_name, collect_params=False):
             if collect_params:
                 settings_list.append(exp_config)
             elif LOCAL:
-                os.system("python evo/evolve.py -la {}".format(i))
+                os.system("python3 control_pcgrl/evo/evolve.py -la {}".format(i))
                 # Turned off for mid-training evals
 #                                           os.system("ray stop")
             else:
@@ -302,6 +303,20 @@ if __name__ == "__main__":
         type=int,
         default=None,
     )
+
+    opts.add_argument(
+        "--n_generations",
+        type=int,
+        default=50000,
+        help="For QD optimization - how many iterations will it take to come up with the final archive of solutions (the last generation)."
+    )
+
+    opts.add_argument(
+        "--render_profiling",
+        action="store_true",
+        help="If true, you will get see how long on average it takes to render given level. Slows down the evaluation procedure."
+    )
+
     opts.add_argument('-i', '--infer', action='store_true')
 #   opts.add_argument(
 #       "-ss",
@@ -317,7 +332,7 @@ if __name__ == "__main__":
     RENDER_LEVELS = args.render_levels
 
     if args.cross_eval or args.gif:
-        from evo.cross_eval import compile_results
+        from control_pcgrl.evo.cross_eval import compile_results
         settings_list = launch_batch(args, EXP_NAME, collect_params=True)
     if args.cross_eval:
         compile_results(settings_list, tex=args.tex)

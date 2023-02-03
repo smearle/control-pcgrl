@@ -311,7 +311,7 @@ class ControlWrapper(gym.Wrapper):
         # print("step: ", self.n_step, " done: ", done, " reward: ", reward, " action: ", action, " metrics: ", self.metrics)
         return ob, reward, done, info
 
-    def render(self, mode='human'):
+    def render(self, mode='human', **kwargs):
         if mode == 'human':
             if self.win is None:
                 self._init_gui()
@@ -350,12 +350,14 @@ class ControlWrapper(gym.Wrapper):
 
         else:
             ### PROFILING
-            N = 100
-            start_time = timer()
-            for _ in range(N):
-                super().render(mode=mode)
-            print(f'mean pyglet image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
-            ###
+            if kwargs.get("render_profiling"):
+                N = 100
+                start_time = timer()
+                for _ in range(N):
+                    super().reset()
+                    super().render(mode=mode)
+                print(f'mean pyglet image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+ 
             return super().render(mode=mode)
 
     def get_cond_trgs(self):

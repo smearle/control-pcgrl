@@ -9,7 +9,7 @@ import pandas as pd
 import pingouin as pg
 import scipy.stats
 
-from evo.args import get_args, get_exp_dir, get_exp_name
+from control_pcgrl.evo.args import get_args, get_exp_dir, get_exp_name
 from tex_formatting import align, newline, pandas_to_latex
 from matplotlib import pyplot as plt
 

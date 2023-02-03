@@ -152,7 +152,8 @@ def save_grid(csv_name="levels", d=4):
     env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
     # create env
     env = gym.make(env_name)
-    env = ControlWrapper(env)
+    env = ControlWrapper(env, problem={"weights": {}})
+    env.reset()
     map_width = env.unwrapped._prob._width
     map_height = env.unwrapped._prob._height
     if ENV3D:
@@ -223,7 +224,7 @@ def save_grid(csv_name="levels", d=4):
             env.unwrapped._rep.unwrapped._map = level
 
             # TODO: this won't work for minecraft! Find a workaround?
-            img = env.render(mode="rgb_array")
+            img = env.render(mode="rgb_array", render_profiling=RENDER_PROFILING)
 
 #           axs[row_num, col_num].imshow(img, aspect="auto")
             axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
@@ -2119,8 +2120,8 @@ class EvoPCGRL:
 
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
         self.env = gym.make(env_name)
-        self.env = ControlWrapper(self.env)
-        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0, evaluation_env=False)
+        self.env = ControlWrapper(self.env, problem={"weights": {}})
+        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0, evaluation_env=False, multiagent={"n_agents": 0}, action_size=None)
         self.env.unwrapped._get_stats_on_step = False
 
 #       if CMAES:
@@ -3010,6 +3011,7 @@ if __name__ == "__main__":
     global N_PROC
     global ALGO
     global seed
+    global RENDER_PROFILING
 
     CONCAT_GIFS = False
     if arg_dict["exp_name"] == '5':
@@ -3081,6 +3083,10 @@ if __name__ == "__main__":
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
+    if arg_dict.get("render_profiling"):
+        RENDER_PROFILING = True
+    else:
+        RENDER_PROFILING = False
     # TODO: This is redundant. Re-use `utils.get_exp_name()`
     #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(
@@ -3181,11 +3187,7 @@ if __name__ == "__main__":
     except FileNotFoundError as e:
         if not (INFER or EVALUATE or RENDER_LEVELS):
             RENDER = arg_dict["render"]
-            print(
-                "Failed loading from an existing save-file. Evolving from scratch. The error was: {}".format(
-                    e
-                )
-            )
+            print("Failed loading from an existing save-file. Evolving from scratch.")
             writer = init_tensorboard()
             evolver = EvoPCGRL(args)
             evolver.evolve()

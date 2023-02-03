@@ -6,7 +6,7 @@ import imageio
 import numpy as np
 from PIL import Image
 
-from evo.args import get_args, get_exp_dir, get_exp_name
+from control_pcgrl.evo.args import get_args, get_exp_dir, get_exp_name
 
 RENDER_GRID = True
 
