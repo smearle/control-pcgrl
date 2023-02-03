@@ -223,7 +223,7 @@ def save_grid(csv_name="levels", d=4):
             env.unwrapped._rep.unwrapped._map = level
 
             # TODO: this won't work for minecraft! Find a workaround?
-            img = env.render(mode="rgb_array")
+            img = env.render(mode="rgb_array", render_profiling=RENDER_PROFILING)
 
 #           axs[row_num, col_num].imshow(img, aspect="auto")
             axs[-col_num-1, -row_num-1].imshow(img, aspect="auto")
@@ -3010,6 +3010,7 @@ if __name__ == "__main__":
     global N_PROC
     global ALGO
     global seed
+    global RENDER_PROFILING
 
     CONCAT_GIFS = False
     if arg_dict["exp_name"] == '5':
@@ -3081,6 +3082,10 @@ if __name__ == "__main__":
 
     SAVE_LEVELS = arg_dict["save_levels"] or EVALUATE
 
+    if arg_dict.get("render_profiling"):
+        RENDER_PROFILING = True
+    else:
+        RENDER_PROFILING = False
     # TODO: This is redundant. Re-use `utils.get_exp_name()`
     #   exp_name = 'EvoPCGRL_{}-{}_{}_{}-batch_{}-step_{}'.format(PROBLEM, REPRESENTATION, BCS, N_INIT_STATES, N_STEPS, arg_dict['exp_name'])
     #   exp_name = "EvoPCGRL_{}-{}_{}_{}_{}-batch".format(

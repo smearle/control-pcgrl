@@ -156,6 +156,7 @@ def launch_batch(args, exp_name, collect_params=False):
                     "step_size": step_size,
                     "render": args.render,
                     "n_cpu": args.n_cpu,
+                    "render_profiling": args.render_profiling
                 }
             )
             if args.render:
@@ -308,6 +309,12 @@ if __name__ == "__main__":
         type=int,
         default=50000,
         help="For QD optimization - how many iterations will it take to come up with the final archive of solutions (the last generation)."
+    )
+
+    opts.add_argument(
+        "--render_profiling",
+        action="store_true",
+        help="If true, you will get see how long on average it takes to render given level. Slows down the evaluation procedure."
     )
 
     opts.add_argument('-i', '--infer', action='store_true')

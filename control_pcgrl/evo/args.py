@@ -173,6 +173,12 @@ def get_args(load_args=None):
     )
     opts.add_argument("--mega", help="Use CMA-MEGA.", action="store_true")
 
+    opts.add_argument(
+        "--render_profiling",
+        action="store_true",
+        help="If true, you will get see how long on average it takes to render given level. Slows down the evaluation procedure."
+    )
+
     args = opts.parse_args()
     arg_dict = vars(args)
 
