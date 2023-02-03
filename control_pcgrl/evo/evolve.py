@@ -153,6 +153,7 @@ def save_grid(csv_name="levels", d=4):
     # create env
     env = gym.make(env_name)
     env = ControlWrapper(env, problem={"weights": {}})
+    env.reset()
     map_width = env.unwrapped._prob._width
     map_height = env.unwrapped._prob._height
     if ENV3D:
