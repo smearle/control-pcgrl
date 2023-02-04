@@ -341,7 +341,8 @@ def parse_ppo_config(
     ):
     num_workers = kwargs.get('num_workers', 0)
     num_envs_per_worker = kwargs.get('num_envs_per_worker', 1)
-    eval_num_workers = kwargs.get('num_workers', 0)
+    # eval_num_workers = kwargs.get('num_workers', 0)
+    eval_num_workers = num_workers if config.evaluate else 0
     
     return {
         'env': 'pcgrl',

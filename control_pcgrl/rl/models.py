@@ -126,6 +126,7 @@ class SeqNCA(TorchModelV2, nn.Module):
                  num_outputs,
                  model_config,
                  name,
+                 **kwargs,
                 #  n_aux_chan=0,
                  ):
         nn.Module.__init__(self)
@@ -145,7 +146,8 @@ class SeqNCA(TorchModelV2, nn.Module):
         # obs_shape = (32, 32, 3)
         obs_shape = obs_space.shape
         self.obs_shape = obs_shape
-        breakpoint()
+        dim = len(obs_shape[:-1])
+
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
         # obs_shape = orig_obs_space['map'].shape
         # metrics_size = orig_obs_space['ctrl_metrics'].shape \
@@ -164,11 +166,13 @@ class SeqNCA(TorchModelV2, nn.Module):
         pw = self.patch_width if self.patch_width is not None else 3
 
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
+
         self.action_branch = nn.Sequential(
             # SlimFC(3 * 3 * conv_filters + metrics_size, self.fc_size),
-            SlimFC( * 3 * conv_filters, self.fc_size),
+            SlimFC( (pw ** dim) * conv_filters, self.fc_size),
             nn.ReLU(),
             SlimFC(self.fc_size, num_outputs),)
+
         self.value_branch = nn.Sequential(
             self.fc_1,
             nn.ReLU(),
@@ -206,7 +210,6 @@ class SeqNCA(TorchModelV2, nn.Module):
             x_act = x[:, :, x.shape[2] // 2 - lw: x.shape[2] // 2 + rw, x.shape[3] // 2 - lw: x.shape[3] // 2 + rw]
         # x_act = x[:, :, x.shape[2] // 2 - 1: x.shape[2] // 2 + rw + 2, x.shape[3] // 2 - 1: x.shape[3] // 2 + 2]  # for patch_width=3
         x_act = x_act.reshape(x_act.size(0), -1)
-        breakpoint()
 
         x = x.reshape(x.size(0), -1)
 
