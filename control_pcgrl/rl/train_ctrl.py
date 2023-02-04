@@ -317,7 +317,6 @@ def main(cfg: ControlPCGRLConfig) -> None:
         name=exp_name,
         id=exp_name,
     )]} if cfg.wandb else {}
-    breakpoint()
 
     try:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?

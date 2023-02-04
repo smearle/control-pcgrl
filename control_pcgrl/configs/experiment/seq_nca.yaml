@@ -2,12 +2,14 @@
 hydra:
   sweeper:
     params:
-      exp_id: 0, 1, 2
+      exp_id: 0 #, 1, 2
+      problem: binary
+      representation: narrow
       learning_rate: 1e-5
-      model.conv_filters: 128, 256
-      model.fc_size: 128, 256
-      model.patch_width: 3, 5, 7, -1
-      multiagent.n_agents: 0, 2, 3, 4
+      model: seqnca
+      model.conv_filters: 128 #, 256
+      model.fc_size: 128 #, 256
+      model.patch_width: 3 #, 5, 7, -1
+      multiagent.n_agents: 0 #, 2, 3, 4
 
 # multiagent.n_agents: 0
-      model: seqnca

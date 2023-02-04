@@ -18,7 +18,7 @@ class SeqNCAConfig(ModelConfig):
     name: str = "SeqNCA"
     conv_filters: int = 64    
     fc_size: int = 64
-    patch_width: int = 3
+    patch_width: int = 3      # obs size of action branch of seqnca model, -1 for full obs
 
 @dataclass
 class ProblemConfig:
@@ -90,7 +90,7 @@ class HardwareConfig:
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
-    n_cpu: int = 12
+    n_cpu: int = 10
     n_gpu: int = 1
 
 @dataclass
