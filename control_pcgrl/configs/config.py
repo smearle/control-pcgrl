@@ -47,6 +47,7 @@ class BinaryPathConfig(ProblemConfig):
 
 @dataclass
 class BinaryControlConfig(ProblemConfig):
+    name: str = 'binary'
     weights: Dict[str, int] = field(default_factory = lambda: ({
         'path-length': 100,
         'regions': 100,
@@ -54,6 +55,53 @@ class BinaryControlConfig(ProblemConfig):
     controls: List[Any] = field(default_factory= lambda: [
         # 'regions',
         'regions', 'path-length',
+    ])
+    alp_gmm: bool = False
+
+
+@dataclass
+class MinecraftMazeConfig(ProblemConfig):
+    name: str = "minecraft_3D_maze"
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        'path-length': 100,
+        'n_jump': 100,
+        "regions": 0,
+    }))
+
+
+@dataclass
+class MinecraftHoleyMazeConfig(ProblemConfig):
+    name: str = "minecraft_3D_holey_maze"
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        "regions": 0,
+        "path-length": 100,
+        "connected-path-length": 120,
+        "n_jump": 150,
+    }))
+
+
+@dataclass
+class MinecraftHoleyDungeonConfig(ProblemConfig):
+    name: str = "minecraft_3D_dungeon_holey"
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        "regions": 0, 
+        "path-length": 100, 
+        "chests": 300, 
+        "n_jump": 100,
+        "enemies": 100,
+        "nearest-enemy": 200,
+    }))
+
+
+@dataclass
+class MinecraftMazeControlConfig(ProblemConfig):
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        'path-length': 100,
+        'n_jump': 100,
+    }))
+    controls: List[Any] = field(default_factory= lambda: [
+        # 'regions',
+        'n_jump', 'path-length',
     ])
     alp_gmm: bool = False
 
@@ -90,7 +138,7 @@ class HardwareConfig:
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
-    n_cpu: int = 10
+    n_cpu: int = 3
     n_gpu: int = 1
 
 @dataclass
@@ -105,7 +153,7 @@ class ControlPCGRLConfig:
     # Specify defaults for sub-configs so that we can override them on the command line. (Whereas we can cl-override 
     # other settings as-is.)
     defaults: List[Any] = field(default_factory=lambda: [
-        {'problem': 'binary_path'},
+        {'problem': 'minecraft_3D_maze'},
         {'hardware': 'remote'},
         # TODO: Picking the default should happen here, in the configs, instead of in the main code, perhaps.
         {'model': 'default_model'},
@@ -129,13 +177,15 @@ class ControlPCGRLConfig:
     wandb: bool = False
 
     exp_id: str = '0'
-    representation: str = 'turtle'
+    representation: str = 'narrow'
     show_agents: bool = False
     learning_rate: float = 5e-6
     gamma: float = 0.99
-    map_shape: List[Any] = field(default_factory=lambda: 
+    map_shape: List[Any] = field(default_factory=lambda: # this is not right to hard code it here my friend? why do we need this?
         [16, 16]
     )
+    # map_shape: Optional[List[Any]] = None
+    # crop_shape: Optional[List[Any]] = None 
     crop_shape: List[Any] = field(default_factory=lambda: 
         [32, 32]
     )
@@ -170,6 +220,11 @@ cs.store(name="single_agent_dummy_multi", group="multiagent", node=SingleAgentDu
 cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
 cs.store(name="binary_path", group="problem", node=BinaryPathConfig)
+cs.store(name="binary_path_control", group="problem", node=BinaryControlConfig)
+
+cs.store(name="minecraft_3D_maze", group="problem", node=MinecraftMazeConfig)
+cs.store(name="minecraft_3D_holey_maze", group="problem", node=MinecraftHoleyMazeConfig)
+cs.store(name="minecraft_3D_dungeon_holey", group="problem", node=MinecraftHoleyDungeonConfig)
 
 cs.store(name="default_model", group="model", node=ModelConfig)
 cs.store(name="seqnca", group="model", node=SeqNCAConfig)

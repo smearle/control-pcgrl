@@ -39,7 +39,29 @@ See `gym_pcgrl` for the original Readme, from amidos2006/gym-pcgrl.
 
 The below instructions, for controllable RL and evolving diverse generators, respectively, are out of date.
 
-# Readme: Illuminating Diverse Neural Cellular Automata for Level Generation
+## Readme: Learning Controllable 3D Content Generators
+
+<!-- <video width="320" height="240" controls>
+  <source src="medua/minecraft_example.mov" type="video/quicktime">
+</video> -->
+<p align="center">
+	<img height="400px" src="media/minecraft_example.gif"/>
+</p>
+
+This repo contains the code for the [paper](https://dl.acm.org/doi/abs/10.1145/3555858.3563273). 
+
+This paper should be cited if 3D code from this project is used in any way:
+```
+@inproceedings{jiang2022learning,
+  title={Learning Controllable 3D Level Generators},
+  author={Jiang, Zehua and Earle, Sam and Green, Michael and Togelius, Julian},
+  booktitle={Proceedings of the 17th International Conference on the Foundations of Digital Games},
+  pages={1--9},
+  year={2022}
+}
+```
+
+## Readme: Illuminating Diverse Neural Cellular Automata for Level Generation
 
 <p align="center">
 	<img height="400px" src="media/zelda_1.gif"/>
@@ -54,8 +76,21 @@ The `evo_batch.py` file essentially repeatedly calls `python evolve.py` with par
 
 To evaluate saved archives, run `python evo_batch.py --evaluate` (which essentially calls `python evolve.py --infer --evaluate`). To visualize the results of cross-evaluation in a table, run `python evo_batch.py --local --cross_eval --tex` (running without `--tex` will generate a large html with all results instead a of a tex file with only a focused subset of results). The table-generation is automated in `evo_cross_eval.py`. To render gifs from the level frames that were saved during evaluation, run `python evo_batch.py --local --gifs`.
 
+This paper should be cited if evo code from this project is used in any way:
 
-## Installation
+```
+@inproceedings{earle2022illuminating,
+  title={Illuminating diverse neural cellular automata for level generation},
+  author={Earle, Sam and Snider, Justin and Fontaine, Matthew C and Nikolaidis, Stefanos and Togelius, Julian},
+  booktitle={Proceedings of the Genetic and Evolutionary Computation Conference},
+  pages={68--76},
+  year={2022}
+}
+
+```
+
+
+### Installation
 
 Clone this repository along with its submodules:
 
@@ -78,7 +113,7 @@ If the above causes errors, the offending lines can be commented out, and any mi
 
 Using [Evocraft](https://github.com/real-itu/Evocraft-py) to render in Minecraft
 
-# Readme: Learning Controllable Content Generators
+## Readme: Learning Controllable Content Generators
 
 This repo also contains the code for the [paper](https://ieee-cog.org/2021/assets/papers/paper_162.pdf) presented at CoG 2021.
 
@@ -86,7 +121,19 @@ This code requires pygobject and gtk3 (installation described above), and stable
 
 To train, visualize, and evaluate a controllable generator, run `train_ctrl.py`, `infer_ctrl.py` and `evaluate_ctrl.py`, respectively.
 
-# PCGRL
+This paper should be cited if controllable code from this project is used in any way:
+```
+@inproceedings{earle2021learning,
+  title={Learning controllable content generators},
+  author={Earle, Sam and Edwards, Maria and Khalifa, Ahmed and Bontrager, Philip and Togelius, Julian},
+  booktitle={2021 IEEE Conference on Games (CoG)},
+  pages={1--9},
+  year={2021},
+  organization={IEEE}
+}
+```
+
+## PCGRL
 
 ***NOTE: This is out of date and should be updated to reflect changes to the environment.***
 
@@ -124,12 +171,12 @@ The framework, along with some initial reinforcement learning results, is covere
 }
 ```
 
-## Installation
+### Installation
 1. Clone this repo to your local machine.
 2. To install the package, run `pip install -e .` from inside the repo folder. (Don't worry it will install OpenAI GYM environment automatically, otherwise you can install it first by following that [link](https://github.com/openai/gym#installation))
 3. If everything went fine, the PCGRL gym interface is ready to be used. Check the [following section](https://github.com/amidos2006/gym-pcgrl#usage) on how to use it.
 
-## Usage
+### Usage
 The PCGRL GYM interface has multiple different environments, where each environment consists of two parts: a problem and a representation. All the environments follow the following name conventions:
 ```
 [problem_name]-[representation_name]-[version]
@@ -166,7 +213,7 @@ Beside the OpenAI GYM traditional functions. Our interface supports additional f
 - `get_border_tile()`: This function get the tile index to be used for padding a certain problem. It is used by certain wrappers.
 - `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
 
-## Supported Problems
+### Supported Problems
 Problems are the current games that we want to apply PCGRL towards them. The following table lists all the supported problems in the interface:
 
 | Name     | Goal                                                                                                                                                                        | Tile Values                                                                                                                                                |
@@ -178,7 +225,7 @@ Problems are the current games that we want to apply PCGRL towards them. The fol
 | zelda    | Generate a fully connected [GVGAI](http://gvgai.net/) zelda level where the player can reach key then the door | 0: empty, 1: solid, 2: player, 3: key (to be collected before the door), 4: door (to win the level), 5: bat (should be avoided), 6: scorpion (should be avoided), 7: spider (should be avoided) |
 | smb      | Generate a simplified and playable Super Mario Bros level where there is at least 20 jumps in the level | 0: empty, 1: solid, 2: enemy, 3: brick, 4: question, 5: coin, 6: tube (need 2 beside each other) |
 
-## Supported Representations
+### Supported Representations
 Representations are the way the Procedural Content Generation problem is formatted as a [Markov Decision Process](https://en.wikipedia.org/wiki/Markov_decision_process) to be able to use it for reinforcement learning. All the problems can be represented using any of the supported representations. The following table shows all the supported representations in the interface:
 
 | Name   | Observation Space                                                                                  | Action Space                                                                                                                             |
@@ -192,7 +239,7 @@ Representations are the way the Procedural Content Generation problem is formatt
 
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
 
-## Create your own problem
+### Create your own problem
 Create the new problem class in the `gym_pcgrl.envs.probs` and extends `Problem` class from `gym_pcgrl.envs.probs.problem`. This class has to implement the following functions.
 ```python
 def __init__(self):
@@ -227,7 +274,7 @@ Feel free to override any other function if you need a behavior different from t
 
 After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.probs.PROBLEMS` dictionary that can be found in [\_\_init\_\_.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/probs/__init__.py) the key name is used as the problem name for the environment and the value is to refer to the main class that it need to construct for that problem.
 
-## Create your own representation
+### Create your own representation
 Create the new representation class in the `gym_pcgrl.envs.reps` and extends `Representation` class from `gym_pcgrl.envs.reps.representation`. This class has to implement the following functions.
 ```python
 def __init__(self, width, height, prob):
@@ -252,7 +299,7 @@ Feel free to override any other function if you need a behavior different from t
 
 After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.reps.REPRESENTATIONS` dictionary that can be found in [\_\_init\_\_.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/reps/__init__.py) the key name is used as the representation name for the environment and the value is to refer to the main class that it need to construct for that representation.
 
-## Running train.py
+### Running train.py
 [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) uses stable baseline PPO2 algorithm for training. You can configure [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) to train for different problems or different representation by changing the game and representation parameters in the file to a different problem and/or representation.
 
 To read more about the experiments and the different wrappers, check our paper [PCGRL: Procedural Content Generation via Reinforcement Learning](https://arxiv.org/abs/2001.09212).
@@ -284,7 +331,7 @@ python train.py
 
 PS: The training process will create a folder named `runs/` where two folders will appear one for tensorboard logs and the other for the saved models. The training is always saving the best model so far and the last model.
 
-## Running Trained Model
+### Running Trained Model
 First make sure you have all required modules ([GYM PCGRL](https://github.com/amidos2006/gym-pcgrl), [Tensorflow](https://www.tensorflow.org/), and [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/)) are installed either using [Docker](https://www.docker.com/), [Conda](https://www.anaconda.com/), or Pip directly. The code to run is similar to the above code for training just change [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) to [inference.py](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.py).
 
 In the case, that you want to use [jupyter notebook](https://jupyter.org/), please check [inference.ipynb](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.ipynb). Please, make sure to choose the correct kernel (especially if you are using [Conda](https://www.anaconda.com/) virtual environments) before running anything.
@@ -297,8 +344,8 @@ Here is a cool GIF when running these models:
 
 PS: All the models for Sokoban Narrow, Sokoban Turtle, and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. When try to load them in python 3.6 or 3.7, you will get an unknown op code error so make sure that you are using the correct python version. We apologize for this mess and we are working on training new models using python 3.7 to replace these ones. Remember if you get unknown opcode, it is because of the serialization method. We didn't know about that issue until later, sorry again for any inconvenience. One last note, Python 3.6 can't load Binary Narrow and Zelda Narrow so make sure to use python 3.7 for all the models except the one that needs python 3.5.
 
-## Contributing
+### Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).
 
-## License
+### License
 This code is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).

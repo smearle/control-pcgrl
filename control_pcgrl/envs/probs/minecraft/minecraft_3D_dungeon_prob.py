@@ -12,6 +12,8 @@ from control_pcgrl.envs.probs.minecraft.mc_render import erase_3D_path, spawn_2D
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
+
+Please check out the minecraft_3D_holey_dungeon_prob.py
 """
 # class Minecraft3DDungeonProblem(Problem):
 #     """
