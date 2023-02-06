@@ -136,9 +136,9 @@ def main(cfg: ControlPCGRLConfig) -> None:
             model_cls = MODELS[cfg.model.name]
     else:
         if cfg.representation == "wide3D":
-            model_cls = MODELS[cfg.model.name] if cfg.model else WideModel3D
+            model_cls = MODELS[cfg.model.name] if cfg.model.name else WideModel3D
         else:
-            model_cls = MODELS[cfg.model.name] if cfg.model else CustomFeedForwardModel3D
+            model_cls = MODELS[cfg.model.name] if cfg.model.name else CustomFeedForwardModel3D
 
     ModelCatalog.register_custom_model("custom_model", model_cls)
 

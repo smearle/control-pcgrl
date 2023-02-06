@@ -407,7 +407,7 @@ class Cropped(TransformObs):
         self.name = name
         self.show_agents = kwargs.get('show_agents', False)
         try:
-            self.shape = np.array(list(crop_shape))
+            self.shape = np.array(list(crop_shape))      # why do we need to make it a list and then back to np.array?
             self.pad = crop_shape // 2
         except TypeError:
             #import pdb; pdb.set_trace()
@@ -415,7 +415,7 @@ class Cropped(TransformObs):
             self.pad = self.shape // 2
         if self.show_agents:
             self.shape.append(2) # add extra two channels for the positions
-        self.shape = np.array(self.shape)
+        self.shape = np.array(self.shape)                   # why do we need np.array outside np.array?
         #self.pad = crop_shape // 2
         self.pad_value = pad_value
 
@@ -427,6 +427,7 @@ class Cropped(TransformObs):
         self.observation_space.spaces[self.name] = gym.spaces.Box(
             low=0, high=high_value if not self.show_agents else max(high_value, kwargs['multiagent']['n_agents']), shape=tuple(self.shape), dtype=np.uint8
         )
+        # breakpoint()
 
     def step(self, action, **kwargs):
         # action = get_action(action)
