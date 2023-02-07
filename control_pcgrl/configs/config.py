@@ -181,13 +181,14 @@ class ControlPCGRLConfig:
     show_agents: bool = False
     learning_rate: float = 5e-6
     gamma: float = 0.99
+    # FIXME: this is hard-coded in 3 different places :)
     map_shape: List[Any] = field(default_factory=lambda: # this is not right to hard code it here my friend? why do we need this?
-        [16, 16]
+        [15, 15, 15] # Hard-code this the same as in your problem :) and its width :D
     )
     # map_shape: Optional[List[Any]] = None
     # crop_shape: Optional[List[Any]] = None 
     crop_shape: List[Any] = field(default_factory=lambda: 
-        [32, 32]
+        [30, 30, 30]
     )
     max_board_scans: int = 3
     n_aux_tiles: int = 0
