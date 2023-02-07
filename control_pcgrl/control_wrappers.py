@@ -14,6 +14,7 @@ from typing import Dict, OrderedDict
 import gym
 import numpy as np
 
+from control_pcgrl.configs.config import Config
 # from opensimplex import OpenSimplex
 from control_pcgrl.envs.helper import get_range_reward
 import ray
@@ -23,22 +24,25 @@ import ray
 # FIXME: This is not calculating the loss from a metric value (point) to a target metric range (line) correctly.
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ControlWrapper(gym.Wrapper):
-    def __init__(self, env, ctrl_metrics=None, rand_params=False, **kwargs):
+    def __init__(self, env, cfg: Config, ctrl_metrics=None, rand_params=False):
         self.win = None
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
         self.controllable = ctrl_metrics is not None
         # We'll use these for calculating loss (for evaluation during inference) but not worry about oberving them
         # (we didn't necessarily train with all of them)
-        ctrl_loss_metrics = kwargs.get("eval_controls")
-        if not ctrl_loss_metrics:
-            ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
-        else:
-            if ctrl_metrics:
-                print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
-        self.CA_action = kwargs.get("ca_action")
+        # ctrl_loss_metrics = kwargs.get("eval_controls")
+        # ctrl_loss_metrics = cfg.eval_controls
+        # if not ctrl_loss_metrics:
+        ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
+        # else:
+        #     if ctrl_metrics:
+        #         print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
+        # self.CA_action = cfg.ca_action
+        self.CA_action = False
 
-        self.render_gui = kwargs.get("render")
+        # self.render_gui = kwargs.get("render")
+        self.render_gui = cfg.render
         # Whether to always select random parameters, to stabilize learning multiple objectives
         # (i.e. prevent overfitting to some subset of objectives)
         #       self.rand_params = rand_params
@@ -47,10 +51,7 @@ class ControlWrapper(gym.Wrapper):
 
         metric_weights = copy.copy(self.unwrapped._reward_weights)
         self.metric_weights = {k: 0 for k in metric_weights}
-        try:
-            config_weights = kwargs['problem']['weights']
-        except TypeError:
-            config_weights = json.loads(kwargs['problem'].replace('\'', '\"'))['weights']
+        config_weights = cfg.problem.weights
 
         self.metric_weights.update(config_weights)
 
@@ -178,7 +179,7 @@ class ControlWrapper(gym.Wrapper):
 
         # if self.render_gui:  # and self.conditional:
             # self._init_gui()
-        self.infer = kwargs.get("infer", False)
+        self.infer = cfg.infer
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
         self.max_loss = self.get_max_loss(ctrl_metrics=ctrl_loss_metrics)
@@ -209,7 +210,7 @@ class ControlWrapper(gym.Wrapper):
     def get_metric_vals(self):
         return self.metrics
 
-    def configure(self, **kwargs):
+    def configure(self, cfg: Config):
         pass
 
     def toggle_auto_reset(self, button):
@@ -519,11 +520,12 @@ class ControlWrapper(gym.Wrapper):
 class UniformNoiseyTargets(gym.Wrapper):
     """A bunch of simplex noise instances modulate target metrics."""
 
-    def __init__(self, env, **kwargs):
+    def __init__(self, env, cfg: Config):
         super(UniformNoiseyTargets, self).__init__(env)
         self.cond_bounds = self.env.unwrapped.cond_bounds
         self.num_params = self.num_params
-        self.midep_trgs = kwargs.get("midep_trgs", False)
+        # self.midep_trgs = kwargs.get("midep_trgs", False)
+        self.midep_trgs = False
 
     def set_rand_trgs(self):
         trgs = {}

@@ -8,6 +8,8 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
+from control_pcgrl.configs.config import Config
+
 GVGAI_SPRITES = False
 PROB_DIR = str(Path(__file__).parent)  # for convenience when loading sprite .pngs
 
@@ -22,9 +24,8 @@ class Problem(ABC):
     """
     Constructor for the problem that initialize all the basic parameters
     """
-    def __init__(self):
-        self._width = 9
-        self._height = 9
+    def __init__(self, cfg):
+        self._width, self._height = cfg.problem.map_shape
         tiles = self.get_tile_types()
 
         # FIXME: assumption, will overrule a similar declaration by the child.
@@ -248,4 +249,6 @@ class Problem(ABC):
         return None
 
 
-class Problem3D(Problem): pass
+class Problem3D(Problem):
+    def __init__(self, cfg: Config):
+        self._map_shape = cfg.problem.map_shape

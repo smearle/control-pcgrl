@@ -29,8 +29,8 @@ def make_env(cfg):
     Args:
         cfg_dict: dictionary of configuration parameters
     """
-    cfg_dict = cfg # tehe
-    cfg = Namespace(**cfg)
+    # cfg_dict = cfg # tehe
+    # cfg = Namespace(**cfg)
 
     # Turn dictionary into an object with attributes instead of keys.
     # cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
@@ -43,18 +43,18 @@ def make_env(cfg):
         # if issubclass(rep_cls, Representation3DABC):
             # elif cfg.representation in ['wide3D', 'wide3Dholey']:
                 # raise NotImplementedError("3D wide representation not implemented")
-            env = wrappers.ActionMap3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+            env = wrappers.ActionMap3DImagePCGRLWrapper(cfg.env_name, cfg)
         else:
             # HACK
             if 'holey' in cfg.problem.name:
             # if issubclass(rep_cls, HoleyRepresentationABC):
-                env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, **cfg_dict)
+                env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, cfg=cfg)
             else:
-                env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+                env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, cfg=cfg)
 
     elif rep_cls == CARepresentation:
         # env = wrappers.CAWrapper(env_name, **kwargs)
-        env = wrappers.CAactionWrapper(cfg.env_name, **cfg_dict)
+        env = wrappers.CAactionWrapper(cfg.env_name, cfg)
 
     elif np.any(issubclass(rep_cls, c) for c in [NarrowRepresentation, TurtleRepresentation]):
     # elif cfg.representation in ['narrow', 'turtle', 'narrowholey', 'turtleholey']:
@@ -62,35 +62,36 @@ def make_env(cfg):
         # if issubclass(rep_cls, Representation3DABC):
             # env = wrappers.Cropped3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
         # else:  
-        env = wrappers.CroppedImagePCGRLWrapper(cfg.env_name, **cfg_dict)
+        env = wrappers.CroppedImagePCGRLWrapper(game=cfg.env_name, cfg=cfg)
     # elif cfg.representation in ['narrow3D', 'turtle3D', 'narrow3Dholey', 'turtle3Dholey']:
 
     else:
         raise Exception('Unknown representation: {}'.format(rep_cls))
-    env.configure(**cfg_dict)
+    env.configure(cfg)
     # if cfg.max_step is not None:
         # env = wrappers.MaxStep(env, cfg.max_step)
 #   if log_dir is not None and cfg.get('add_bootstrap', False):
 #       env = wrappers.EliteBootStrapping(env,
 #                                           os.path.join(log_dir, "bootstrap{}/".format(rank)))
-    env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.controls, **cfg_dict)
+    env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.controls, cfg=cfg)
     if not cfg.evaluate:
         if cfg.controls is not None:
             if cfg.controls.alp_gmm:
-                env = control_wrappers.ALPGMMTeacher(env, **cfg_dict)
+                env = control_wrappers.ALPGMMTeacher(env, cfg)
             else:
-                env = control_wrappers.UniformNoiseyTargets(env, **cfg_dict)
+                env = control_wrappers.UniformNoiseyTargets(env, cfg)
     # it not conditional, the ParamRew wrapper should just be fixed at default static targets
 #   if render or log_dir is not None and len(log_dir) > 0:
 #       # RenderMonitor must come last
 #       env = RenderMonitor(env, rank, log_dir, **kwargs)
 
-    try:
-        n_agents = cfg_dict['multiagent']['n_agents']
-    except TypeError:
-        n_agents = json.loads(cfg_dict['multiagent'].replace('\'', '\"'))['n_agents']
+    # try:
+        # n_agents = cfg_dict['multiagent']['n_agents']
+        n_agents = cfg.multiagent.n_agents
+    # except TypeError:
+    #     n_agents = json.loads(cfg_dict['multiagent'].replace('\'', '\"'))['n_agents']
 
     if n_agents != 0:
-        env = wrappers.MultiAgentWrapper(env, **cfg_dict)
+        env = wrappers.MultiAgentWrapper(env, cfg)
 
     return env

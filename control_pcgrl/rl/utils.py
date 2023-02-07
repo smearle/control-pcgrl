@@ -16,7 +16,7 @@ from gym.spaces import Tuple
 # from stable_baselines.bench import Monitor
 #from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 
-from control_pcgrl.configs.config import ControlPCGRLConfig
+from control_pcgrl.configs.config import Config
 from control_pcgrl import wrappers
 from control_pcgrl.task_assignment import set_map_fn
 from control_pcgrl.rl.envs import make_env
@@ -220,7 +220,7 @@ def get_env_name(game, representation):
     return env_name
 
 
-def get_exp_name(cfg: ControlPCGRLConfig):
+def get_exp_name(cfg: Config):
 
     exp_name = os.path.join(
         cfg.problem.name, 

@@ -26,7 +26,8 @@ class ProblemConfig:
     weights: Dict[str, int] = MISSING
     controls: List[Any] = MISSING
     alp_gmm: bool = MISSING
-
+    map_shape: List[Any] = MISSING
+    crop_shape: List[Any] = MISSING
 
 @dataclass
 class BinaryPathConfig(ProblemConfig):
@@ -60,7 +61,13 @@ class BinaryControlConfig(ProblemConfig):
 
 
 @dataclass
-class MinecraftMazeConfig(ProblemConfig):
+class MinecraftProblemConfig(ProblemConfig):
+    name: str = MISSING
+    map_shape: List[Any] = field(default_factory= lambda: [15, 15, 15])
+    crop_shape: List[Any] = field(default_factory= lambda: [30, 30, 30])
+
+@dataclass
+class MinecraftMazeConfig(MinecraftProblemConfig):
     name: str = "minecraft_3D_maze"
     weights: Dict[str, int] = field(default_factory = lambda: ({
         'path-length': 100,
@@ -70,7 +77,7 @@ class MinecraftMazeConfig(ProblemConfig):
 
 
 @dataclass
-class MinecraftHoleyMazeConfig(ProblemConfig):
+class MinecraftHoleyMazeConfig(MinecraftProblemConfig):
     name: str = "minecraft_3D_holey_maze"
     weights: Dict[str, int] = field(default_factory = lambda: ({
         "regions": 0,
@@ -81,7 +88,7 @@ class MinecraftHoleyMazeConfig(ProblemConfig):
 
 
 @dataclass
-class MinecraftHoleyDungeonConfig(ProblemConfig):
+class MinecraftHoleyDungeonConfig(MinecraftProblemConfig):
     name: str = "minecraft_3D_dungeon_holey"
     weights: Dict[str, int] = field(default_factory = lambda: ({
         "regions": 0, 
@@ -94,7 +101,7 @@ class MinecraftHoleyDungeonConfig(ProblemConfig):
 
 
 @dataclass
-class MinecraftMazeControlConfig(ProblemConfig):
+class MinecraftMazeControlConfig(MinecraftProblemConfig):
     weights: Dict[str, int] = field(default_factory = lambda: ({
         'path-length': 100,
         'n_jump': 100,
@@ -149,7 +156,7 @@ class RemoteHardwareConfig(HardwareConfig):
 
 
 @dataclass
-class ControlPCGRLConfig:
+class Config:
     # Specify defaults for sub-configs so that we can override them on the command line. (Whereas we can cl-override 
     # other settings as-is.)
     defaults: List[Any] = field(default_factory=lambda: [
@@ -178,7 +185,7 @@ class ControlPCGRLConfig:
 
     exp_id: str = '0'
     representation: str = 'narrow'
-    show_agents: bool = False
+    show_agents: bool = False  # Represent agent(s) on the map using an additional observation channel
     learning_rate: float = 5e-6
     gamma: float = 0.99
     # FIXME: this is hard-coded in 3 different places :)
@@ -211,7 +218,7 @@ class ControlPCGRLConfig:
 
 cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`
-cs.store(name="pcgrl", node=ControlPCGRLConfig)
+cs.store(name="pcgrl", node=Config)
 
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)
