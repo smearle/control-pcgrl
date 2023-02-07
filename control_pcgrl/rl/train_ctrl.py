@@ -170,6 +170,7 @@ def main(cfg: Config) -> None:
                 # act = 0 
                 # else:
                     # act = 0
+                # Print shape of map
                 obs, rew, done, info = dummy_env.step(act)
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
