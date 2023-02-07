@@ -196,6 +196,7 @@ class ToImage(TransformObs):
 
         for n in self.names:
             if len(final.shape) == 0:
+                breakpoint()
                 final = obs[n].reshape(*self.shape[:-1], -1)
             else:
                 final = np.append(
@@ -250,17 +251,19 @@ class OneHotEncoding(TransformObs):
             self.observation_space.spaces[k] = s
         new_shape = []
         shape = self.env.observation_space.spaces[self.name].shape
+
+        # The number of tiles we can place
         self.dim = (
             self.observation_space.spaces[self.name].high.max()
             - self.observation_space.spaces[self.name].low.min()
-            + 1
+            + 1 # ??? did we need this ??? I think so, to represent out-of-bounds tiles.
         )
 
         new_shape.extend(shape)
-        if len(new_shape) > 2:
-            new_shape[-1] += self.dim - 1
-        else:
-            new_shape.append(self.dim)
+        # if len(new_shape) > 2:
+        #     new_shape[-1] += self.dim - 1
+        # else:
+        new_shape.append(self.dim)
         #import pdb; pdb.set_trace()
         self.show_agents = kwargs.get('show_agents', False)
         self.observation_space.spaces[self.name] = gym.spaces.Box(
@@ -406,16 +409,15 @@ class Cropped(TransformObs):
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
         self.show_agents = kwargs.get('show_agents', False)
-        try:
-            self.shape = np.array(list(crop_shape))      # why do we need to make it a list and then back to np.array?
-            self.pad = crop_shape // 2
-        except TypeError:
-            #import pdb; pdb.set_trace()
-            self.shape = np.array(json.loads(str(crop_shape)))
-            self.pad = self.shape // 2
+        map_shape = kwargs['map_shape']
+        self.shape = np.array(list(crop_shape))      # why do we need to make it a list and then back to np.array?
+        crop_map_shape_diff = crop_shape - map_shape
+        pad_l = np.ceil((crop_map_shape_diff) / 2)
+        pad_r = np.floor((crop_map_shape_diff) / 2)
+        self.pad = np.stack((pad_l, pad_r), axis=1).astype(np.int8)
+
         if self.show_agents:
             self.shape.append(2) # add extra two channels for the positions
-        self.shape = np.array(self.shape)                   # why do we need np.array outside np.array?
         #self.pad = crop_shape // 2
         self.pad_value = pad_value
 
@@ -427,7 +429,6 @@ class Cropped(TransformObs):
         self.observation_space.spaces[self.name] = gym.spaces.Box(
             low=0, high=high_value if not self.show_agents else max(high_value, kwargs['multiagent']['n_agents']), shape=tuple(self.shape), dtype=np.uint8
         )
-        # breakpoint()
 
     def step(self, action, **kwargs):
         # action = get_action(action)
