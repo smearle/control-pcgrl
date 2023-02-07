@@ -72,7 +72,7 @@ class GtkGUI(Gtk.Window):
             tile_radio_button = Gtk.RadioButton.new_with_label_from_widget(tile_radio_buttons[0] if len(tile_radio_buttons) > 0 else None, tile)
             tile_radio_buttons.append(tile_radio_button)
             tile_radio_button.connect('toggled', self.on_tool_changed, tile)
-            if tile_images is not None:
+            if tile_images is not None and tile in tile_images:
                 arr = np.array(tile_images[tile].convert('RGB'))
                 tile_image = Gtk.Image()
                 shape = arr.shape

@@ -176,7 +176,6 @@ class ToImage(TransformObs):
         if not isinstance(action, dict):
             action = get_action(action)
         obs, reward, done, info = self.env.step(action, **kwargs)
-        breakpoint()
         obs = self.transform(obs)
 
         return obs, reward, done, info
@@ -192,7 +191,6 @@ class ToImage(TransformObs):
 
         for n in self.names:
             if len(final.shape) == 0:
-                breakpoint()
                 final = obs[n].reshape(*self.shape[:-1], -1)
             else:
                 final = np.append(
@@ -408,7 +406,7 @@ class Cropped(TransformObs):
         self.name = name
         self.show_agents = cfg.show_agents
         map_shape = np.array(cfg.problem.map_shape)
-        self.shape = np.array(list(crop_shape))      # why do we need to make it a list and then back to np.array?
+        self.shape = map_shape
         crop_map_shape_diff = crop_shape - map_shape
         pad_l = np.ceil((crop_map_shape_diff) / 2)
         pad_r = np.floor((crop_map_shape_diff) / 2)

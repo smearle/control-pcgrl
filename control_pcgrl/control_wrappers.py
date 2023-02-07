@@ -189,9 +189,12 @@ class ControlWrapper(gym.Wrapper):
         screen_height = 100 * self.num_params
         from control_pcgrl.gtk_gui import GtkGUI
 
-        if self.unwrapped._prob._graphics is None:
+        if not hasattr(self.unwrapped._prob, "_graphics"):
+            _graphics = {}
+        elif self.unwrapped._prob._graphics is None:
             self.unwrapped._prob.init_graphics()
-        win = GtkGUI(env=self, tile_types=self.unwrapped._prob.get_tile_types(), tile_images=self.unwrapped._prob._graphics, 
+            _graphics = self.unwrapped._prob._graphics
+        win = GtkGUI(env=self, tile_types=self.unwrapped._prob.get_tile_types(), tile_images=_graphics, 
             metrics=self.metrics, metric_trgs=self.metric_trgs, metric_bounds=self.cond_bounds)
         # win.connect("destroy", Gtk.main_quit)
         win.show_all()
