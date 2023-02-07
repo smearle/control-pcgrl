@@ -5,6 +5,7 @@ import PIL
 
 import gym
 from gym import spaces
+from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np
 from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
@@ -35,7 +36,7 @@ class PcgrlEnv(gym.Env):
         rep (string): the current representation. This name has to be defined in REPRESENTATIONS
         constant in gym_pcgrl.envs.reps.__init__.py
     """
-    def __init__(self, prob="binary", rep="narrow", **kwargs):
+    def __init__(self, cfg: Config, prob="binary", rep="narrow"):
         self._has_been_assigned_map = False  # TODO: Factor this out into a ... wrapper?
 
         # Whether we need to load a new evaluation map.
@@ -46,8 +47,7 @@ class PcgrlEnv(gym.Env):
         # Attach this function to the env, since it will be different for, e.g., 3D environments.
         self.get_string_map = get_string_map
 
-        
-        self._prob: Problem = PROBLEMS[prob](**kwargs)
+        self._prob: Problem = PROBLEMS[prob](cfg=cfg)
         self._prob.init_tile_int_dict()
         self._rep_cls = REPRESENTATIONS[rep]
         self._rep: Representation = self._rep_cls()
@@ -131,7 +131,8 @@ class PcgrlEnv(gym.Env):
     def get_observable_map_dims(self):
         return (self._prob._width, self._prob._height, self.get_num_observable_tiles())
 
-    def configure(self, map_shape, **kwargs):  # , max_step=300):
+    def configure(self, cfg: Config):  # , max_step=300):
+        map_shape = cfg.problem.map_shape
         # What is this garbage??
         # ZJ: I think map_shape comes as a list? why do we need to check if it is a string?
         if isinstance(map_shape, str):
@@ -244,36 +245,43 @@ class PcgrlEnv(gym.Env):
         **kwargs (dict(string,any)): the defined parameters depend on the used
         representation and the used problem
     """
-    def adjust_param(self, **kwargs):
+    def adjust_param(self, cfg: Config):
         # TODO: Factor this out into a ... wrapper?
-        self.evaluation_env = kwargs['evaluation_env']
+        self.evaluation_env = cfg.evaluation_env
         if self.evaluation_env:
-            self.num_eval_envs = kwargs['num_eval_envs']
+            self.num_eval_envs = cfg.num_eval_envs
 
         _prob_cls = type(self._prob)
-        static_build = kwargs['static_prob'] is not None
-        multi = kwargs['action_size'] is not None
+        static_build = cfg.static_prob is not None
+
+        multi = False # wtf was this?
+        # multi = cfg.multi is not None
+
         # Wrap the representation if we haven't already.
         if not self._rep_is_wrapped:
             self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), static_build=static_build, multi=multi, 
-                                 **kwargs)
+                                 cfg=cfg)
             self._rep_is_wrapped = True
 
-        self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
-        self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
+        # self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
+        # self.compute_stats = cfg.compute_stats
+
+        # self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
+        self._change_percentage = cfg.change_percentage
+
         if self._change_percentage is not None:
             percentage = min(1, max(0, self._change_percentage))
             self._max_changes = max(int(percentage * np.prod(self.get_map_dims()[:-1])), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        if 'model' in kwargs and kwargs['model'] is not None and 'Decoder' in kwargs['model']:
+
+        if cfg.model.name is not None and 'Decoder' in cfg.model.name: 
+            # Pretty much for debugging, no config for this model at present
             self._max_iterations = 1
         else:
-            max_board_scans = kwargs.get('max_board_scans', 1)
+            max_board_scans = cfg.max_board_scans
             self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
-        if isinstance(kwargs['map_shape'], str):
-            kwargs['map_shape'] = json.loads(kwargs['map_shape'])
-        self._prob.adjust_param(**kwargs)
-        self._rep.adjust_param(**kwargs)
+        self._prob.adjust_param(cfg=cfg)
+        self._rep.adjust_param(cfg=cfg)
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
             self.get_map_dims()[:-1], self.get_num_observable_tiles())

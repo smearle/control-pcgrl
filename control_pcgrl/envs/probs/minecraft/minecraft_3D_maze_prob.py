@@ -26,8 +26,8 @@ class Minecraft3DmazeProblem(Problem3D):
     """
     The constructor is responsible of initializing all the game parameters
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, cfg):
+        super().__init__(cfg=cfg)
         self._length = 15
         self._width = 15
         self._height = 15

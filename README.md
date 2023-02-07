@@ -211,7 +211,7 @@ for t in range(1000):
 Beside the OpenAI GYM traditional functions. Our interface supports additional functionalities such as:
 - `self.get_num_tiles()`: This function get the number of different tiles that can appear in the observation space
 - `get_border_tile()`: This function get the tile index to be used for padding a certain problem. It is used by certain wrappers.
-- `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
+- `adjust_param(cfg)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
 
 ### Supported Problems
 Problems are the current games that we want to apply PCGRL towards them. The following table lists all the supported problems in the interface:

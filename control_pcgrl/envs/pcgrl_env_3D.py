@@ -1,5 +1,6 @@
 import collections
 from pdb import set_trace as TT
+from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.pcgrl_ctrl_env import PcgrlCtrlEnv
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.problem import Problem
@@ -12,7 +13,8 @@ from gym import spaces
 RENDER_OPENGL = 0
 RENDER_MINECRAFT = 1
 
-RENDER_MODE = RENDER_MINECRAFT
+# RENDER_MODE = RENDER_MINECRAFT
+RENDER_MODE = RENDER_OPENGL
 
 if RENDER_MODE == RENDER_OPENGL:
     from control_pcgrl.envs.probs.minecraft.gl_render import Scene
@@ -21,8 +23,8 @@ if RENDER_MODE == RENDER_OPENGL:
 The 3D PCGRL GYM Environment
 """
 class PcgrlEnv3D(PcgrlCtrlEnv):
-    def __init__(self, prob="minecraft_3D_maze", rep="narrow3D", **kwargs):
-        super().__init__(prob, rep, **kwargs)
+    def __init__(self, cfg: Config, prob="minecraft_3D_maze", rep="narrow3D"):
+        super().__init__(cfg, prob, rep)
         self.get_string_map = get_string_map
         self.gl_scene = None
         self.is_holey = False

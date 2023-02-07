@@ -8,6 +8,7 @@ from pdb import set_trace as TT
 
 from gym import spaces
 import gym
+from control_pcgrl.configs.config import Config
 from control_pcgrl.envs import helper_3D
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem
 from control_pcgrl.envs.probs.minecraft.mc_render import spawn_3D_maze
@@ -562,14 +563,15 @@ class MultiAgentWideRepresentation(MultiAgentWrapper):
         self._positions = positions
         return change, self._positions
 
-def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, **kwargs):
+# TODO: Clean this up!
+def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, cfg: Config = None):
     """Should only happen once!"""
     if multi:
-        rep = MultiActionRepresentation(rep, map_dims, **kwargs)
+        rep = MultiActionRepresentation(rep, map_dims, cfg=cfg)
 
     if static_build:
         # rep_cls = StaticBuildRepresentation(rep_cls)
-        rep = StaticBuildRepresentation(rep, **kwargs)
+        rep = StaticBuildRepresentation(rep, cfg=cfg)
 
 
     # FIXME: this is a hack to make sure that rep_cls is a class name but not an object
@@ -577,7 +579,7 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
     # if issubclass(prob_cls, Minecraft3Drain):
         # rep = RainRepresentation(rep)
     if issubclass(prob_cls, Problem3D):
-        rep = Representation3D(rep, **kwargs)
+        rep = Representation3D(rep, cfg=cfg)
         # rep_cls = wrap_3D(rep_cls)
         # if issubclass(rep_cls, EgocentricRepresentation):
             # rep_cls = EgocentricRepresentation3D()
@@ -590,29 +592,25 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
     if issubclass(prob_cls, HoleyProblem):
 
         if issubclass(prob_cls, Problem3D):
-            rep = HoleyRepresentation3D(rep, **kwargs)
+            rep = HoleyRepresentation3D(rep, cfg=cfg)
         
         else:
-            rep = HoleyRepresentation(rep, **kwargs)
+            rep = HoleyRepresentation(rep, cfg=cfg)
     
-    try:
-        n_agents = kwargs.get('multiagent')['n_agents']
-    except TypeError:
-        n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
     #if isinstance(kwargs.get('multiagent'), str):
     #    kwargs['multiagent'] = json.loads(kwargs.get('multiagent').replace('\'', '\"'))
     #    #import pdb; pdb.set_trace()
     #if not isinstance(multiagent_config, int):
     #    import pdb; pdb.set_trace()
-    if n_agents != 0:
+    if cfg.multiagent.n_agents != 0:
         #if kwargs.get("multiagent")['n_agents'] != 0:
         if issubclass(type(rep), TurtleRepresentation):
-            rep = MultiAgentTurtleRepresentation(rep, **kwargs)
+            rep = MultiAgentTurtleRepresentation(rep, cfg=cfg)
         elif issubclass(type(rep), NarrowRepresentation):
-            rep = MultiAgentNarrowRepresentation(rep, **kwargs)
+            rep = MultiAgentNarrowRepresentation(rep, cfg=cfg)
             pass
         elif issubclass(type(rep), WideRepresentation):
-            rep = MultiAgentWideRepresentation(rep, **kwargs)
+            rep = MultiAgentWideRepresentation(rep, cfg=cfg)
         else:
             raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
 

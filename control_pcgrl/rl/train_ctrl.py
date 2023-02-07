@@ -45,7 +45,7 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width, TrainerConfigParsers
 from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
-from control_pcgrl.configs.config import ControlPCGRLConfig
+from control_pcgrl.configs.config import Config
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
@@ -74,7 +74,7 @@ best_mean_reward, n_steps = -np.inf, 0
 
 
 @hydra.main(version_base=None, config_path='../configs', config_name='config')
-def main(cfg: ControlPCGRLConfig) -> None:
+def main(cfg: Config) -> None:
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())
 
