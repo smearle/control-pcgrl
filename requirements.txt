@@ -21,6 +21,7 @@ opencv-python      # M1 mac users may need to install this separately (or try pi
 pandas
 pingouin
 psutil
+pygame
 pyglet
 PyOpenGL
 pyscreenshot
