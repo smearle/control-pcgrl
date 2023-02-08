@@ -1,5 +1,3 @@
-These installation instructions are under construction. Feel free to contribute.
- 
 ***NOTE: Currently porting RL experiment loop to hydra/submitit:***
 
 Config files and hyperparemeter sweeps can be found in `configs/rl`
@@ -39,7 +37,7 @@ See `gym_pcgrl` for the original Readme, from amidos2006/gym-pcgrl.
 
 The below instructions, for controllable RL and evolving diverse generators, respectively, are out of date.
 
-## Readme: Learning Controllable 3D Content Generators
+## 2022: Learning Controllable 3D Content Generators
 
 <!-- <video width="320" height="240" controls>
   <source src="medua/minecraft_example.mov" type="video/quicktime">
@@ -61,7 +59,8 @@ This paper should be cited if 3D code from this project is used in any way:
 }
 ```
 
-## Readme: Illuminating Diverse Neural Cellular Automata for Level Generation
+## 2022: Illuminating Diverse Neural Cellular Automata for Level Generation
+_Note: this instruction might be somehow outdated. Please check the more up-to-date ones above_
 
 <p align="center">
 	<img height="400px" src="media/zelda_1.gif"/>
@@ -96,7 +95,7 @@ Clone this repository along with its submodules:
 
 ```git clone --recurse-submodules -j8 https://github.com/smearle/control-pcgrl```
 
-It is recommended to use a virtual environment using anaconda or similar. We use python 3.8.
+It is recommended to use a virtual environment using anaconda or similar. ~~We use python 3.8.~~
 
 ```
 conda create -n pcgrl python=3.7
@@ -113,7 +112,7 @@ If the above causes errors, the offending lines can be commented out, and any mi
 
 Using [Evocraft](https://github.com/real-itu/Evocraft-py) to render in Minecraft
 
-## Readme: Learning Controllable Content Generators
+## 2021: Learning Controllable Content Generators
 
 This repo also contains the code for the [paper](https://ieee-cog.org/2021/assets/papers/paper_162.pdf) presented at CoG 2021.
 
@@ -133,7 +132,7 @@ This paper should be cited if controllable code from this project is used in any
 }
 ```
 
-## PCGRL
+## 2020: PCGRL
 
 ***NOTE: This is out of date and should be updated to reflect changes to the environment.***
 
