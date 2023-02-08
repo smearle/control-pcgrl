@@ -78,13 +78,13 @@ def main(cfg: Config) -> None:
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())
 
-    if cfg.crop_shape is None:
+    if cfg.problem.crop_shape is None:
         # This guy gotta observe the holes.
         if "holey" in cfg.problem.name:
-            crop_shape = cfg.map_shape * 2 + 1
+            crop_shape = cfg.problem.map_shape * 2 + 1
         else:
-            crop_shape = cfg.map_shape * 2
-        cfg.crop_shape = crop_shape
+            crop_shape = cfg.problem.map_shape * 2
+        cfg.problem.crop_shape = crop_shape
 
     # FIXME: Check for a 3D problem parent class.
     is_3D_env = False

@@ -532,7 +532,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Cropping map, etc. to the correct crop_size
         for k in flat_indices:
             env = Cropped(
-                game=env, crop_shape=cfg.crop_shape, pad_value=env.get_border_tile(), name=k, 
+                game=env, crop_shape=cfg.problem.crop_shape, pad_value=env.get_border_tile(), name=k, 
                 cfg=cfg,
             )
             
