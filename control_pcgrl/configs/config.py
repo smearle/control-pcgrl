@@ -171,7 +171,7 @@ class Config:
     # Specify defaults for sub-configs so that we can override them on the command line. (Whereas we can cl-override 
     # other settings as-is.)
     defaults: List[Any] = field(default_factory=lambda: [
-        {'problem': 'minecraft_3D_maze'},
+        {'problem': 'binary_path'},
         {'hardware': 'remote'},
         # TODO: Picking the default should happen here, in the configs, instead of in the main code, perhaps.
         {'model': 'default_model'},
