@@ -36,7 +36,12 @@ def make_env(cfg):
     # cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
 
     env: PcgrlEnv = None
-    rep_cls = REPRESENTATIONS[cfg.representation], 
+    try:
+        rep_cls = REPRESENTATIONS[cfg.representation]     # when we first go pass this function, cfg is <class 'omegaconf.dictconfig.DictConfig'>
+    except:
+        # when we pass here the second time, cfg is <class 'ray.rllib.env.env_context.EnvContext'>, it's a dictionary
+        cfg = Namespace(**cfg)        # it is so ugly
+        rep_cls = REPRESENTATIONS[cfg.representation]  
     if cfg.representation in ['wide']:
     # if issubclass(rep_cls, WideRepresentation):
         if '3D' in cfg.problem.name:

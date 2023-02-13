@@ -79,7 +79,8 @@ def ControllablaTrainerFactory(trainer):
         def get_default_config(cls):
             # def_cfg = super().get_default_config()
             def_cfg = trainer.get_default_config()
-            def_cfg.update({
+            def_cfg.update({             # note: for ray earlier than 2.1.0, def_cfg is a dictionary, please use def_cfg.update(); 
+                                            #    for ray starting from 2.2.0, def_cfg is a ray config, please use def_cfg.update_from_dict() instead.                                             
                 'checkpoint_path_file': None,
                 'wandb': {
                     'project': 'PCGRL',
