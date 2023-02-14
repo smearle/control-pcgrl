@@ -4,7 +4,6 @@ import os
 import pickle
 import time
 from functools import reduce
-from timeit import default_timer as timer
 from pdb import set_trace as TT
 
 from operator import mul
@@ -37,15 +36,15 @@ from torch.utils.tensorboard import SummaryWriter
 import deap
 import deap.tools
 import deap.algorithms
-from qdpy import tools
-from deap.base import Toolbox
 import copy
 
 
 from args import get_args, get_exp_dir, get_exp_name
 from archives import CMAInitStatesGrid, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
+from control_pcgrl.configs.config import Config, MultiagentConfig, ProblemConfig
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN, DirectEncoding
+from optimizer import MEOptimizer
 from utils import get_one_hot_map
 from control_pcgrl.control_wrappers import ControlWrapper
 from control_pcgrl.envs.helper import get_string_map
@@ -411,117 +410,6 @@ preprocess_observation_funcs = {
 @njit
 def get_init_states(init_states_archive, door_coords_archive, index):
     return init_states_archive[index], door_coords_archive[index]
-
-
-
-def mate_individuals(ind_0, ind_1):
-    return ind_0.mate(ind_1)
-
-def mutate_individual(ind):
-    ind.mutate()
-    return (ind,)
-
-class MEOptimizer():
-    def __init__(self, grid, ind_cls, batch_size, ind_cls_args, start_time=None, stats=None):
-        self.batch_size = batch_size
-        self.grid = grid
-        self.inds = []
-        self.stats=stats
-        for _ in range(batch_size):
-            self.inds.append(ind_cls(**ind_cls_args))
-        toolbox = Toolbox()
-        toolbox.register("clone", copy.deepcopy)
-        toolbox.register("mutate", mutate_individual)
-        toolbox.register("mate", mate_individuals)
-        toolbox.register("select", tools.sel_random)
-
-        self.cxpb = 0
-        self.mutpb = 1.0
-        self.toolbox = toolbox
-        if start_time == None:
-            self.start_time = timer()
-        self.logbook = deap.tools.Logbook()
-        self.logbook.header = ["iteration", "containerSize", "evals", "nbUpdated"] + (stats.fields if stats else []) + \
-            ["meanFitness", "maxFitness", "elapsed"]
-        self.i = 0
-
-
-    def tell(self, objective_values, behavior_values):
-        """Tell MAP-Elites about the performance (and diversity measures) of new offspring / candidate individuals, 
-        after evaluation on the task."""
-        # Update individuals' stats with results of last batch of simulations
-#       [(ind.fitness.setValues(obj), ind.fitness.features.setValues(bc)) for
-#        (ind, obj, bc) in zip(self.inds, objective_values, behavior_values)]
-        for (ind, obj, bc) in zip(self.inds, objective_values, behavior_values):
-            ind.fitness.setValues([obj])
-            ind.features.setValues(bc)
-        # Replace the current population by the offspring
-        nb_updated = self.grid.update(self.inds, issue_warning=True, ignore_exceptions=False)
-        # Compile stats and update logs
-        record = self.stats.compile(self.grid) if self.stats else {}
-
-        assert len(self.grid._best_fitness.values) == 1, "Multi-objective evolution is not supported."
-
-        # FIXME: something is wrong here, this is the min, not max.
-        # maxFitness = self.grid._best_fitness[0]
-
-        fits = [ind.fitness.values[0] for ind in self.grid]
-        maxFitness = np.max(fits)
-        meanFitness = np.mean(fits)
-        self.logbook.record(iteration=self.i, containerSize=self.grid.size_str(), evals=len(self.inds), 
-                            nbUpdated=nb_updated, elapsed=timer()-self.start_time, meanFitness=meanFitness, maxFitness=maxFitness,
-                            **record)
-        self.i += 1
-        print(self.logbook.stream)
-
-    def ask(self):
-
-        if len(self.grid) == 0:
-            # Return the initial batch
-            return self.inds
-
-        elif len(self.grid) < self.batch_size:
-            # If few elites, supplement the population with individuals from the last generation
-            np.random.shuffle(self.inds)
-            breedable = self.grid.items + self.inds[:-len(self.grid)]
-
-        else:
-            breedable = self.grid
-
-        # Select the next batch individuals
-        batch = [self.toolbox.select(breedable) for i in range(self.batch_size)]
-
-        ## Vary the pool of individuals
-        self.inds = deap.algorithms.varAnd(batch, self.toolbox, self.cxpb, self.mutpb)
-
-        return self.inds
-
-
-def unravel_index(
-    indices: th.LongTensor, shape: Tuple[int, ...]
-) -> th.LongTensor:
-    r"""Converts flat indices into unraveled coordinates in a target shape.
-
-    This is a `th` implementation of `numpy.unravel_index`.
-
-    Args:
-        indices: A tensor of indices, (*, N).
-        shape: The targeted shape, (D,).
-
-    Returns:
-        unravel coordinates, (*, N, D).
-    """
-
-    shape = th.tensor(shape)
-    indices = indices % shape.prod()  # prevent out-of-bounds indices
-
-    coord = th.zeros(indices.size() + shape.size(), dtype=int)
-
-    for i, dim in enumerate(reversed(shape)):
-        coord[..., i] = indices % dim
-        indices = indices // dim
-
-    return coord.flip(-1)
 
 
 # TODO: Use the GPU!
@@ -1426,6 +1314,22 @@ def simulate(
 
 class EvoPCGRL:
     def __init__(self, args):
+        # This is a HACK to feed the environment the config it expects. The RL code has been updated to use these nested hydra configs.
+        # We should probably have this evo code use a similar hydra config setup (rl and evo could even share, e.g. problem configs)
+        self._config = Config(
+            render=RENDER,
+            change_percentage=None,
+            max_board_scans=1,
+            static_prob=None,  # Probability that tiles in random initial level layout will be static (cannot be overwritten by agent)
+            evaluation_env=False,
+            problem=ProblemConfig(
+                name=args.problem,
+                weights={k: 1 for k in args.behavior_characteristics},
+            ),
+            multiagent=MultiagentConfig( # Dummy. Not doing evo + multiagent.
+                n_agents=0,
+            ),
+        )
         self.init_env()
         args.max_loss = self.env.get_max_loss(ctrl_metrics=args.behavior_characteristics) * args.targets_penalty_weight
         self.args = args
@@ -2119,9 +2023,9 @@ class EvoPCGRL:
         """Initialize the PCGRL level-generation RL environment and extract any useful info from it."""
 
         env_name = "{}-{}-v0".format(PROBLEM, REPRESENTATION)
-        self.env = gym.make(env_name)
-        self.env = ControlWrapper(self.env, problem={"weights": {}})
-        self.env.adjust_param(render=RENDER, change_percentage=None, model=None, max_board_scans=1, static_prob=0.0, evaluation_env=False, multiagent={"n_agents": 0}, action_size=None)
+        self.env = gym.make(env_name, cfg=self._config)
+        self.env = ControlWrapper(self.env, cfg=self._config)
+        self.env.adjust_param(cfg=self._config)
         self.env.unwrapped._get_stats_on_step = False
 
 #       if CMAES:

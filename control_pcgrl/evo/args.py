@@ -17,7 +17,7 @@ def get_args(load_args=None):
         "-p",
         "--problem",
         help='Which game to generate levels for (PCGRL "problem").',
-        default="binary_ctrl",
+        default="binary",
     )
     opts.add_argument(
         "-e",
@@ -59,7 +59,7 @@ def get_args(load_args=None):
         "--behavior_characteristics",
         nargs="+",
         help="A list of strings corresponding to the behavior characteristics that will act as the dimensions for our grid of elites during evo.",
-        default=["NONE", "NONE"],
+        default=["path-length", "symmetry"],
     )
     opts.add_argument(
         "-r", "--render", help="Render the environment.", action="store_true"

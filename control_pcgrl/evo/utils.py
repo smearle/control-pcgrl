@@ -101,3 +101,31 @@ def draw_net(config: object, genome: object, view: object = False, filename: obj
     dot.render(filename, view=view)
 
     return dot
+
+
+# def unravel_index(
+#     indices: th.LongTensor, shape: Tuple[int, ...]
+# ) -> th.LongTensor:
+#     r"""Converts flat indices into unraveled coordinates in a target shape.
+
+#     This is a `th` implementation of `numpy.unravel_index`.
+
+#     Args:
+#         indices: A tensor of indices, (*, N).
+#         shape: The targeted shape, (D,).
+
+#     Returns:
+#         unravel coordinates, (*, N, D).
+#     """
+
+#     shape = th.tensor(shape)
+#     indices = indices % shape.prod()  # prevent out-of-bounds indices
+
+#     coord = th.zeros(indices.size() + shape.size(), dtype=int)
+
+#     for i, dim in enumerate(reversed(shape)):
+#         coord[..., i] = indices % dim
+#         indices = indices // dim
+
+#     return coord.flip(-1)
+
