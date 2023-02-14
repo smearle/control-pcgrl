@@ -6,8 +6,9 @@ from qdpy import containers
 from ribs.archives import GridArchive
 from ribs.archives._add_status import AddStatus
 
-class InitStatesArchive():
+class InitStatesArchive(GridArchive):
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs):
+        GridArchive.__init__(self, bin_sizes, bin_bounds, **kwargs)
 #       if CONTINUOUS:
 #           self.init_states_archive = np.empty(
 #               shape=(*bin_sizes, n_init_states, 3, map_w, map_h)
@@ -25,12 +26,11 @@ class InitStatesArchive():
         self.door_coords = door_coords
 
 
-class CMAInitStatesGrid(InitStatesArchive, GridArchive):
+class CMAInitStatesGrid(InitStatesArchive):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
     reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs):
-        InitStatesArchive.__init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs)
-        GridArchive.__init__(self, bin_sizes, bin_bounds, **kwargs)
+        super().__init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs)
 
 
     def add(self, solution, objective_value, behavior_values, meta, index=None):
@@ -170,7 +170,7 @@ class FlexArchive(InitStatesArchive):
         index = self.get_index(behavior_values)
 
         status, dtype_improvement = super().add(
-            solution, objective_value, behavior_values, meta, index
+            solution, objective_value, behavior_values, meta, # index
         )
 
         if not status == AddStatus.NOT_ADDED:

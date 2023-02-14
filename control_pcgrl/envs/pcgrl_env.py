@@ -274,12 +274,12 @@ class PcgrlEnv(gym.Env):
             self._max_changes = max(int(percentage * np.prod(self.get_map_dims()[:-1])), 1)
         # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
 
-        if cfg.model.name is not None and 'Decoder' in cfg.model.name: 
+        # if cfg.model.name is not None and 'Decoder' in cfg.model.name: 
             # Pretty much for debugging, no config for this model at present
-            self._max_iterations = 1
-        else:
-            max_board_scans = cfg.max_board_scans
-            self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
+            # self._max_iterations = 1
+        # else:
+        max_board_scans = cfg.max_board_scans
+        self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
         self._prob.adjust_param(cfg=cfg)
         self._rep.adjust_param(cfg=cfg)
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
