@@ -27,7 +27,7 @@ from control_pcgrl.envs.reps.wide_rep import WideRepresentation
 
 # class RepresentationWrapper(Representation):
 class RepresentationWrapper():
-    def __init__(self, rep: Representation, **kwargs):
+    def __init__(self, rep: Representation, cfg: Config):
         self.rep = rep
         # TODO: implement below so that they all point to the same object
         # self._map = self.rep._map
@@ -287,9 +287,9 @@ class MultiActionRepresentation(RepresentationWrapper):
         self.inner_l_pads = np.floor((action_size - 1) / 2).astype(int)
         self.inner_r_pads = np.ceil((action_size - 1) / 2).astype(int)
 
-    def __init__(self, rep, map_dims, **kwargs):
-        super().__init__(rep, **kwargs)
-        self.action_size = np.array(kwargs.get('action_size'))       # if we arrive here, there must be an action_size in kwargs
+    def __init__(self, rep, map_dims, cfg: Config):
+        super().__init__(rep, cfg=cfg)
+        self.action_size = np.array(cfg.action_size)       # if we arrive here, there must be an action_size in kwargs
         self._set_inner_padding(self.action_size)
         self.map_size = map_dims                            # map_dims is a tuple (height, width, n_tiles) in 2D
         self.map_dim = len(map_dims[:-1])                        # 2 for 2D, 3 for 3D
@@ -431,15 +431,16 @@ class MultiAgentWrapper(RepresentationWrapper):
         (255, 0, 255, 255),
         (0, 255, 255, 255),
     ]
-    def __init__(self, rep, **kwargs):
-        try:
-            n_agents = kwargs.get('multiagent')['n_agents']
-        except TypeError:
-            n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
+    def __init__(self, rep, cfg):
+        n_agents = cfg.multiagent.n_agents
+        # try:
+        #     n_agents = kwargs.get('multiagent')['n_agents']
+        # except TypeError:
+        #     n_agents = json.loads(kwargs.get('multiagent').replace('\'', '\"'))['n_agents']
         #self.n_agents = kwargs['multiagent']['n_agents']
         self.n_agents = n_agents
         self._active_agent = None
-        super().__init__(rep, **kwargs)
+        super().__init__(rep, cfg)
     
     def reset(self, dims, prob, **kwargs):
         super().reset(dims, prob, **kwargs)
@@ -564,9 +565,9 @@ class MultiAgentWideRepresentation(MultiAgentWrapper):
         return change, self._positions
 
 # TODO: Clean this up!
-def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, multi = False, cfg: Config = None):
+def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, cfg: Config = None):
     """Should only happen once!"""
-    if multi:
+    if cfg.action_size is not None:
         rep = MultiActionRepresentation(rep, map_dims, cfg=cfg)
 
     if static_build:
@@ -579,7 +580,7 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
     # if issubclass(prob_cls, Minecraft3Drain):
         # rep = RainRepresentation(rep)
     if issubclass(prob_cls, Problem3D):
-        rep = Representation3D(rep, cfg=cfg)
+        rep = Representation3D(rep, cfg)
         # rep_cls = wrap_3D(rep_cls)
         # if issubclass(rep_cls, EgocentricRepresentation):
             # rep_cls = EgocentricRepresentation3D()

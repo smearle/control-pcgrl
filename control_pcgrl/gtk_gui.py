@@ -29,6 +29,8 @@ class GtkGUI(Gtk.Window):
         eventbox.add(image)
         hbox_0.pack_start(eventbox, False, False, 0)
 
+        self.map_eventbox = eventbox
+
         # This vbox contains the gui (buttons and control sliders and meters)
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
 

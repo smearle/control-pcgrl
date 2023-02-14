@@ -254,12 +254,11 @@ class PcgrlEnv(gym.Env):
         _prob_cls = type(self._prob)
         static_build = cfg.static_prob is not None
 
-        multi = False # wtf was this?
         # multi = cfg.multi is not None
 
         # Wrap the representation if we haven't already.
         if not self._rep_is_wrapped:
-            self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), static_build=static_build, multi=multi, 
+            self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), static_build=static_build, 
                                  cfg=cfg)
             self._rep_is_wrapped = True
 
