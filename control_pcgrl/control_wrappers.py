@@ -337,6 +337,14 @@ class ControlWrapper(gym.Wrapper):
             self.win.render(img)
             user_clicks = self.win.get_clicks()
             for (py, px, tile, static) in user_clicks:
+                # FIXME: this logic belongs inside gtk_gui...?
+                # First subtract the pygtk EventBox border size
+                # Size of rendered map in pixels
+                map_size_pix = self.unwrapped._prob._tile_size * (np.array(self.unwrapped._rep.unwrapped._map.shape) + np.array(self.unwrapped._prob._border_size) * 2)
+                # Assume map is always rendered in the middle of its eventbox
+                widget_border_size = (np.array([self.win.map_eventbox.get_allocated_width(), self.win.map_eventbox.get_allocated_height()]) - map_size_pix) / 2
+                px, py = px - widget_border_size[1], py - widget_border_size[0]
+
                 x = int(px // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[1])
                 y = int(py // self.unwrapped._prob._tile_size - self.unwrapped._prob._border_size[0])
                 if x < 0 or y < 0 or x >= self.unwrapped._rep.unwrapped._map.shape[0] or y >= self.unwrapped._rep.unwrapped._map.shape[1]:
@@ -344,7 +352,7 @@ class ControlWrapper(gym.Wrapper):
                     continue
 
                 tile_int = self.unwrapped._prob.get_tile_int(tile)
-                print(f"Place tile {tile} at {x}, {y}")
+                print(f"Place tile {tile} at x:{x}, y:{y}")
 
                 # FIXME: This is a hack. Write a function in Representation for this.
                 self.unwrapped._rep.unwrapped._map[x, y] = tile_int
