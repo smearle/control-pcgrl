@@ -412,20 +412,6 @@ def get_init_states(init_states_archive, door_coords_archive, index):
     return init_states_archive[index], door_coords_archive[index]
 
 
-# TODO: Use the GPU!
-
-# class GeneratorNN(ResettableNN):
-
-
-#class ReluCPPN(ResettableNN):
-
-
-# Sin2 is siren-type net (i.e. sinusoidal, fixed-topology CPPN), with proper activation as per paper
-
-# CPPN2 takes latent seeds not onehot levels
-
-
-
 """
 Behavior Characteristics Functions
 """
@@ -994,26 +980,18 @@ def simulate(
 
     if CMAES:
         bc_names = ["NONE", "NONE"]
-    # Allow us to manually set the level-map on reset (using the "_old_map" attribute)
-    # Actually we have found a more efficient workaround for now.
 
-    #   env.unwrapped._rep._random_start = False
-    #   if n_episode == 0 and False:
-    #       env.unwrapped._rep._old_map = init_state
-    #       obs = env.reset()
-    #       int_map = obs['map']
     n_init_states = init_states.shape[0]
     width = init_states.shape[1]
     height = init_states.shape[2]
     bcs = np.empty(shape=(len(bc_names), n_init_states))
-    # if SAVE_LEVELS:
     trg = np.empty(shape=(n_init_states))
 
-    # init_states has shape (n_episodes, n_chan, height, width)
     if not ENV3D:
         final_levels = np.empty(shape=(init_states.shape[0], env.unwrapped._prob._height, env.unwrapped._prob._width), dtype=np.uint8)
     else:
         final_levels = np.empty(shape=(init_states.shape[0], env.unwrapped._prob._height, env.unwrapped._prob._width, env.unwrapped._prob._length), dtype=np.uint8)
+
     batch_reward = 0
     batch_time_penalty = 0
     batch_targets_penalty = 0
