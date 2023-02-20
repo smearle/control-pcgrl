@@ -1,5 +1,6 @@
 import numpy as np
 from pdb import set_trace as TT
+from control_pcgrl.configs.config import Config
 
 from control_pcgrl.envs.helper import (
     calc_certain_tile,
@@ -13,8 +14,8 @@ from control_pcgrl.envs.probs.zelda.zelda_prob import ZeldaProblem
 
 
 class ZeldaCtrlProblem(ZeldaProblem):
-    def __init__(self):
-        super(ZeldaCtrlProblem, self).__init__()
+    def __init__(self, cfg: Config):
+        super(ZeldaCtrlProblem, self).__init__(cfg=cfg)
         self._max_nearest_enemy = np.ceil(self._width / 2 + 1) * (self._height)
         #FIXME lmao this is half what it should be. Seennndddiiinggg me!! :~)
         # TODO: Do not assume it's a square

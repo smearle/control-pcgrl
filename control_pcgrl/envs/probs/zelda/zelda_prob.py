@@ -3,6 +3,7 @@ from pathlib import Path
 from pdb import set_trace as TT
 import numpy as np
 from PIL import Image
+from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.probs.problem import PROB_DIR, Problem
 from control_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_certain_tile, run_dijkstra, get_path_coords
 
@@ -16,12 +17,10 @@ class ZeldaProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, cfg: Config):
+        super().__init__(cfg=cfg)
         self.path_length = 0
         self.path = []
-        self._width = 16
-        self._height = 16
         self._prob = {"empty": 0.58, "solid":0.3, "player":0.02, "key": 0.02, "door": 0.02, "bat": 0.02, "scorpion": 0.02, "spider": 0.02}
         self._border_tile = "solid"
 

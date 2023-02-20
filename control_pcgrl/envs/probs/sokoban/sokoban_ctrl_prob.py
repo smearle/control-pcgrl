@@ -2,13 +2,14 @@ from pdb import set_trace as T
 from collections import OrderedDict
 
 import numpy as np
+from control_pcgrl.configs.config import Config
 
 from control_pcgrl.envs.probs.sokoban.sokoban_prob import SokobanProblem
 
 
 class SokobanCtrlProblem(SokobanProblem):
-    def __init__(self):
-        super(SokobanCtrlProblem, self).__init__()
+    def __init__(self, cfg: Config):
+        super(SokobanCtrlProblem, self).__init__(cfg=cfg)
         #import pdb; pdb.set_trace()
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         # like _reward_weights but for use with ParamRew
