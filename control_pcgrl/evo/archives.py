@@ -30,7 +30,7 @@ class CMAInitStatesGrid(InitStatesArchive):
     """Save (some of) the initial states upon which the elites were evaluated when added to the archive, so that we can
     reproduce their behavior at evaluation time (and compare it to evaluation to other seeds)."""
     def __init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs):
-        super().__init__(self, bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs)
+        super().__init__(bin_sizes, bin_bounds, n_init_states, map_dims, **kwargs)
 
 
     def add(self, solution, objective_value, behavior_values, meta, index=None):
