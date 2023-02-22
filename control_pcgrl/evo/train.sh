@@ -10,8 +10,8 @@
 #SBATCH --mem=32GB
 #SBATCH --job-name=evopcg
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=se2161@nyu.edu
-#SBATCH --output=evo_runs/sokoban-cellular_NCA_[emptiness,sol-length]_10-batch_100-pass_0.05-stepSize_fixElites_8-aux_1.out
+## SBATCH --mail-user=se2161@nyu.edu
+#SBATCH --output=evo_runs/zelda-cellular_NCA_[symmetry,path-length]_50-batch_50-pass_0.05-stepSize_fixElites_8-aux_0.out
 
 ## cd /scratch/se2161/control-pcgrl
 
@@ -27,7 +27,7 @@
 
 
 start=$SECONDS
-while ! python evo/evolve.py -la 85
+while ! python3 control_pcgrl/evo/evolve.py -la 11
 do
     duration=$((( SECONDS - start ) / 60))
     echo "Script returned error after $duration minutes"

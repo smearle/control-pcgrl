@@ -1995,6 +1995,11 @@ class EvoPCGRL:
         pickle.dump(
             self, open(os.path.join(SAVE_PATH, "evolver.pkl"), "wb"), protocol=4
         )
+
+        # Save the trained archive as pandas df
+        df = self.gen_archive.as_pandas()
+        df.to_csv(os.path.join(SAVE_PATH, "trained_archive.csv"))
+
         self.env = ENV
 
     def init_env(self):
