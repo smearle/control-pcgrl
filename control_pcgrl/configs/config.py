@@ -26,14 +26,14 @@ class ProblemConfig:
     weights: Dict[str, int] = MISSING
     controls: List[Any] = MISSING
     alp_gmm: bool = MISSING
-    # map_shape: List[Any] = MISSING
-    # crop_shape: List[Any] = MISSING
-    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
-    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+    map_shape: List[Any] = MISSING
+    crop_shape: List[Any] = MISSING
+    # map_shape: List[Any] = field(default_factory= lambda: [16, 16])
+    # crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
 
 
 @dataclass
-class BinaryPathConfig(ProblemConfig):
+class BinaryConfig(ProblemConfig):
     name: str = 'binary'
     # Regions weight will be 0 by default.
     weights: Dict[str, int] = field(default_factory = lambda: ({
@@ -44,23 +44,103 @@ class BinaryPathConfig(ProblemConfig):
     #    'ratio': 1,
     #    'dist-win': 1,
     #    'sol-length': 2
-
-
-        'path-length': 100,
-    }))
-
-@dataclass
-class BinaryControlConfig(ProblemConfig):
-    name: str = 'binary'
-    weights: Dict[str, int] = field(default_factory = lambda: ({
         'path-length': 100,
         'regions': 100,
     }))
+    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
+    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+
+
+@dataclass
+class BinaryPathConfig(BinaryConfig):
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        'path-length': 100,
+    }))
+
+
+@dataclass
+class BinaryControlConfig(BinaryConfig):
     controls: List[Any] = field(default_factory= lambda: [
         # 'regions',
         'regions', 'path-length',
     ])
     alp_gmm: bool = False
+
+@dataclass
+class ZeldaConfig(ProblemConfig):
+    name: str = 'zelda'
+    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
+    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        "player": 3,
+        "key": 3,
+        "door": 3,
+        "regions": 5,
+        "enemies": 1,
+        "nearest-enemy": 2,
+        "path-length": 1
+    }))
+
+
+@dataclass
+class ZeldaControlConfig(ZeldaConfig):
+    controls: List[Any] = field(default_factory= lambda: [
+        # 'path-length',
+        'nearest-enemy', 'path-length',
+    ])
+    alp_gmm: bool = False
+
+@dataclass
+class SokobanConfig(ProblemConfig):
+    name: str = 'sokoban'
+    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
+    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        "player": 3,
+        "crate": 2,
+        "target": 2,
+        "regions": 5,
+        "ratio": 2,
+        "dist-win": 0,
+        "sol-length": 1,
+    }))
+
+
+@dataclass
+class SokobanControlConfig(SokobanConfig):
+    controls: List[Any] = field(default_factory= lambda: [
+        # 'crate',
+        'crate', 'sol-length',
+    ])
+    alp_gmm: bool = False
+
+
+@dataclass
+class SMBConfig(ProblemConfig):
+    name: str = 'smb'
+    map_shape: List[Any] = field(default_factory= lambda: [116, 16])
+    crop_shape: List[Any] = field(default_factory= lambda: [232, 32])
+    weights: Dict[str, int] = field(default_factory = lambda: ({
+        "dist-floor": 2,
+        "disjoint-tubes": 1,
+        "enemies": 1,
+        "empty": 1,
+        "noise": 4,
+        "jumps": 2,
+        "jumps-dist": 2,
+        "dist-win": 5,
+        "sol-length": 1,
+    }))
+
+
+@dataclass
+class SMBControlConfig(SMBConfig):
+    controls: List[Any] = field(default_factory= lambda: [
+        # 'dist-floor',
+        'dist-floor', 'sol-length',
+    ])
+    alp_gmm: bool = False
+
 
 @dataclass
 class LegoProblemConfig(ProblemConfig):
@@ -71,11 +151,13 @@ class LegoProblemConfig(ProblemConfig):
         'n_bricks': 1,
     }))
 
+
 @dataclass
 class MinecraftProblemConfig(ProblemConfig):
     name: str = MISSING
     map_shape: List[Any] = field(default_factory= lambda: [15, 15, 15])
     crop_shape: List[Any] = field(default_factory= lambda: [30, 30, 30])
+
 
 @dataclass
 class MinecraftMazeConfig(MinecraftProblemConfig):
@@ -152,12 +234,12 @@ class SharedPolicyConfig(MultiagentConfig):
 class HardwareConfig:
     n_cpu: int = MISSING
     n_gpu: int = MISSING
-    num_envs_per_worker: int = 60
+    num_envs_per_worker: int = 10
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
     n_cpu: int = 3
-    n_gpu: int = 1
+    n_gpu: int = 0
 
 @dataclass
 class RemoteHardwareConfig(HardwareConfig):
@@ -229,8 +311,19 @@ cs.store(name="single_agent", group="multiagent", node=SingleAgentConfig)
 cs.store(name="single_agent_dummy_multi", group="multiagent", node=SingleAgentDummyMultiConfig)
 cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
+cs.store(name="binary", group="problem", node=BinaryConfig)
 cs.store(name="binary_path", group="problem", node=BinaryPathConfig)
-cs.store(name="binary_path_control", group="problem", node=BinaryControlConfig)
+cs.store(name="binary_control", group="problem", node=BinaryControlConfig)
+
+# cs.store(name="base_problem", group="problem", node=ProblemConfig)
+cs.store(name="zelda", group="problem", node=ZeldaConfig)
+cs.store(name="zelda_control", group="problem", node=ZeldaControlConfig)
+
+cs.store(name="sokoban", group="problem", node=SokobanConfig)
+cs.store(name="sokoban_control", group="problem", node=SokobanControlConfig)
+
+cs.store(name="smb", group="problem", node=SMBConfig)
+cs.store(name="smb_control", group="problem", node=SMBControlConfig)
 
 cs.store(name="minecraft_3D_maze", group="problem", node=MinecraftMazeConfig)
 cs.store(name="minecraft_3D_holey_maze", group="problem", node=MinecraftHoleyMazeConfig)

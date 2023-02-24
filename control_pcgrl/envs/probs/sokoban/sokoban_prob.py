@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from PIL import Image
+from control_pcgrl.configs.config import Config
 
 from control_pcgrl.envs.helper import (
     calc_certain_tile,
@@ -23,8 +24,8 @@ class SokobanProblem(Problem):
     The constructor is responsible of initializing all the game parameters
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, cfg: Config):
+        super().__init__(cfg)
         self._width = 5
         self._height = 5
         self._prob = {

@@ -11,6 +11,7 @@ from control_pcgrl.envs.pcgrl_env import PcgrlEnv
 import numpy as np
 
 from control_pcgrl import control_wrappers
+from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem
 from control_pcgrl.envs.probs.problem import Problem3D

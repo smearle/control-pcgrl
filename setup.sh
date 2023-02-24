@@ -17,13 +17,13 @@ python -m pip install -e submodules/qdpy
 # conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 
 # for cuda version 11.6 on linux
-conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
+# conda install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia
 
 # for 3090
 # conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 
-# # M1 mac users, if want to use GPU (MPS acceleration)):
-# conda install pytorch torchvision torchaudio -c pytorch-nightly
+# # M1 mac users, if want to use GPU (MPS acceleration)): (# MPS acceleration is available on MacOS 12.3+ and no need to install nightly now)
+conda install pytorch torchvision torchaudio -c pytorch
 
 #################################
 

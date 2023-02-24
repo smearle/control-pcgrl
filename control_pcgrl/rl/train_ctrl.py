@@ -162,7 +162,7 @@ def main(cfg: Config) -> None:
         #import pdb; pdb.set_trace()
         for _ in tqdm(range(100)):
             obs = dummy_env.reset()
-            for i in range(500):
+            for i in range(100):
                 # if i > 3:
                 act = dummy_env.action_space.sample()
                 # act = 0 

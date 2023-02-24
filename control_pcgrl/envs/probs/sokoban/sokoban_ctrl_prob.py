@@ -10,7 +10,6 @@ from control_pcgrl.envs.probs.sokoban.sokoban_prob import SokobanProblem
 class SokobanCtrlProblem(SokobanProblem):
     def __init__(self, cfg: Config):
         super(SokobanCtrlProblem, self).__init__(cfg=cfg)
-        #import pdb; pdb.set_trace()
         self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
         # like _reward_weights but for use with ParamRew
         #       self._reward_weights = self._reward_weights
