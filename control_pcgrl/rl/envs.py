@@ -22,19 +22,13 @@ from control_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
 # from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 # from utils import RenderMonitor, get_map_width
 
-def make_env(cfg):
+def make_env(cfg: Config):
     """
     Initialize and wrap the environment.
 
     Args:
         cfg_dict: dictionary of configuration parameters
     """
-    # cfg_dict = cfg # tehe
-    # cfg = Namespace(**cfg)
-
-    # Turn dictionary into an object with attributes instead of keys.
-    # cfg = namedtuple("env_cfg", cfg_dict.keys())(*cfg_dict.values())
-
     env: PcgrlEnv = None
     try:
         rep_cls = REPRESENTATIONS[cfg.representation]     # when we first go pass this function, cfg is <class 'omegaconf.dictconfig.DictConfig'>
@@ -62,22 +56,10 @@ def make_env(cfg):
         env = wrappers.CAactionWrapper(cfg.env_name, cfg)
 
     elif np.any(issubclass(rep_cls, c) for c in [NarrowRepresentation, TurtleRepresentation]):
-    # elif cfg.representation in ['narrow', 'turtle', 'narrowholey', 'turtleholey']:
-        # if '3D' in cfg.problem.name:
-        # if issubclass(rep_cls, Representation3DABC):
-            # env = wrappers.Cropped3DImagePCGRLWrapper(cfg.env_name, **cfg_dict)
-        # else:  
         env = wrappers.CroppedImagePCGRLWrapper(game=cfg.env_name, cfg=cfg)
-    # elif cfg.representation in ['narrow3D', 'turtle3D', 'narrow3Dholey', 'turtle3Dholey']:
 
     else:
         raise Exception('Unknown representation: {}'.format(rep_cls))
-    env.configure(cfg)
-    # if cfg.max_step is not None:
-        # env = wrappers.MaxStep(env, cfg.max_step)
-#   if log_dir is not None and cfg.get('add_bootstrap', False):
-#       env = wrappers.EliteBootStrapping(env,
-#                                           os.path.join(log_dir, "bootstrap{}/".format(rank)))
     env = control_wrappers.ControlWrapper(env, ctrl_metrics=cfg.controls, cfg=cfg)
     if not cfg.evaluate:
         if cfg.controls is not None:
@@ -85,16 +67,8 @@ def make_env(cfg):
                 env = control_wrappers.ALPGMMTeacher(env, cfg)
             else:
                 env = control_wrappers.UniformNoiseyTargets(env, cfg)
-    # it not conditional, the ParamRew wrapper should just be fixed at default static targets
-#   if render or log_dir is not None and len(log_dir) > 0:
-#       # RenderMonitor must come last
-#       env = RenderMonitor(env, rank, log_dir, **kwargs)
 
-    # try:
-        # n_agents = cfg_dict['multiagent']['n_agents']
         n_agents = cfg.multiagent.n_agents
-    # except TypeError:
-    #     n_agents = json.loads(cfg_dict['multiagent'].replace('\'', '\"'))['n_agents']
 
     if n_agents != 0:
         env = wrappers.MultiAgentWrapper(env, cfg)

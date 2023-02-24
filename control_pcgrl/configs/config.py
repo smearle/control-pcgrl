@@ -65,10 +65,10 @@ class BinaryControlConfig(ProblemConfig):
 @dataclass
 class LegoProblemConfig(ProblemConfig):
     name: str = 'lego'
-    map_shape: List[Any] = field(default_factory= lambda: [15, 15, 15])
-    crop_shape: List[Any] = field(default_factory= lambda: [30, 30, 30])
+    map_shape: List[Any] = field(default_factory= lambda: [10, 10, 10])
+    crop_shape: List[Any] = field(default_factory= lambda: [20, 20, 20])
     weights: Dict[str, int] = field(default_factory = lambda: ({
-        'height': 100,
+        'n_bricks': 1,
     }))
 
 @dataclass
@@ -235,6 +235,8 @@ cs.store(name="binary_path_control", group="problem", node=BinaryControlConfig)
 cs.store(name="minecraft_3D_maze", group="problem", node=MinecraftMazeConfig)
 cs.store(name="minecraft_3D_holey_maze", group="problem", node=MinecraftHoleyMazeConfig)
 cs.store(name="minecraft_3D_dungeon_holey", group="problem", node=MinecraftHoleyDungeonConfig)
+
+cs.store(name="lego", group="problem", node=LegoProblemConfig)
 
 cs.store(name="default_model", group="model", node=ModelConfig)
 cs.store(name="seqnca", group="model", node=SeqNCAConfig)

@@ -26,26 +26,16 @@ import ray
 class ControlWrapper(gym.Wrapper):
     def __init__(self, env, cfg: Config, ctrl_metrics=None, rand_params=False):
         self.win = None
+
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
         self.controllable = ctrl_metrics is not None
-        # We'll use these for calculating loss (for evaluation during inference) but not worry about oberving them
-        # (we didn't necessarily train with all of them)
-        # ctrl_loss_metrics = kwargs.get("eval_controls")
-        # ctrl_loss_metrics = cfg.eval_controls
-        # if not ctrl_loss_metrics:
-        ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
-        # else:
-        #     if ctrl_metrics:
-        #         print('Dummy controllable metrics: {}, will not be observed.'.format(ctrl_metrics))
-        # self.CA_action = cfg.ca_action
-        self.CA_action = False
 
-        # self.render_gui = kwargs.get("render")
+        # We'll use these for calculating loss (for evaluation during inference) but not worry about observing them
+        # (we didn't necessarily train with all of them)
+        ctrl_loss_metrics = ctrl_metrics if ctrl_metrics is not None else []
+
         self.render_gui = cfg.render
-        # Whether to always select random parameters, to stabilize learning multiple objectives
-        # (i.e. prevent overfitting to some subset of objectives)
-        #       self.rand_params = rand_params
         self.env = env
         super().__init__(self.env)
 
@@ -55,9 +45,9 @@ class ControlWrapper(gym.Wrapper):
 
         self.metric_weights.update(config_weights)
 
-        #       cond_trgs = self.unwrapped.cond_trgs
+        # controllable metrics
+        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else [] 
 
-        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else []  # controllable metrics
         # fixed metrics (i.e. playability constraints)
         self.static_metric_names = set(env.static_trgs.keys())
 
@@ -66,9 +56,6 @@ class ControlWrapper(gym.Wrapper):
                 self.static_metric_names.remove(k)
         self.num_params = len(self.ctrl_metrics)
         self.auto_reset = True
-        # self.unwrapped._reward_weights = {}
-
-        #       self.unwrapped.configure(**kwargs)
 
         # NOTE: assign self.metrics after having the underlying env get its _rep_stats, or they will be behind.
         self.metrics = self.unwrapped.metrics
@@ -79,21 +66,14 @@ class ControlWrapper(gym.Wrapper):
         self.last_metrics = copy.deepcopy(self.metrics)
         self.cond_bounds = self.unwrapped.cond_bounds
         self.param_ranges = {}
-        #       self.max_improvement = 0
 
         for k in self.ctrl_metrics:
             v = self.cond_bounds[k]
             improvement = abs(v[1] - v[0])
             self.param_ranges[k] = improvement
 
-            # Expect the user to specify this in a config.
-            # self.metric_weights[k] = self.unwrapped._ctrl_reward_weights[k]
-
-        #           self.max_improvement += improvement * self.unwrapped._reward_weights[k]
-
         # We might be using a subset of possible conditional targets supplied by the problem
 
-        # for k in self.metrics:
         self.metric_trgs = self.unwrapped.static_trgs
 
         # All metrics that we will consider for reward
@@ -102,27 +82,10 @@ class ControlWrapper(gym.Wrapper):
         self.all_metrics.update(ctrl_loss_metrics)  # probably some overlap here
         self.all_metrics.update(self.static_metric_names)
 
-        if "RCT" in str(type(env.unwrapped)) or "Micropolis" in str(
-            type(env.unwrapped)
-        ):
-            self.SC_RCT = True
-        else:
-            self.SC_RCT = False
-
         for k in self.all_metrics:
             v = self.metrics[k]
 
-            # if self.SC_RCT and k not in self.ctrl_metrics:
-                # self.unwrapped._reward_weights[k] = 0
-            # else:
-                # self.unwrapped._reward_weights[k] = self.unwrapped._reward_weights[k]
-
-        #       for k in self.ctrl_metrics:
-        #           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
-        self.width = self.unwrapped.width
         self.observation_space = self.env.observation_space
-        # FIXME: hack for gym-pcgrl
-        # print("conditional wrapper, original observation space shape", self.observation_space.shape)
         self.action_space = self.env.action_space
 
         # TODO: generalize this for 3D environments.
@@ -131,31 +94,15 @@ class ControlWrapper(gym.Wrapper):
             # TODO: adapt to (c, w, h) vs (w, h, c)
 
             # We will add channels to the observation space for each controllable metric.
-            # if self.CA_action:
-                #       if self.CA_action and False:
-                # n_new_obs = 2 * len(self.ctrl_metrics)
-            #           n_new_obs = 1 * len(self.ctrl_metrics)
-            # else:
-                # n_new_obs = 1 * len(self.ctrl_metrics)
             self.n_new_obs = n_new_obs = len(self.ctrl_metrics) * 2
 
-            if self.SC_RCT:
-                pass
-                # self.CHAN_LAST = True
-                # obs_shape = (
-                #     *orig_obs_shape[1:],
-                #     orig_obs_shape[0] + n_new_obs,
-                # )
-                # low = self.observation_space.low.transpose(1, 2, 0)
-                # high = self.observation_space.high.transpose(1, 2, 0)
-            else:
-                self.CHAN_LAST = False
-                obs_shape = (
-                    *orig_obs_shape[:-1],
-                    orig_obs_shape[-1] + n_new_obs,
-                )
-                low = self.observation_space.low
-                high = self.observation_space.high
+            self.CHAN_LAST = False
+            obs_shape = (
+                *orig_obs_shape[:-1],
+                orig_obs_shape[-1] + n_new_obs,
+            )
+            low = self.observation_space.low
+            high = self.observation_space.high
             metrics_shape = (*obs_shape[:-1], n_new_obs)
             self.metrics_shape = metrics_shape
             metrics_low = np.full(metrics_shape, fill_value=0)
@@ -164,21 +111,9 @@ class ControlWrapper(gym.Wrapper):
             high = np.concatenate((metrics_high, high), axis=-1)
             self.observation_space = gym.spaces.Box(low=low, high=high)
 
-            # if not isinstance(self.observation_space, gym.spaces.Dict):
-            #     obs_space = gym.spaces.Dict(
-            #     map=self.observation_space,
-            #     ctrl_metrics=gym.spaces.Box(
-            #             low=0, high=1, shape=(self.n_new_obs,), dtype=np.float32))
-            #     obs_space.dtype = collections.OrderedDict
-            #     self.observation_space = obs_space
-            # else:
-            #     raise Exception
-
         # Does this need to be a queue? Do we ever queue up more than one set of targets?
         self._ctrl_trg_queue = []
 
-        # if self.render_gui:  # and self.conditional:
-            # self._init_gui()
         self.infer = cfg.infer
         self.last_loss = None
         self.ctrl_loss_metrics = ctrl_loss_metrics
@@ -212,9 +147,6 @@ class ControlWrapper(gym.Wrapper):
 
     def get_metric_vals(self):
         return self.metrics
-
-    def configure(self, cfg: Config):
-        pass
 
     def toggle_auto_reset(self, button):
         self.auto_reset = button.get_active()
@@ -264,38 +196,18 @@ class ControlWrapper(gym.Wrapper):
             if not metric:
                 metric = 0
             trg_range = self.param_ranges[k]
-            #           if self.CA_action and False:
 
             if isinstance(trg, tuple):
                 trg = (trg[0] + trg[1]) / 2
-
-            # CA actions for RL agent are not implemented
-            # if self.CA_action:
-                #               metrics_ob[:, :, i] = (trg - metric) / trg_range
-                # pass
-            # metrics_ob[..., i * 2] = trg / self.param_ranges[k]
-            # metrics_ob[..., i * 2 + 1] = metric / self.param_ranges[k]
-
-            # else:
-            # metrics_ob[i] = trg / trg_range
-            # metrics_ob[i * 2 + 1] = metric / trg_range
-
-                # Formerly was showing the direction of desired change with current values updated at each step.
-                # metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
 
             # Add channel layers filled with scalar values corresponding to the target values of metrics of interest.
             metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
             metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
-        #       print('param rew obs shape ', obs.shape)
-        #       print('metric trgs shape ', metrics_ob.shape)
-        #       if self.CHAN_LAST:
-        #           obs = obs.transpose(1, 2, 0)
-        obs = np.concatenate((metrics_ob, obs), axis=-1)
 
+        obs = np.concatenate((metrics_ob, obs), axis=-1)
         # TODO: support dictionary observations?
-        # assert isinstance(obs, np.ndarray)
-        # obs = {'map': obs, 'ctrl_metrics': metrics_ob}
+
         return obs
 
     def step(self, action, **kwargs):
@@ -326,21 +238,15 @@ class ControlWrapper(gym.Wrapper):
             if self.win is None:
                 self._init_gui()
             img = super().render(mode='rgb_array')
-            ### PROFILING
-            # N = 100
-            # start_time = timer()
-            # for _ in range(N):
-            #     img = super().render(mode='rgb_array')
-            #     self.win.render(img)
-            # print(f'mean pygobject image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
-            ###
             self.win.render(img)
             user_clicks = self.win.get_clicks()
             for (py, px, tile, static) in user_clicks:
+
                 # FIXME: this logic belongs inside gtk_gui...?
                 # First subtract the pygtk EventBox border size
                 # Size of rendered map in pixels
                 map_size_pix = self.unwrapped._prob._tile_size * (np.array(self.unwrapped._rep.unwrapped._map.shape) + np.array(self.unwrapped._prob._border_size) * 2)
+
                 # Assume map is always rendered in the middle of its eventbox
                 widget_border_size = (np.array([self.win.map_eventbox.get_allocated_width(), self.win.map_eventbox.get_allocated_height()]) - map_size_pix) / 2
                 px, py = px - widget_border_size[1], py - widget_border_size[0]
@@ -367,7 +273,7 @@ class ControlWrapper(gym.Wrapper):
                 self.render()
 
         else:
-            ### PROFILING
+            ### PROFILING ###
             if kwargs.get("render_profiling"):
                 N = 100
                 start_time = timer()
@@ -375,6 +281,13 @@ class ControlWrapper(gym.Wrapper):
                     super().reset()
                     super().render(mode=mode)
                 print(f'mean pyglet image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+
+                start_time = timer()
+                for _ in range(N):
+                    img = super().render(mode='rgb_array')
+                    self.win.render(img)
+                print(f'mean pygobject image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
+            ### END PROFILING ###
  
             return super().render(mode=mode)
 
@@ -383,10 +296,6 @@ class ControlWrapper(gym.Wrapper):
 
     def get_cond_bounds(self):
         return self.cond_bounds
-
-    # def set_cond_bounds(self, bounds):
-    #     for k, (l, h) in bounds.items():
-    #         self.cond_bounds[k] = (l, h)
 
     def display_metric_trgs(self):
         if self.render_gui:
@@ -402,11 +311,9 @@ class ControlWrapper(gym.Wrapper):
         for metric in self.all_metrics:
             if metric in self.metric_trgs:
                 trg = self.metric_trgs[metric]
-            # elif metric in self.static_metrics or metric in self.ctrl_loss_metrics:
             else:
                 trg = self.static_trgs[metric]
-            # else:
-            #     raise Exception("Metric should have static target.")
+
             val = self.metrics[metric]
 
             if isinstance(trg, tuple):
@@ -455,14 +362,8 @@ class ControlWrapper(gym.Wrapper):
     def get_reward(self):
         reward = 0
 
-        if not self.SC_RCT:
-            loss = self.get_loss()
-        else:
-            # FIXME: why do we do this?
-            loss = self.get_ctrl_loss()
-
-        # max_loss is positive, loss is negative. Normalize reward between 0 and 1.
-        # reward = (self.max_loss + loss) / (self.max_loss)
+        # FIXME: why do we do this?
+        loss = self.get_ctrl_loss()
 
         reward = loss - self.last_loss
         self.last_loss = loss
@@ -491,6 +392,7 @@ class ControlWrapper(gym.Wrapper):
     def close(self):
         if self.render_gui and self.controllable:
             self.win.destroy()
+
 
 # TODO: What by jove this actually doing and why does it kind of work?
 # class PerlinNoiseyTargets(gym.Wrapper):

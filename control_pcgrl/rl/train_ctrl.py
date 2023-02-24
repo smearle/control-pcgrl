@@ -35,7 +35,6 @@ from ray.tune.integration.wandb import (WandbLoggerCallback,
 from ray.tune.logger import DEFAULT_LOGGERS, pretty_print
 from ray.tune.registry import register_env
 
-from control_pcgrl.rl.args import parse_args
 from control_pcgrl.rl.callbacks import StatsCallbacks
 from control_pcgrl.rl.envs import make_env
 from control_pcgrl.rl.evaluate import evaluate
@@ -70,7 +69,6 @@ best_mean_reward, n_steps = -np.inf, 0
 #         if 'custom_plots' in result:
 #             for k, v in result['custom_plots'].items():
 #                 wandb.log({k: v}, step=result['training_iteration'])
-
 
 
 @hydra.main(version_base=None, config_path='../configs', config_name='config')
@@ -345,9 +343,6 @@ def main(cfg: Config) -> None:
     except KeyboardInterrupt:
         ray.shutdown()
 
-################################## MAIN ########################################
 
 if __name__ == '__main__':
     main()
-    # cfg = parse_args()
-    # main(cfg)

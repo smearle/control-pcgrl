@@ -31,10 +31,6 @@ class PlayPcgrlEnv(PcgrlEnv):
         space_list = super().get_spaces, self.player_action_space
         return space_list
 
-    def configure(self, map_width=16, **kwargs):
-       #self.width = map_width
-        return None
-
     def get_player_action_space(self):
         return self.player_action_space
 

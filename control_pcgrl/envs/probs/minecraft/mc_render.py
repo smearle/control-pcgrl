@@ -234,7 +234,7 @@ def spawn_3D_maze(map, base_pos=5):
                              the horizontal direction x is (map[][][x])
                              the horizontal direction z is (map[][y][])
 
-    Spawn maze iterately in Minecraft
+    Spawn maze iteratively in Minecraft
 
     Parameters:
         map (string[][][]): the current game map

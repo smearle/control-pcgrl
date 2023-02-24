@@ -7,7 +7,7 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GLib
 import numpy as np
 
 
-#FIXME: sometimes the mere existence of this class will break a multi-env micropolis run
+#FIXME: sometimes the mere existence of this class will break a multi-env micropolis run (note: micropolis is deprecated)
 class GtkGUI(Gtk.Window):
     def __init__(self, env, tile_types, tile_images, metrics, metric_trgs, metric_bounds):
         self.env = env
@@ -115,7 +115,7 @@ class GtkGUI(Gtk.Window):
             # scale.connect("value-changed", self.scale_moved)
             # vbox.pack_start(scale, True, True, 10)
 
-            #HACK: Just use another progress bar for not, smh (no user input!)
+            #HACK: Just use another progress bar for now, smh (no user input!)
             metric_trg = Gtk.ProgressBar()
 #           metric_prog.set_draw_value(True)
             self.trg_bars[k] = metric_trg

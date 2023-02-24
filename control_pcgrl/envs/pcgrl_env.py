@@ -60,7 +60,6 @@ class PcgrlEnv(gym.Env):
         # print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
         self._changes = 0
-        self.width = self._prob._width
         self._change_percentage = 0.2
 
         # Should we compute stats each step/reset? If not, assume some external process is computing terminal reward.
@@ -126,30 +125,10 @@ class PcgrlEnv(gym.Env):
         return self._rep._map
 
     def get_map_dims(self):
-        return (self._prob._width, self._prob._height, self.get_num_tiles())
+        return self._prob._map_shape + (self.get_num_tiles(),)
 
     def get_observable_map_dims(self):
-        return (self._prob._width, self._prob._height, self.get_num_observable_tiles())
-
-    def configure(self, cfg: Config):  # , max_step=300):
-        map_shape = cfg.problem.map_shape
-        # What is this garbage??
-        # ZJ: I think map_shape comes as a list? why do we need to check if it is a string?
-        if isinstance(map_shape, str):
-            map_shape = json.loads(map_shape)
-        
-        self._prob._width = map_shape[0]
-        self._prob._height = map_shape[1]
-        self.width = map_shape[0]  #UGH 
-#       self._prob.max_step = max_step
-
-
-#   def get_param_bounds(self):
-#       return self.param_bounds
-
-#   def set_param_bounds(self, bounds):
-#       #TODO
-#       return len(bounds)
+        return self._prob._map_shape + (self.get_num_observable_tiles(),)
 
     def set_params(self, trgs):
         for k, v in trgs.items():

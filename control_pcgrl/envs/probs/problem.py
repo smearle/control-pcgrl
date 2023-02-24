@@ -22,11 +22,17 @@ class Problem(ABC):
     _tile_types = []
     eval_maps = []
     """
-    Constructor for the problem that initialize all the basic parameters
+    Constructor for the problem that initialize all the basic parameters. Abstract Base Class (ABS) that cannot be
+    directly instantiated.
     """
     def __init__(self, cfg):
-        self._width, self._height = cfg.problem.map_shape
+        self._map_shape = cfg.problem.map_shape
+        self._height, self._width = self._map_shape[0], self._map_shape[1]  # Will be overwritten if this is a 3D problem.
         tiles = self.get_tile_types()
+
+        # How much to weight each component of the reward function (which is a linear sum).
+        self._reward_weights = cfg.problem.weights
+        self._ctrl_reward_weights = cfg.problem.weights  # Can make this a separate config attribute later if necessary.
 
         # FIXME: assumption, will overrule a similar declaration by the child.
         self._empty_tile = tiles[0]
@@ -47,10 +53,8 @@ class Problem(ABC):
         self.render_path = False
         self.path_to_erase = set({})  # FIXME: only 3D really needs this.
 
-    # def gen_holes(self):
-        # return None
-
     def init_tile_int_dict(self):
+        """Initialize a dictionary that maps tile names to integers."""
         self._tile_int_dict = {tile: i for i, tile in enumerate(self.get_tile_types())}
 
     def get_tile_int(self, tile):
@@ -104,7 +108,7 @@ class Problem(ABC):
         intiialization, the names are the same as the tile types from get_tile_types
     """
     def adjust_param(self, **kwargs):
-        self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
+        # self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
         prob = kwargs.get('probs')
         if prob is not None:
             for t in prob:
@@ -153,7 +157,7 @@ class Problem(ABC):
     #     raise NotImplementedError('get_graphics is not implemented')
 
     """
-    Get any debug information need to be printed
+    Get any debug information need to be printed.
 
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
@@ -251,4 +255,5 @@ class Problem(ABC):
 
 class Problem3D(Problem):
     def __init__(self, cfg: Config):
-        self._map_shape = cfg.problem.map_shape
+        super().__init__(cfg)
+        self._height, self._width, self._length = cfg.problem.map_shape

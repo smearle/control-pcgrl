@@ -2,22 +2,20 @@ from pdb import set_trace as TT
 from gym.envs.registration import register
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem
+from control_pcgrl.envs.probs.problem import Problem3D
 from control_pcgrl.envs.reps import REPRESENTATIONS
 
 # Register all the problems with every different representation for the OpenAI GYM
 for prob in PROBLEMS.keys():
     prob_cls = PROBLEMS[prob]
     if issubclass(prob_cls, HoleyProblem):
-        # if issubclass(prob_cls, 3DProblem):
-        if "3D" in prob:
+        if issubclass(prob_cls, Problem3D):
             entry_point = "control_pcgrl.envs:PcgrlHoleyEnv3D"
         else:
             entry_point = "control_pcgrl.envs:PcgrlHoleyEnv"
-    elif "play" in prob:
-        entry_point= "control_pcgrl.envs:PlayPcgrlEnv"
-    # NOTE: we assume 3D envs are controllable and manually copy over certain __init__ logic into the 3D env
-    # NEXT: make all 3D envs holey
-    elif "3D" in prob:
+    # elif "play" in prob:  # Deprecated
+    #     entry_point= "control_pcgrl.envs:PlayPcgrlEnv"
+    elif issubclass(prob_cls, Problem3D):
         entry_point= "control_pcgrl.envs:PcgrlEnv3D"
     else:
         entry_point= "control_pcgrl.envs:PcgrlCtrlEnv"
