@@ -423,7 +423,7 @@ class Cropped(TransformObs):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value if not self.show_agents else max(high_value, kwargs['multiagent']['n_agents']), shape=tuple(self.shape), dtype=np.uint8
+            low=0, high=high_value if not self.show_agents else max(high_value, cfg.multiagent.n_agents), shape=tuple(self.shape), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):

@@ -23,10 +23,7 @@ class NarrowRepresentation(EgocentricRepresentation):
     generator-agent. Dimension ignored.
     """
     def get_act_coords(self):
-        act_coords = np.meshgrid(*tuple([np.arange(s) for s in self._map.shape]))
-        # Flatten so that we can treat this like a list of coordinates.
-        act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, len(self._map.shape)))
-        # act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first. But this will have a bug for non-square maps.
+        act_coords = np.argwhere(np.ones(self._map.shape))
         return act_coords
 
     """

@@ -60,32 +60,16 @@ class PcgrlEnv(gym.Env):
         # print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
         self._changes = 0
-        self._change_percentage = 0.2
 
         # Should we compute stats each step/reset? If not, assume some external process is computing terminal reward.
         # TODO: adapt evolution to toggle a `terminal_reward` setting in the env.
         self._get_stats_on_step = True
 
-        # Effectively a dummy variable if `change_percentage` is later set to `None`.
-        self._max_changes = max(int(self._change_percentage * np.prod(self.get_map_dims()[:-1])), 1)
-
-        # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-        # self._max_iterations = self._prob._width * self._prob._height + 1
-        self._max_iterations = 700
         self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
         self.seed()
         self.viewer = None
 
-        map_dims = self.get_map_dims()
-        self.action_space = self._rep.get_action_space(map_dims[:-1], map_dims[-1])
-        obs_map_dims = self.get_observable_map_dims()
-        self.observation_space = self._rep.get_observation_space(obs_map_dims[:-1], obs_map_dims[-1])
-        # self.observation_space.spaces['heatmap'] = spaces.Box(
-        #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
-
-        # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
-        
         self.metric_trgs = collections.OrderedDict(self._prob.static_trgs)  # FIXME: redundant??
 
         # Normalize reward weights w.r.t. bounds of each metric.
@@ -98,8 +82,10 @@ class PcgrlEnv(gym.Env):
                 for k, v in self._prob._ctrl_reward_weights.items()
         }
 
-#       self.param_bounds = self._prob.cond_bounds
         self.compute_stats = False
+
+        self.observation_space, self.action_space, self._max_changes, self._max_iterations = None, None, None, None
+        self.adjust_param(cfg=cfg)
 
     @override(TaskSettableEnv)
     def sample_tasks(self, n_maps):
@@ -225,7 +211,6 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, cfg: Config):
-        # TODO: Factor this out into a ... wrapper?
         self.evaluation_env = cfg.evaluation_env
         if self.evaluation_env:
             self.num_eval_envs = cfg.num_eval_envs
@@ -233,31 +218,19 @@ class PcgrlEnv(gym.Env):
         _prob_cls = type(self._prob)
         static_build = cfg.static_prob is not None
 
-        # multi = cfg.multi is not None
-
-        # Wrap the representation if we haven't already.
+        # Wrap the representation if we haven't already. (Sketchy.)
         if not self._rep_is_wrapped:
             self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), static_build=static_build, 
                                  cfg=cfg)
             self._rep_is_wrapped = True
 
-        # self.compute_stats = kwargs.get('compute_stats') if 'compute_stats' in kwargs else self.compute_stats
-        # self.compute_stats = cfg.compute_stats
+        if cfg.change_percentage is not None:
+            assert 0 < cfg.change_percentage
+            self._max_changes = max(int(cfg.change_percentage * np.prod(self.get_map_dims()[:-1])), 1)
+        else:
+            self._max_changes = None
 
-        # self._change_percentage = kwargs['change_percentage'] if 'change_percentage' in kwargs else self._change_percentage
-        self._change_percentage = cfg.change_percentage
-
-        if self._change_percentage is not None:
-            percentage = min(1, max(0, self._change_percentage))
-            self._max_changes = max(int(percentage * np.prod(self.get_map_dims()[:-1])), 1)
-        # self._max_iterations = self._max_changes * self._prob._width * self._prob._height
-
-        # if cfg.model.name is not None and 'Decoder' in cfg.model.name: 
-            # Pretty much for debugging, no config for this model at present
-            # self._max_iterations = 1
-        # else:
-        max_board_scans = cfg.max_board_scans
-        self._max_iterations = np.prod(self.get_map_dims()[:-1]) * max_board_scans + 1
+        self._max_iterations = np.prod(self.get_map_dims()[:-1]) * cfg.max_board_scans + 1
         self._prob.adjust_param(cfg=cfg)
         self._rep.adjust_param(cfg=cfg)
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
@@ -322,7 +295,7 @@ class PcgrlEnv(gym.Env):
         # NOTE: not ending the episode when we reach targets in our metrics of interest for now.
         # done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
         done = self._iteration > self._max_iterations
-        if self._change_percentage is not None:
+        if self._max_changes is not None:
             done = done or self._changes > self._max_changes
 
         # Only get level stats at the end of the level, for sparse, loss-based reward.

@@ -159,10 +159,11 @@ def main(cfg: Config) -> None:
 
     ### DEBUG ###
     if cfg.debug:
-        #import pdb; pdb.set_trace()
+        # Randomly step through 100 episodes
         for _ in tqdm(range(100)):
             obs = dummy_env.reset()
-            for i in range(100):
+            done = False
+            while not done:
                 # if i > 3:
                 act = dummy_env.action_space.sample()
                 # act = 0 
