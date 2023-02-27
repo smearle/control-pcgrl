@@ -189,11 +189,9 @@ class SMBProblem(Problem):
             "sol-length": new_stats["sol-length"],
         }
 
-    def render(self, map):
-        new_map = self._get_runnable_lvl(map)
 
-        if self._graphics == None:
-            self._graphics = {
+    def init_graphics(self):
+        self._graphics = {
                 "empty": Image.open(os.path.dirname(__file__) + "/smb/empty.png").convert('RGBA'),
                 "solid": Image.open(os.path.dirname(__file__) + "/smb/solid_floor.png").convert('RGBA'),
                 "solid_above": Image.open(os.path.dirname(__file__) + "/smb/solid_air.png").convert('RGBA'),
@@ -210,7 +208,16 @@ class SMBProblem(Problem):
                 "pole_flag": Image.open(os.path.dirname(__file__) + "/smb/flag.png").convert('RGBA'),
                 "flag": Image.open(os.path.dirname(__file__) + "/smb/flagside.png").convert('RGBA'),
                 "player": Image.open(os.path.dirname(__file__) + "/smb/player.png").convert('RGBA')
-            }
+        }
+
+
+
+    def render(self, map):
+        new_map = self._get_runnable_lvl(map)
+
+        if self._graphics == None:
+            self.init_grayscale_graphics()
+            
         self._border_size = (0, 0)
         img = super().render(new_map)
         self._border_size = (3, 0)

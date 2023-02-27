@@ -41,7 +41,7 @@ class SokobanCtrlProblem(SokobanProblem):
                 1,
                 self._width * self._height / 2 - max(self._width, self._height),
             ),
-#           "target": (1, self._width * self._height),
+            "target": (1, self._width * self._height),    # ZJ: why this is commented out? I uncommented it to fix the rendering bug
             "ratio": (0, self._width * self._height),
             "dist-win": (0, self._width * self._height * (self._width + self._height)),
             "sol-length": (0, 2 * self._max_path_length),

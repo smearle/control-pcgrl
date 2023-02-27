@@ -19,14 +19,14 @@ class NarrowRepresentation(EgocentricRepresentation):
         self.n_step = 0
 
     """
-    Get a list of (y, x) or (z, y, x) coordinates corresponding to coordinates of tiles to be edited by the 
+    Get a list of (y:height, x:width) or (z:height, y:width, x:length) coordinates corresponding to coordinates of tiles to be edited by the 
     generator-agent. Dimension ignored.
     """
     def get_act_coords(self):
         act_coords = np.meshgrid(*tuple([np.arange(s) for s in self._map.shape]))
         # Flatten so that we can treat this like a list of coordinates.
         act_coords = np.reshape(np.stack(act_coords, axis=-1), (-1, len(self._map.shape)))
-        act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first.
+        # act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first. But this will have a bug for non-square maps.
         return act_coords
 
     """

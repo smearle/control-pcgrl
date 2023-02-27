@@ -489,7 +489,7 @@ class MultiAgentTurtleRepresentation(MultiAgentWrapper):
     def reset(self, dims, prob, **kwargs):
         super().reset(dims, prob, **kwargs)
         self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
-        self.heatmaps = np.zeros((self.n_agents, 16, 16))
+        self.heatmaps = np.zeros((self.n_agents, *dims[::-1]))
 
     def update(self, action):
         change = False
@@ -515,13 +515,14 @@ class MultiAgentNarrowRepresentation(MultiAgentWrapper):
     
     def __init__(self, rep, **kwargs):
         super().__init__(rep, **kwargs)
-        self.heatmaps = np.zeros((self.n_agents, 16, 16))
+        # self.heatmaps = np.zeros((self.n_agents, 16, 16)) # moved to reset and made it dim agnostic
 
     def reset(self, dims, prob, **kwargs):
         self.rep.reset(dims, prob, **kwargs)
         self.coords = self.get_act_coords()
         self._n_steps = {i: i for i in range(self.n_agents)}
         self._positions = np.array([self.coords[i] for i in range(self.n_agents)])
+        self.heatmaps = np.zeros((self.n_agents, *dims[::-1]))
         #self._positions = {i: self.coords[i] for i in range(self.n_agents)}
 
     def update(self, action):

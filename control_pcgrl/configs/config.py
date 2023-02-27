@@ -118,6 +118,7 @@ class SokobanControlConfig(SokobanConfig):
 @dataclass
 class SMBConfig(ProblemConfig):
     name: str = 'smb'
+    # NOTE that the map_shape and crop_shape are y, x here
     map_shape: List[Any] = field(default_factory= lambda: [116, 16])
     crop_shape: List[Any] = field(default_factory= lambda: [232, 32])
     weights: Dict[str, int] = field(default_factory = lambda: ({
@@ -145,6 +146,7 @@ class SMBControlConfig(SMBConfig):
 @dataclass
 class LegoProblemConfig(ProblemConfig):
     name: str = 'lego'
+    # NOTE that the map_shape and crop_shape are z, y, x here
     map_shape: List[Any] = field(default_factory= lambda: [10, 10, 10])
     crop_shape: List[Any] = field(default_factory= lambda: [20, 20, 20])
     weights: Dict[str, int] = field(default_factory = lambda: ({
@@ -234,12 +236,12 @@ class SharedPolicyConfig(MultiagentConfig):
 class HardwareConfig:
     n_cpu: int = MISSING
     n_gpu: int = MISSING
-    num_envs_per_worker: int = 10
+    num_envs_per_worker: int = 30
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
     n_cpu: int = 3
-    n_gpu: int = 0
+    n_gpu: int = 1
 
 @dataclass
 class RemoteHardwareConfig(HardwareConfig):

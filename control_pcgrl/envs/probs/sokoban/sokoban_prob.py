@@ -273,43 +273,46 @@ class SokobanProblem(Problem):
             "sol-length": len(new_stats.get('solution', []))
         }
 
-    """
-    Get an image on how the map will look like for a specific map
 
-    Parameters:
-        map (string[][]): the current game map
+    def init_graphics(self):
+        if self.GVGAI_SPRITES:
+            self._graphics = {
+                "empty": Image.open(
+                    os.path.dirname(__file__) + "/sprites/oryx/floor3.png"
+                ).convert("RGBA"),
+                "solid": Image.open(
+                    os.path.dirname(__file__) + "/sprites/oryx/wall3.png"
+                ).convert("RGBA"),
+                "player": Image.open(
+                    os.path.dirname(__file__) + "/sprites/oryx/knight1.png"
+                ).convert("RGBA"),
+                "crate": Image.open(
+                    os.path.dirname(__file__) + "/sprites/newset/block2.png"
+                ).convert("RGBA"),
+                "target": Image.open(
+                    os.path.dirname(__file__) + "/sprites/oryx/cspell4.png"
+                ).convert("RGBA"),
+            }
+        else:
+            self._graphics = {
+                "empty": Image.open(os.path.dirname(__file__) + "/sokoban/empty.png").convert('RGBA'),
+                "solid": Image.open(os.path.dirname(__file__) + "/sokoban/solid.png").convert('RGBA'),
+                "player": Image.open(os.path.dirname(__file__) + "/sokoban/player.png").convert('RGBA'),
+                "crate": Image.open(os.path.dirname(__file__) + "/sokoban/crate.png").convert('RGBA'),
+                "target": Image.open(os.path.dirname(__file__) + "/sokoban/target.png").convert('RGBA')
+            }
 
-    Returns:
-        Image: a pillow image on how the map will look like using sokoban graphics
-    """
 
     def render(self, map):
-        if self._graphics is None:
-            if self.GVGAI_SPRITES:
-                self._graphics = {
-                    "empty": Image.open(
-                        os.path.dirname(__file__) + "/sprites/oryx/floor3.png"
-                    ).convert("RGBA"),
-                    "solid": Image.open(
-                        os.path.dirname(__file__) + "/sprites/oryx/wall3.png"
-                    ).convert("RGBA"),
-                    "player": Image.open(
-                        os.path.dirname(__file__) + "/sprites/oryx/knight1.png"
-                    ).convert("RGBA"),
-                    "crate": Image.open(
-                        os.path.dirname(__file__) + "/sprites/newset/block2.png"
-                    ).convert("RGBA"),
-                    "target": Image.open(
-                        os.path.dirname(__file__) + "/sprites/oryx/cspell4.png"
-                    ).convert("RGBA"),
-                }
-            else:
-                self._graphics = {
-                    "empty": Image.open(os.path.dirname(__file__) + "/sokoban/empty.png").convert('RGBA'),
-                    "solid": Image.open(os.path.dirname(__file__) + "/sokoban/solid.png").convert('RGBA'),
-                    "player": Image.open(os.path.dirname(__file__) + "/sokoban/player.png").convert('RGBA'),
-                    "crate": Image.open(os.path.dirname(__file__) + "/sokoban/crate.png").convert('RGBA'),
-                    "target": Image.open(os.path.dirname(__file__) + "/sokoban/target.png").convert('RGBA')
-                }
+        """
+        Get an image on how the map will look like for a specific map
 
+        Parameters:
+            map (string[][]): the current game map
+
+        Returns:
+            Image: a pillow image on how the map will look like using sokoban graphics
+        """
+        if self._graphics is None:
+           self.init_graphics() 
         return super().render(map)
