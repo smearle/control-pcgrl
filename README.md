@@ -1,20 +1,6 @@
-***NOTE: Currently porting RL experiment loop to hydra/submitit:***
+# control-pcgrl
 
-Config files and hyperparemeter sweeps can be found in `configs/rl`
-
-```
-train_pcgrl
-``` 
-will train an RL generator with the default settings given in `config.yaml`. (The main config class `ControlPCGRLConfig` can be found in `config.py`.)
-
-```
-train_pcgrl -m +experiment=learning_rates
-``` 
-will conduct a hyperparameter sweep over learning rates as defined in `learning_rates.yaml`
-
-This multirun will launch on SLURM by default. This can be changed in `config.yaml` or by adding `+hydra.launcher=submitit_local` to the command line.
-
-***END NOTE!!!***
+## Installation
 
 First, clone this directory _and_ its submodules (necessary for only for evolving diverse generators):
 
@@ -37,7 +23,52 @@ See `gym_pcgrl` for the original Readme, from amidos2006/gym-pcgrl.
 
 The below instructions, for controllable RL and evolving diverse generators, respectively, are out of date.
 
-## 2022: Learning Controllable 3D Content Generators
+## Reinforcement Learning
+
+### Installation
+
+Clone this repository along with its submodules:
+
+```git clone --recurse-submodules -j8 https://github.com/smearle/control-pcgrl```
+
+It is recommended to use a virtual environment using anaconda or similar.
+
+```
+conda create -n pcgrl python=3.10
+conda activate pcgrl
+```
+
+To install the required python packages, it should suffice to run
+
+```python -m pip install -r requirements.txt```
+
+If the above causes errors, the offending lines can be commented out, and any missing packages installed manually. 
+
+GTK and PyGObject are required for rendering controllable PCGRL agents, but are not used in the evolution pipeline. They can be installed with:
+
+```conda install -c conda-forge pygobject gtk3```
+
+We use [Evocraft](https://github.com/real-itu/Evocraft-py) to render in Minecraft. Launch an evocraft server (following the instructions at the link) then run inference a trained agent with `render=True`. __TODO__: Add ability to launch server from this repo.
+
+Config files and hyperparemeter sweeps can be found in `configs/rl`.
+
+### Training
+
+The command
+
+```
+train_pcgrl
+``` 
+will train an RL generator with the default settings given in `config.yaml`. (The main config class `ControlPCGRLConfig` can be found in `config.py`.)
+
+```
+train_pcgrl -m +experiment=learning_rates
+``` 
+will conduct a hyperparameter sweep over learning rates as defined in `learning_rates.yaml`
+
+This multirun will launch on SLURM by default. This can be changed in `config.yaml` or by adding `+hydra.launcher=submitit_local` to the command line.
+
+### 2022: Learning Controllable 3D Content Generators
 
 <!-- <video width="320" height="240" controls>
   <source src="medua/minecraft_example.mov" type="video/quicktime">
@@ -59,7 +90,8 @@ This paper should be cited if 3D code from this project is used in any way:
 }
 ```
 
-## 2022: Illuminating Diverse Neural Cellular Automata for Level Generation
+## Evolution
+### 2022: Illuminating Diverse Neural Cellular Automata for Level Generation
 _Note: this instruction might be somehow outdated. Please check the more up-to-date ones above_
 
 <p align="center">
@@ -88,29 +120,6 @@ This paper should be cited if evo code from this project is used in any way:
 
 ```
 
-
-### Installation
-
-Clone this repository along with its submodules:
-
-```git clone --recurse-submodules -j8 https://github.com/smearle/control-pcgrl```
-
-It is recommended to use a virtual environment using anaconda or similar. ~~We use python 3.8.~~
-
-```
-conda create -n pcgrl python=3.7
-conda activate pcgrl
-```
-
-To install the required python packages, it should suffice to run
-
-```python -m pip install -r requirements.txt```
-
-If the above causes errors, the offending lines can be commented out, and any missing packages installed manually. GTK and PyGObject are required for rendering controllable PCGRL agents, but are not used in the above pipeline for training diverse generators. If you encounter errors relating to these packages while attempting to run the above pipeline, they can be installed with:
-
-```conda install -c conda-forge pygobject gtk3```
-
-Using [Evocraft](https://github.com/real-itu/Evocraft-py) to render in Minecraft
 
 ## 2021: Learning Controllable Content Generators
 

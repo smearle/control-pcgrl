@@ -37,13 +37,6 @@ class BinaryConfig(ProblemConfig):
     name: str = 'binary'
     # Regions weight will be 0 by default.
     weights: Dict[str, int] = field(default_factory = lambda: ({
-    #    'player': 1,
-    #    'create': 1,
-    #    'target': 1,
-    #    'regions': 1,
-    #    'ratio': 1,
-    #    'dist-win': 1,
-    #    'sol-length': 2
         'path-length': 100,
         'regions': 100,
     }))
@@ -247,7 +240,7 @@ class LocalHardwareConfig(HardwareConfig):
 class RemoteHardwareConfig(HardwareConfig):
     n_cpu: int = 12
     n_gpu: int = 1
-
+    num_envs_per_worker: int = 40
 
 
 @dataclass
