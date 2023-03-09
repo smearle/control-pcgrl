@@ -38,6 +38,7 @@ class PcgrlEnv(gym.Env):
     """
     def __init__(self, cfg: Config, prob="binary", rep="narrow"):
         self._has_been_assigned_map = False  # TODO: Factor this out into a ... wrapper?
+        self.obs_window = cfg.problem.obs_window
 
         # Whether we need to load a new evaluation map.
         self.switch_env = False
@@ -157,11 +158,13 @@ class PcgrlEnv(gym.Env):
             probs = self._prob._random.random(size=len(self._prob.get_tile_types()))
             self._prob._prob = {tile: prob for tile, prob in zip(self._prob.get_tile_types(), probs)}
         if self.switch_env:
-            self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()),
+            # self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()),
+            self._rep.reset(self.obs_window, get_int_prob(self._prob._prob, self._prob.get_tile_types()),
                 next_map=self._prob.eval_maps[self.cur_map_idx])
             self.switch_env = False
         else:
-            self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+            # self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+            self._rep.reset(self.obs_window, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         # continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
         if self._get_stats_on_step:
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))
@@ -235,7 +238,9 @@ class PcgrlEnv(gym.Env):
         self._rep.adjust_param(cfg=cfg)
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
-            self.get_map_dims()[:-1], self.get_num_observable_tiles())
+            # self.get_map_dims()[:-1], self.get_num_observable_tiles())
+            cfg.problem.obs_window, cfg.problem.map_shape, self.get_num_observable_tiles())
+
         # self.observation_space.spaces['heatmap'] = spaces.Box(
         #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])
 

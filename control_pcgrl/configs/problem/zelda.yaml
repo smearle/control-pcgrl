@@ -1,0 +1,13 @@
+defaults:
+  - base_problem
+
+name: zelda
+weights:
+  player: 3
+  key: 3
+  door: 3
+  regions: 5
+  enemies: 1
+  nearest-enemy: 2
+  path-length: 1
+  

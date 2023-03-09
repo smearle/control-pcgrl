@@ -1,0 +1,5 @@
+defaults:
+  - binary
+
+controls: [regions, path-length]
+alp_gmm: False

@@ -1,27 +1,14 @@
-from functools import partial
-import json
+import math
 from pdb import set_trace as TT
 from typing import Iterable
 
 import gym
 from gym import spaces
 from control_pcgrl.configs.config import Config
+from control_pcgrl.envs.pcgrl_env import PcgrlEnv
 from control_pcgrl.envs.probs.problem import Problem3D
 import numpy as np
 from ray.rllib import MultiAgentEnv
-
-# try:
-#     import gym_city
-# except ImportError:
-#     print(
-#         "gym-city module not installed, cannot use SimCity RL environment. You can install from  source at: https://github.com/smearle/gym-city"
-#     )
-# try:
-#     import micro_rct
-# except ImportError:
-#     print(
-#         "micro-rct module not installed, cannot use micro-RollerCoaster Tycoon RL environment. You can install from  source at: https://github.com/smearle/micro-rct"
-#     )
 
 
 # clean the input action
@@ -29,44 +16,6 @@ def get_action(a):
     if isinstance(a, int):
         return a
     return a.item() if a.shape == [1] else a
-
-
-
-# class MaxStep(gym.Wrapper):
-#     """
-#     Wrapper that resets environment only after a certain number of steps.
-#     """
-
-#     def __init__(self, game, max_step):
-#         if isinstance(game, str):
-#             self.env = gym.make(game)
-#         else:
-#             self.env = game
-
-#         # get_pcgrl_env(self.env).adjust_param(**kwargs)
-#         gym.Wrapper.__init__(self, self.env)
-
-#         self.max_step = max_step
-#         self.unwrapped.max_step = max_step
-#         self.n_step = 0
-#         gym.Wrapper.__init__(self, self.env)
-
-#     def step(self, action, **kwargs):
-#         obs, reward, done, info = self.env.step(action, **kwargs)
-#         self.n_step += 1
-
-#         if self.n_step == self.max_step:
-#             done = True
-#         # else:
-#         #    done = False
-
-#         return obs, reward, done, info
-
-#     def reset(self):
-#         obs = self.env.reset()
-#         self.n_step = 0
-
-#         return obs
 
 
 class AuxTiles(gym.Wrapper):
@@ -287,7 +236,7 @@ class OneHotEncoding(TransformObs):
             old = named_obs
 
         if self.padded:
-            # Replace out-of-bounds values with all-zeros.
+            # Replace out-of-bounds values with all-zeros (i.e. slice off the ``OOB'' channel).
             new = np.eye(self.dim + 1)[old]
             new = new[..., 1:]
         else:
@@ -385,8 +334,8 @@ class Cropped(TransformObs):
     The crop size can be larger than the actual view, it just pads the outside
     This wrapper only works on games with a position coordinate can be stacked
     """
-    def __init__(self, game, crop_shape: Iterable, pad_value: int, name: str, cfg: Config):
-        crop_shape = np.array(crop_shape)
+    def __init__(self, game, obs_window: Iterable, pad_value: int, name: str, cfg: Config):
+        self.obs_window = np.array(obs_window)
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -407,15 +356,13 @@ class Cropped(TransformObs):
         self.show_agents = cfg.show_agents
         map_shape = np.array(cfg.problem.map_shape)
         self.shape = map_shape
-        crop_map_shape_diff = crop_shape - map_shape
-        pad_l = np.ceil((crop_map_shape_diff) / 2)
-        pad_r = np.floor((crop_map_shape_diff) / 2)
-        self.pad = np.stack((pad_l, pad_r), axis=1).astype(np.int8)
+        pad_r = np.floor(self.obs_window / 2)
+        self.pad = np.stack((pad_r, pad_r), axis=1).astype(np.int8)
 
         if self.show_agents:
             self.shape.append(2) # add extra two channels for the positions
         #self.pad = crop_shape // 2
-        self.pad_value = pad_value
+        # self.pad_value = pad_value
 
         self.observation_space = gym.spaces.Dict({})
 
@@ -423,7 +370,7 @@ class Cropped(TransformObs):
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value if not self.show_agents else max(high_value, cfg.multiagent.n_agents), shape=tuple(self.shape), dtype=np.uint8
+            low=0, high=high_value if not self.show_agents else max(high_value, cfg.multiagent.n_agents), shape=tuple(self.obs_window), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -445,12 +392,18 @@ class Cropped(TransformObs):
         # x, y = obs["pos"]
         pos = obs['pos']
 
+        # If crop shape is greater than map shape, pad the map
         # View Padding
         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
 
         # Compensate for the bottom-left padding.
         # View Centering
-        cropped = padded[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+        # cropped = padded[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+
+        # Crop the map
+        cropped = padded[tuple([slice(p + self.pad[i][0] - self.obs_window[i] // 2, 
+                                    p + self.pad[i][0] + math.ceil(self.obs_window[i] / 2)) for i, p in enumerate(pos)])]
+        assert np.all(cropped.shape == self.obs_window)
 
         # if show positions is turned on: add an extra channel that shows agent positions
         # NOTE: Wide representaion cannot use this, since positions are not stored in representation
@@ -475,40 +428,6 @@ class Cropped(TransformObs):
 
         return obs
 
-# class Cropped3D(Cropped):
-#     def __init__(self, game, crop_size, pad_value, name, **kwargs):
-#         if isinstance(game, str):
-#             self.env = gym.make(game)
-#         else:
-#             self.env = game
-#         self.env.unwrapped.adjust_param(**kwargs)
-#         gym.Wrapper.__init__(self, self.env)
-
-#         assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
-#         assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
-#         assert len(self.env.observation_space.spaces[name].shape) == 3, "This wrapper only works on 2D arrays."
-#         self.name = name
-#         self.size = crop_size
-#         self.pad = crop_size//2
-#         self.pad_value = pad_value
-
-#         self.observation_space = gym.spaces.Dict({})
-#         for (k,s) in self.env.observation_space.spaces.items():
-#             self.observation_space.spaces[k] = s
-#         high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
-#         self.observation_space.spaces[self.name] = gym.spaces.Box(low=0, high=high_value, shape=(crop_size, crop_size, crop_size), dtype=np.uint8)
-
-#     def transform(self, obs):
-#         map = obs[self.name]
-#         x, y, z = obs['pos']
-
-#         #View Centering
-#         # padded = np.pad(map, self.pad, constant_values=self.pad_value)
-#         padded = np.pad(map, self.pad, constant_values=0)  # Denote out-of-bounds tiles as 0.
-#         cropped = padded[z:z+self.size, y:y+self.size, x:x+self.size]
-#         obs[self.name] = cropped
-#         return obs
-
 
 ################################################################################
 #   Final used wrappers for the experiments
@@ -522,7 +441,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         static_prob = cfg.static_prob
         # obs_size = kwargs.get('observation_size')
         # crop_size = obs_size if obs_size is not None else crop_size
-        env = gym.make(game, cfg=cfg)
+        env: PcgrlEnv = gym.make(game, cfg=cfg)
         env.adjust_param(cfg)
 
         # Keys of (box) observation spaces to be concatenated (channel-wise)
@@ -532,7 +451,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Cropping map, etc. to the correct crop_size
         for k in flat_indices:
             env = Cropped(
-                game=env, crop_shape=cfg.problem.crop_shape, pad_value=env.get_border_tile(), name=k, 
+                game=env, obs_window=cfg.problem.obs_window, pad_value=env.get_border_tile(), name=k, 
                 cfg=cfg,
             )
             

@@ -106,9 +106,9 @@ class Representation(ABC):
     Returns:
         ObservationSpace: the observation space used by that representation
     """
-    def get_observation_space(self, dims, num_tiles):
+    def get_observation_space(self, obs_window, map_shape, num_tiles):
         return spaces.Dict({
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=dims)
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=obs_window)
         })
 
     """
@@ -204,10 +204,10 @@ class EgocentricRepresentation(Representation):
         })
         return obs
 
-    def get_observation_space(self, dims, num_tiles):
-        obs_space = super().get_observation_space(dims, num_tiles)
+    def get_observation_space(self, obs_window, map_shape, num_tiles):
+        obs_space = super().get_observation_space(obs_window, map_shape, num_tiles)
         obs_space.spaces.update({
-            "pos": spaces.Box(low=np.array([0 for i in dims]), high=np.array([i-1 for i in dims]), dtype=np.uint8),
+            "pos": spaces.Box(low=np.array([0 for i in map_shape]), high=np.array([i-1 for i in map_shape]), dtype=np.uint8),
         })
         return obs_space
 

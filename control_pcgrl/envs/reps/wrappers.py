@@ -148,11 +148,11 @@ class HoleyRepresentation(RepresentationWrapper):
             obs['pos'] += 1  # support variable border sizes?
         return obs
 
-    def get_observation_space(self, dims, num_tiles):
-        obs_space = super().get_observation_space(dims, num_tiles)
-        map_shape = tuple([i + 2 for i in obs_space['map'].shape])
+    def get_observation_space(self, obs_window, map_shape, num_tiles):
+        obs_space = super().get_observation_space(obs_window, map_shape, num_tiles)
+        map_obs_shape = tuple([i + 2 for i in obs_space['map'].shape])
         obs_space.spaces.update({
-            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=map_shape)
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=map_obs_shape)
         })
         if "pos" in obs_space.spaces:
             old_pos_space = obs_space.spaces["pos"]
@@ -202,10 +202,10 @@ class StaticBuildRepresentation(RepresentationWrapper):
                 self.static_builds[self._act_coords[:, 0], self._act_coords[:, 1]] == 0)] 
         return ret
 
-    def get_observation_space(self, dims, num_tiles):
-        obs_space = super().get_observation_space(dims, num_tiles)
+    def get_observation_space(self, obs_window, map_shape, num_tiles):
+        obs_space = super().get_observation_space(obs_window, map_shape, num_tiles)
         obs_space.spaces.update({
-            'static_builds': spaces.Box(low=0, high=1, dtype=np.uint8, shape=dims)
+            'static_builds': spaces.Box(low=0, high=1, dtype=np.uint8, shape=obs_window)
         })
         return obs_space
 
@@ -289,7 +289,7 @@ class MultiActionRepresentation(RepresentationWrapper):
 
     def __init__(self, rep, map_dims, cfg: Config):
         super().__init__(rep, cfg=cfg)
-        self.action_size = np.array(cfg.action_size)       # if we arrive here, there must be an action_size in kwargs
+        self.action_size = np.array(cfg.act_window)       # if we arrive here, there must be an action_size in kwargs
         self._set_inner_padding(self.action_size)
         self.map_size = map_dims                            # map_dims is a tuple (height, width, n_tiles) in 2D
         self.map_dim = len(map_dims[:-1])                        # 2 for 2D, 3 for 3D
@@ -568,7 +568,7 @@ class MultiAgentWideRepresentation(MultiAgentWrapper):
 # TODO: Clean this up!
 def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, cfg: Config = None):
     """Should only happen once!"""
-    if cfg.action_size is not None:
+    if cfg.act_window is not None:
         rep = MultiActionRepresentation(rep, map_dims, cfg=cfg)
 
     if static_build:

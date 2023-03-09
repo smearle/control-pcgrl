@@ -267,9 +267,6 @@ def get_exp_name(cfg: Config):
     
     if cfg.learning_rate:
         exp_name += f"lr-{cfg.learning_rate:.1e}_"
-    
-    if cfg.observation_size is not None:
-        exp_name += f"obs-{cfg.observation_size}_"
 
     # Can't control `n_frame`, but if we did, wouldn't want to have this in experiment name in case we watned to extent
     # training later.

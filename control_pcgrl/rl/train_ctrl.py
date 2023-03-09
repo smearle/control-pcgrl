@@ -76,13 +76,13 @@ def main(cfg: Config) -> None:
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())
 
-    if cfg.problem.crop_shape is None:
+    if cfg.problem.obs_window is None:
         # This guy gotta observe the holes.
         if "holey" in cfg.problem.name:
-            crop_shape = cfg.problem.map_shape * 2 + 1
+            obs_window = cfg.problem.map_shape * 2 + 2
         else:
-            crop_shape = cfg.problem.map_shape * 2
-        cfg.problem.crop_shape = crop_shape
+            obs_window = cfg.problem.map_shape * 2
+        cfg.problem.obs_window = obs_window
 
     # FIXME: Check for a 3D problem parent class.
     is_3D_env = False
@@ -276,7 +276,6 @@ def main(cfg: Config) -> None:
             trainer.restore(checkpoint_path=checkpoint_path)
             print(f"Loaded checkpoint from {checkpoint_path}.")
 
-        # TODO: Move this into its own script and re-factor the redundant bits!(?)
         if cfg.evaluate:
             evaluate(trainer, dummy_env, cfg)
             sys.exit()

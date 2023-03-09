@@ -1,0 +1,9 @@
+defaults:
+  - base_problem
+
+name: binary
+weights:
+  path-length: 100
+  regions: 100
+map_shape: [36, 16]
+obs_window: [32, 32]

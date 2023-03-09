@@ -27,37 +27,35 @@ class ProblemConfig:
     controls: List[Any] = MISSING
     alp_gmm: bool = MISSING
     map_shape: List[Any] = MISSING
-    crop_shape: List[Any] = MISSING
-    # map_shape: List[Any] = field(default_factory= lambda: [16, 16])
-    # crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+    obs_window: List[Any] = MISSING
 
 
-@dataclass
-class BinaryConfig(ProblemConfig):
-    name: str = 'binary'
-    # Regions weight will be 0 by default.
-    weights: Dict[str, int] = field(default_factory = lambda: ({
-        'path-length': 100,
-        'regions': 100,
-    }))
-    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
-    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+# @dataclass
+# class BinaryConfig(ProblemConfig):
+#     name: str = 'binary'
+#     # Regions weight will be 0 by default.
+#     weights: Dict[str, int] = field(default_factory = lambda: ({
+#         'path-length': 100,
+#         'regions': 100,
+#     }))
+#     map_shape: List[Any] = field(default_factory= lambda: [16, 16])
+#     crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
 
 
-@dataclass
-class BinaryPathConfig(BinaryConfig):
-    weights: Dict[str, int] = field(default_factory = lambda: ({
-        'path-length': 100,
-    }))
+# @dataclass
+# class BinaryPathConfig(BinaryConfig):
+#     weights: Dict[str, int] = field(default_factory = lambda: ({
+#         'path-length': 100,
+#     }))
 
 
-@dataclass
-class BinaryControlConfig(BinaryConfig):
-    controls: List[Any] = field(default_factory= lambda: [
-        # 'regions',
-        'regions', 'path-length',
-    ])
-    alp_gmm: bool = False
+# @dataclass
+# class BinaryControlConfig(BinaryConfig):
+#     controls: List[Any] = field(default_factory= lambda: [
+#         # 'regions',
+#         'regions', 'path-length',
+#     ])
+#     alp_gmm: bool = False
 
 @dataclass
 class ZeldaConfig(ProblemConfig):
@@ -278,11 +276,10 @@ class Config:
     gamma: float = 0.99
     max_board_scans: int = 3
     n_aux_tiles: int = 0
-    observation_size: Optional[int] = None
     controls: Optional[ProblemConfig] = None
     change_percentage: Optional[float] = None
     static_prob: Optional[float] = None
-    action_size: Optional[List[Any]] = None
+    act_window: Optional[List[Any]] = None
     # action_size: List[Any] = field(default_factory=lambda: 
     #     [3, 3]
     # )
@@ -306,11 +303,11 @@ cs.store(name="single_agent", group="multiagent", node=SingleAgentConfig)
 cs.store(name="single_agent_dummy_multi", group="multiagent", node=SingleAgentDummyMultiConfig)
 cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
-cs.store(name="binary", group="problem", node=BinaryConfig)
-cs.store(name="binary_path", group="problem", node=BinaryPathConfig)
-cs.store(name="binary_control", group="problem", node=BinaryControlConfig)
+cs.store(name="base_problem", group="problem", node=ProblemConfig)
+# cs.store(name="binary", group="problem", node=BinaryConfig)
+# cs.store(name="binary_path", group="problem", node=BinaryPathConfig)
+# cs.store(name="binary_control", group="problem", node=BinaryControlConfig)
 
-# cs.store(name="base_problem", group="problem", node=ProblemConfig)
 cs.store(name="zelda", group="problem", node=ZeldaConfig)
 cs.store(name="zelda_control", group="problem", node=ZeldaControlConfig)
 

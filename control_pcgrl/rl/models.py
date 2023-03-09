@@ -191,7 +191,6 @@ class SeqNCA(TorchModelV2, nn.Module):
 
     @override(ModelV2)
     def value_function(self):
-        from pdb import set_trace as TT
         assert self._features is not None, "must call forward() first"
         return th.reshape(self.value_branch(self._features), [-1])
 

@@ -86,7 +86,7 @@ class LegoProblem(Problem3D):
         plt.savefig('rewards.png')
 
     def render(self):
-        breakpoint()
+        raise NotImplementedError
 
     def init_graphics(self):
         pass

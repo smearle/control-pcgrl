@@ -28,32 +28,6 @@ class WideRepresentation(Representation):
     def get_action_space(self, dims, num_tiles):
         return spaces.MultiDiscrete([*dims, num_tiles])
 
-    # """
-    # Get the observation space used by the wide representation
-
-    # Parameters:
-    #     width: the current map width
-    #     height: the current map height
-    #     num_tiles: the total number of the tile values
-    # Returns:
-    #     Box: the observation space used by that representation. A 2D array of tile numbers
-    # """
-    # def get_observation_space(self, width, height, num_tiles):
-    #     return spaces.Dict({
-    #         "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
-    #     })
-
-    # """
-    # Get the current representation observation object at the current moment
-
-    # Returns:
-    #     observation: the current observation at the current moment. A 2D array of tile numbers
-    # """
-    # def get_observation(self):
-    #     return {
-    #         "map": self._map.copy()
-    #     }
-
     """
     Update the wide representation with the input action
 
