@@ -62,16 +62,16 @@ def ControllablaTrainerFactory(trainer):
             param_dict = self.get_weights()[sample_agent_id]
 
             # DOES NOT WORK FOR QMIX MODEL
-            #for v in param_dict.values():
-            #    n_params += np.prod(v.shape)
-            #model = self.get_policy(sample_agent_id).model
-            #print(f'default_policy has {n_params} parameters.')
-            #print('Model overview(s):')
-            #print(model)
-            #print("=============")
+            for v in param_dict.values():
+               n_params += np.prod(v.shape)
+            model = self.get_policy(sample_agent_id).model
+            print(f'default_policy has {n_params} parameters.')
+            print('Model overview(s):')
+            print(model)
+            print("=============")
             # torchinfo summaries are very confusing at the moment
-            #torchinfo.summary(model, input_data={
-            #    "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
+            torchinfo.summary(model, input_data={
+               "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
             return ret
 
 

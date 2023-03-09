@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List
 import json
 
@@ -147,6 +148,7 @@ class SeqNCA(TorchModelV2, nn.Module):
         obs_shape = obs_space.shape
         self.obs_shape = obs_shape
         dim = len(obs_shape[:-1])
+        self.is_3D = dim == 3
 
         # orig_obs_space = model_config['custom_model_config']['orig_obs_space']
         # obs_shape = orig_obs_space['map'].shape
@@ -155,12 +157,18 @@ class SeqNCA(TorchModelV2, nn.Module):
         # assert len(metrics_size) == 1
         # metrics_size = metrics_size[0]
         # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters + metrics_size
-        self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters
+
+        self.pre_fc_size = math.prod([obs_shape[-2-i] - 2 for i in range(dim)]) * conv_filters
+        # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters
+
         self.fc_size = fc_size
 
         # TODO: use more convolutions here? Change and check that we can still overfit on binary problem.
         # self.conv_1 = nn.Conv2d(obs_shape[-1] + n_aux_chan, out_channels=conv_filters + n_aux_chan, kernel_size=3, stride=1, padding=0)
-        self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
+        if self.is_3D:
+            self.conv_1 = nn.Conv3d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
+        else:
+            self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
 
         self.patch_width = model_config['custom_model_config']['patch_width']
         pw = self.patch_width if self.patch_width is not None else 3
@@ -183,6 +191,7 @@ class SeqNCA(TorchModelV2, nn.Module):
 
     @override(ModelV2)
     def value_function(self):
+        from pdb import set_trace as TT
         assert self._features is not None, "must call forward() first"
         return th.reshape(self.value_branch(self._features), [-1])
 
@@ -193,7 +202,11 @@ class SeqNCA(TorchModelV2, nn.Module):
             *self.obs_shape
         )
         # input = input_dict['obs'].permute(0, 3, 1, 2)
-        input = rearrange(input_dict['obs'], 'b h w c -> b c h w')
+
+        if self.is_3D:
+            input = rearrange(input_dict['obs'], 'b h w l c -> b c h w l')
+        else:
+            input = rearrange(input_dict['obs'], 'b h w c -> b c h w')
 
         # input = th.cat([input, self._last_aux_activ], dim=1)
         x = nn.functional.relu(self.conv_1(input.float()))
@@ -207,7 +220,12 @@ class SeqNCA(TorchModelV2, nn.Module):
             else:
                 lw = (patch_width - 1) // 2
                 rw = lw + 1
-            x_act = x[:, :, x.shape[2] // 2 - lw: x.shape[2] // 2 + rw, x.shape[3] // 2 - lw: x.shape[3] // 2 + rw]
+
+            dim = len(self.obs_shape[:-1])
+            slices = [slice(None), slice(None)] + [slice(x.shape[2+i] // 2 - lw, x.shape[2+i] // 2 + rw) for i in range(dim)]
+            x_act = x[slices]
+            # x_act = x[:, :, x.shape[2] // 2 - lw: x.shape[2] // 2 + rw, x.shape[3] // 2 - lw: x.shape[3] // 2 + rw]
+
         # x_act = x[:, :, x.shape[2] // 2 - 1: x.shape[2] // 2 + rw + 2, x.shape[3] // 2 - 1: x.shape[3] // 2 + 2]  # for patch_width=3
         x_act = x_act.reshape(x_act.size(0), -1)
 
