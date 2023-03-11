@@ -27,7 +27,7 @@ def evaluate(trainer, env, cfg):
 
     # Test the generator's ability to adapt to controllable door placement.
     if CONTROL_DOORS:
-        if 'holey' in cfg.problem.name:
+        if 'holey' in cfg.task.name:
             door_stats = test_doors(trainer, env, cfg)
             eval_stats.update(door_stats)
         else:

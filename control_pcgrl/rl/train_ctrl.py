@@ -76,20 +76,20 @@ def main(cfg: Config) -> None:
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())
 
-    if cfg.problem.obs_window is None:
+    if cfg.task.obs_window is None:
         # This guy gotta observe the holes.
-        if "holey" in cfg.problem.name:
-            obs_window = cfg.problem.map_shape * 2 + 2
+        if "holey" in cfg.task.problem:
+            obs_window = cfg.task.map_shape * 2 + 2
         else:
-            obs_window = cfg.problem.map_shape * 2
-        cfg.problem.obs_window = obs_window
+            obs_window = cfg.task.map_shape * 2
+        cfg.task.obs_window = obs_window
 
     # FIXME: Check for a 3D problem parent class.
     is_3D_env = False
-    if "3D" in cfg.problem.name:
+    if "3D" in cfg.task.problem:
         is_3D_env = True
 
-    cfg.env_name = get_env_name(cfg.problem.name, cfg.representation)
+    cfg.env_name = get_env_name(cfg.task.problem, cfg.representation)
     print('env name: ', cfg.env_name)
     exp_name = get_exp_name(cfg)
     default_dir = os.path.join(PROJ_DIR, 'rl_runs')

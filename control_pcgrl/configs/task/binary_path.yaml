@@ -1,5 +1,6 @@
 defaults:
   - binary
 
+name: binary_path
 weights:
   path-length: 100

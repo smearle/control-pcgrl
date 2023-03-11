@@ -39,14 +39,14 @@ def make_env(cfg: Config):
         rep_cls = REPRESENTATIONS[cfg.representation]  
     if cfg.representation in ['wide']:
     # if issubclass(rep_cls, WideRepresentation):
-        if '3D' in cfg.problem.name:
+        if '3D' in cfg.task.problem:
         # if issubclass(rep_cls, Representation3DABC):
             # elif cfg.representation in ['wide3D', 'wide3Dholey']:
                 # raise NotImplementedError("3D wide representation not implemented")
             env = wrappers.ActionMap3DImagePCGRLWrapper(cfg.env_name, cfg)
         else:
             # HACK
-            if 'holey' in cfg.problem.name:
+            if 'holey' in cfg.task.problem:
             # if issubclass(rep_cls, HoleyRepresentationABC):
                 env = wrappers.ActionMapImagePCGRLWrapper(cfg.env_name, bordered_observation=True, cfg=cfg)
             else:

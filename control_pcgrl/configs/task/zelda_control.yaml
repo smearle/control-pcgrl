@@ -1,0 +1,6 @@
+defaults:
+  - zelda
+
+name: zelda_control
+controls: [nearest-enemy, path-length]
+  

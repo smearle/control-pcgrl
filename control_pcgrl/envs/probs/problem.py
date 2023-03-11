@@ -25,14 +25,14 @@ class Problem(ABC):
     Constructor for the problem that initialize all the basic parameters. Abstract Base Class (ABS) that cannot be
     directly instantiated.
     """
-    def __init__(self, cfg):
-        self._map_shape = cfg.problem.map_shape
+    def __init__(self, cfg: Config):
+        self._map_shape = cfg.task.map_shape
         self._height, self._width = self._map_shape[0], self._map_shape[1]  # Will be overwritten if this is a 3D problem.
         tiles = self.get_tile_types()
 
         # How much to weight each component of the reward function (which is a linear sum).
-        self._reward_weights = cfg.problem.weights
-        self._ctrl_reward_weights = cfg.problem.weights  # Can make this a separate config attribute later if necessary.
+        self._reward_weights = cfg.task.weights
+        self._ctrl_reward_weights = cfg.task.weights  # Can make this a separate config attribute later if necessary.
 
         # FIXME: assumption, will overrule a similar declaration by the child.
         self._empty_tile = tiles[0]
@@ -256,4 +256,4 @@ class Problem(ABC):
 class Problem3D(Problem):
     def __init__(self, cfg: Config):
         super().__init__(cfg)
-        self._height, self._width, self._length = cfg.problem.map_shape
+        self._height, self._width, self._length = cfg.task.map_shape

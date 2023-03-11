@@ -41,7 +41,7 @@ class ControlWrapper(gym.Wrapper):
 
         metric_weights = copy.copy(self.unwrapped._reward_weights)
         self.metric_weights = {k: 0 for k in metric_weights}
-        config_weights = cfg.problem.weights
+        config_weights = cfg.task.weights
 
         self.metric_weights.update(config_weights)
 

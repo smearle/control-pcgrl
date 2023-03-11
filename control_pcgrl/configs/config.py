@@ -21,18 +21,19 @@ class SeqNCAConfig(ModelConfig):
     patch_width: int = 3      # obs size of action branch of seqnca model, -1 for full obs
 
 @dataclass
-class ProblemConfig:
+class TaskConfig:
     name: str = MISSING
+    problem: str = MISSING
     weights: Dict[str, int] = MISSING
     controls: List[Any] = MISSING
-    alp_gmm: bool = MISSING
+    alp_gmm: bool = False
     map_shape: List[Any] = MISSING
     obs_window: List[Any] = MISSING
 
 
 # @dataclass
 # class BinaryConfig(ProblemConfig):
-#     name: str = 'binary'
+#     problem: str = 'binary'
 #     # Regions weight will be 0 by default.
 #     weights: Dict[str, int] = field(default_factory = lambda: ({
 #         'path-length': 100,
@@ -57,33 +58,33 @@ class ProblemConfig:
 #     ])
 #     alp_gmm: bool = False
 
-@dataclass
-class ZeldaConfig(ProblemConfig):
-    name: str = 'zelda'
-    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
-    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
-    weights: Dict[str, int] = field(default_factory = lambda: ({
-        "player": 3,
-        "key": 3,
-        "door": 3,
-        "regions": 5,
-        "enemies": 1,
-        "nearest-enemy": 2,
-        "path-length": 1
-    }))
+# @dataclass
+# class ZeldaConfig(TaskConfig):
+#     problem: str = 'zelda'
+#     map_shape: List[Any] = field(default_factory= lambda: [16, 16])
+#     crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
+#     weights: Dict[str, int] = field(default_factory = lambda: ({
+#         "player": 3,
+#         "key": 3,
+#         "door": 3,
+#         "regions": 5,
+#         "enemies": 1,
+#         "nearest-enemy": 2,
+#         "path-length": 1
+#     }))
 
 
-@dataclass
-class ZeldaControlConfig(ZeldaConfig):
-    controls: List[Any] = field(default_factory= lambda: [
-        # 'path-length',
-        'nearest-enemy', 'path-length',
-    ])
-    alp_gmm: bool = False
+# @dataclass
+# class ZeldaControlConfig(ZeldaConfig):
+#     controls: List[Any] = field(default_factory= lambda: [
+#         # 'path-length',
+#         'nearest-enemy', 'path-length',
+#     ])
+#     alp_gmm: bool = False
 
 @dataclass
-class SokobanConfig(ProblemConfig):
-    name: str = 'sokoban'
+class SokobanConfig(TaskConfig):
+    problem: str = 'sokoban'
     map_shape: List[Any] = field(default_factory= lambda: [16, 16])
     crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
     weights: Dict[str, int] = field(default_factory = lambda: ({
@@ -107,8 +108,8 @@ class SokobanControlConfig(SokobanConfig):
 
 
 @dataclass
-class SMBConfig(ProblemConfig):
-    name: str = 'smb'
+class SMBConfig(TaskConfig):
+    problem: str = 'smb'
     # NOTE that the map_shape and crop_shape are y, x here
     map_shape: List[Any] = field(default_factory= lambda: [116, 16])
     crop_shape: List[Any] = field(default_factory= lambda: [232, 32])
@@ -135,8 +136,8 @@ class SMBControlConfig(SMBConfig):
 
 
 @dataclass
-class LegoProblemConfig(ProblemConfig):
-    name: str = 'lego'
+class LegoConfig(TaskConfig):
+    problem: str = 'lego'
     # NOTE that the map_shape and crop_shape are z, y, x here
     map_shape: List[Any] = field(default_factory= lambda: [10, 10, 10])
     crop_shape: List[Any] = field(default_factory= lambda: [20, 20, 20])
@@ -146,15 +147,15 @@ class LegoProblemConfig(ProblemConfig):
 
 
 @dataclass
-class MinecraftProblemConfig(ProblemConfig):
-    name: str = MISSING
+class MinecraftConfig(TaskConfig):
+    problem: str = MISSING
     map_shape: List[Any] = field(default_factory= lambda: [15, 15, 15])
     crop_shape: List[Any] = field(default_factory= lambda: [30, 30, 30])
 
 
 @dataclass
-class MinecraftMazeConfig(MinecraftProblemConfig):
-    name: str = "minecraft_3D_maze"
+class MinecraftMazeConfig(MinecraftConfig):
+    problem: str = "minecraft_3D_maze"
     weights: Dict[str, int] = field(default_factory = lambda: ({
         'path-length': 100,
         'n_jump': 100,
@@ -163,8 +164,8 @@ class MinecraftMazeConfig(MinecraftProblemConfig):
 
 
 @dataclass
-class MinecraftHoleyMazeConfig(MinecraftProblemConfig):
-    name: str = "minecraft_3D_holey_maze"
+class MinecraftHoleyMazeConfig(MinecraftConfig):
+    problem: str = "minecraft_3D_holey_maze"
     weights: Dict[str, int] = field(default_factory = lambda: ({
         "regions": 0,
         "path-length": 100,
@@ -174,8 +175,8 @@ class MinecraftHoleyMazeConfig(MinecraftProblemConfig):
 
 
 @dataclass
-class MinecraftHoleyDungeonConfig(MinecraftProblemConfig):
-    name: str = "minecraft_3D_dungeon_holey"
+class MinecraftHoleyDungeonConfig(MinecraftConfig):
+    problem: str = "minecraft_3D_dungeon_holey"
     weights: Dict[str, int] = field(default_factory = lambda: ({
         "regions": 0, 
         "path-length": 100, 
@@ -187,7 +188,7 @@ class MinecraftHoleyDungeonConfig(MinecraftProblemConfig):
 
 
 @dataclass
-class MinecraftMazeControlConfig(MinecraftProblemConfig):
+class MinecraftMazeControlConfig(MinecraftConfig):
     weights: Dict[str, int] = field(default_factory = lambda: ({
         'path-length': 100,
         'n_jump': 100,
@@ -246,7 +247,7 @@ class Config:
     # Specify defaults for sub-configs so that we can override them on the command line. (Whereas we can cl-override 
     # other settings as-is.)
     defaults: List[Any] = field(default_factory=lambda: [
-        {'problem': 'binary_path'},
+        {'task': 'binary'},
         {'hardware': 'remote'},
         # TODO: Picking the default should happen here, in the configs, instead of in the main code, perhaps.
         {'model': 'default_model'},
@@ -258,7 +259,7 @@ class Config:
     hardware: HardwareConfig = MISSING
     model: ModelConfig = MISSING
     multiagent: MultiagentConfig = MISSING
-    problem: ProblemConfig = MISSING
+    task: TaskConfig = MISSING
 
     algorithm: str = 'PPO'
     debug: bool = False
@@ -276,7 +277,7 @@ class Config:
     gamma: float = 0.99
     max_board_scans: int = 3
     n_aux_tiles: int = 0
-    controls: Optional[ProblemConfig] = None
+    controls: Optional[TaskConfig] = None
     change_percentage: Optional[float] = None
     static_prob: Optional[float] = None
     act_window: Optional[List[Any]] = None
@@ -303,25 +304,25 @@ cs.store(name="single_agent", group="multiagent", node=SingleAgentConfig)
 cs.store(name="single_agent_dummy_multi", group="multiagent", node=SingleAgentDummyMultiConfig)
 cs.store(name="shared_policy", group="multiagent", node=SharedPolicyConfig)
 
-cs.store(name="base_problem", group="problem", node=ProblemConfig)
+cs.store(name="base_task", group="task", node=TaskConfig)
 # cs.store(name="binary", group="problem", node=BinaryConfig)
 # cs.store(name="binary_path", group="problem", node=BinaryPathConfig)
 # cs.store(name="binary_control", group="problem", node=BinaryControlConfig)
 
-cs.store(name="zelda", group="problem", node=ZeldaConfig)
-cs.store(name="zelda_control", group="problem", node=ZeldaControlConfig)
+# cs.store(name="zelda", group="task", node=ZeldaConfig)
+# cs.store(name="zelda_control", group="task", node=ZeldaControlConfig)
 
 cs.store(name="sokoban", group="problem", node=SokobanConfig)
-cs.store(name="sokoban_control", group="problem", node=SokobanControlConfig)
+cs.store(name="sokoban_control", group="task", node=SokobanControlConfig)
 
-cs.store(name="smb", group="problem", node=SMBConfig)
-cs.store(name="smb_control", group="problem", node=SMBControlConfig)
+cs.store(name="smb", group="task", node=SMBConfig)
+cs.store(name="smb_control", group="task", node=SMBControlConfig)
 
-cs.store(name="minecraft_3D_maze", group="problem", node=MinecraftMazeConfig)
-cs.store(name="minecraft_3D_holey_maze", group="problem", node=MinecraftHoleyMazeConfig)
-cs.store(name="minecraft_3D_dungeon_holey", group="problem", node=MinecraftHoleyDungeonConfig)
+cs.store(name="minecraft_3D_maze", group="task", node=MinecraftMazeConfig)
+cs.store(name="minecraft_3D_holey_maze", group="task", node=MinecraftHoleyMazeConfig)
+cs.store(name="minecraft_3D_dungeon_holey", group="task", node=MinecraftHoleyDungeonConfig)
 
-cs.store(name="lego", group="problem", node=LegoProblemConfig)
+cs.store(name="lego", group="task", node=LegoConfig)
 
 cs.store(name="default_model", group="model", node=ModelConfig)
 cs.store(name="seqnca", group="model", node=SeqNCAConfig)

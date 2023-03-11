@@ -38,7 +38,7 @@ class PcgrlEnv(gym.Env):
     """
     def __init__(self, cfg: Config, prob="binary", rep="narrow"):
         self._has_been_assigned_map = False  # TODO: Factor this out into a ... wrapper?
-        self.obs_window = cfg.problem.obs_window
+        self.obs_window = cfg.task.obs_window
 
         # Whether we need to load a new evaluation map.
         self.switch_env = False
@@ -150,7 +150,7 @@ class PcgrlEnv(gym.Env):
         Observation: the current starting observation have structure defined by
         the Observation Space
     """
-    def reset(self):
+    def reset(self, seed=42):
         self._changes = 0
         self._iteration = 0
         # avoid default probabilities with normal distribution if we seed manually
@@ -239,7 +239,7 @@ class PcgrlEnv(gym.Env):
         self.action_space = self._rep.get_action_space(self.get_map_dims()[:-1], self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(
             # self.get_map_dims()[:-1], self.get_num_observable_tiles())
-            cfg.problem.obs_window, cfg.problem.map_shape, self.get_num_observable_tiles())
+            cfg.task.obs_window, cfg.task.map_shape, self.get_num_observable_tiles())
 
         # self.observation_space.spaces['heatmap'] = spaces.Box(
         #     low=0, high=self._max_changes, dtype=np.uint8, shape=self.get_map_dims()[:-1])

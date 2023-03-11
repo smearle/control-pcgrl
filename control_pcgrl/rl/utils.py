@@ -223,8 +223,8 @@ def get_env_name(game, representation):
 def get_exp_name(cfg: Config):
 
     exp_name = os.path.join(
-        cfg.problem.name, 
-        "weights_" + "-".join(f"{k}-{v}" for k, v in cfg.problem.weights.items()),
+        cfg.task.name, 
+        # "weights_" + "-".join(f"{k}-{v}" for k, v in cfg.task.weights.items()),
         cfg.representation,
         cfg.multiagent.policies, # default to single policy
     )

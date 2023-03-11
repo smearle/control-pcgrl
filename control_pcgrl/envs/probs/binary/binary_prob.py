@@ -22,7 +22,7 @@ class BinaryProblem(Problem):
     """
     def __init__(self, cfg):
         super().__init__(cfg)
-        # self._width, self._height = cfg.problem._width, cfg.problem._height
+        # self._width, self._height = cfg.task._width, cfg.task._height
         # self._width = kwargs.get('map_width', 16)
         # self._height = kwargs.get('map_width', 16)
 

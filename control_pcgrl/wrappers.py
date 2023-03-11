@@ -354,7 +354,7 @@ class Cropped(TransformObs):
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
         self.show_agents = cfg.show_agents
-        map_shape = np.array(cfg.problem.map_shape)
+        map_shape = np.array(cfg.task.map_shape)
         self.shape = map_shape
         pad_r = np.floor(self.obs_window / 2)
         self.pad = np.stack((pad_r, pad_r), axis=1).astype(np.int8)
@@ -451,7 +451,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Cropping map, etc. to the correct crop_size
         for k in flat_indices:
             env = Cropped(
-                game=env, obs_window=cfg.problem.obs_window, pad_value=env.get_border_tile(), name=k, 
+                game=env, obs_window=cfg.task.obs_window, pad_value=env.get_border_tile(), name=k, 
                 cfg=cfg,
             )
             

@@ -1,0 +1,11 @@
+defaults:
+  - base_task
+
+name: binary
+problem: binary
+weights:
+  path-length: 100
+  regions: 100
+
+map_shape: [16, 16]
+obs_window: [16, 16]

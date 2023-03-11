@@ -41,7 +41,7 @@ import copy
 
 from args import get_args, get_exp_dir, get_exp_name
 from archives import CMAInitStatesGrid, get_qd_score, MEGrid, MEInitStatesArchive, FlexArchive
-from control_pcgrl.configs.config import Config, MultiagentConfig, ProblemConfig
+from control_pcgrl.configs.config import Config, MultiagentConfig, TaskConfig
 from models import Individual, GeneratorNNDense, PlayerNN, set_nograd, get_init_weights, \
     set_weights, Decoder, NCA, NCA3D, GenCPPN2, GenSin2CPPN2, Sin2CPPN, CPPN, DirectEncoding
 from optimizer import MEOptimizer
@@ -1300,7 +1300,7 @@ class EvoPCGRL:
             max_board_scans=1,
             static_prob=None,  # Probability that tiles in random initial level layout will be static (cannot be overwritten by agent)
             evaluation_env=False,
-            problem=ProblemConfig(
+            task=TaskConfig(
                 name=args.problem,
                 weights={k: 1 for k in args.behavior_characteristics},
             ),
