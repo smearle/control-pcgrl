@@ -1,6 +1,6 @@
 defaults:
   - pcgrl  # This points to `ControlPCGRLConfig` class in `config.py`
-  # - _self_
+  - _self_
 
   # Why can't we override this on the command line?
   - override hydra/launcher: submitit_local
@@ -11,7 +11,8 @@ hydra:
   sweeper:
     params:
       #exp_id: 0, 1, 2
-      learning_rate: 5e-5
+      # learning_rate: 5e-5
+      learning_rate: 1e-4, 1e-5, 5e-5
 
   launcher:
     tasks_per_node: 1

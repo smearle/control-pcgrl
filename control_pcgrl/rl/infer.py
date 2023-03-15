@@ -3,7 +3,7 @@ Run a trained agent for qualitative analysis.
 """
 import numpy as np
 import cv2
-from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs, get_action
+from utils import get_log_dir, max_exp_idx, load_model, make_vec_envs, get_action
 
 
 font                   = cv2.FONT_HERSHEY_SIMPLEX
@@ -25,7 +25,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     max_trials = kwargs.get('max_trials', -1)
     n = kwargs.get('n', None)
     env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    exp_name = get_log_dir(game, representation, experiment, **kwargs)
     if n is None:
         n = max_exp_idx(exp_name)
     if n == 0:

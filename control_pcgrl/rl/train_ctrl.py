@@ -10,7 +10,7 @@ from pathlib import Path
 from pdb import set_trace as TT
 from typing import Dict
 
-import gym
+import gymnasium as gym
 from tqdm import tqdm
 import hydra
 import matplotlib
@@ -42,7 +42,7 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        CustomFeedForwardModel, CustomFeedForwardModel3D,
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
-from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_exp_name, get_map_width, TrainerConfigParsers
+from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_log_dir, get_map_width, TrainerConfigParsers, validate_config
 from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
 from control_pcgrl.configs.config import Config
 import control_pcgrl
@@ -50,7 +50,7 @@ from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
-from rllib_inference import get_best_checkpoint
+from rllib_inference import get_best_checkpoint, restore_trainer
 
 # Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
 MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
@@ -58,7 +58,6 @@ MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA
 matplotlib.use('Agg')
 
 n_steps = 0
-PROJ_DIR = Path(__file__).parent.parent.parent
 best_mean_reward, n_steps = -np.inf, 0
 
 
@@ -89,15 +88,8 @@ def main(cfg: Config) -> None:
     if "3D" in cfg.task.problem:
         is_3D_env = True
 
-    cfg.env_name = get_env_name(cfg.task.problem, cfg.representation)
-    print('env name: ', cfg.env_name)
-    exp_name = get_exp_name(cfg)
-    default_dir = os.path.join(PROJ_DIR, 'rl_runs')
-    cfg.log_dir = log_dir = os.path.join(
-            cfg.log_dir if cfg.log_dir is not None else default_dir,
-            cfg.algorithm,
-            f'{exp_name}_log'
-        )
+    validate_config(cfg)
+    log_dir = cfg.log_dir
 
     if not cfg.load:
 
@@ -113,10 +105,10 @@ def main(cfg: Config) -> None:
         # Try to overwrite the saved directory.
     if cfg.overwrite:
         if not os.path.exists(log_dir):
-            print(f"Log directory rl_runs/{exp_name} does not exist. Will create new directory.")
+            print(f"Log directory {log_dir} does not exist. Will create new directory.")
         else:
             # Overwrite the log directory.
-            print(f"Overwriting log directory rl_runs/{exp_name}")
+            print(f"Overwriting log directory {log_dir}")
             shutil.rmtree(log_dir, ignore_errors=True)
         os.makedirs(log_dir, exist_ok=True)
 
@@ -148,7 +140,7 @@ def main(cfg: Config) -> None:
     # dummy_cfg["render"] = False
     dummy_cfg.evaluation_env = False
     dummy_env = make_env(dummy_cfg)
-    check_env(dummy_env)
+    # check_env(dummy_env)
 
     if issubclass(type(dummy_env), MultiAgentEnv):
         agent_obs_space = dummy_env.observation_space["agent_0"]
@@ -161,7 +153,7 @@ def main(cfg: Config) -> None:
     if cfg.debug:
         # Randomly step through 100 episodes
         for _ in tqdm(range(100)):
-            obs = dummy_env.reset()
+            obs, info = dummy_env.reset()
             done = False
             while not done:
                 # if i > 3:
@@ -170,7 +162,7 @@ def main(cfg: Config) -> None:
                 # else:
                     # act = 0
                 # Print shape of map
-                obs, rew, done, info = dummy_env.step(act)
+                obs, rew, done, truncated, info = dummy_env.step(act)
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
                     dummy_env.render()
@@ -253,39 +245,55 @@ def main(cfg: Config) -> None:
 
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer or cfg.evaluate:
-        trainer_config.update({
+        # trainer_config.update({
             # FIXME: The name of this config arg seems to have changed in rllib?
             # 'record_env': log_dir if cfg.record_env else None,
-        })
+        # })
+        with open(checkpoint_path_file, 'r') as f:
+            checkpoint_path = f.read()
+        trainer = restore_trainer(checkpoint_path, trainer_config)
+
         # trainer = PPOTrainer(env='pcgrl', config=trainer_config)
-        trainer = get_best_checkpoint(cfg.log_dir, cfg)
+        # trainer = get_best_checkpoint(cfg.log_dir, cfg)
 
-        if cfg.load:
-            with open(checkpoint_path_file, 'r') as f:
-                checkpoint_path = f.read()
+        # if cfg.load:
+        #     with open(checkpoint_path_file, 'r') as f:
+        #         checkpoint_path = f.read()
         
-            # HACK (should probably be logging relative paths in the first place?)
-            checkpoint_path = checkpoint_path.split('control-pcgrl/')[-1]
+        #     # HACK (should probably be logging relative paths in the first place?)
+        #     checkpoint_path = checkpoint_path.split('control-pcgrl/')[-1]
         
-            # HACK wtf (if u edit the checkpoint path some funkiness lol)
-            if not os.path.exists(checkpoint_path):
-                assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
-                checkpoint_path = checkpoint_path[:-1]
+        #     # HACK wtf (if u edit the checkpoint path some funkiness lol)
+        #     if not os.path.exists(checkpoint_path):
+        #         assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
+        #         checkpoint_path = checkpoint_path[:-1]
 
-            # trainer.load_checkpoint(checkpoint_path=checkpoint_path)
-            trainer.restore(checkpoint_path=checkpoint_path)
-            print(f"Loaded checkpoint from {checkpoint_path}.")
+        #     # trainer.load_checkpoint(checkpoint_path=checkpoint_path)
+        #     trainer.restore(checkpoint_path=checkpoint_path)
+        #     print(f"Loaded checkpoint from {checkpoint_path}.")
 
         if cfg.evaluate:
-            evaluate(trainer, dummy_env, cfg)
-            sys.exit()
+            eval_stats = evaluate(trainer, dummy_env, cfg)
+            # sys.exit()
+            return eval_stats, print("Yay!")
 
         elif cfg.infer:
             while True:
-                trainer.evaluate()
+                # Does not work for some reason? Rllib ignoring `trainer.config.evaluation_config['render_env']`
+                # eval_stats = trainer.evaluate()
+                # print(eval_stats)
+
+                # For now we do it the old fashioned way.
+                done = False
+                obs, info = dummy_env.reset()
+                while not done:
+                    action = trainer.compute_single_action(obs)
+                    obs, reward, done, truncated, info = dummy_env.step(action)
+                    dummy_env.render()
 
         # Quit the program before agent starts training.
         sys.exit()
+        return
 
     #tune.register_trainable("CustomPPO", PPOTrainer)
     tune.register_trainable(f"CustomTrainer", ControllablaTrainerFactory(cfg.algorithm))

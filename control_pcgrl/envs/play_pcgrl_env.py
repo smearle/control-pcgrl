@@ -1,5 +1,6 @@
 import numpy as np
-from gym.spaces import Discrete
+import gymnasium as gym
+from gymnasium.spaces import Discrete
 
 from control_pcgrl.envs.helper import get_int_prob, get_string_map
 from control_pcgrl.envs.pcgrl_env import PcgrlEnv
@@ -34,9 +35,9 @@ class PlayPcgrlEnv(PcgrlEnv):
     def get_player_action_space(self):
         return self.player_action_space
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
 #       print('resetting play pcgrl')
-        obs = super().reset()
+        obs, info = super().reset()
         self.won = False
         # FIXME: active agent is supposed to be 1 (player) for this reset?
         if self.next_rep_map is not None and self.next_rep_map[0] is not None and self.active_agent == 0:
@@ -51,12 +52,12 @@ class PlayPcgrlEnv(PcgrlEnv):
             obs = self._rep.get_observation()
         else:
             self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-        return obs
+        return obs, info
 
     def step(self, action):
        #print(self.active_agent)
         if self.active_agent == 0:
-            obs, rew, done, info = super().step(action)
+            obs, rew, done, truncated, info = super().step(action)
           #self.
            #action = np.ravel_multi_index(action, (self.h, self.w, self.dim))
         elif self.active_agent == 1:
@@ -73,7 +74,7 @@ class PlayPcgrlEnv(PcgrlEnv):
         if done:
             info['won'] = self.won
 
-        return obs, rew, done, info
+        return obs, rew, done, truncated, info
 
     def set_map(self, map):
        #self.next_rep_map = map

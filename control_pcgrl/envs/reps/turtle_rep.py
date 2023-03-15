@@ -1,7 +1,7 @@
 from pdb import set_trace as TT
 from control_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
 from PIL import Image
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 from collections import OrderedDict
 

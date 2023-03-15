@@ -1,6 +1,6 @@
 from control_pcgrl.envs.reps.turtle_rep import TurtleRepresentation
 from PIL import Image
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 from collections import OrderedDict
 

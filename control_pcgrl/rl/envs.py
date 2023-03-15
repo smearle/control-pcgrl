@@ -4,9 +4,11 @@ import os
 from pdb import set_trace as TT
 import json
 from typing import Dict
+
+import ray
 from control_pcgrl import wrappers
 
-from gym import spaces
+from gymnasium import spaces
 from control_pcgrl.envs.pcgrl_env import PcgrlEnv
 import numpy as np
 
@@ -69,9 +71,8 @@ def make_env(cfg: Config):
             else:
                 env = control_wrappers.UniformNoiseyTargets(env, cfg)
 
-        n_agents = cfg.multiagent.n_agents
-
-    if n_agents != 0:
+    if cfg.multiagent.n_agents != 0:
         env = wrappers.MultiAgentWrapper(env, cfg)
+        env = ray.rllib.env.wrappers.multi_agent_env_compatibility.MultiAgentEnvCompatibility(env)
 
     return env

@@ -9,7 +9,7 @@ from control_pcgrl.envs.helper import get_string_map
 
 from args import parse_args
 # from envs import make_vec_envs
-from utils import get_crop_size, get_env_name, get_exp_name
+from utils import get_crop_size, get_env_name, get_log_dir
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10, 500)
@@ -29,7 +29,7 @@ def infer(game, representation, infer_kwargs, **kwargs):
     exp_id = infer_kwargs.get('exp_id')
     map_width = infer_kwargs.get("map_width")
     env_name = get_env_name(game, representation)
-    exp_name = get_exp_name(game, representation, **infer_kwargs)
+    exp_name = get_log_dir(game, representation, **infer_kwargs)
 
 #   if n is None:
 #       if EXPERIMENT_ID is None:

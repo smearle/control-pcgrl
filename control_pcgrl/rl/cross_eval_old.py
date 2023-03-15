@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 
 import pandas as pd
 from args import parse_args
-from utils import get_exp_name, PROB_CONTROLS
+from utils import get_log_dir, PROB_CONTROLS
 from tex_formatting import newline, pandas_to_latex
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
@@ -195,7 +195,7 @@ def compile_results(settings_list, no_plot=False):
         arg_dict = vars(args)
         # FIXME: well this is stupid
         arg_dict["cond_metrics"] = arg_dict.pop("controls")
-        exp_name = get_exp_name(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
+        exp_name = get_log_dir(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
         exp_name = os.path.join(RUNS_DIR, exp_name)

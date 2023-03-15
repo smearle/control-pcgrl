@@ -25,7 +25,7 @@ class ResettableNN(nn.Module):
         self.step_size = step_size
         super().__init__()
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         pass
 
     def mutate(self):
@@ -586,7 +586,7 @@ class DirectEncoding():
         new_discrete = (self.discrete + mut_act) % self.n_actions
         self.discrete = new_discrete
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         return
 
 
@@ -847,7 +847,7 @@ class PlayerNN(ResettableNN):
         self.net_reward += rew
         self.n_episodes += 1
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         self.net_reward = 0
         self.n_episodes = 0
 

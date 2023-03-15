@@ -202,7 +202,7 @@ import gym_pcgrl
 After installing the interface, you can use it like any other GYM interface. Here is a simple example on how to use the framework on the Sokoban environment with Narrow representation:
 
 ```python
-import gym
+import gymnasium as gym
 import gym_pcgrl
 
 env = gym.make('sokoban-narrow-v0')

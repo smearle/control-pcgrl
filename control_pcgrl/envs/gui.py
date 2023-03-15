@@ -1,7 +1,8 @@
 from pdb import set_trace as TT
 import sys
 
-from gym.envs.classic_control.rendering import get_window, get_display
+import gymnasium as gym
+from gymnasium.envs.classic_control.rendering import get_window, get_display
 import pyglet
 from pyglet import gl
 # from pyglet.gui.buttons import Button

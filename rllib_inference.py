@@ -12,7 +12,8 @@ import json
 import imageio
 import pandas as pd
 import ray.rllib.agents.ppo as ppo
-from gym.spaces import Tuple
+import gymnasium as gym
+from gymnasium.spaces import Tuple
 import ray.rllib.algorithms.qmix as qmix
 from ray.tune.registry import register_env
 from ray.rllib.policy.policy import PolicySpec
@@ -35,8 +36,8 @@ def load_config(experiment_path):
         config['env_config']['multiagent'] = json.loads(config['env_config']['multiagent'].replace("\'", "\""))
 
     config['evaluation_env'] = True
-    config['explore'] = False # turn off exploration for evaluation
-    config['env_config']['crop_shape'] = json.loads(config['env_config']['crop_shape'])
+    config['explore'] = False # turn off expl.loadoration for evaluation
+    config['env_config']['obs_window'] = json(config['env_config']['obs_window'])
     config['env_config']['problem'] = json.loads(config['env_config']['problem'].replace("\'", "\""))
     
     env_name = config['env_config']['env_name']
@@ -109,6 +110,7 @@ def get_best_checkpoint(experiment_path, config):
     return max_checkpoint
 
 def restore_trainer(checkpoint_path, config):
+    config.pop('checkpoint_path_file') # huh?
     if config['env_config']['algorithm'] == 'QMIX':
         trainer = qmix.QMix(config=config)
     else:

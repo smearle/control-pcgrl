@@ -5,7 +5,7 @@ We need to hackishly set the entire level to be equal to the hand-crafted array,
 """
 from pdb import set_trace as TT
 
-import gym
+import gymnasium as gym
 import numpy as np
 import control_pcgrl
 from control_pcgrl.envs.helper_3D import get_string_map

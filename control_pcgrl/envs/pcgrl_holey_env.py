@@ -10,8 +10,8 @@ from control_pcgrl.envs.helper import get_int_prob, get_string_map
 from control_pcgrl.envs.reps.representation import Representation
 from control_pcgrl.envs.reps.wrappers import HoleyRepresentation
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import PIL
 import collections
 
@@ -42,7 +42,7 @@ class PcgrlHoleyEnv(PcgrlCtrlEnv):
         Observation: the current starting observation have structure defined by
         the Observation Space
     """
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         self._rep.set_holes(*self._prob.gen_holes())
         return super().reset()
 

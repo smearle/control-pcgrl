@@ -6,8 +6,8 @@ import math
 import json
 from pdb import set_trace as TT
 
-from gym import spaces
-import gym
+from gymnasium import spaces
+import gymnasium as gym
 from control_pcgrl.configs.config import Config
 from control_pcgrl.envs import helper_3D
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem

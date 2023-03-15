@@ -2,7 +2,7 @@ from pdb import set_trace as TT
 from pdb import set_trace as T
 from control_pcgrl.envs.reps.representation import Representation
 from PIL import Image
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 """

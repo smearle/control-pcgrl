@@ -194,7 +194,6 @@ class GtkGUI(Gtk.Window):
         return user_clicks
 
     def render(self, img):
-
         # FIXME: fuxing slow as fuque
         ### PROFILING:
         # N = 100

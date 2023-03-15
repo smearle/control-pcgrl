@@ -11,7 +11,7 @@ from typing import Dict, OrderedDict
 # import gi 
 # gi.require_version("Gtk", "3.0")
 # from gi.repository import Gtk
-import gym
+import gymnasium as gym
 import numpy as np
 
 from control_pcgrl.configs.config import Config
@@ -168,11 +168,11 @@ class ControlWrapper(gym.Wrapper):
         self.metric_trgs.update(trgs)
         self.display_metric_trgs()
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         if len(self._ctrl_trg_queue) > 0:
             next_trgs = self._ctrl_trg_queue.pop(0)
             self.do_set_trgs(next_trgs)
-        ob = super().reset()
+        ob, info = super().reset()
         self.metrics = self.unwrapped._rep_stats
         if self.controllable:
             ob = self.observe_metric_trgs(ob)
@@ -181,7 +181,7 @@ class ControlWrapper(gym.Wrapper):
             self.last_loss = self.get_loss()
         self.n_step = 0
 
-        return ob
+        return ob, info
 
     def observe_metric_trgs(self, obs):
         # metrics_ob = np.zeros(self.n_new_obs)
@@ -211,7 +211,7 @@ class ControlWrapper(gym.Wrapper):
         return obs
 
     def step(self, action, **kwargs):
-        ob, rew, done, info = super().step(action, **kwargs)
+        ob, rew, done, truncated, info = super().step(action, **kwargs)
         self.metrics = self.unwrapped._rep_stats
 
         # Add target values of metrics of interest to the agent's obervation, so that it can learn to reproduce them 
@@ -229,9 +229,10 @@ class ControlWrapper(gym.Wrapper):
         # This should only happen during inference, when user is interacting with GUI.
         if not self.auto_reset:
             done = False
+            truncated = False
 
         # print("step: ", self.n_step, " done: ", done, " reward: ", reward, " action: ", action, " metrics: ", self.metrics)
-        return ob, reward, done, info
+        return ob, reward, done, truncated, info
 
     def render(self, mode='human', **kwargs):
         if mode == 'human':
@@ -427,7 +428,7 @@ class ControlWrapper(gym.Wrapper):
 #
 #        return out
 #
-#    def reset(self):
+#    def reset(self, *, seed=None, options=None):
 ##       self.noise = OpenSimplex()
 #        return self.env.reset()
 
@@ -458,10 +459,10 @@ class UniformNoiseyTargets(gym.Wrapper):
 
         return self.env.step(action, **kwargs)
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         self.set_rand_trgs()
 
-        return self.env.reset()
+        return self.env.reset(), {}
 
 
 class ALPGMMTeacher(gym.Wrapper):
@@ -479,7 +480,7 @@ class ALPGMMTeacher(gym.Wrapper):
         self.trial_reward = 0
         self.n_trial_steps = 0
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         if self.trg_vec is not None:
             if self.n_trial_steps == 0:
                 # This is some whackness that happens when we reset manually from the inference script.
@@ -498,8 +499,8 @@ class ALPGMMTeacher(gym.Wrapper):
         return self.env.reset()
 
     def step(self, action, **kwargs):
-        obs, rew, done, info = self.env.step(action, **kwargs)
+        obs, rew, done, truncated, info = self.env.step(action, **kwargs)
         self.trial_reward += rew
         self.n_trial_steps += 1
 
-        return obs, rew, done, info
+        return obs, rew, done, truncated, info

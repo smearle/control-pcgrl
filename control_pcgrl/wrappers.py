@@ -2,8 +2,8 @@ import math
 from pdb import set_trace as TT
 from typing import Iterable
 
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.pcgrl_env import PcgrlEnv
 from control_pcgrl.envs.probs.problem import Problem3D
@@ -36,20 +36,20 @@ class AuxTiles(gym.Wrapper):
             aux=spaces.Box(low=0, high=1, shape=(n_aux_tiles,), dtype=np.float32),
         )
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, *, seed=None, options=None):
+        obs, info = self.env.reset()
         self._pos = obs['pos']
         aux = np.zeros((*self.env.observation_space.spaces['map'].shape[:-1], self.n_aux_tiles), dtype=np.float32)
         obs['aux'] = aux
         self.aux_map = aux
-        return obs
+        return obs, info
 
     def step(self, action):
         self._write_to_aux(self._pos, action['aux'])
-        obs, reward, done, info = self.env.step(action['action'])
+        obs, reward, done, truncated, info = self.env.step(action['action'])
         self._pos = obs['pos']
         obs['aux'] = self.aux_map
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
     def _write_to_aux(self, pos, aux):
         self.aux_map[tuple(pos)] = aux
@@ -124,16 +124,16 @@ class ToImage(TransformObs):
     def step(self, action, **kwargs):
         if not isinstance(action, dict):
             action = get_action(action)
-        obs, reward, done, info = self.env.step(action, **kwargs)
+        obs, reward, done, truncated, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, *, seed=None, options=None):
+        obs, info = self.env.reset()
         obs = self.transform(obs)
 
-        return obs
+        return obs, info
 
     def _transform(self, obs):
         final = np.empty([])
@@ -157,10 +157,10 @@ class ToImageCA(ToImage):
         action = action.reshape((self.dim, self.w, self.h))
         # action = np.argmax(action, axis=0)
         # obs, reward, done, info = self.env.step(action[:self.dim-1], **kwargs)
-        obs, reward, done, info = self.env.step(action, **kwargs)
+        obs, reward, done, truncated, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
 
 class OneHotEncoding(TransformObs):
@@ -217,16 +217,16 @@ class OneHotEncoding(TransformObs):
 
     def step(self, action, **kwargs):
         # action = get_action(action)
-        obs, reward, done, info = self.env.step(action, **kwargs)
+        obs, reward, done, truncated, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, *, seed=None, options=None):
+        obs, info = self.env.reset()
         obs = self.transform(obs)
 
-        return obs
+        return obs, info
 
     def _transform(self, obs):
         named_obs = obs[self.name]
@@ -291,10 +291,10 @@ class ActionMap(gym.Wrapper):
         # self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
         self.action_space = gym.spaces.Discrete(h * w * self.dim)
 
-    def reset(self):
-        self.old_obs = self.env.reset()
+    def reset(self, *, seed=None, options=None):
+        self.old_obs, info = self.env.reset()
 
-        return self.old_obs
+        return self.old_obs, info
 
     def step(self, action, **kwargs):
         # y, x, v = np.unravel_index(np.argmax(action), action.shape)
@@ -312,10 +312,10 @@ class ActionMap(gym.Wrapper):
                     o_v = o_v.argmax()
                 obs, reward, done, info = self.env.step(o_v, **kwargs)
         else:
-            obs, reward, done, info = self.env.step([x, y, v], **kwargs)
+            obs, reward, done, truncated, info = self.env.step([x, y, v], **kwargs)
         self.old_obs = obs
 
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
 
 class CAMap(ActionMap):
@@ -375,16 +375,16 @@ class Cropped(TransformObs):
 
     def step(self, action, **kwargs):
         # action = get_action(action)
-        obs, reward, done, info = self.env.step(action, **kwargs)
+        obs, reward, done, truncated, info = self.env.step(action, **kwargs)
         obs = self.transform(obs)
 
-        return obs, reward, done, info
+        return obs, reward, done, truncated, info
 
-    def reset(self):
-        obs = self.env.reset()
+    def reset(self, *, seed=None, options=None):
+        obs, info = self.env.reset()
         obs = self.transform(obs)
 
-        return obs
+        return obs, info
 
     def _transform(self, obs):
         # Incrementing all tile indices by 1 to avoid 0s (out-of-bounds).
@@ -575,7 +575,7 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
 
         return super().step(action, **kwargs)
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         self.last_action = None
         self.n_ca_tick = 0
         #       if self.pcgrl_env.unwrapped._rep._map is None:
@@ -585,13 +585,13 @@ class ActionMap3DImagePCGRLWrapper(gym.Wrapper):
         #       self.env.unwrapped._rep._random_start = True
         #       init_state = np.zeros(self.unwrapped._rep._map.shape).astype(np.uint8)
         #       self.unwrapped._rep._old_map = init_state
-        obs = self.env.reset()
+        obs, info = self.env.reset()
         #       self.pcgrl_env._map = self.env._rep._map
 
         #       self.render()
         #       obs = self.env.get_one_hot_map()
 
-        return obs
+        return obs, info
 
 
 class SimCityWrapper(gym.Wrapper):
@@ -607,18 +607,18 @@ class SimCityWrapper(gym.Wrapper):
     #       self.action_space = self.unwrapped.action_space = gym.spaces.MultiDiscrete((self.map_width, self.map_width, self.n_tools))
 
     def step(self, action, **kwargs):
-        obs, rew, done, info = super().step(action, **kwargs)
+        obs, rew, done, truncated, info = super().step(action, **kwargs)
         #       obs = {'map': np.array(obs).transpose(1, 2, 0)}
         obs = obs.transpose(1, 2, 0)
 
-        return obs, rew, done, info
+        return obs, rew, done, truncated, info
 
-    def reset(self):
-        obs = super().reset()
+    def reset(self, *, seed=None, options=None):
+        obs, info = super().reset()
         #       obs = {'map': obs.transpose(1, 2, 0)}
         obs = obs.transpose(1, 2, 0)
 
-        return obs
+        return obs, info
 
     def adjust_param(self, cfg: Config):
         return
@@ -640,18 +640,18 @@ class RCTWrapper(gym.Wrapper):
 
     def step(self, action, **kwargs):
         action = np.array(action)
-        obs, rew, done, info = super().step(action, **kwargs)
+        obs, rew, done, truncated, info = super().step(action, **kwargs)
         #       obs = {'map': np.array(obs).transpose(1, 2, 0)}
         obs = obs.transpose(1, 2, 0)
 
-        return obs, rew, done, info
+        return obs, rew, done, truncated, info
 
-    def reset(self):
-        obs = super().reset()
+    def reset(self, *, seed=None, options=None):
+        obs, info = super().reset()
         #       obs = {'map': obs.transpose(1, 2, 0)}
         obs = obs.transpose(1, 2, 0)
 
-        return obs
+        return obs, info
 
 
 # TODO
@@ -709,9 +709,9 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
         self.unwrapped.observation_space = self.observation_space
         self.unwrapped.action_space = self.action_space
 
-    def reset(self):
-        obs = super().reset()
-        return obs
+    def reset(self, *, seed=None, options=None):
+        obs, info = super().reset()
+        return obs, info
 
     def seed(self, s):
         return self.unwrapped.seed(s)
@@ -719,7 +719,7 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
     def step(self, action):
         # print(f"Step:")
         # print(f"Action: {action}")
-        obs, rew, done, info = {}, {}, {}, {}
+        obs, rew, done, truncated, info = {}, {}, {}, {}, {}
 
         for k, v in action.items():
             self.unwrapped._rep.set_active_agent(k)
@@ -727,7 +727,7 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
             obs.update(obs_k)
         done['__all__'] = np.all(list(done.values()))
 
-        return obs, rew, done, info
+        return obs, rew, done, truncated, info
 
 
 class GroupedEnvironmentWrapper(MultiAgentEnv):
@@ -747,7 +747,7 @@ class GroupedEnvironmentWrapper(MultiAgentEnv):
         self.ctrl_metrics = self.env.env.ctrl_metrics
         self.metrics = self.env.env.metrics
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         return self.env.reset()
 
     def step(self, actions):

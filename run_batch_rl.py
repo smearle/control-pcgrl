@@ -15,7 +15,7 @@ import submitit
 import yaml
 
 from control_pcgrl.rl.cross_eval import compile_results
-from control_pcgrl.rl.utils import get_exp_name
+from control_pcgrl.rl.utils import get_log_dir
 from control_pcgrl.rl import train_ctrl
 
 
@@ -135,7 +135,7 @@ def launch_batch(collect_params=False):
             
             # get the experiment name to name the config file
             # config_name = f"{prob}_{rep}_{exp_name}"
-            config_name = get_exp_name(exp_prob_cfg)
+            config_name = get_log_dir(exp_prob_cfg)
             # Edit the sbatch file to load the correct config file
             if not opts.render:
                 if  not LOCAL:

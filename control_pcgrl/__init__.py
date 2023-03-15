@@ -1,5 +1,4 @@
-from pdb import set_trace as TT
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem
 from control_pcgrl.envs.probs.problem import Problem3D

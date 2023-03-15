@@ -9,7 +9,7 @@ from pdb import set_trace as TT
 from operator import mul
 from typing import Tuple
 
-import gym
+import gymnasium as gym
 import matplotlib
 import matplotlib.pyplot as plt
 from numba import njit

@@ -20,7 +20,7 @@ from control_pcgrl.rl.utils import (
     get_crop_size,
     get_map_width,
     get_env_name,
-    get_exp_name,
+    get_log_dir,
     load_model,
     PROB_CONTROLS,
 #   max_exp_idx,
@@ -66,7 +66,7 @@ def evaluate(game, representation, infer_kwargs, fix_trgs=False, **kwargs):
     eval_controls = infer_kwargs.get("eval_controls")
     env_name = get_env_name(game, representation)
     #   env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, **kwargs)
+    exp_name = get_log_dir(game, representation, **kwargs)
     levels_im_name = "{}_{}-bins_levels.png"
 
 #   if n is None:

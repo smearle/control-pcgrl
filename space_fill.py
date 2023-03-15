@@ -2,7 +2,7 @@ import math
 from pdb import set_trace as TT
 from time import sleep
 
-import gym
+import gymnasium as gym
 from pyrsistent import s
 from control_pcgrl.envs.helper import get_string_map
 import numpy as np

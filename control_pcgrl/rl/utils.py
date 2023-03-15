@@ -1,6 +1,7 @@
 """
 Helper functions for train, infer, and eval modules.
 """
+from pathlib import Path
 from pdb import set_trace as TT
 import copy
 import glob
@@ -9,17 +10,20 @@ import ray
 import re
 
 import numpy as np
-import gym
+import gymnasium as gym
+from ray.rllib.algorithms.ppo import PPOConfig
 from ray.tune import register_env
-from gym.spaces import Tuple
+from gymnasium.spaces import Tuple
 # from stable_baselines import PPO2
 # from stable_baselines.bench import Monitor
 #from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 
-from control_pcgrl.configs.config import Config
+from control_pcgrl.configs.config import Config, EvalConfig
 from control_pcgrl import wrappers
 from control_pcgrl.task_assignment import set_map_fn
 from control_pcgrl.rl.envs import make_env
+
+PROJ_DIR = Path(__file__).parent.parent.parent
 
 # NOTE: minecraft has to precede zelda since minecraft zelda maze has both phrases in its name.
 MAP_WIDTHS = [("binary", 16), ("minecraft_3D_rain", 7), ("minecraft_3D", 15), ("zelda", 16), ("sokoban", 5)]
@@ -220,63 +224,80 @@ def get_env_name(game, representation):
     return env_name
 
 
-def get_exp_name(cfg: Config):
+def get_log_dir(cfg: Config):
+    default_dir = os.path.join(PROJ_DIR, 'rl_runs')
 
-    exp_name = os.path.join(
+    log_dir = os.path.join(
+        cfg.runs_dir if cfg.runs_dir is not None else default_dir,
+        cfg.algorithm,
         cfg.task.name, 
         # "weights_" + "-".join(f"{k}-{v}" for k, v in cfg.task.weights.items()),
         cfg.representation,
         cfg.multiagent.policies, # default to single policy
     )
-    exp_name += '/'
+    log_dir += '/'
 
     if cfg.model.name is not None:
-        exp_name += cfg.model.name + '_'
+        log_dir += cfg.model.name + '_'
 
     if cfg.controls is not None:
-        exp_name += "" + "-".join(["ctrl"] + cfg.controls + '_')
+        log_dir += "" + "-".join(["ctrl"] + cfg.controls + '_')
     
     if cfg.change_percentage is not None:
-        exp_name += "chng-{}_".format(cfg.change_percentage)
+        log_dir += "chng-{}_".format(cfg.change_percentage)
 
     if cfg.max_board_scans != 1:
-        exp_name += "{}-scans_".format(cfg.max_board_scans)
+        log_dir += "{}-scans_".format(cfg.max_board_scans)
+
+    # Add obs_window shape
+    if cfg.task.obs_window is not None:
+        if len(cfg.task.obs_window) == 2:
+            log_dir += "obsWin-{}x{}-".format(*cfg.task.obs_window)
+        else:
+            log_dir += "obsWin-{}x{}x{}-".format(*cfg.task.obs_window)
 
     if hasattr(cfg, "midep_trgs") and cfg.midep_trgs:
-        exp_name += "midEpTrgs_"
+        log_dir += "midEpTrgs_"
 
     if hasattr(cfg, "alp_gmm") and cfg.alp_gmm:
-        exp_name += "ALPGMM_"  
+        log_dir += "ALPGMM_"  
 
     if cfg.multiagent.n_agents != 0:
-        exp_name += f"{cfg.multiagent['n_agents']}-player_"
+        log_dir += f"{cfg.multiagent['n_agents']}-player_"
 
     # TODO: Can have subdirectories for given settings of a given model type.
     if cfg.model.name is not None:
-        exp_name += f"{cfg.model.conv_filters}-convSz_" if cfg.model.conv_filters != 64 else ""
-        exp_name += f"{cfg.model.fc_size}-fcSz_" if cfg.model.fc_size != 64 and cfg.model.name != 'NCA' else ""
+        log_dir += f"{cfg.model.conv_filters}-convSz_" if cfg.model.conv_filters != 64 else ""
+        log_dir += f"{cfg.model.fc_size}-fcSz_" if cfg.model.fc_size != 64 and cfg.model.name != 'NCA' else ""
 
     if cfg.model.name == 'SeqNCA':
-        exp_name += f"pw-{cfg.model.patch_width}_"
+        log_dir += f"pw-{cfg.model.patch_width}_"
 
     if cfg.n_aux_tiles > 0:
-        exp_name += f"{cfg.n_aux_tiles}-aux_"
+        log_dir += f"{cfg.n_aux_tiles}-aux_"
 
     if cfg.static_prob is not None:
-        exp_name += f"{cfg.static_prob}-static_"
+        log_dir += f"{cfg.static_prob}-static_"
     
     if cfg.learning_rate:
-        exp_name += f"lr-{cfg.learning_rate:.1e}_"
+        log_dir += f"lr-{cfg.learning_rate:.1e}_"
 
     # Can't control `n_frame`, but if we did, wouldn't want to have this in experiment name in case we watned to extent
     # training later.
     # if cfg.n_frame is not None:
     #     exp_name += f"_nframe-{cfg.n_frame}"
 
-    exp_name += f"{cfg.exp_id}"
+    log_dir += f"{cfg.exp_id}"
 
-    return exp_name
+    return log_dir
 
+
+def validate_config(cfg: Config):
+    """Set up the experiment name, and raise errors if the config has invalid combinations of hyperparameters (TODO)."""
+
+    cfg.env_name = get_env_name(cfg.task.problem, cfg.representation)
+    print('env name: ', cfg.env_name)
+    cfg.log_dir = get_log_dir(cfg)
 
 # def load_model(log_dir, n_tools=None, load_best=False):
 #     if load_best:
@@ -326,7 +347,7 @@ def max_exp_idx(exp_name):
 
 
 def parse_ppo_config(
-    config,
+    cfg,
     agent_obs_space,
     log_dir,
     logger_type,
@@ -339,25 +360,22 @@ def parse_ppo_config(
     num_workers = kwargs.get('num_workers', 0)
     num_envs_per_worker = kwargs.get('num_envs_per_worker', 1)
     # eval_num_workers = kwargs.get('num_workers', 0)
-    eval_num_workers = num_workers if config.evaluate else 0
-    
+    eval_num_workers = num_workers if cfg.evaluate else 0
+
     return {
         'env': 'pcgrl',
         **multiagent_config,
         'framework': 'torch',
-        'num_workers': num_workers if not (config.evaluate or config.infer) else 0,
-        'num_gpus': config.hardware.n_gpu,
+        'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
+        'num_gpus': cfg.hardware.n_gpu,
         'env_config': {
-            **config,  # Maybe env should get its own config? (A subset of the original?)
+            **cfg,  # Maybe env should get its own config? (A subset of the original?)
             "evaluation_env": False,
         },
-        # 'env_config': {
-            # 'change_percentage': cfg.change_percentage,
-        # },
         'num_envs_per_worker': num_envs_per_worker,
-        'render_env': config.render,
-        'lr': config.learning_rate,
-        'gamma': config.gamma,
+        'render_env': cfg.render,
+        'lr': cfg.learning_rate,
+        'gamma': cfg.gamma,
         'model': {
             'custom_model': 'custom_model',
             'custom_model_config': {
@@ -365,18 +383,20 @@ def parse_ppo_config(
             **model_cfg,
             },
         },
-        "evaluation_interval" : 1 if config.evaluate else 1,
-        "evaluation_duration": max(1, num_workers),
+        # When training, eval for 1 episode every 100 train steps. If evaluating, evaluate for 100 episodes.
+        "evaluation_interval": 1 if not cfg.evaluate else cfg.n_eval_episodes,  # meaningless if evaluating pre-trained agent (?)
         "evaluation_duration_unit": "episodes",
+        "evaluation_duration": cfg.n_eval_episodes if cfg.evaluate else max(1, eval_num_workers),
         "evaluation_num_workers": eval_num_workers,
         "env_task_fn": set_map_fn,
         "evaluation_config": {
             "env_config": {
-                **config,
+                **cfg,
                 "evaluation_env": True,
                 "num_eval_envs": num_envs_per_worker * eval_num_workers,
             },
-            "explore": True,
+            "explore": True if cfg.infer else False,
+            "render_env": cfg.render,
         },
         "logger_config": {
                 # "wandb": {

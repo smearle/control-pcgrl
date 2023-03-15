@@ -285,6 +285,9 @@ class Config:
     #     [3, 3]
     # )
 
+    # Will default to `control-pcgrl/rl_runs` if not specified.
+    runs_dir: Optional[Path] = None
+
     # Gets set later :)
     log_dir: Optional[Path] = None
     env_name: Optional[str] = None
@@ -292,10 +295,28 @@ class Config:
     # This one (and other stuff) could be in a separate PCGRLEnvConfig
     evaluation_env: Optional[bool] = None
 
+    n_eval_episodes: int = 1
+
+
+@dataclass
+class EvalConfig(Config):
+    """Config for evaluation."""
+    # Indicate that we cannot overwrite this
+    evaluate: bool = True
+
+    n_eval_episodes: int = 1
+
+@dataclass
+class CrossEvalConfig(EvalConfig):
+    """Config for cross-evaluation."""
+    name: str = "lr_sweep"
+
 
 cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`
 cs.store(name="pcgrl", node=Config)
+cs.store(name="pcgrl_eval", node=EvalConfig)
+cs.store(name="pcgrl_sweep", node=CrossEvalConfig)
 
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)

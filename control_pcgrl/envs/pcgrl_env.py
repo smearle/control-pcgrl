@@ -3,8 +3,8 @@ import json
 from pdb import set_trace as TT
 import PIL
 
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.probs.holey_prob import HoleyProblem
 import numpy as np
@@ -150,7 +150,7 @@ class PcgrlEnv(gym.Env):
         Observation: the current starting observation have structure defined by
         the Observation Space
     """
-    def reset(self, seed=42):
+    def reset(self, *, seed=None, options=None):
         self._changes = 0
         self._iteration = 0
         # avoid default probabilities with normal distribution if we seed manually
@@ -180,7 +180,7 @@ class PcgrlEnv(gym.Env):
 
         # observation["heatmap"] = self._heatmap.copy()
 
-        return observation
+        return observation, {}
 
     """
     Get the border tile that can be used for padding
@@ -302,6 +302,7 @@ class PcgrlEnv(gym.Env):
         done = self._iteration > self._max_iterations
         if self._max_changes is not None:
             done = done or self._changes > self._max_changes
+        truncated = done
 
         # Only get level stats at the end of the level, for sparse, loss-based reward.
         # Uncomment the below to use dense rewards (also need to modify the ParamRew wrapper).
@@ -330,7 +331,7 @@ class PcgrlEnv(gym.Env):
         info["max_iterations"] = self._max_iterations
         info["max_changes"] = self._max_changes
 
-        return observation, reward, done, info
+        return observation, reward, done, truncated, info
 
     def _get_rep_map(self):
         return self._rep.unwrapped._map
@@ -345,6 +346,7 @@ class PcgrlEnv(gym.Env):
         img or boolean: img for rgb_array rendering and boolean for human rendering
     """
     def render(self, mode='human'):
+        print("I RENDER MYSELF NOW, YAY! \n ALSO, I AM A PCGRL ENV, MY STORY BEGINS In a galaxy far far away...\n I am a PCGRL environment, I am a wrapper around a PCG problem and a PCG representation. \n")
         img: PIL.Image = self._prob.render(self.get_string_map(
             self._get_rep_map(), self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
         # Transpose image
@@ -358,7 +360,7 @@ class PcgrlEnv(gym.Env):
         elif mode == 'human':
 
             if self.viewer is None:
-                from gym.envs.classic_control import rendering
+                from gymnasium.envs.classic_control import rendering
                 self.viewer = rendering.SimpleImageViewer()
                 # self.viewer = GUI()
 

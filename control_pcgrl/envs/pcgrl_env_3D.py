@@ -8,7 +8,7 @@ from control_pcgrl.envs.reps import REPRESENTATIONS
 from control_pcgrl.envs.helper_3D import get_int_prob, get_string_map
 from control_pcgrl.envs.reps.representation import Representation
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
 RENDER_OPENGL = 0
 RENDER_MINECRAFT = 1

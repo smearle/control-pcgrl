@@ -24,7 +24,7 @@ class Player():
 
         return True
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
         self.health = 100
         self.keys = 0
         self.doors = 0

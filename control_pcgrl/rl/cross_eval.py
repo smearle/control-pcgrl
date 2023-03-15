@@ -1,28 +1,32 @@
 import argparse
 import json
+import operator
 import os
 from pathlib import Path
 import re
 import csv
 from pdb import set_trace as TT
+from typing import Dict, List
+import hydra
 
 import numpy as np
 from matplotlib import pyplot as plt
+from omegaconf import DictConfig
 import pandas as pd
+from control_pcgrl.configs.config import Config, CrossEvalConfig
 
-from control_pcgrl.rl.args import parse_args
-from control_pcgrl.rl.utils import get_exp_name, PROB_CONTROLS
+from control_pcgrl.rl.utils import get_log_dir, PROB_CONTROLS, validate_config
 from tex_formatting import newline, pandas_to_latex
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
 
 # Map names of metrics recorded to the names we want to display in a table
 
-RUNS_DIR = os.path.join(Path(__file__).parent.parent, 'rl_runs')
-EVAL_DIR = os.path.join(Path(__file__).parent.parent, 'rl_eval')
+RUNS_DIR = os.path.join(Path(__file__).parent.parent.parent, 'rl_runs')
+EVAL_DIR = os.path.join(Path(__file__).parent.parent.parent, 'rl_eval')
 
 keys = [
-    "problem", 
+    "task", 
     "representation", 
     "model",
     "n_aux_tiles",
@@ -138,8 +142,124 @@ def flatten_stats(stats, controllable=False):
     return flat_stats
 
 
-def compile_results(settings_list, no_plot=False):
-    batch_exp_name = settings_list[0]["exp_id"]
+def flatten_dict(d, parent_key='', sep='_'):
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
+    """Collect results generated when evaluating trained models under different conditions.
+    Args:
+        config (CrossEvalConfig): The cross-evaluation config
+        sweep_configs (List[EvalConfig]): EvalConfigs corresponding to evaluations
+        sweep_params (Dict[str, str]): The eval/train hyperparameters being swept over in the cross-evaluation
+    """
+    validate_config(cross_eval_config)
+    [validate_config(c) for c in sweep_configs]
+
+    experiment_0 = sweep_configs[0]
+
+    col_headers = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean', 'episodes_this_iter']
+    row_headers = [k for k in sweep_params.keys()]
+
+    rows = []
+    vals = []
+
+    for experiment in sweep_configs:
+        print(type(experiment))
+        exp_path = experiment.log_dir
+        path = os.path.join(exp_path, "eval_stats.json")
+        with open(path, "r") as f:
+            stats = json.load(f)
+            # stats = flatten_stats(stats)
+            stats = flatten_dict(stats)
+
+        row = []
+
+        for k in row_headers:
+
+            v = operator.attrgetter(k)(experiment)
+
+            # If a subconfig, take its name(?? HACK)
+            if isinstance(v, DictConfig):
+                row.append(v.name)
+
+            else:
+                row.append(v)
+
+        rows.append(row)
+
+        exp_stats = [stats[k] for k in col_headers]
+        vals.append(exp_stats)
+
+    # iterate col_headers and replace "_" with " " to avoid latex errors
+    col_headers = [h.replace("_", " ") for h in col_headers]
+    col_headers = [h.replace(".", " ") for h in col_headers]
+    row_headers = [h.replace("_", " ") for h in row_headers]
+    row_headers = [h.replace(".", " ") for h in row_headers]
+
+    # Make a multi-indexed dataframe
+    rows = pd.MultiIndex.from_tuples(rows, names=row_headers)
+
+    df = pd.DataFrame(vals, index=rows, columns=col_headers)
+
+    # # Replace every `_` with a `\_` to avoid latex errors, in rows...
+    # df.index = df.index.map(lambda x: [str(i).replace("_", " ") for i in x])
+    # df.index = df.index.map(lambda x: [str(i).replace("[", "") for i in x])
+    # # and in columns.
+    # df.columns = df.columns.map(lambda x: x.replace("_", " "))
+    # # And in the values, format to 2 decimal places
+    # df = df.applymap(lambda x: "{:.2f}".format(x))
+
+    # Save the dataframe
+    df.to_csv(os.path.join(EVAL_DIR, "cross_eval.csv"))
+
+    # Save the df as latex
+    # df = df.applymap(bold_extreme_values)
+    # df = df.applymap(lambda x: "{:.2f}".format(x))
+
+    tex_name = cross_eval_config.name
+
+    # Save the df as latex
+    # df.to_latex(
+    #     os.path.join(EVAL_DIR, "cross_eval.tex"),
+    #     column_format="l" + "c" * len(col_headers),
+    #     multirow=True,
+    #     escape=False,
+    # )
+    pandas_to_latex(
+        df, 
+        os.path.join(EVAL_DIR, tex_name + '.tex'),
+        # multirow=True, 
+        index=True, 
+        header=True,
+        vertical_bars=True,
+        # columns=col_indices, 
+        multicolumn=True, 
+        # multicolumn_format='c|',
+        right_align_first_column=False,
+        # bold_rows=True,
+    )
+
+    tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
+
+    # Replace the line in `tables.tex` that says `\input{.*}` with `\input{tables_tex_fname.tex}` with regex
+    re.sub(r"\\input{.*}", "poo", os.path.join(EVAL_DIR, "tables.tex"))
+
+    os.system(f"pdflatex {tables_tex_fname}")
+
+    # Move the output pdf int rl_eval
+    # os.system(f"mv {tables_tex_fname.replace('.tex', '.pdf')} {EVAL_DIR}")
+
+    return
+
+    # batch_exp_name = settings_list[0]["exp_id"]
     #   if batch_exp_name == "2":
     #   elif batch_exp_name == "1":
     #       EVO_DIR = "evo_runs_06-13"
@@ -171,7 +291,7 @@ def compile_results(settings_list, no_plot=False):
     data = []
     vals = []
 
-    for i, settings in enumerate(settings_list):
+    for i, settings in enumerate(sweep_configs):
         val_lst = []
 
         controllable = False
@@ -201,7 +321,7 @@ def compile_results(settings_list, no_plot=False):
         args = argparse.Namespace(**settings)
         arg_dict = vars(args)
         # FIXME: well this is stupid
-        exp_name = get_exp_name(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
+        exp_name = get_log_dir(args) + '_' + str(arg_dict["exp_id"]) + '_log'  # FIXME: this should be done elsewhere??
         arg_dict["cond_metrics"] = arg_dict.pop("controls")
         # NOTE: For now, we run this locally in a special directory, to which we have copied the results of eval on
         # relevant experiments.
@@ -433,3 +553,57 @@ def plot_csv(exp_name):
         json.dump({'n_frames': np.nansum(len_arr)}, f)
     plt.plot(mean_rews)
     plt.savefig(os.path.join(exp_name, 'reward.png'))
+
+
+def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first_column=True, header=True, index=False,
+                    escape=False, multicolumn=False, **kwargs) -> None:
+    """
+    Function that augments pandas DataFrame.to_latex() capability.
+
+    Args:
+        df_table: dataframe
+        latex_file: filename to write latex table code to
+        vertical_bars: Add vertical bars to the table (note that latex's booktabs table format that pandas uses is
+                          incompatible with vertical bars, so the top/mid/bottom rules are changed to hlines.
+        right_align_first_column: Allows option to turn off right-aligned first column
+        header: Whether or not to display the header
+        index: Whether or not to display the index labels
+        escape: Whether or not to escape latex commands. Set to false to pass deliberate latex commands yourself
+        multicolumn: Enable better handling for multi-index column headers - adds midrules
+        kwargs: additional arguments to pass through to DataFrame.to_latex()
+    """
+    if isinstance(df_table.index[0], tuple):
+        n_col_indices = len(df_table.index[0])
+    else:
+        n_col_indices = 1
+    n = len(df_table.columns) + n_col_indices
+
+#   if right_align_first_column:
+    cols = 'c' + 'c' * (n - 1)
+#   else:
+#       cols = 'r' * n
+
+    if vertical_bars:
+        # Add the vertical lines
+        cols = '|' + '|'.join(cols) + '|'
+
+    # latex = df_table.to_latex(escape=escape, index=index, column_format=cols, header=header, multicolumn=multicolumn,
+    #                           **kwargs)
+    latex = df_table.style.to_latex(column_format=cols,
+                              **kwargs)
+
+
+    with open(latex_file, 'w') as f:
+        f.write(latex)
+
+
+@hydra.main(version_base="1.3", config_path="../configs", config_name="cross_eval")
+def main(cfg: CrossEvalConfig):
+    """This is a fake function we use to enter our hydra plugin (at 
+    `hydra_plugins.cross_eval_launcher_plugin.cross_eval_launcher.CrossEvalLauncher`), from which we call `cross_eval`.
+    We do this so that hydra constructs the configs corresponding to our sweep, which we then pass to `cross_eval`."""
+    pass
+
+
+if __name__ == '__main__':
+    main()

@@ -2,7 +2,7 @@
 Run random agent to test the 3D environment
 """
 import numpy as np
-import gym
+import gymnasium as gym
 import control_pcgrl
 from pdb import set_trace as TT
 # from utils import make_vec_envs

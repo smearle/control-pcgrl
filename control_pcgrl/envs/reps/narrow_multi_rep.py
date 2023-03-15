@@ -1,6 +1,6 @@
 from control_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 from PIL import Image
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 from collections import OrderedDict
 

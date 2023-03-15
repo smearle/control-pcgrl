@@ -1,4 +1,3 @@
-from pdb import set_trace as TT
 import numpy as np
 from ray.rllib.algorithms.ppo import PPO as RlLibPPOTrainer
 from ray.rllib.algorithms.qmix import QMix as RlLibQMIXTrainer
@@ -41,11 +40,10 @@ def ControllablaTrainerFactory(trainer):
             self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
             self.ctrl_metrics = self.config['env_config']['controls']
             self.ctrl_metrics = {} if self.ctrl_metrics is None else self.ctrl_metrics
-            cbs = self.workers.foreach_env(lambda env: env._unwrapped.cond_bounds if hasattr(env, '_unwrapped') else env.unwrapped.cond_bounds)
-
-            cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
-            cond_bounds = cbs[0]
-            self.metric_ranges = {k: v[1] - v[0] for k, v in cond_bounds.items()}
+            # cbs = self.workers.foreach_env(lambda env: env._unwrapped.cond_bounds if hasattr(env, '_unwrapped') else env.unwrapped.cond_bounds)
+            # cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
+            # cond_bounds = cbs[0]
+            self.metric_ranges = None
              #self.checkpoint_path_file = checkpoint_path_file
 
         def setup(self, config):
@@ -79,7 +77,7 @@ def ControllablaTrainerFactory(trainer):
         def get_default_config(cls):
             # def_cfg = super().get_default_config()
             def_cfg = trainer.get_default_config()
-            def_cfg.update({             # note: for ray earlier than 2.1.0, def_cfg is a dictionary, please use def_cfg.update(); 
+            def_cfg.update_from_dict({             # note: for ray earlier than 2.1.0, def_cfg is a dictionary, please use def_cfg.update(); 
                                             #    for ray starting from 2.2.0, def_cfg is a ray config, please use def_cfg.update_from_dict() instead.                                             
                 'checkpoint_path_file': None,
                 'wandb': {
@@ -126,6 +124,9 @@ def ControllablaTrainerFactory(trainer):
 
                     # Spoofed histograms
                     # FIXME: weird interpolation behavior here???
+                    if self.metric_ranges is None:
+                        cond_bounds = self.workers.local_worker().env.unwrapped.cond_bounds
+                        self.metric_ranges = {k: v[1] - v[0] for k, v in cond_bounds.items()}
                     bin_size = self.metric_ranges[metric] / n_bins  # 30 is the default number of tensorboard histogram bins (HACK)
                     trg_dict = {}
 
@@ -162,6 +163,9 @@ def ControllablaTrainerFactory(trainer):
 
             # print('-----------------------------------------')
             # print(pretty_print(log_result))
+
+
+
             return result
 
         def evaluate(self):
