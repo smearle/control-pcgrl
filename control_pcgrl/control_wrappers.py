@@ -361,8 +361,6 @@ class ControlWrapper(gym.Wrapper):
         return loss
 
     def get_reward(self):
-        reward = 0
-
         # FIXME: why do we do this?
         loss = self.get_ctrl_loss()
 

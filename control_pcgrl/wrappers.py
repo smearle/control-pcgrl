@@ -200,7 +200,7 @@ class OneHotEncoding(TransformObs):
         self.dim = (
             self.observation_space.spaces[self.name].high.max()
             - self.observation_space.spaces[self.name].low.min()
-            + 1 # ??? did we need this ??? I think so, to represent out-of-bounds tiles.
+            + 1 # We need this to represent out-of-bounds tiles.
         )
 
         new_shape.extend(shape)

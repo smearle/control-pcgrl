@@ -151,10 +151,15 @@ def main(cfg: Config) -> None:
 
     ### DEBUG ###
     if cfg.debug:
+        from timeit import default_timer as timer
+        n_eps = 100
+        mean_ep_time = 0
         # Randomly step through 100 episodes
-        for _ in tqdm(range(100)):
+        for n_ep in tqdm(range(n_eps)):
+            ep_start_time = timer()
             obs, info = dummy_env.reset()
             done = False
+            n_step = 0
             while not done:
                 # if i > 3:
                 act = dummy_env.action_space.sample()
@@ -166,6 +171,20 @@ def main(cfg: Config) -> None:
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
                     dummy_env.render()
+                n_step += 1
+
+            ep_end_time = timer()
+            ep_time = ep_end_time - ep_start_time
+
+            print(f'Episode {n_ep} finished after {n_step} steps in {ep_time} seconds.')
+            print(f'FPS: {n_step / ep_time}')
+
+            mean_ep_time += ep_time
+
+        mean_ep_time /= n_eps
+        print(f'Average episode time: {mean_ep_time} seconds.')
+        print(f'Average FPS: {n_step / mean_ep_time}.')
+            
             #import pdb; pdb.set_trace()
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()

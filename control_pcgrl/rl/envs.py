@@ -6,7 +6,7 @@ import json
 from typing import Dict
 
 import ray
-from control_pcgrl import wrappers
+from control_pcgrl import reward_model_wrappers, wrappers
 
 from gymnasium import spaces
 from control_pcgrl.envs.pcgrl_env import PcgrlEnv
@@ -74,5 +74,8 @@ def make_env(cfg: Config):
     if cfg.multiagent.n_agents != 0:
         env = wrappers.MultiAgentWrapper(env, cfg)
         env = ray.rllib.env.wrappers.multi_agent_env_compatibility.MultiAgentEnvCompatibility(env)
+
+    if cfg.train_reward_model:
+        env = reward_model_wrappers.RewardModelWrapper(env, cfg)
 
     return env

@@ -260,6 +260,7 @@ class Config:
     model: ModelConfig = MISSING
     multiagent: MultiagentConfig = MISSING
     task: TaskConfig = MISSING
+    train_reward_model: bool = False
 
     algorithm: str = 'PPO'
     debug: bool = False

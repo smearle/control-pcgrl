@@ -1,4 +1,5 @@
 import numpy as np
+from control_pcgrl.reward_model_wrappers import init_reward_model
 from ray.rllib.algorithms.ppo import PPO as RlLibPPOTrainer
 from ray.rllib.algorithms.qmix import QMix as RlLibQMIXTrainer
 import torchinfo
@@ -45,6 +46,7 @@ def ControllablaTrainerFactory(trainer):
             # cond_bounds = cbs[0]
             self.metric_ranges = None
              #self.checkpoint_path_file = checkpoint_path_file
+            self.train_reward_model = False
 
         def setup(self, config):
             #import pdb; pdb.set_trace()
@@ -57,6 +59,12 @@ def ControllablaTrainerFactory(trainer):
                 sample_agent_id = 'default_policy'
             else:
                 sample_agent_id = list(multiagent['policies'].keys())[0]
+            self.train_reward_model = config.env_config['train_reward_model']
+
+            if self.train_reward_model:
+                local_env = self.workers.local_worker().env
+                self.reward_model, self.reward_model_optimizer = init_reward_model(env=local_env)
+
             param_dict = self.get_weights()[sample_agent_id]
 
             # DOES NOT WORK FOR QMIX MODEL
@@ -164,7 +172,10 @@ def ControllablaTrainerFactory(trainer):
             # print('-----------------------------------------')
             # print(pretty_print(log_result))
 
-
+            if self.train_reward_model:
+                # TODO: Collect datapoints from (wrapped) environments and train the reward model (see 
+                # `train_reward_model.py` in root directory)
+                pass
 
             return result
 
