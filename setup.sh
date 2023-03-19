@@ -17,7 +17,7 @@ python -m pip install -e .
 # conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 
 # for cuda version 11.6 on linux
-conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
+# conda install pytorch pytorch-cuda=11.6 -c pytorch -c nvidia
 
 # for 3090
 # conda install pytorch torchvision cudatoolkit=11.3 -c pytorch
@@ -35,6 +35,6 @@ conda install -c conda-forge pygobject gtk3
 
 
 # Installing hydra:
-python -m pip install --upgrade hydra-core                 
+# python -m pip install --upgrade hydra-core                 
 # store hyperparam sweeps in separate files (in "experiments") will only work with hydra 1.2.0, but not 100% sure.
-python -m pip install --upgrade hydra-submitit-launcher
+# python -m pip install --upgrade hydra-submitit-launcher

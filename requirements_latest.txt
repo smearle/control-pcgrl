@@ -1,0 +1,67 @@
+# TODO: separate requirements for evo/rl (while ensuring they do not conflict).
+# under the gcc verison of: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0 (Tirona) ; python 3.10
+
+chardet       # something is missing this to import name 'COMMON_SAFE_ASCII_CHARACTERS'
+deap
+dm-tree        # rllib dependency
+einops
+graphviz
+gym
+gymnasium[all]
+# gym==0.19.0     # minerl will require 0.19.0
+hydra-core
+hydra-submitit-launcher
+imageio
+lz4                 # for hydra
+neat-python
+numba
+numpy
+# numpy==1.23.4
+# numpy==1.21  # numba requires this version or lower
+opencv-python      # M1 mac users may need to install this separately (or try pip install opencv-python separately; requires numpy 1.23+)
+pandas
+pingouin
+psutil
+pygame
+pyglet
+PyOpenGL
+pyscreenshot
+ribs
+seaborn
+scikit-image
+# submitit
+tensorboard
+tensorboardX      # for having the tensorboard logging (rllib use this to write the logging!)
+torch
+torchinfo
+tqdm
+wandb       # after installing wandb, run `wandb login` to login to wandb
+
+# git submodule update --init qdpy/       # add submodule first before python -m pip install -r requirements.txt
+# ./submodules/qdpy
+
+# NOTE: only need this for diverse generators, not RL.
+# git submodule update --init pytorch-neat/       # add submodule first before python -m pip install -r requirements.txt
+# python -m pip install neat-python
+./submodules/pytorch-neat
+
+# ray[rllib]
+ray==2.3.0  
+
+
+
+# Would be great to try using dqd-rl inside evolve.py... until then, we don't need dqd.
+#./dqd
+
+
+# For fancy curriculum of metric targets for controllable RL
+# ./teachDeepRL
+
+#PyGObject
+
+# Leftovers from gym-pcgrl with stable-baselines 2
+# stable-baselines==2.9.0
+# tensorflow==1.15
+# torch==1.9.0
+# gym==0.21.0    # or 0.16.0
+# cloudpickle==2.0.0   # or 1.2.2
