@@ -72,23 +72,16 @@ best_mean_reward, n_steps = -np.inf, 0
 
 @hydra.main(version_base=None, config_path='../configs', config_name='config')
 def main(cfg: Config) -> None:
+    validate_config(cfg)
+    print("OmegaConf.to_yaml(cfg)")
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())
-
-    if cfg.task.obs_window is None:
-        # This guy gotta observe the holes.
-        if "holey" in cfg.task.problem:
-            obs_window = cfg.task.map_shape * 2 + 2
-        else:
-            obs_window = cfg.task.map_shape * 2
-        cfg.task.obs_window = obs_window
 
     # FIXME: Check for a 3D problem parent class.
     is_3D_env = False
     if "3D" in cfg.task.problem:
         is_3D_env = True
 
-    validate_config(cfg)
     log_dir = cfg.log_dir
 
     if not cfg.load:
@@ -139,15 +132,15 @@ def main(cfg: Config) -> None:
     dummy_cfg = copy.copy(cfg)
     # dummy_cfg["render"] = False
     dummy_cfg.evaluation_env = False
-    dummy_env = make_env(dummy_cfg)
+    env = make_env(dummy_cfg)
     # check_env(dummy_env)
 
-    if issubclass(type(dummy_env), MultiAgentEnv):
-        agent_obs_space = dummy_env.observation_space["agent_0"]
-        agent_act_space = dummy_env.action_space["agent_0"]
+    if issubclass(type(env), MultiAgentEnv):
+        agent_obs_space = env.observation_space["agent_0"]
+        agent_act_space = env.action_space["agent_0"]
     else:
-        agent_obs_space = dummy_env.observation_space
-        agent_act_space = dummy_env.action_space
+        agent_obs_space = env.observation_space
+        agent_act_space = env.action_space
 
     ### DEBUG ###
     if cfg.debug:
@@ -157,20 +150,23 @@ def main(cfg: Config) -> None:
         # Randomly step through 100 episodes
         for n_ep in tqdm(range(n_eps)):
             ep_start_time = timer()
-            obs, info = dummy_env.reset()
+            obs, info = env.reset()
             done = False
             n_step = 0
             while not done:
                 # if i > 3:
-                act = dummy_env.action_space.sample()
+                act = env.action_space.sample()
                 # act = 0 
                 # else:
                     # act = 0
                 # Print shape of map
-                obs, rew, done, truncated, info = dummy_env.step(act)
+                obs, rew, done, truncated, info = env.step(act)
+                breakpoint()
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
-                    dummy_env.render()
+                    env.render()
+                if isinstance(done, dict):
+                    done = done['__all__']
                 n_step += 1
 
             ep_end_time = timer()
@@ -292,7 +288,7 @@ def main(cfg: Config) -> None:
         #     print(f"Loaded checkpoint from {checkpoint_path}.")
 
         if cfg.evaluate:
-            eval_stats = evaluate(trainer, dummy_env, cfg)
+            eval_stats = evaluate(trainer, env, cfg)
             # sys.exit()
             return eval_stats, print("Yay!")
 
@@ -304,11 +300,11 @@ def main(cfg: Config) -> None:
 
                 # For now we do it the old fashioned way.
                 done = False
-                obs, info = dummy_env.reset()
+                obs, info = env.reset()
                 while not done:
                     action = trainer.compute_single_action(obs)
-                    obs, reward, done, truncated, info = dummy_env.step(action)
-                    dummy_env.render()
+                    obs, reward, done, truncated, info = env.step(action)
+                    env.render()
 
         # Quit the program before agent starts training.
         sys.exit()
@@ -340,8 +336,10 @@ def main(cfg: Config) -> None:
     # loggers_dict = {'loggers': [CustomWandbLogger]} if cfg.wandb else {}
     callbacks_dict = {'callbacks': [WandbLoggerCallback(
         project="PCGRL_AIIDE_0",
-        name=exp_name,
-        id=exp_name,
+        # name=exp_name,
+        # id=exp_name,
+        name=log_dir,
+        id=log_dir,
     )]} if cfg.wandb else {}
 
     try:

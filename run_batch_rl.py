@@ -16,7 +16,7 @@ import yaml
 
 from control_pcgrl.rl.cross_eval import compile_results
 from control_pcgrl.rl.utils import get_log_dir
-from control_pcgrl.rl import train_ctrl
+from control_pcgrl.rl import train
 
 
 with open("configs/rl/batch.yaml", "r") as f:
@@ -180,7 +180,7 @@ def launch_batch(collect_params=False):
                     # so we print the command here to be entered-in manually.
                     # print(f"Running command:\n{full_cmd}")
                     # os.system(full_cmd)
-                    train_ctrl.main(exp_prob_cfg)
+                    train.main(exp_prob_cfg)
                 else:
                     # TODO: User submitit.
                     os.system(f"sbatch {sbatch_name}")

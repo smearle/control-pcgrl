@@ -265,6 +265,7 @@ class Config:
     algorithm: str = 'PPO'
     debug: bool = False
     render: bool = False
+    render_mode: str = 'human'
     infer: bool = False
     evaluate: bool = False
     load: bool = True
@@ -300,6 +301,17 @@ class Config:
 
 
 @dataclass
+class EnjoyConfig(Config):
+    """Config for enjoying."""
+    # Indicate that we cannot overwrite this
+    render: bool = True
+    infer: bool = True
+
+    render_mode: str = 'human'
+    # render_mode: str = 'gtk'
+
+
+@dataclass
 class EvalConfig(Config):
     """Config for evaluation."""
     # Indicate that we cannot overwrite this
@@ -315,9 +327,10 @@ class CrossEvalConfig(EvalConfig):
 
 cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`
-cs.store(name="pcgrl", node=Config)
-cs.store(name="pcgrl_eval", node=EvalConfig)
-cs.store(name="pcgrl_sweep", node=CrossEvalConfig)
+cs.store(name="train", node=Config)
+cs.store(name="enjoy", node=EnjoyConfig)
+cs.store(name="eval", node=EvalConfig)
+cs.store(name="cross_eval", node=CrossEvalConfig)
 
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)

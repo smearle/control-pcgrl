@@ -19,7 +19,8 @@ class Representation(ABC):
     """
     The base constructor where all the representation variable are defined with default values
     """
-    def __init__(self, border_tile_index=1, empty_tile_index=0):
+    def __init__(self, cfg, border_tile_index=1, empty_tile_index=0):
+        self.cfg = cfg
         self._random_start: bool = True
         # self._map: List[List[int]] = None
         self._map: np.ndarray = None
@@ -181,6 +182,9 @@ class EgocentricRepresentation(Representation):
         self._random_tile: bool = False
         # An x, y, (z) position
         self._pos: np.ndarray = None
+
+    def set_agent_positions(self, agent_positions):
+        self.agent_positions = agent_positions
 
     """
     Resets the current representation where it resets the parent and the current

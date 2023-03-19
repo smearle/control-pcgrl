@@ -1,5 +1,5 @@
 defaults:
-  - pcgrl  # This points to `ControlPCGRLConfig` class in `config.py`
+  - train  # This points to `ControlPCGRLConfig` class in `config.py`
   - _self_
 
   # Why can't we override this on the command line?

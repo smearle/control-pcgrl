@@ -1,6 +1,6 @@
 import hydra
 from control_pcgrl.configs.config import EvalConfig
-from control_pcgrl.rl.train_ctrl import main as train_main
+from control_pcgrl.rl.train import main as train_main
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="eval")
 def main(cfg: EvalConfig):

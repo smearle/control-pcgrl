@@ -10,6 +10,8 @@ from control_pcgrl.envs.probs.problem import Problem3D
 import numpy as np
 from ray.rllib import MultiAgentEnv
 
+from control_pcgrl.envs.reps.wrappers import ShowAgentRepresentation, StaticBuildRepresentation
+
 
 # clean the input action
 def get_action(a):
@@ -113,11 +115,11 @@ class ToImage(TransformObs):
                 max_value = self.env.observation_space[n].high.max()
         self.names = names
 
-        self.show_agents = cfg.show_agents
+        # self.show_agents = cfg.show_agents
         self.n_agents = cfg.multiagent.n_agents
 
         self.observation_space = spaces.Box(
-            low=0, high=max_value if self.show_agents else max(max_value, cfg.multiagent.n_agents), shape=(*self.shape[:-1], depth)
+            low=0, high=max_value, shape=(*self.shape[:-1], depth)
         )
 
 
@@ -208,11 +210,8 @@ class OneHotEncoding(TransformObs):
         #     new_shape[-1] += self.dim - 1
         # else:
         new_shape.append(self.dim)
-        #import pdb; pdb.set_trace()
-        # self.show_agents = kwargs.get('show_agents', False)
-        self.show_agents = cfg.show_agents
         self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=1 if not self.show_agents else max(1, cfg.multiagent.n_agents), shape=new_shape, dtype=np.uint8
+            low=0, high=1, shape=new_shape, dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -230,10 +229,10 @@ class OneHotEncoding(TransformObs):
 
     def _transform(self, obs):
         named_obs = obs[self.name]
-        if self.show_agents: # if agent positions are a part of the observation, then the map observation will already have an extra dimension
-            old = named_obs[:, :, 0]
-        else:
-            old = named_obs
+        # if self.show_agents: # if agent positions are a part of the observation, then the map observation will already have an extra dimension
+        #     old = named_obs[:, :, 0]
+        # else:
+        old = named_obs
 
         if self.padded:
             # Replace out-of-bounds values with all-zeros (i.e. slice off the ``OOB'' channel).
@@ -243,8 +242,8 @@ class OneHotEncoding(TransformObs):
             new = np.eye(self.dim)[old]
 
         # add the agent positions back into the observation
-        if self.show_agents:
-            new = np.concatenate((new, named_obs[:, :, -1][:, :, None]), axis=-1)
+        # if self.show_agents:
+        #     new = np.concatenate((new, named_obs[:, :, -1][:, :, None]), axis=-1)
 
         obs[self.name] = new
         #import pdb; pdb.set_trace()
@@ -335,7 +334,6 @@ class Cropped(TransformObs):
     This wrapper only works on games with a position coordinate can be stacked
     """
     def __init__(self, game, obs_window: Iterable, pad_value: int, name: str, cfg: Config):
-        self.obs_window = np.array(obs_window)
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -353,14 +351,15 @@ class Cropped(TransformObs):
             len(self.env.observation_space.spaces[name].shape) in [2, 3]
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
-        self.show_agents = cfg.show_agents
+        # self.show_agents = cfg.show_agents
         map_shape = np.array(cfg.task.map_shape)
-        self.shape = map_shape
+        self.map_shape = map_shape
+        self.obs_window = np.array(obs_window)
         pad_r = np.floor(self.obs_window / 2)
         self.pad = np.stack((pad_r, pad_r), axis=1).astype(np.int8)
 
-        if self.show_agents:
-            self.shape.append(2) # add extra two channels for the positions
+        # if self.show_agents:
+        #     self.shape.append(2) # add extra two channels for the positions
         #self.pad = crop_shape // 2
         # self.pad_value = pad_value
 
@@ -368,9 +367,11 @@ class Cropped(TransformObs):
 
         for (k, s) in self.env.observation_space.spaces.items():
             self.observation_space.spaces[k] = s
-        high_value = self.observation_space[self.name].high.max() + 1  # 0s correspond to out-of-bounds tiles
-        self.observation_space.spaces[self.name] = gym.spaces.Box(
-            low=0, high=high_value if not self.show_agents else max(high_value, cfg.multiagent.n_agents), shape=tuple(self.obs_window), dtype=np.uint8
+
+        low_value = self.observation_space[name].low.min()
+        high_value = self.observation_space[name].high.max()
+        self.observation_space.spaces[name] = gym.spaces.Box(
+            low=low_value, high=high_value, shape=tuple(self.obs_window), dtype=np.uint8
         )
 
     def step(self, action, **kwargs):
@@ -387,8 +388,15 @@ class Cropped(TransformObs):
         return obs, info
 
     def _transform(self, obs):
-        # Incrementing all tile indices by 1 to avoid 0s (out-of-bounds).
-        map = obs[self.name] + 1
+        map = obs[self.name] 
+
+        if self.name == 'map':
+            # FIXME: Instead of this hack, just include an out-of-bounds tile by default in all problems?
+            # HACK: For the map observation only (or more generally, onehot observations... TODO), represent out-of bounds tiles
+            # as a separate discrete value (which will be sliced off in conversion to onehot)
+            # Incrementing all tile indices by 1 to avoid 0s (out-of-bounds).
+            map = map + 1
+
         # x, y = obs["pos"]
         pos = obs['pos']
 
@@ -403,25 +411,27 @@ class Cropped(TransformObs):
         # Crop the map
         cropped = padded[tuple([slice(p + self.pad[i][0] - self.obs_window[i] // 2, 
                                     p + self.pad[i][0] + math.ceil(self.obs_window[i] / 2)) for i, p in enumerate(pos)])]
+        # if self.name == ShowAgentRepresentation.show_agents_obs_name:
+        #     breakpoint()
         assert np.all(cropped.shape == self.obs_window)
 
         # if show positions is turned on: add an extra channel that shows agent positions
         # NOTE: Wide representaion cannot use this, since positions are not stored in representation
-        if self.show_agents:
-            #import pdb; pdb.set_trace()
-            #map_expanded = map[:, :, None]
-            agent_positions = self.unwrapped.get_agent_position()
-            agent_positions_map = np.zeros(map.shape)
-            for i, pos in enumerate(agent_positions):
-                agent_positions_map[tuple(pos)] = i + 1
-            #agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
-            # view padding
-            padded_positions = np.pad(agent_positions_map, self.pad, constant_values=0)
+        # if self.show_agents:
+        #     #import pdb; pdb.set_trace()
+        #     #map_expanded = map[:, :, None]
+        #     agent_positions = self.unwrapped.get_agent_position()
+        #     agent_positions_map = np.zeros(map.shape)
+        #     for i, pos in enumerate(agent_positions):
+        #         agent_positions_map[tuple(pos)] = i + 1
+        #     #agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
+        #     # view padding
+        #     padded_positions = np.pad(agent_positions_map, self.pad, constant_values=0)
 
-            # view centering
-            cropped_positions = padded_positions[tuple([slice(p, p + self.shape[i]) for i, p in enumerate(pos)])]
+        #     # view centering
+        #     cropped_positions = padded_positions[tuple([slice(p, p + self.obs_window[i]) for i, p in enumerate(pos)])]
 
-            cropped = np.concatenate((cropped[:, :, None], cropped_positions[:, :, None]), axis=-1).astype(np.uint8)
+        #     cropped = np.concatenate((cropped[:, :, None], cropped_positions[:, :, None]), axis=-1).astype(np.uint8)
 
         #import pdb; pdb.set_trace()
         obs[self.name] = cropped
@@ -446,7 +456,8 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
 
         # Keys of (box) observation spaces to be concatenated (channel-wise)
         flat_indices = ["map"]
-        flat_indices += ["static_builds"] if static_prob is not None else []
+        flat_indices += [StaticBuildRepresentation.static_builds_obs_name] if cfg.static_prob is not None else []
+        flat_indices += [ShowAgentRepresentation.show_agents_obs_name] if cfg.show_agents else []
 
         # Cropping map, etc. to the correct crop_size
         for k in flat_indices:
@@ -723,7 +734,7 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
 
         for k, v in action.items():
             self.unwrapped._rep.set_active_agent(k)
-            obs_k, rew[k], done[k], info[k] = super().step(action={k: v})
+            obs_k, rew[k], done[k], truncated[k], info[k] = super().step(action={k: v})
             obs.update(obs_k)
         done['__all__'] = np.all(list(done.values()))
 

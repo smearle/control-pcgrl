@@ -17,6 +17,7 @@ class NarrowRepresentation(EgocentricRepresentation):
         super().__init__(**kwargs)
         self._act_coords = None
         self.n_step = 0
+        self._positions = []
 
     """
     Get a list of (y:height, x:width) or (z:height, y:width, x:length) coordinates corresponding to coordinates of tiles to be edited by the 
@@ -45,6 +46,7 @@ class NarrowRepresentation(EgocentricRepresentation):
 
         # self._x, self._y = self._act_coords[self.n_step]
         self._pos = self._act_coords[self.n_step]
+        self._positions = [self._pos]
 
     """
     Gets the action space used by the narrow representation
@@ -91,6 +93,7 @@ class NarrowRepresentation(EgocentricRepresentation):
             if self.n_step == len(self._act_coords):
                 np.random.shuffle(self._act_coords)
         self._pos = self._act_coords[self.n_step % len(self._act_coords)]
+        self._positions = [self._pos]  # In case cfg.show_agents is True in single-player setting.
         self.n_step += 1
         super().update(action)
         return change, self._pos

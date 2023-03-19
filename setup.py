@@ -18,5 +18,10 @@ setup(name='control_pcgrl',
       ],
       # packages=['control_pcgrl'],
       packages=find_namespace_packages(include=["hydra_plugins.*", "control_pcgrl"]),
-      scripts=['bin/train_pcgrl', 'bin/cross_eval_pcgrl', 'bin/eval_pcgrl'],
+      scripts=[
+        'bin/train_pcgrl', 
+        'bin/enjoy_pcgrl',
+        'bin/eval_pcgrl',
+        'bin/cross_eval_pcgrl', 
+      ],
 )

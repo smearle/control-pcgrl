@@ -25,7 +25,6 @@ import ray
 # In particular we're only looking at integers and we're excluding the upper bound of the range.
 class ControlWrapper(gym.Wrapper):
     def __init__(self, env, cfg: Config, ctrl_metrics=None, rand_params=False):
-        self.win = None
 
         # Is this a controllable agent? If false, we're just using this wrapper for convenience, to calculate relative
         # reward and establish baseline performance
@@ -39,14 +38,18 @@ class ControlWrapper(gym.Wrapper):
         self.env = env
         super().__init__(self.env)
 
+        # controllable metrics
+        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else [] 
+        self.num_params = len(self.ctrl_metrics)
+
+        if self.render_mode == 'gtk':
+            self.win = self._init_gui()
+
         metric_weights = copy.copy(self.unwrapped._reward_weights)
         self.metric_weights = {k: 0 for k in metric_weights}
         config_weights = cfg.task.weights
 
         self.metric_weights.update(config_weights)
-
-        # controllable metrics
-        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else [] 
 
         # fixed metrics (i.e. playability constraints)
         self.static_metric_names = set(env.static_trgs.keys())
@@ -54,7 +57,6 @@ class ControlWrapper(gym.Wrapper):
         for k in ctrl_loss_metrics:
             if k in self.static_metric_names:
                 self.static_metric_names.remove(k)
-        self.num_params = len(self.ctrl_metrics)
         self.auto_reset = True
 
         # NOTE: assign self.metrics after having the underlying env get its _rep_stats, or they will be behind.
@@ -133,7 +135,8 @@ class ControlWrapper(gym.Wrapper):
             metrics=self.metrics, metric_trgs=self.metric_trgs, metric_bounds=self.cond_bounds)
         # win.connect("destroy", Gtk.main_quit)
         win.show_all()
-        self.win = win
+        win = win
+        return win
 
     def get_control_bounds(self):
         controllable_bounds = {k: self.cond_bounds[k] for k in self.ctrl_metrics}
@@ -234,11 +237,9 @@ class ControlWrapper(gym.Wrapper):
         # print("step: ", self.n_step, " done: ", done, " reward: ", reward, " action: ", action, " metrics: ", self.metrics)
         return ob, reward, done, truncated, info
 
-    def render(self, mode='human', **kwargs):
-        if mode == 'human':
-            if self.win is None:
-                self._init_gui()
-            img = super().render(mode='rgb_array')
+    def render(self, **kwargs):
+        if self.render_mode == 'gtk':
+            img = super().render()
             self.win.render(img)
             user_clicks = self.win.get_clicks()
             for (py, px, tile, static) in user_clicks:
@@ -280,17 +281,17 @@ class ControlWrapper(gym.Wrapper):
                 start_time = timer()
                 for _ in range(N):
                     super().reset()
-                    super().render(mode=mode)
+                    super().render()
                 print(f'mean pyglet image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
 
                 start_time = timer()
                 for _ in range(N):
-                    img = super().render(mode='rgb_array')
+                    img = super().render()
                     self.win.render(img)
                 print(f'mean pygobject image render time over {N} trials:', (timer() - start_time) * 1000 / N, 'ms')
             ### END PROFILING ###
  
-            return super().render(mode=mode)
+            return super().render()
 
     def get_cond_trgs(self):
         return self.metric_trgs
@@ -300,8 +301,8 @@ class ControlWrapper(gym.Wrapper):
 
     def display_metric_trgs(self):
         if self.render_gui:
-            if self.win is None:
-                self._init_gui()
+            # if self.win is None:
+                # self._init_gui()
             self.win.display_metric_trgs()
 
     def get_loss(self):
@@ -463,42 +464,42 @@ class UniformNoiseyTargets(gym.Wrapper):
         return self.env.reset(), {}
 
 
-class ALPGMMTeacher(gym.Wrapper):
-    def __init__(self, env, **kwargs):
+# class ALPGMMTeacher(gym.Wrapper):
+#     def __init__(self, env, **kwargs):
 
-        from teachDRL.teachers.algos.alp_gmm import ALPGMM
+#         from teachDRL.teachers.algos.alp_gmm import ALPGMM
 
-        super(ALPGMMTeacher, self).__init__(env)
-        self.cond_bounds = self.env.unwrapped.cond_bounds
-        self.midep_trgs = False
-        env_param_lw_bounds = [self.cond_bounds[k][0] for k in self.ctrl_metrics]
-        env_param_hi_bounds = [self.cond_bounds[k][1] for k in self.ctrl_metrics]
-        self.alp_gmm = ALPGMM(env_param_lw_bounds, env_param_hi_bounds)
-        self.trg_vec = None
-        self.trial_reward = 0
-        self.n_trial_steps = 0
+#         super(ALPGMMTeacher, self).__init__(env)
+#         self.cond_bounds = self.env.unwrapped.cond_bounds
+#         self.midep_trgs = False
+#         env_param_lw_bounds = [self.cond_bounds[k][0] for k in self.ctrl_metrics]
+#         env_param_hi_bounds = [self.cond_bounds[k][1] for k in self.ctrl_metrics]
+#         self.alp_gmm = ALPGMM(env_param_lw_bounds, env_param_hi_bounds)
+#         self.trg_vec = None
+#         self.trial_reward = 0
+#         self.n_trial_steps = 0
 
-    def reset(self, *, seed=None, options=None):
-        if self.trg_vec is not None:
-            if self.n_trial_steps == 0:
-                # This is some whackness that happens when we reset manually from the inference script.
-                rew = 0
-            else:
-                rew = self.trial_reward / self.n_trial_steps
-            self.alp_gmm.update(self.trg_vec, rew)
-        trg_vec = self.alp_gmm.sample_task()
-        self.trg_vec = trg_vec
-        trgs = {k: trg_vec[i] for (i, k) in enumerate(self.ctrl_metrics)}
-        #       print(trgs)
-        self.set_trgs(trgs)
-        self.trial_reward = 0
-        self.n_trial_steps = 0
+#     def reset(self, *, seed=None, options=None):
+#         if self.trg_vec is not None:
+#             if self.n_trial_steps == 0:
+#                 # This is some whackness that happens when we reset manually from the inference script.
+#                 rew = 0
+#             else:
+#                 rew = self.trial_reward / self.n_trial_steps
+#             self.alp_gmm.update(self.trg_vec, rew)
+#         trg_vec = self.alp_gmm.sample_task()
+#         self.trg_vec = trg_vec
+#         trgs = {k: trg_vec[i] for (i, k) in enumerate(self.ctrl_metrics)}
+#         #       print(trgs)
+#         self.set_trgs(trgs)
+#         self.trial_reward = 0
+#         self.n_trial_steps = 0
 
-        return self.env.reset()
+#         return self.env.reset()
 
-    def step(self, action, **kwargs):
-        obs, rew, done, truncated, info = self.env.step(action, **kwargs)
-        self.trial_reward += rew
-        self.n_trial_steps += 1
+#     def step(self, action, **kwargs):
+#         obs, rew, done, truncated, info = self.env.step(action, **kwargs)
+#         self.trial_reward += rew
+#         self.n_trial_steps += 1
 
-        return obs, rew, done, truncated, info
+#         return obs, rew, done, truncated, info

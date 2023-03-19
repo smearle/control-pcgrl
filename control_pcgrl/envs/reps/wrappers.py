@@ -173,23 +173,75 @@ class HoleyRepresentation3D(HoleyRepresentation):
         self.unwrapped._bordered_map[e[0][0]][e[0][1]][e[0][2]] = self.unwrapped._bordered_map[e[1][0]][e[1][1]][e[1][2]] = self.unwrapped._empty_tile
 
 
-class StaticBuildRepresentation(RepresentationWrapper):
-    def __init__(self, rep, **kwargs):
-        super().__init__(rep, **kwargs)
-        self.prob_static = 0.0
-        self.window = None
 
-    def adjust_param(self, **kwargs):
-        self.prob_static = kwargs.get('static_prob')
-        self.n_aux_tiles = kwargs.get('n_aux_tiles')
-        return super().adjust_param(**kwargs)
+class ShowAgentRepresentation(RepresentationWrapper):
+    show_agents_obs_name = "agent_occupancy"
+
+    def __init__(self, rep, cfg: Config):
+        assert issubclass(type(rep.unwrapped), EgocentricRepresentation), \
+            "ShowAgentRepresentation only works with egocentric representations."
+        super().__init__(rep, cfg=cfg)
+
+    def reset(self, *args, **kwargs):
+        ret = super().reset(*args, **kwargs)
+        return ret
+
+    def set_agent_positions(self, agent_positions):
+        self.agent_positions = agent_positions
+        self.update_agent_occupancy_map()
+
+    def update_agent_occupancy_map(self):
+        self.agent_occupancy = np.zeros(self.unwrapped._map.shape).astype(np.uint8)
+        if len(self.agent_positions) == 1:
+            breakpoint()
+        else:
+            for ap in self.agent_positions:
+                self.agent_occupancy[tuple(ap)] = 1        
+
+    def get_observation_space(self, obs_window, map_shape, num_tiles):
+        obs_space = super().get_observation_space(obs_window, map_shape, num_tiles)
+
+        obs_space.spaces.update({
+            self.show_agents_obs_name: spaces.Box(low=0, high=1, dtype=np.uint8, shape=obs_window)
+        })
+        return obs_space
+
+    def update(self, action):
+        ret = super().update(action)
+        self.update_agent_occupancy_map()
+        return ret
+
+    def get_observation(self):
+        obs = super().get_observation()
+        obs.update({
+            self.show_agents_obs_name: self.agent_occupancy.copy(),
+        })
+        return obs
+
+
+class StaticBuildRepresentation(RepresentationWrapper):
+    static_builds_obs_name = 'static_builds'
+
+    def __init__(self, rep, cfg: Config):
+        super().__init__(rep, cfg=cfg)
+        self.window = None
+        self.static_prob = cfg.static_prob
+        self.n_aux_tiles = cfg.n_aux_tiles
+
+    # def adjust_param(self, **kwargs):
+        # self.prob_static = kwargs.get('static_prob')
+        # self.n_aux_tiles = kwargs.get('n_aux_tiles')
+        # return super().adjust_param(**kwargs)
 
     def reset(self, *args, **kwargs):
         ret = super().reset(*args, **kwargs)
         # Uniformly sample a probability of static builds from within the range [0, self.prob_static]
-        prob_static = self.unwrapped._random.random() * self.prob_static
+        prob_static = self.unwrapped._random.random() * self.static_prob
+
         # TODO: take into account validity constraints on number of certain tiles
-        self.static_builds = (self.unwrapped._random.random(self.unwrapped._bordered_map.shape) < prob_static).astype(np.uint8)
+        # self.static_builds = (self.unwrapped._random.random(self.unwrapped._bordered_map.shape) < prob_static).astype(np.uint8)
+        self.static_builds = (self.unwrapped._random.random(self.unwrapped._map.shape) < prob_static).astype(np.uint8)
+
         # Borders are always static
         self.static_builds[(0, -1), :] = 1
         self.static_builds[:, (0, -1)] = 1
@@ -205,14 +257,14 @@ class StaticBuildRepresentation(RepresentationWrapper):
     def get_observation_space(self, obs_window, map_shape, num_tiles):
         obs_space = super().get_observation_space(obs_window, map_shape, num_tiles)
         obs_space.spaces.update({
-            'static_builds': spaces.Box(low=0, high=1, dtype=np.uint8, shape=obs_window)
+           self.static_builds_obs_name: spaces.Box(low=0, high=1, dtype=np.uint8, shape=obs_window)
         })
         return obs_space
 
     def get_observation(self):
         obs = super().get_observation()
         obs.update({
-            'static_builds': self.static_builds,
+            self.static_builds_obs_name: self.static_builds,
         })
         return obs
 
@@ -421,7 +473,7 @@ class MultiActionRepresentation(RepresentationWrapper):
         return super().render(lvl_image, tile_size, border_size)
 
 
-class MultiAgentWrapper(RepresentationWrapper):
+class MultiAgentRepresentationWrapper(RepresentationWrapper):
     agent_colors = [
         (255, 255, 255, 255),
         (0, 255, 0, 255),
@@ -450,7 +502,7 @@ class MultiAgentWrapper(RepresentationWrapper):
 
     def render(self, lvl_image, tile_size=16, border_size=None):
 
-        for (y, x), clr in zip(self._positions, self.agent_colors):
+        for (y, x), clr in zip(self.agent_positions, self.agent_colors):
             im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
 
             im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
@@ -468,12 +520,12 @@ class MultiAgentWrapper(RepresentationWrapper):
         if agent_name is None or all_agents:
             for i in range(self.n_agents):
                 obs_i = base_obs.copy()
-                obs_i['pos'] = self._positions[i]
+                obs_i['pos'] = self.agent_positions[i]
                 multiagent_obs[f'agent_{i}'] = obs_i
             return multiagent_obs
         else:
             multiagent_obs[agent_name] = base_obs
-            multiagent_obs[agent_name]['pos'] = self._positions[int(agent_name.split('_')[-1])]
+            multiagent_obs[agent_name]['pos'] = self.agent_positions[int(agent_name.split('_')[-1])]
             return multiagent_obs
             # base_obs['pos'] = self._positions[int(agent_name.split('_')[-1])]
             # return base_obs
@@ -482,13 +534,17 @@ class MultiAgentWrapper(RepresentationWrapper):
         self._active_agent = agent_name
 
 
-class MultiAgentTurtleRepresentation(MultiAgentWrapper):
+class MultiAgentTurtleRepresentation(MultiAgentRepresentationWrapper):
     def __init__(self, rep, **kwargs):
         super().__init__(rep, **kwargs)
 
     def reset(self, dims, prob, **kwargs):
+        self.agent_positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
         super().reset(dims, prob, **kwargs)
-        self._positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
+
+        # This effectively passes info down to ShowAgents wrapper
+        self.set_agent_positions(self.agent_positions)
+
         self.heatmaps = np.zeros((self.n_agents, *dims[::-1]))
 
     def update(self, action):
@@ -498,20 +554,22 @@ class MultiAgentTurtleRepresentation(MultiAgentWrapper):
         # for i, pos_0 in enumerate(self._positions):
         for k, v in action.items():
             i = int(k.split('_')[-1])
-            pos_0 = self._positions[i]
+            pos_0 = self.agent_positions[i]
             change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
             if change_i:
                 y, x = pos_0[1], pos_0[0]
                 self.heatmaps[i][y][x] += 1
             change = change or change_i
-            self._positions[i] = pos
+            self.agent_positions[i] = pos
 
-        return change, self._positions
+        self.set_agent_positions(self.agent_positions)
+
+        return change, self.agent_positions
 
     def get_positions(self):
-        return self._positions
+        return self.agent_positions
 
-class MultiAgentNarrowRepresentation(MultiAgentWrapper):
+class MultiAgentNarrowRepresentation(MultiAgentRepresentationWrapper):
     
     def __init__(self, rep, **kwargs):
         super().__init__(rep, **kwargs)
@@ -521,7 +579,7 @@ class MultiAgentNarrowRepresentation(MultiAgentWrapper):
         self.rep.reset(dims, prob, **kwargs)
         self.coords = self.get_act_coords()
         self._n_steps = {i: i for i in range(self.n_agents)}
-        self._positions = np.array([self.coords[i] for i in range(self.n_agents)])
+        self.agent_positions = np.array([self.coords[i] for i in range(self.n_agents)]) 
         self.heatmaps = np.zeros((self.n_agents, *dims[::-1]))
         #self._positions = {i: self.coords[i] for i in range(self.n_agents)}
 
@@ -538,14 +596,14 @@ class MultiAgentNarrowRepresentation(MultiAgentWrapper):
             if change_i:
                 y, x = self.rep._pos[1], self.rep._pos[0]
                 self.heatmaps[i][y][x] += 1
-            self._positions[i] = self.coords[self._n_steps[i]]
+            self.agent_positions[i] = self.coords[self._n_steps[i]]
             change = change or change_i
         return change, self.get_positions()
 
     def get_positions(self):
-        return self._positions
+        return self.agent_positions
 
-class MultiAgentWideRepresentation(MultiAgentWrapper):
+class MultiAgentWideRepresentation(MultiAgentRepresentationWrapper):
     
     def __init__(self, rep, **kwargs):
         super().__init__(rep, **kwargs)
@@ -598,6 +656,9 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
         
         else:
             rep = HoleyRepresentation(rep, cfg=cfg)
+
+    if cfg.show_agents:
+        rep = ShowAgentRepresentation(rep, cfg=cfg)
     
     #if isinstance(kwargs.get('multiagent'), str):
     #    kwargs['multiagent'] = json.loads(kwargs.get('multiagent').replace('\'', '\"'))
@@ -606,16 +667,18 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
     #    import pdb; pdb.set_trace()
     if cfg.multiagent.n_agents != 0:
         #if kwargs.get("multiagent")['n_agents'] != 0:
-        if issubclass(type(rep), TurtleRepresentation):
+
+        base_rep_type = type(rep.unwrapped)
+
+        if issubclass(base_rep_type, TurtleRepresentation):
             rep = MultiAgentTurtleRepresentation(rep, cfg=cfg)
-        elif issubclass(type(rep), NarrowRepresentation):
+        elif issubclass(base_rep_type, NarrowRepresentation):
             rep = MultiAgentNarrowRepresentation(rep, cfg=cfg)
             pass
-        elif issubclass(type(rep), WideRepresentation):
+        elif issubclass(base_rep_type, WideRepresentation):
             rep = MultiAgentWideRepresentation(rep, cfg=cfg)
         else:
             raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
-
 
     return rep
     

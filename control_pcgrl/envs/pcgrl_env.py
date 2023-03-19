@@ -12,7 +12,7 @@ from ray.rllib.env.apis.task_settable_env import TaskSettableEnv
 from ray.rllib.env.env_context import EnvContext
 from ray.rllib.utils.annotations import override
 
-from control_pcgrl.envs.reps.wrappers import wrap_rep, MultiAgentWrapper
+from control_pcgrl.envs.reps.wrappers import wrap_rep, MultiAgentRepresentationWrapper
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.problem import Problem, Problem3D
 from control_pcgrl.envs.reps import REPRESENTATIONS
@@ -37,6 +37,7 @@ class PcgrlEnv(gym.Env):
         constant in gym_pcgrl.envs.reps.__init__.py
     """
     def __init__(self, cfg: Config, prob="binary", rep="narrow"):
+        self.render_mode = cfg.render_mode
         self._has_been_assigned_map = False  # TODO: Factor this out into a ... wrapper?
         self.obs_window = cfg.task.obs_window
 
@@ -51,7 +52,7 @@ class PcgrlEnv(gym.Env):
         self._prob: Problem = PROBLEMS[prob](cfg=cfg)
         self._prob.init_tile_int_dict()
         self._rep_cls = REPRESENTATIONS[rep]
-        self._rep: Representation = self._rep_cls()
+        self._rep: Representation = self._rep_cls(cfg=cfg)
         self._rep_is_wrapped: bool = False
         self._rep_stats = None
         self.metrics = {}
@@ -173,7 +174,7 @@ class PcgrlEnv(gym.Env):
         self._prob._prob = probs
         self._heatmap = np.zeros(self.get_map_dims()[:-1])
 
-        if issubclass(type(self._rep), MultiAgentWrapper):
+        if issubclass(type(self._rep), MultiAgentRepresentationWrapper):
             observation = self._rep.get_observation(all_agents=True)
         else:
             observation = self._rep.get_observation() # all_agents parameter does not exist for representations without MultiAgentWrapper
@@ -345,22 +346,21 @@ class PcgrlEnv(gym.Env):
     Returns:
         img or boolean: img for rgb_array rendering and boolean for human rendering
     """
-    def render(self, mode='human'):
-        print("I RENDER MYSELF NOW, YAY! \n ALSO, I AM A PCGRL ENV, MY STORY BEGINS In a galaxy far far away...\n I am a PCGRL environment, I am a wrapper around a PCG problem and a PCG representation. \n")
+    def render(self):
         img: PIL.Image = self._prob.render(self.get_string_map(
             self._get_rep_map(), self._prob.get_tile_types(), continuous=self._prob.is_continuous()))
         # Transpose image
         # img = img.transpose(PIL.Image.TRANSPOSE)
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
-        if mode == 'rgb_array':
+        if self.render_mode == 'rgb_array' or self.render_mode == 'gtk':
             return np.array(img)
-        elif mode == 'image':
+        elif self.render_mode == 'image':
             return img
-        elif mode == 'human':
+        elif self.render_mode == 'human':
 
             if self.viewer is None:
-                from gymnasium.envs.classic_control import rendering
+                from gym.envs.classic_control import rendering
                 self.viewer = rendering.SimpleImageViewer()
                 # self.viewer = GUI()
 
@@ -369,6 +369,9 @@ class PcgrlEnv(gym.Env):
             self.viewer.imshow(img)
 
             return self.viewer.isopen
+
+        else:
+            raise Exception(f"No render_mode: {self.render_mode}")
 
     """
     Close the environment rendering window.

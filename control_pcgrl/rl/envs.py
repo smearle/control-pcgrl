@@ -73,7 +73,7 @@ def make_env(cfg: Config):
 
     if cfg.multiagent.n_agents != 0:
         env = wrappers.MultiAgentWrapper(env, cfg)
-        env = ray.rllib.env.wrappers.multi_agent_env_compatibility.MultiAgentEnvCompatibility(env)
+        # env = ray.rllib.env.wrappers.multi_agent_env_compatibility.MultiAgentEnvCompatibility(env)
 
     if cfg.train_reward_model:
         env = reward_model_wrappers.RewardModelWrapper(env, cfg)

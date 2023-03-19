@@ -1,5 +1,5 @@
 defaults:
-  - pcgrl_sweep
+  - cross_eval
   - _self_
 
   - override hydra/launcher: cross-eval

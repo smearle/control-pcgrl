@@ -295,6 +295,14 @@ def get_log_dir(cfg: Config):
 def validate_config(cfg: Config):
     """Set up the experiment name, and raise errors if the config has invalid combinations of hyperparameters (TODO)."""
 
+    if cfg.task.obs_window is None:
+        # This guy gotta observe the holes.
+        if "holey" in cfg.task.problem:
+            obs_window = cfg.task.map_shape * 2 + 2
+        else:
+            obs_window = cfg.task.map_shape * 2
+        cfg.task.obs_window = obs_window
+
     cfg.env_name = get_env_name(cfg.task.problem, cfg.representation)
     print('env name: ', cfg.env_name)
     cfg.log_dir = get_log_dir(cfg)
