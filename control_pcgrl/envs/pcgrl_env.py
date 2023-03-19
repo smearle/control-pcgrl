@@ -40,6 +40,7 @@ class PcgrlEnv(gym.Env):
         self.render_mode = cfg.render_mode
         self._has_been_assigned_map = False  # TODO: Factor this out into a ... wrapper?
         self.obs_window = cfg.task.obs_window
+        self.map_shape = cfg.task.map_shape
 
         # Whether we need to load a new evaluation map.
         self.switch_env = False
@@ -165,7 +166,7 @@ class PcgrlEnv(gym.Env):
             self.switch_env = False
         else:
             # self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()))
-            self._rep.reset(self.obs_window, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
+            self._rep.reset(self.map_shape, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         # continuous = False if not hasattr(self._prob, 'get_continuous') else self._prob.get_continuous()
         if self._get_stats_on_step:
             self._rep_stats = self._prob.get_stats(self.get_string_map(self._get_rep_map(), self._prob.get_tile_types()))  #, continuous=continuous))

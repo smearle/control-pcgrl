@@ -678,7 +678,7 @@ def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_bui
         elif issubclass(base_rep_type, WideRepresentation):
             rep = MultiAgentWideRepresentation(rep, cfg=cfg)
         else:
-            raise NotImplementedError("Multiagent only works with TurtleRepresentation currently")
+            raise NotImplementedError(f"Multiagent wrapper not implemented for {type(rep)}")
 
     return rep
     

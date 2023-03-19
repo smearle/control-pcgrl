@@ -8,4 +8,4 @@ weights:
   regions: 100
 
 map_shape: [16, 16]
-obs_window: [16, 16]
+obs_window: [32, 32]

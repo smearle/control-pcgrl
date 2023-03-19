@@ -1,5 +1,6 @@
 from http.cookiejar import FileCookieJar
 import json
+import math
 import os
 from pdb import set_trace as TT
 import sys
@@ -9,6 +10,7 @@ import matplotlib.ticker as ticker
 import numpy as np
 import pickle
 import ray
+from ray.rllib.algorithms import Algorithm
 import seaborn as sns
 
 from control_pcgrl.rl.utils import IdxCounter
@@ -20,7 +22,7 @@ CONTROLS = False
 GENERAL_EVAL = True
 
 
-def evaluate(trainer, env, cfg):
+def evaluate(trainer: Algorithm, env, cfg):
     # Set controls
     eval_stats = {}
     eval_stats.update({'timesteps_total': trainer._timesteps_total})

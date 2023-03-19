@@ -85,8 +85,6 @@ class TaskConfig:
 @dataclass
 class SokobanConfig(TaskConfig):
     problem: str = 'sokoban'
-    map_shape: List[Any] = field(default_factory= lambda: [16, 16])
-    crop_shape: List[Any] = field(default_factory= lambda: [32, 32])
     weights: Dict[str, int] = field(default_factory = lambda: ({
         "player": 3,
         "crate": 2,
@@ -228,7 +226,7 @@ class SharedPolicyConfig(MultiagentConfig):
 class HardwareConfig:
     n_cpu: int = MISSING
     n_gpu: int = MISSING
-    num_envs_per_worker: int = 30
+    n_envs_per_worker: int = 30
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
@@ -239,7 +237,7 @@ class LocalHardwareConfig(HardwareConfig):
 class RemoteHardwareConfig(HardwareConfig):
     n_cpu: int = 12
     n_gpu: int = 1
-    num_envs_per_worker: int = 40
+    n_envs_per_worker: int = 40
 
 
 @dataclass
@@ -271,6 +269,7 @@ class Config:
     load: bool = True
     overwrite: bool = False
     wandb: bool = False
+    timesteps_total: int = int(1e10)
 
     exp_id: str = '0'
     representation: str = 'narrow'

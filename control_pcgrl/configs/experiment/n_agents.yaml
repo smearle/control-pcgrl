@@ -3,14 +3,11 @@ hydra:
   sweeper:
     params:
       # multiagent.n_agents: 1, 2, 3, 4
+      representation: turtle
 
       # Aha, this should work to address proble below, right?
       multiagent: shared_policy
 
-      multiagent.n_agents: 2, 3, 4
-
-# Why doesn't this work??? Fine I guess, can just override each setting of a sub-config individually. E.g. `multiagent.alp_gmm: False`
-# defaults:
-#   - _self_
-#   - multiagent: shared_policy
+      multiagent.n_agents: 2, 3
+      show_agents: True, False
 

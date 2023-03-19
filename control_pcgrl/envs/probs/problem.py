@@ -27,7 +27,7 @@ class Problem(ABC):
     directly instantiated.
     """
     def __init__(self, cfg: Config):
-        self._map_shape = cfg.task.map_shape
+        self._map_shape = tuple(cfg.task.map_shape)  # convert from omegaconf.listconfig.ListConfig to tuple
         self._height, self._width = self._map_shape[0], self._map_shape[1]  # Will be overwritten if this is a 3D problem.
         tiles = self.get_tile_types()
 

@@ -176,6 +176,8 @@ class OneHotEncoding(TransformObs):
             padded (bool): if True, the observation we are receiving from the wrapper below us has `0s` to represent 
                 padded tiles.
         """
+        assert name == "map", "Onehot only supported for the map representation."
+
         self.padded = padded
         if isinstance(game, str):
             self.env = gym.make(game)
@@ -198,11 +200,11 @@ class OneHotEncoding(TransformObs):
         new_shape = []
         shape = self.env.observation_space.spaces[self.name].shape
 
-        # The number of tiles we can place
+        # The number of unique tile types we can place
         self.dim = (
             self.observation_space.spaces[self.name].high.max()
             - self.observation_space.spaces[self.name].low.min()
-            + 1 # We need this to represent out-of-bounds tiles.
+            + 1  # E.g. if our min tile is 2 and max 4, that's actually 3 distinct tile types (4 - 2 + 1 = 2).
         )
 
         new_shape.extend(shape)
@@ -234,12 +236,16 @@ class OneHotEncoding(TransformObs):
         # else:
         old = named_obs
 
-        if self.padded:
-            # Replace out-of-bounds values with all-zeros (i.e. slice off the ``OOB'' channel).
-            new = np.eye(self.dim + 1)[old]
-            new = new[..., 1:]
-        else:
-            new = np.eye(self.dim)[old]
+        # if self.padded:
+        #     # HACK: Replace out-of-bounds values with all-zeros (i.e. slice off the ``OOB'' channel).
+        #     breakpoint()
+        #     new = np.eye(self.dim)[old]
+
+        #     # Throw away the out-of-bounds channel.
+        #     new = new[..., 1:]
+        # else:
+        #     breakpoint()
+        new = np.eye(self.dim)[old]
 
         # add the agent positions back into the observation
         # if self.show_agents:
@@ -358,8 +364,9 @@ class Cropped(TransformObs):
         pad_r = np.floor(self.obs_window / 2)
         self.pad = np.stack((pad_r, pad_r), axis=1).astype(np.int8)
 
-        # if self.show_agents:
-        #     self.shape.append(2) # add extra two channels for the positions
+        obs_shape = tuple(self.obs_window)
+        self.obs_shape = obs_shape
+
         #self.pad = crop_shape // 2
         # self.pad_value = pad_value
 
@@ -370,6 +377,10 @@ class Cropped(TransformObs):
 
         low_value = self.observation_space[name].low.min()
         high_value = self.observation_space[name].high.max()
+
+        if self.name == "map":
+            high_value += 1  # 0s correspond to out-of-bounds tiles
+
         self.observation_space.spaces[name] = gym.spaces.Box(
             low=low_value, high=high_value, shape=tuple(self.obs_window), dtype=np.uint8
         )
@@ -415,25 +426,6 @@ class Cropped(TransformObs):
         #     breakpoint()
         assert np.all(cropped.shape == self.obs_window)
 
-        # if show positions is turned on: add an extra channel that shows agent positions
-        # NOTE: Wide representaion cannot use this, since positions are not stored in representation
-        # if self.show_agents:
-        #     #import pdb; pdb.set_trace()
-        #     #map_expanded = map[:, :, None]
-        #     agent_positions = self.unwrapped.get_agent_position()
-        #     agent_positions_map = np.zeros(map.shape)
-        #     for i, pos in enumerate(agent_positions):
-        #         agent_positions_map[tuple(pos)] = i + 1
-        #     #agent_positions_map[agent_positions[:, 0], agent_positions[:, 1]] = 1
-        #     # view padding
-        #     padded_positions = np.pad(agent_positions_map, self.pad, constant_values=0)
-
-        #     # view centering
-        #     cropped_positions = padded_positions[tuple([slice(p, p + self.obs_window[i]) for i, p in enumerate(pos)])]
-
-        #     cropped = np.concatenate((cropped[:, :, None], cropped_positions[:, :, None]), axis=-1).astype(np.uint8)
-
-        #import pdb; pdb.set_trace()
         obs[self.name] = cropped
 
         return obs
@@ -507,7 +499,7 @@ Used for wide experiments
 """
 class ActionMapImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, cfg: Config):
-        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env = gym.make(game, cfg=cfg)
 
         if "micropolis" in game.lower():
             self.pcgrl_env = SimCityWrapper(self.pcgrl_env)
@@ -736,6 +728,7 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
             self.unwrapped._rep.set_active_agent(k)
             obs_k, rew[k], done[k], truncated[k], info[k] = super().step(action={k: v})
             obs.update(obs_k)
+        truncated['__all__'] = np.all(list(truncated.values()))
         done['__all__'] = np.all(list(done.values()))
 
         return obs, rew, done, truncated, info
@@ -743,14 +736,12 @@ class MultiAgentWrapper(gym.Wrapper, MultiAgentEnv):
 
 class GroupedEnvironmentWrapper(MultiAgentEnv):
     def __init__(self, env, cfg: Config):
-        #import pdb; pdb.set_trace()
         MultiAgentEnv.__init__(self)
         #gym.Wrapper.__init__(self, env.env)
         self.env = env
         self.groups = self.env.groups
         self.agent_id_to_group = self.env.agent_id_to_group
         self._unwrapped = self.env.env.unwrapped
-        #self.thing = 5
         #super().__init__(env) # inherit the attributes of the base environment
         #self.env = env
         self.observation_space = self.env.observation_space

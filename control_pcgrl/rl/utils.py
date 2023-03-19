@@ -263,7 +263,7 @@ def get_log_dir(cfg: Config):
         log_dir += "ALPGMM_"  
 
     if cfg.multiagent.n_agents != 0:
-        log_dir += f"{cfg.multiagent['n_agents']}-player_"
+        log_dir += f"{cfg.multiagent['n_agents']}-player_" + ('Show' if cfg.show_agents else '')
 
     # TODO: Can have subdirectories for given settings of a given model type.
     if cfg.model.name is not None:

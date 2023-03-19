@@ -133,7 +133,7 @@ def main(cfg: Config) -> None:
     # dummy_cfg["render"] = False
     dummy_cfg.evaluation_env = False
     env = make_env(dummy_cfg)
-    # check_env(dummy_env)
+    check_env(env)
 
     if issubclass(type(env), MultiAgentEnv):
         agent_obs_space = env.observation_space["agent_0"]
@@ -162,6 +162,7 @@ def main(cfg: Config) -> None:
                 # Print shape of map
                 obs, rew, done, truncated, info = env.step(act)
                 breakpoint()
+
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
                     env.render()
@@ -187,7 +188,7 @@ def main(cfg: Config) -> None:
 
     checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     # FIXME: nope
-    num_envs_per_worker = cfg.hardware.num_envs_per_worker if not cfg.infer else 1
+    num_envs_per_worker = cfg.hardware.n_envs_per_worker if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
     eval_num_workers = num_workers if cfg.evaluate else 0
     model_cfg = {**cfg.model}
@@ -206,7 +207,8 @@ def main(cfg: Config) -> None:
                     config=None 
                 )
             }
-            multiagent_config['policy_mapping_fn'] = lambda agent_id: 'default_policy'
+            # multiagent_config['policy_mapping_fn'] = lambda agent_id: 'default_policy'
+            multiagent_config['policy_mapping_fn'] = map_to_default_policy
         elif cfg.multiagent.policies == "decentralized":
             multiagent_config['policies'] = {
                 f'agent_{i}': PolicySpec(
@@ -222,7 +224,8 @@ def main(cfg: Config) -> None:
                     }
                 ) for i in range(cfg.multiagent.n_agents)
             }
-            multiagent_config['policy_mapping_fn'] = lambda agent_id: agent_id
+            # multiagent_config['policy_mapping_fn'] = lambda agent_id: agent_id
+            multiagent_config['policy_mapping_fn'] = map_to_agent_id
         else:
             raise ValueError('Unrecognized policy type. Policy values can either be centralized or decentralized')
 
@@ -352,7 +355,7 @@ def main(cfg: Config) -> None:
             },
             # checkpoint_score_attr="episode_reward_mean",
             # TODO: makes timestep total input by user.(n_frame)
-            stop={"timesteps_total": 1e10},
+            stop={"timesteps_total": cfg.timesteps_total},
             mode='max',
             checkpoint_score_attr='episode_reward_mean',
             checkpoint_at_end=True,
@@ -365,8 +368,17 @@ def main(cfg: Config) -> None:
             **callbacks_dict,
             progress_reporter=reporter,
         )
+        # TODO: Get stats from analysis and return for optuna in hydra 
+        # breakpoint()
     except KeyboardInterrupt:
         ray.shutdown()
+
+
+def map_to_default_policy(agent_id, *args, **kwargs):
+    return 'default_policy'
+
+def map_to_agent_id(agent_id, *args, **kwargs):
+    return agent_id
 
 
 if __name__ == '__main__':

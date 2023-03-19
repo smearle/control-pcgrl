@@ -6,6 +6,7 @@ hydra:
       task: binary_path
       representation: narrow
       learning_rate: 1e-5
+      task.obs_window: "[5,5],[10,10]"
       model: seqnca
       model.fc_size: 128 #, 256
       # model.conv_filters: 128, 256
@@ -13,3 +14,4 @@ hydra:
       multiagent.n_agents: 0 #, 2, 3, 4
       
 
+exp_id: 0

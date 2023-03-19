@@ -268,6 +268,7 @@ def evaluate(experiment_path):
 
     try:
         policy_mapping_fn = config['multiagent']['policy_mapping_fn']
+        breakpoint()
     except KeyError:
         policy_mapping_fn = None
 
