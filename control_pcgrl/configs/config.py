@@ -226,18 +226,18 @@ class SharedPolicyConfig(MultiagentConfig):
 class HardwareConfig:
     n_cpu: int = MISSING
     n_gpu: int = MISSING
-    n_envs_per_worker: int = 30
+    n_envs_per_worker: int = 2
 
 @dataclass
 class LocalHardwareConfig(HardwareConfig):
-    n_cpu: int = 3
+    n_cpu: int = 2
     n_gpu: int = 1
 
 @dataclass
 class RemoteHardwareConfig(HardwareConfig):
     n_cpu: int = 12
     n_gpu: int = 1
-    n_envs_per_worker: int = 40
+    n_envs_per_worker: int = 20
 
 
 @dataclass

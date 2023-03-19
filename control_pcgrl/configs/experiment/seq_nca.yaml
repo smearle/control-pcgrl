@@ -2,16 +2,18 @@
 hydra:
   sweeper:
     params:
-      exp_id: 0 #, 1, 2
+      # exp_id: 0 , 1, 2
       task: binary_path
       representation: narrow
-      learning_rate: 1e-5
-      task.obs_window: "[5,5],[10,10]"
+      learning_rate: 1e-4, 5e-5, 1e-5, 5e-5, 1e-6
+      # task.obs_window: "[5,5],[10,10]"
       model: seqnca
-      model.fc_size: 128 #, 256
+      # model.fc_size: 128 #, 256
       # model.conv_filters: 128, 256
       # model.patch_width: 3 , 5  #, 7, -1
-      multiagent.n_agents: 0 #, 2, 3, 4
+      # multiagent.n_agents: 0 #, 2, 3, 4
       
 
 exp_id: 0
+multiagent:
+  n_agents: 0
