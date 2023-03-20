@@ -13,6 +13,8 @@ from control_pcgrl.envs.probs.minecraft.minecraft_pb2 import WOODEN_SLAB, LEAVES
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
 """
 class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
+    _tile_types = ["AIR", "DIRT", "CHEST", "SKULL", "PUMPKIN"]
+
     def __init__(self):
         Minecraft3DholeymazeProblem.__init__(self)
         self._passable = set({"AIR", "CHEST", "SKULL", "PUMPKIN"})
@@ -281,12 +283,3 @@ class Minecraft3DholeyDungeonProblem(Minecraft3DholeymazeProblem):
             self._prob["SKULL"] = self._random.random()
 
             self._prob["CHEST"] = 1 - self._prob["AIR"] - self._prob["DIRT"] - self._prob["SKULL"] - self._prob["PUMPKIN"]
-
-    """
-    Get a list of all the different tile names
-
-    Returns:
-        string[]: that contains all the tile names
-    """
-    def get_tile_types(self):
-        return ["AIR", "DIRT", "CHEST", "SKULL", "PUMPKIN"]

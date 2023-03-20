@@ -193,7 +193,7 @@ class ShowAgentRepresentation(RepresentationWrapper):
     def update_agent_occupancy_map(self):
         self.agent_occupancy = np.zeros(self.unwrapped._map.shape).astype(np.uint8)
         if len(self.agent_positions) == 1:
-            breakpoint()
+            raise NotImplementedError("ShowAgentRepresentation only works with multiple agents.")
         else:
             for ap in self.agent_positions:
                 self.agent_occupancy[tuple(ap)] = 1        
@@ -206,8 +206,8 @@ class ShowAgentRepresentation(RepresentationWrapper):
         })
         return obs_space
 
-    def update(self, action):
-        ret = super().update(action)
+    def update(self, action, **kwargs):
+        ret = super().update(action, **kwargs)
         self.update_agent_occupancy_map()
         return ret
 
@@ -219,39 +219,76 @@ class ShowAgentRepresentation(RepresentationWrapper):
         return obs
 
 
-class StaticBuildRepresentation(RepresentationWrapper):
+class StaticTileRepresentation(RepresentationWrapper):
     static_builds_obs_name = 'static_builds'
 
     def __init__(self, rep, cfg: Config):
         super().__init__(rep, cfg=cfg)
         self.window = None
-        self.static_prob = cfg.static_prob
+        self.static_prob = cfg.static_prob if cfg.static_prob is not None else 0
         self.n_aux_tiles = cfg.n_aux_tiles
+        self.n_static_walls = cfg.n_static_walls if cfg.n_static_walls is not None else 0
 
     # def adjust_param(self, **kwargs):
         # self.prob_static = kwargs.get('static_prob')
         # self.n_aux_tiles = kwargs.get('n_aux_tiles')
         # return super().adjust_param(**kwargs)
 
+    def get_valid_agent_coords(self):
+        # Get list of valid coordinates
+        old_valid_agent_positions = self.rep.get_valid_agent_coords()
+
+        # Remove coordinates that are occupied by static builds
+        valid_agent_positions = np.array([ap for ap in old_valid_agent_positions if self.static_tiles[tuple(ap)] == 0])
+
+        valid_agent_positions = old_valid_agent_positions if len(valid_agent_positions) == 0 else valid_agent_positions
+
+        return valid_agent_positions
+
     def reset(self, *args, **kwargs):
         ret = super().reset(*args, **kwargs)
-        # Uniformly sample a probability of static builds from within the range [0, self.prob_static]
-        prob_static = self.unwrapped._random.random() * self.static_prob
+        self.static_tiles = np.zeros(self.unwrapped._bordered_map.shape).astype(np.uint8)
 
-        # TODO: take into account validity constraints on number of certain tiles
-        # self.static_builds = (self.unwrapped._random.random(self.unwrapped._bordered_map.shape) < prob_static).astype(np.uint8)
-        self.static_builds = (self.unwrapped._random.random(self.unwrapped._map.shape) < prob_static).astype(np.uint8)
+        if self.static_prob > 0:
+            # Uniformly sample a probability of static builds from within the range [0, self.prob_static]
+            prob_static = self.unwrapped._random.random() * self.static_prob
+
+            # TODO: take into account validity constraints on number of certain tiles
+            # self.static_builds = (self.unwrapped._random.random(self.unwrapped._bordered_map.shape) < prob_static).astype(np.uint8)
+            self.static_tiles = (self.unwrapped._random.random(self.unwrapped._bordered_map.shape) < prob_static).astype(np.uint8)
+
+        if self.n_static_walls > 0:
+            n_dim = self.unwrapped._map.ndim
+            map_shape = self.unwrapped._map.shape
+            for _ in range(self.n_static_walls):
+
+                # Extend a wall along a random dimension
+                wall_shape = np.ones(n_dim, dtype=np.uint8)
+                dim = self.unwrapped._random.integers(0, n_dim)
+                wall_len = self.unwrapped._random.integers(1, self.unwrapped._map.shape[dim] - 1)
+                wall_shape[dim] = wall_len
+
+                # Randomly place the beginning of the wall, ensuring it doesn't go beyond the map.
+                wall_pos = np.array([self.unwrapped._random.integers(0, self.unwrapped._map.shape[dim]) if d != dim else 0 for d in range(n_dim)])
+                wall_pos_i = self.unwrapped._random.integers(0, self.unwrapped._map.shape[dim] - wall_len)
+                wall_pos[dim] = wall_pos_i
+                wall_pos += 1  # Shift to account for border
+
+                # Set the wall
+                wall_slices = tuple([slice(p, p + s) for p, s in zip(wall_pos, wall_shape)])
+                self.unwrapped._map[wall_slices] = self.unwrapped._wall_tile
+                self.static_tiles[wall_slices] = 1
 
         # Borders are always static
-        self.static_builds[(0, -1), :] = 1
-        self.static_builds[:, (0, -1)] = 1
+        self.static_tiles[(0, -1), :] = 1
+        self.static_tiles[:, (0, -1)] = 1
 
         # Remove any action coordinates that correspond to static tiles (unless we have aux chans, in which case 
         # we'll let the agent leave messages for itself on those channels, even on static tiles.)
         # NOTE: We only have `_act_coords` for narrow representation. Can we make this cleaner?
         if hasattr(self, '_act_coords') and self.n_aux_tiles == 0:
             self._act_coords = self._act_coords[np.where(
-                self.static_builds[self._act_coords[:, 0], self._act_coords[:, 1]] == 0)] 
+                self.static_tiles[self._act_coords[:, 0], self._act_coords[:, 1]] == 0)] 
         return ret
 
     def get_observation_space(self, obs_window, map_shape, num_tiles):
@@ -264,7 +301,7 @@ class StaticBuildRepresentation(RepresentationWrapper):
     def get_observation(self):
         obs = super().get_observation()
         obs.update({
-            self.static_builds_obs_name: self.static_builds,
+            self.static_builds_obs_name: self.static_tiles,
         })
         return obs
 
@@ -275,7 +312,7 @@ class StaticBuildRepresentation(RepresentationWrapper):
         im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
         x_graphics = Image.fromarray(im_arr)
 
-        for (y, x) in np.argwhere(self.static_builds[1:-1, 1:-1] == 1):
+        for (y, x) in np.argwhere(self.static_tiles[1:-1, 1:-1] == 1):
             y, x = y + 1, x + 1  # ignoring the border
             lvl_image.paste(x_graphics, ((x+border_size[0]-1)*tile_size, (y+border_size[1]-1)*tile_size,
                                             (x+border_size[0])*tile_size,(y+border_size[1])*tile_size), x_graphics)
@@ -294,17 +331,22 @@ class StaticBuildRepresentation(RepresentationWrapper):
         # CARepresentationHoley: update_ca_holey,
     # }[rep_cls]
 
-    def update(self, action, **kwargs):
+    def update(self, action, pos=None):
         old_state = self.unwrapped._bordered_map.copy()
-        change, pos = super().update(action, **kwargs)
+        change, new_pos = super().update(action, pos=pos.copy())
         new_state = self.unwrapped._bordered_map
-        # assert not(np.all(old_state == new_state))
-        self.unwrapped._bordered_map = np.where(self.static_builds < 1, new_state, old_state)
-        # print(self._bordered_map)
+
+        # Undo invalid changes
+        self.unwrapped._bordered_map = np.where(self.static_tiles < 1, new_state, old_state)
         self.unwrapped._map = self.unwrapped._bordered_map[
             tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])]
+
+        # Prevent the agent from moving into a static tile
+        if self.static_tiles[new_pos[0]+1, new_pos[1]+1] == 1:
+            new_pos = pos
+
         change = np.any(old_state != new_state)
-        return change, pos
+        return change, new_pos
 
 
 class RainRepresentation(RepresentationWrapper):
@@ -345,7 +387,7 @@ class MultiActionRepresentation(RepresentationWrapper):
         self._set_inner_padding(self.action_size)
         self.map_size = map_dims                            # map_dims is a tuple (height, width, n_tiles) in 2D
         self.map_dim = len(map_dims[:-1])                        # 2 for 2D, 3 for 3D
-        self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32) * 3   # strides are just 3 for each dimension now
+        self.strides = np.ones(len(self.map_size[:-1]), dtype=np.int32) * 1   # strides are just 3 for each dimension now
 
         # We should not set this here. This is defined in the underlying representation class. In this underlying class,
         # it is initialized on `reset`.
@@ -391,7 +433,7 @@ class MultiActionRepresentation(RepresentationWrapper):
         for i in range(self.map_dim):
             coords.append(np.arange(self.inner_l_pads[i], self.map_size[i] - self.inner_r_pads[i], self.strides[i]))
         act_coords = np.array(np.meshgrid(*coords)).T.reshape(-1, self.map_dim)  # tobe checked! copilot writes this but looks good
-        act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first.
+        # act_coords = np.flip(act_coords, axis=1)  # E.g., in 2D, scan horizontally first.
         return act_coords
             
     
@@ -467,9 +509,9 @@ class MultiActionRepresentation(RepresentationWrapper):
         # Paste our border image into the level image at the agent's position
         lvl_image.paste(x_graphics, (
             # Left corner of the image we're pasting in
-            (x+border_size[0]-self.inner_l_pads[0])*tile_size, (y+border_size[1]-self.inner_l_pads[1])*tile_size,
+            (x+border_size[1]-self.inner_l_pads[1])*tile_size, (y+border_size[0]-self.inner_l_pads[0])*tile_size,
             # Right corner
-            (x+border_size[0]+self.inner_r_pads[0]+1)*tile_size, (y+border_size[1]+self.inner_r_pads[1]+1)*tile_size), x_graphics)
+            (x+border_size[1]+self.inner_r_pads[1]+1)*tile_size, (y+border_size[0]+self.inner_r_pads[0]+1)*tile_size), x_graphics)
         return super().render(lvl_image, tile_size, border_size)
 
 
@@ -483,7 +525,7 @@ class MultiAgentRepresentationWrapper(RepresentationWrapper):
         (255, 0, 255, 255),
         (0, 255, 255, 255),
     ]
-    def __init__(self, rep, cfg):
+    def __init__(self, rep: EgocentricRepresentation, cfg):
         n_agents = cfg.multiagent.n_agents
         # try:
         #     n_agents = kwargs.get('multiagent')['n_agents']
@@ -498,9 +540,12 @@ class MultiAgentRepresentationWrapper(RepresentationWrapper):
         super().reset(dims, prob, **kwargs)
     
     def update(self):
+        # self.set_agent_positions(self.agent_positions)
         raise NotImplementedError("This must be overriden by a child class")
 
     def render(self, lvl_image, tile_size=16, border_size=None):
+
+        lvl_image = super().render(lvl_image, tile_size, border_size)
 
         for (y, x), clr in zip(self.agent_positions, self.agent_colors):
             im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
@@ -535,12 +580,20 @@ class MultiAgentRepresentationWrapper(RepresentationWrapper):
 
 
 class MultiAgentTurtleRepresentation(MultiAgentRepresentationWrapper):
-    def __init__(self, rep, **kwargs):
+    def __init__(self, rep: EgocentricRepresentation, **kwargs):
         super().__init__(rep, **kwargs)
 
     def reset(self, dims, prob, **kwargs):
-        self.agent_positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
         super().reset(dims, prob, **kwargs)
+
+        # self.agent_positions = np.floor(np.random.random((self.n_agents, len(dims))) * (np.array(dims))).astype(int)
+        valid_spawn_coords = self.rep.get_valid_agent_coords()
+
+        if len(valid_spawn_coords) < self.n_agents:
+            # Uh, just spawn them on top of each other I guess?
+            valid_spawn_coords = np.tile(valid_spawn_coords[0], (self.n_agents, 1))
+        spawn_coord_idxs = self.unwrapped._random.choice(len(valid_spawn_coords), size=(self.n_agents,), replace=False)
+        self.agent_positions = valid_spawn_coords[spawn_coord_idxs]
 
         # This effectively passes info down to ShowAgents wrapper
         self.set_agent_positions(self.agent_positions)
@@ -555,9 +608,10 @@ class MultiAgentTurtleRepresentation(MultiAgentRepresentationWrapper):
         for k, v in action.items():
             i = int(k.split('_')[-1])
             pos_0 = self.agent_positions[i]
-            change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
+            # change_i, pos = self.update_pos(action[f'agent_{i}'], pos_0)
+            change_i, pos = self.rep.update(action[f'agent_{i}'], pos=pos_0.copy())
             if change_i:
-                y, x = pos_0[1], pos_0[0]
+                y, x = pos[1], pos[0]
                 self.heatmaps[i][y][x] += 1
             change = change or change_i
             self.agent_positions[i] = pos
@@ -580,10 +634,13 @@ class MultiAgentNarrowRepresentation(MultiAgentRepresentationWrapper):
         self.coords = self.get_act_coords()
         self._n_steps = {i: i for i in range(self.n_agents)}
         self.agent_positions = np.array([self.coords[i] for i in range(self.n_agents)]) 
+        self.set_agent_positions(self.agent_positions)
         self.heatmaps = np.zeros((self.n_agents, *dims[::-1]))
         #self._positions = {i: self.coords[i] for i in range(self.n_agents)}
 
     def update(self, action):
+        # FIXME: Agent builds move faster than agents? Or so it seems when rendering.
+        raise Exception("Busted for now")
         change = False
         for agent, act in action.items():
             i = int(agent.split('_')[-1])
@@ -598,6 +655,9 @@ class MultiAgentNarrowRepresentation(MultiAgentRepresentationWrapper):
                 self.heatmaps[i][y][x] += 1
             self.agent_positions[i] = self.coords[self._n_steps[i]]
             change = change or change_i
+
+        self.set_agent_positions(self.agent_positions)
+
         return change, self.get_positions()
 
     def get_positions(self):
@@ -611,7 +671,7 @@ class MultiAgentWideRepresentation(MultiAgentRepresentationWrapper):
     def reset(self, dims, prob, **kwargs):
         self.rep.reset(dims, prob, **kwargs)
         # store the last known positions of the agents
-        self._positions = {i: i for i in range(self.n_agents)}
+        self.agent_positions = {i: i for i in range(self.n_agents)}
 
     def update(self, actions):
         change = False
@@ -620,18 +680,20 @@ class MultiAgentWideRepresentation(MultiAgentRepresentationWrapper):
             change_i, pos = self.rep.update(act)
             positions.append(pos)
             change = change or change_i
-        self._positions = positions
-        return change, self._positions
+        self.agent_positions = positions
+
+        self.set_agent_positions(self.agent_positions)
+
+        return change, self.agent_positions
 
 # TODO: Clean this up!
-def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, static_build = False, cfg: Config = None):
+def wrap_rep(rep: Representation, prob_cls: Problem, map_dims: tuple, cfg: Config = None):
     """Should only happen once!"""
     if cfg.act_window is not None:
         rep = MultiActionRepresentation(rep, map_dims, cfg=cfg)
 
-    if static_build:
-        # rep_cls = StaticBuildRepresentation(rep_cls)
-        rep = StaticBuildRepresentation(rep, cfg=cfg)
+    if cfg.static_tile_wrapper:
+        rep = StaticTileRepresentation(rep, cfg=cfg)
 
 
     # FIXME: this is a hack to make sure that rep_cls is a class name but not an object

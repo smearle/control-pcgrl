@@ -158,7 +158,6 @@ class SeqNCA(TorchModelV2, nn.Module):
         # metrics_size = metrics_size[0]
         # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters + metrics_size
 
-        self.pre_fc_size = math.prod([obs_shape[-2-i] - 2 for i in range(dim)]) * conv_filters
         # self.pre_fc_size = (obs_shape[-2] - 2) * (obs_shape[-3] - 2) * conv_filters
 
         self.fc_size = fc_size
@@ -166,9 +165,19 @@ class SeqNCA(TorchModelV2, nn.Module):
         # TODO: use more convolutions here? Change and check that we can still overfit on binary problem.
         # self.conv_1 = nn.Conv2d(obs_shape[-1] + n_aux_chan, out_channels=conv_filters + n_aux_chan, kernel_size=3, stride=1, padding=0)
         if self.is_3D:
-            self.conv_1 = nn.Conv3d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
+            self.conv_1 = nn.Conv3d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=1)
         else:
-            self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=0)
+            self.conv_1 = nn.Conv2d(obs_shape[-1], out_channels=conv_filters, kernel_size=3, stride=1, padding=1)
+
+        # Calculate the size of the flattened feature vector after conv_1 by feeding in a dummy tensor
+        # with the correct shape.
+        dummy_input = th.zeros((1, *obs_shape))
+        dummy_input = dummy_input.permute(0, 3, 1, 2)
+        dummy_input = self.conv_1(dummy_input.float())
+        dummy_input = dummy_input.reshape(dummy_input.size(0), -1)
+        self.pre_fc_size = dummy_input.shape[1]
+
+        # self.pre_fc_size = math.prod([obs_shape[-2-i] for i in range(dim)]) * conv_filters
 
         self.patch_width = model_config['custom_model_config']['patch_width']
         pw = self.patch_width if self.patch_width is not None else 3

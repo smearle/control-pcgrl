@@ -38,6 +38,8 @@ class Problem(ABC):
         # FIXME: assumption, will overrule a similar declaration by the child.
         self._empty_tile = tiles[0]
 
+        self._wall_tile = tiles[1]
+
         self._prob = {}
         for tile in range(len(tiles)):
             self._prob.update({tile: 1.0 / len(tiles)})

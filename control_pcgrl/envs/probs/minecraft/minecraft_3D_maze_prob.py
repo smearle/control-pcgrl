@@ -23,6 +23,8 @@ from control_pcgrl.envs.probs.minecraft.utils import patch_grpc_evocraft_imports
 
 
 class Minecraft3DmazeProblem(Problem3D):
+    _tile_types = ["AIR", "DIRT"]
+
     """
     The constructor is responsible of initializing all the game parameters
     """
@@ -78,15 +80,6 @@ class Minecraft3DmazeProblem(Problem3D):
         self.render_path = True
         self._rendered_initial_maze = False
         self._path_idx = len(self.get_tile_types())
-
-    """
-    Get a list of all the different tile names
-
-    Returns:
-        string[]: that contains all the tile names
-    """
-    def get_tile_types(self):
-        return ["AIR", "DIRT"]
 
     def process_observation(self, observation, path_coords=None):
         """ add the path into the observation to be returned to the agent. """

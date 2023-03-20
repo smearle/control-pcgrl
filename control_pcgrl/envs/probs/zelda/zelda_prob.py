@@ -17,6 +17,8 @@ class ZeldaProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
     """
+    _tile_types = ["empty", "solid", "player", "key", "door", "bat", "scorpion", "spider"]
+
     def __init__(self, cfg: Config):
         super().__init__(cfg=cfg)
         self.path_length = 0
@@ -40,16 +42,6 @@ class ZeldaProblem(Problem):
         }
 
         self.render_path = False
-
-
-    """
-    Get a list of all the different tile names
-
-    Returns:
-        string[]: that contains all the tile names
-    """
-    def get_tile_types(self):
-        return ["empty", "solid", "player", "key", "door", "bat", "scorpion", "spider"]
 
     """
     Adjust the parameters for the current problem

@@ -23,6 +23,7 @@ class SokobanProblem(Problem):
     """
     The constructor is responsible of initializing all the game parameters
     """
+    _tile_types = ["empty", "solid", "player", "crate", "target"]
 
     def __init__(self, cfg: Config):
         super().__init__(cfg)
@@ -53,15 +54,6 @@ class SokobanProblem(Problem):
             "sol-length": 1,
         }
 
-    """
-    Get a list of all the different tile names
-
-    Returns:
-        string[]: that contains all the tile names
-    """
-
-    def get_tile_types(self):
-        return ["empty", "solid", "player", "crate", "target"]
 
     """
     Adjust the parameters for the current problem

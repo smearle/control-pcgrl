@@ -278,6 +278,9 @@ def get_log_dir(cfg: Config):
 
     if cfg.static_prob is not None:
         log_dir += f"{cfg.static_prob}-static_"
+
+    if cfg.n_static_walls is not None:
+        log_dir += f"{cfg.n_static_walls}-staticWalls_"
     
     if cfg.learning_rate:
         log_dir += f"lr-{cfg.learning_rate:.1e}_"
@@ -294,6 +297,8 @@ def get_log_dir(cfg: Config):
 
 def validate_config(cfg: Config):
     """Set up the experiment name, and raise errors if the config has invalid combinations of hyperparameters (TODO)."""
+
+    cfg.static_tile_wrapper = cfg.static_prob is not None or cfg.n_static_walls is not None
 
     if cfg.task.obs_window is None:
         # This guy gotta observe the holes.

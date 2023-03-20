@@ -9,6 +9,8 @@ from control_pcgrl.envs.probs.smb.smb.engine import State,BFSAgent,AStarAgent
 
 
 class SMBProblem(Problem):
+    _tile_types = ["empty", "solid", "enemy", "brick", "question", "coin", "tube"]
+
     def __init__(self, cfg: Config):
         super().__init__(cfg)
         self._width = 116

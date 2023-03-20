@@ -71,7 +71,8 @@ class TurtleRepresentation(EgocentricRepresentation):
         return spaces.Discrete(len(self._dirs) + num_tiles)
 
     def update(self, action, pos=None):
-        action, self._pos = self.update_pos(action, self._pos)
+        pos = self._pos if pos is None else pos  # For single-agent case
+        action, self._pos = self.update_pos(action, pos)
         return action, self._pos
 
     """

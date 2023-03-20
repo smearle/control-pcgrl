@@ -24,7 +24,8 @@ class NarrowRepresentation(EgocentricRepresentation):
     generator-agent. Dimension ignored.
     """
     def get_act_coords(self):
-        act_coords = np.argwhere(np.ones(self._map.shape))
+        # act_coords = np.argwhere(np.ones(self._map.shape))
+        act_coords = super().get_valid_agent_coords()
         return act_coords
 
     """

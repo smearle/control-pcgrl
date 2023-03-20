@@ -53,7 +53,10 @@ class PcgrlEnv(gym.Env):
         self._prob: Problem = PROBLEMS[prob](cfg=cfg)
         self._prob.init_tile_int_dict()
         self._rep_cls = REPRESENTATIONS[rep]
-        self._rep: Representation = self._rep_cls(cfg=cfg)
+        self._rep: Representation = self._rep_cls(cfg=cfg, 
+                                                  empty_tile_index=self._prob.get_tile_int(self._prob._empty_tile),
+                                                  wall_tile_index=self._prob.get_tile_int(self._prob._wall_tile)
+                                                ) 
         self._rep_is_wrapped: bool = False
         self._rep_stats = None
         self.metrics = {}
@@ -221,11 +224,10 @@ class PcgrlEnv(gym.Env):
             self.num_eval_envs = cfg.num_eval_envs
 
         _prob_cls = type(self._prob)
-        static_build = cfg.static_prob is not None
 
         # Wrap the representation if we haven't already. (Sketchy.)
         if not self._rep_is_wrapped:
-            self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), static_build=static_build, 
+            self._rep = wrap_rep(self._rep, _prob_cls, self.get_map_dims(), 
                                  cfg=cfg)
             self._rep_is_wrapped = True
 
@@ -332,6 +334,9 @@ class PcgrlEnv(gym.Env):
         info["changes"] = self._changes                    # noop is removed now, so this is the same as iteration
         info["max_iterations"] = self._max_iterations
         info["max_changes"] = self._max_changes
+
+        # if self.render_mode in {'human', 'gtk'}:
+        #     self.render()
 
         return observation, reward, done, truncated, info
 

@@ -7,6 +7,7 @@ from gymnasium import spaces
 from gymnasium.utils import seeding
 import numpy as np
 from PIL import Image
+from control_pcgrl.configs.config import Config
 
 from control_pcgrl.envs import helper
 from control_pcgrl.envs.probs.problem import Problem
@@ -19,15 +20,16 @@ class Representation(ABC):
     """
     The base constructor where all the representation variable are defined with default values
     """
-    def __init__(self, cfg, border_tile_index=1, empty_tile_index=0):
+    def __init__(self, cfg, border_tile_index=1, empty_tile_index=0, wall_tile_index=1):
         self.cfg = cfg
         self._random_start: bool = True
         # self._map: List[List[int]] = None
         self._map: np.ndarray = None
         self._bordered_map: List[List[int]] = None
         self._old_map: List[List[int]] = None
-        self._border_tile_index = border_tile_index
+        self._border_tile_index = border_tile_index  # DEPRECATED
         self._empty_tile = empty_tile_index
+        self._wall_tile = wall_tile_index
         self._random_start: bool = True
         self.seed_val: int = None
 
@@ -62,7 +64,7 @@ class Representation(ABC):
         prob (dict(int,float)): the probability distribution of each tile value
     """
     def reset(self, dims: tuple, prob: Problem, next_map: np.ndarray = None):
-        self._bordered_map = np.empty(tuple([i + 2 for i in dims[::-1]]), dtype=int)
+        self._bordered_map = np.empty(tuple([i + 2 for i in dims]), dtype=int)
         self._bordered_map.fill(self._border_tile_index)
         if next_map is not None:
             self._map = next_map
@@ -176,8 +178,8 @@ class EgocentricRepresentation(Representation):
     """Representation in which the generator-agent occupies a particular position, i.e. (x, y) coordinate, on the map
     at each step."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, cfg: Config, **kwargs):
+        super().__init__(cfg, **kwargs)
         # Whether the agent begins on a random tile. (Not using this consistently atm.)
         self._random_tile: bool = False
         # An x, y, (z) position
@@ -185,6 +187,10 @@ class EgocentricRepresentation(Representation):
 
     def set_agent_positions(self, agent_positions):
         self.agent_positions = agent_positions
+
+    def get_valid_agent_coords(self):
+        valid_agent_coords = np.argwhere(np.ones(self._map.shape))
+        return valid_agent_coords
 
     """
     Resets the current representation where it resets the parent and the current
@@ -228,11 +234,13 @@ class EgocentricRepresentation(Representation):
         img: the modified level image
     """
     def render(self, lvl_image, tile_size=16, border_size=None):
-        y, x = self._pos
-        im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
-        clr = (255, 255, 255, 255)
-        im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
-        x_graphics = Image.fromarray(im_arr)
-        lvl_image.paste(x_graphics, ((x+border_size[0])*tile_size, (y+border_size[1])*tile_size,
-                                        (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
+        # HACK
+        if self.cfg.multiagent.n_agents == 0:
+            y, x = self._pos
+            im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
+            clr = (255, 255, 255, 255)
+            im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
+            x_graphics = Image.fromarray(im_arr)
+            lvl_image.paste(x_graphics, ((x+border_size[0])*tile_size, (y+border_size[1])*tile_size,
+                                            (x+border_size[0]+1)*tile_size,(y+border_size[1]+1)*tile_size), x_graphics)
         return lvl_image

@@ -234,6 +234,9 @@ class ControlWrapper(gym.Wrapper):
             done = False
             truncated = False
 
+        if self.render_mode in {'human', 'gtk'}:
+            self.render()
+
         # print("step: ", self.n_step, " done: ", done, " reward: ", reward, " action: ", action, " metrics: ", self.metrics)
         return ob, reward, done, truncated, info
 

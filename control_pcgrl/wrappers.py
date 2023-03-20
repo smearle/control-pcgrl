@@ -10,7 +10,7 @@ from control_pcgrl.envs.probs.problem import Problem3D
 import numpy as np
 from ray.rllib import MultiAgentEnv
 
-from control_pcgrl.envs.reps.wrappers import ShowAgentRepresentation, StaticBuildRepresentation
+from control_pcgrl.envs.reps.wrappers import ShowAgentRepresentation, StaticTileRepresentation
 
 
 # clean the input action
@@ -439,16 +439,12 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
     The wrappers we use for narrow and turtle experiments
     """
     def __init__(self, game, cfg: Config):
-        # static_prob = kwargs.get('static_prob')
-        static_prob = cfg.static_prob
-        # obs_size = kwargs.get('observation_size')
-        # crop_size = obs_size if obs_size is not None else crop_size
         env: PcgrlEnv = gym.make(game, cfg=cfg)
         env.adjust_param(cfg)
 
         # Keys of (box) observation spaces to be concatenated (channel-wise)
         flat_indices = ["map"]
-        flat_indices += [StaticBuildRepresentation.static_builds_obs_name] if cfg.static_prob is not None else []
+        flat_indices += [StaticTileRepresentation.static_builds_obs_name] if cfg.static_tile_wrapper else []
         flat_indices += [ShowAgentRepresentation.show_agents_obs_name] if cfg.show_agents else []
 
         # Cropping map, etc. to the correct crop_size

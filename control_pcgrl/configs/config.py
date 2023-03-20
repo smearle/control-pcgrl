@@ -28,6 +28,12 @@ class TaskConfig:
     controls: List[Any] = MISSING
     alp_gmm: bool = False
     map_shape: List[Any] = MISSING
+    # for 2d problems, the list will be [height, width]
+    #                width
+    #         -------------------
+    #         |
+    #  height | 
+    #         |
     obs_window: List[Any] = MISSING
 
 
@@ -263,7 +269,7 @@ class Config:
     algorithm: str = 'PPO'
     debug: bool = False
     render: bool = False
-    render_mode: str = 'human'
+    render_mode: Optional[str] = None
     infer: bool = False
     evaluate: bool = False
     load: bool = True
@@ -280,7 +286,11 @@ class Config:
     n_aux_tiles: int = 0
     controls: Optional[TaskConfig] = None
     change_percentage: Optional[float] = None
+
     static_prob: Optional[float] = None
+    n_static_walls: Optional[int] = None
+    static_tile_wrapper: bool = False  # This will get set automatically
+
     act_window: Optional[List[Any]] = None
     # action_size: List[Any] = field(default_factory=lambda: 
     #     [3, 3]

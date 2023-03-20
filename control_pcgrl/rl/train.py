@@ -161,7 +161,6 @@ def main(cfg: Config) -> None:
                     # act = 0
                 # Print shape of map
                 obs, rew, done, truncated, info = env.step(act)
-                breakpoint()
 
                 # print(obs.transpose(2, 0, 1)[:, 10:-10, 10:-10])
                 if cfg.render:
@@ -298,16 +297,16 @@ def main(cfg: Config) -> None:
         elif cfg.infer:
             while True:
                 # Does not work for some reason? Rllib ignoring `trainer.config.evaluation_config['render_env']`
-                # eval_stats = trainer.evaluate()
-                # print(eval_stats)
+                eval_stats = trainer.evaluate()
+                print(eval_stats)
 
                 # For now we do it the old fashioned way.
-                done = False
-                obs, info = env.reset()
-                while not done:
-                    action = trainer.compute_single_action(obs)
-                    obs, reward, done, truncated, info = env.step(action)
-                    env.render()
+                # done = False
+                # obs, info = env.reset()
+                # while not done:
+                #     action = trainer.compute_single_action(obs)
+                #     obs, reward, done, truncated, info = env.step(action)
+                #     env.render()
 
         # Quit the program before agent starts training.
         sys.exit()
