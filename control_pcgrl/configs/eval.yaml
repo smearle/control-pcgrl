@@ -1,5 +1,5 @@
 defaults:
-  - eval
+  - eval_pcgrl
   - _self_
 
   - override hydra/launcher: submitit_local

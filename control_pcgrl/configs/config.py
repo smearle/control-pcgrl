@@ -338,8 +338,8 @@ cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`
 cs.store(name="train", node=Config)
 cs.store(name="enjoy", node=EnjoyConfig)
-cs.store(name="eval", node=EvalConfig)
-cs.store(name="cross_eval", node=CrossEvalConfig)
+cs.store(name="eval_pcgrl", node=EvalConfig)
+cs.store(name="cross_eval_pcgrl", node=CrossEvalConfig)
 
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)
