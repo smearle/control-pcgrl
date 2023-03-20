@@ -85,7 +85,8 @@ class NarrowRepresentation(EgocentricRepresentation):
     Returns:
         boolean: True if the action change the map, False if nothing changed
     """
-    def update(self, action):
+    def update(self, action, **kwargs):
+        #FIXME: Use the `pos` provided as argument
         change = 0
         # if action > 0:
         change += [0,1][self._map[tuple(self._pos)] != action]

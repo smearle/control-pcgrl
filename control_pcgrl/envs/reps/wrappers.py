@@ -1,5 +1,6 @@
 from abc import ABC
 from collections import OrderedDict
+import copy
 from inspect import isclass
 import logging
 import math
@@ -333,7 +334,7 @@ class StaticTileRepresentation(RepresentationWrapper):
 
     def update(self, action, pos=None):
         old_state = self.unwrapped._bordered_map.copy()
-        change, new_pos = super().update(action, pos=pos.copy())
+        change, new_pos = super().update(action, pos=copy.copy(pos))
         new_state = self.unwrapped._bordered_map
 
         # Undo invalid changes
