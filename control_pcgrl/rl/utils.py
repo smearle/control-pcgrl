@@ -255,6 +255,9 @@ def get_log_dir(cfg: Config):
             log_dir += "obsWin-{}x{}-".format(*cfg.task.obs_window)
         else:
             log_dir += "obsWin-{}x{}x{}-".format(*cfg.task.obs_window)
+    
+    if cfg.act_window is not None:
+        log_dir += "actWin-{}x{}-".format(*cfg.act_window)
 
     if hasattr(cfg, "midep_trgs") and cfg.midep_trgs:
         log_dir += "midEpTrgs_"
