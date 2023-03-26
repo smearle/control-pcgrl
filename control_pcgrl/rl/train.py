@@ -43,14 +43,14 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        Decoder, DenseNCA, SeqNCA, SeqNCA3D, WideModel3D,
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_log_dir, get_map_width, TrainerConfigParsers, validate_config
-from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory
+from control_pcgrl.rl.rllib_utils import ControllableTrainerFactory
 from control_pcgrl.configs.config import Config
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
-from rllib_inference import get_best_checkpoint, restore_trainer
+from rllib_inference import get_best_checkpoint, init_trainer, restore_trainer
 
 # Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
 MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
@@ -266,9 +266,13 @@ def main(cfg: Config) -> None:
             # FIXME: The name of this config arg seems to have changed in rllib?
             # 'record_env': log_dir if cfg.record_env else None,
         # })
-        with open(checkpoint_path_file, 'r') as f:
-            checkpoint_path = f.read()
-        trainer = restore_trainer(checkpoint_path, trainer_config)
+        if cfg.eval_random:
+            print("WARNING: Evaluating random policy.")
+            trainer = init_trainer(trainer_config)
+        else:
+            with open(checkpoint_path_file, 'r') as f:
+                checkpoint_path = f.read()
+            trainer = restore_trainer(checkpoint_path, trainer_config)
 
         # trainer = PPOTrainer(env='pcgrl', config=trainer_config)
         # trainer = get_best_checkpoint(cfg.log_dir, cfg)
@@ -313,7 +317,7 @@ def main(cfg: Config) -> None:
         return
 
     #tune.register_trainable("CustomPPO", PPOTrainer)
-    tune.register_trainable(f"CustomTrainer", ControllablaTrainerFactory(cfg.algorithm))
+    tune.register_trainable(f"CustomTrainer", ControllableTrainerFactory(cfg.algorithm))
 
     # Limit the number of rows.
     reporter = CLIReporter(

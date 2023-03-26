@@ -90,7 +90,7 @@ class FaceProblem(Problem):
         rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
     """
     def adjust_param(self, **kwargs):
-        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
+        # self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         super().adjust_param(**kwargs)
 
         self._target_path = kwargs.get('target_path', self._target_path)

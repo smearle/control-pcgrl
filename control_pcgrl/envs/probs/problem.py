@@ -53,7 +53,7 @@ class Problem(ABC):
             self._tile_size = 16
             self.GVGAI_SPRITES = False
         self._graphics = None
-        self.render_path = False
+        self.render_path = cfg.render_mode is not None
         self.path_to_erase = set({})  # FIXME: only 3D really needs this.
 
     def init_tile_int_dict(self):

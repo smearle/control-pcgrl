@@ -1,7 +1,11 @@
 defaults:
-  - base_problem
+  - base_task
+
+map_shape: [16, 16]
+obs_window: [32, 32]
 
 name: zelda
+problem: zelda
 weights:
   player: 3
   key: 3

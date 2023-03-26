@@ -32,7 +32,7 @@ class MicroStructureProblem(Problem):
         self._max_path_length = np.ceil(self._width / 2) * (self._height) + np.floor(self._height/2)
         self._max_tortuosity = self._max_path_length / 2
         self._target_path = 20
-        self.render_path = False
+        # self.render_path = False
         self.path_coords = []
         self.path_length = None
 
@@ -72,7 +72,7 @@ class MicroStructureProblem(Problem):
         rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
     """
     def adjust_param(self, **kwargs):
-        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
+        # self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         super().adjust_param(**kwargs)
 
         self._target_path = kwargs.get('target_path', self._target_path)

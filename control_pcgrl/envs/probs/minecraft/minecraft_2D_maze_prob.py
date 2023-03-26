@@ -27,7 +27,7 @@ class Minecraft2DmazeProblem(Problem):
             "path-length": 1
         }
 
-        self.render_path = False
+        # self.render_path = False
         self.path_coords = []
         self.path_length = None
 
@@ -54,7 +54,7 @@ class Minecraft2DmazeProblem(Problem):
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
 
-        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
+        # self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 

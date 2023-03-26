@@ -11,6 +11,7 @@ import time
 
 import numpy as np
 from timeit import default_timer as timer
+from control_pcgrl.configs.config import Config
 
 from control_pcgrl.envs.probs.problem import Problem, Problem3D
 from control_pcgrl.envs.helper_3D import get_floor_dist, get_path_coords, get_range_reward, get_tile_locations, calc_num_regions, \
@@ -24,8 +25,8 @@ class Minecraft3Drain(Problem3D):
     """
     The constructor is responsible of initializing all the game parameters
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, cfg: Config):
+        super().__init__(cfg=cfg)
         self._length = 7
         self._width = 7
         self._height = 7
@@ -77,7 +78,7 @@ class Minecraft3Drain(Problem3D):
         self.connected_path_coords = []
         self.old_connected_path_coords = []
         self.path_length = None
-        self.render_path = True
+        # self.render_path = True
         self._rendered_initial_maze = False
         self._path_idx = len(self.get_tile_types())
 
@@ -117,7 +118,7 @@ class Minecraft3Drain(Problem3D):
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
-        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
+        # self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         
         rewards = kwargs.get('rewards')
         if rewards is not None:

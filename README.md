@@ -141,6 +141,13 @@ This paper should be cited if controllable code from this project is used in any
 }
 ```
 
+# Imitation Learning
+
+```bash
+python generate_trajectories.py
+python train_imitation.py
+```
+
 ## 2020: PCGRL
 
 ***NOTE: This is out of date and should be updated to reflect changes to the environment.***

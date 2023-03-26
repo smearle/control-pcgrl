@@ -319,6 +319,8 @@ class EnjoyConfig(Config):
     render_mode: str = 'human'
     # render_mode: str = 'gtk'
 
+    eval_random: bool = False
+
 
 @dataclass
 class EvalConfig(Config):
@@ -328,10 +330,18 @@ class EvalConfig(Config):
 
     n_eval_episodes: int = 1
 
+    # Evaluate a fully random policy (do not load model)
+    eval_random: bool = False
+
 @dataclass
 class CrossEvalConfig(EvalConfig):
     """Config for cross-evaluation."""
     name: str = "lr_sweep"
+
+
+@dataclass
+class PoDConfig(Config):
+    pass
 
 
 cs = ConfigStore.instance()

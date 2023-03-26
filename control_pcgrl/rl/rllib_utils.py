@@ -17,7 +17,7 @@ import torch as th
 #         done = np.any(self.num_timesteps > old_num_timesteps)
 #         return done
 
-def ControllablaTrainerFactory(trainer):
+def ControllableTrainerFactory(trainer):
     if isinstance(trainer, str):
         if trainer.lower() == 'ppo':
             trainer = RlLibPPOTrainer

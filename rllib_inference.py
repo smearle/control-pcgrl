@@ -20,7 +20,7 @@ from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.models import ModelCatalog
 from control_pcgrl.rl import models
 from control_pcgrl.rl.envs import make_env
-from control_pcgrl.rl.rllib_utils import ControllablaTrainerFactory as trainer_factory
+from control_pcgrl.rl.rllib_utils import ControllableTrainerFactory as trainer_factory
 from control_pcgrl import wrappers
 
 def load_config(experiment_path):
@@ -117,6 +117,14 @@ def restore_trainer(checkpoint_path, config):
         trainer = ppo.PPOTrainer(config=config)
     print(checkpoint_path)
     trainer.restore(str(checkpoint_path))
+    return trainer
+
+def init_trainer(config):
+    config.pop('checkpoint_path_file') # huh?
+    if config['env_config']['algorithm'] == 'QMIX':
+        trainer = qmix.QMix(config=config)
+    else:
+        trainer = ppo.PPOTrainer(config=config)
     return trainer
 
 def register_model(config):

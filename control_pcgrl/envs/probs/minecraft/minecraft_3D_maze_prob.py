@@ -77,7 +77,7 @@ class Minecraft3DmazeProblem(Problem3D):
         self.connected_path_coords = []
         self.old_connected_path_coords = []
         self.path_length = None
-        self.render_path = True
+        # self.render_path = True
         self._rendered_initial_maze = False
         self._path_idx = len(self.get_tile_types())
 
@@ -109,7 +109,7 @@ class Minecraft3DmazeProblem(Problem3D):
         self._target_path = kwargs.get('target_path', self._target_path)
         self._random_probs = kwargs.get('random_probs', self._random_probs)
 
-        self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
+        # self.render_path = kwargs.get('render', self.render_path) or kwargs.get('render_path', self.render_path)
         
         rewards = kwargs.get('rewards')
         if rewards is not None:
