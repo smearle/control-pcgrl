@@ -6,4 +6,5 @@ from control_pcgrl.rl.envs import make_env
 def make_pod_env(cfg: PoDConfig):
     env = make_env(cfg)
     env = PoDWrapper(env, cfg)
+    env.unwrapped._max_iterations -= 1
     return env

@@ -1,4 +1,5 @@
 import glob
+import shutil
 import gymnasium as gym
 import hydra
 import numpy as np
@@ -77,19 +78,24 @@ def to_2d_array_level(file_name):
         level.append(new_row)
     return level
 
-n_eps = 1
+n_eps = 2
 
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
 def main(cfg: Config):
     validate_config(cfg)
 
+    traj_dir = os.path.join(cfg.log_dir, "repair-paths")
+
+    if cfg.overwrite:
+        shutil.rmtree(traj_dir, ignore_errors=True)
+
     goal_levels = load_goal_levels(cfg)
 
     batch_builder = SampleBatchBuilder()  # or MultiAgentSampleBatchBuilder
     writer = JsonWriter(
         # os.path.join(ray._private.utils.get_user_temp_dir(), "demo-out")
-        os.path.join(cfg.log_dir, "demo-out")
+        os.path.join(traj_dir)
     )
 
     # You normally wouldn't want to manually create sample batches if a
@@ -118,20 +124,20 @@ def main(cfg: Config):
             repair_action = env.get_repair_action()
             new_obs, rew, terminated, truncated, info = env.step(action)
             batch_builder.add_values(
-                t=t,
-                eps_id=eps_id,
-                agent_index=0,
-                obs=dummify_observation(prep.transform(obs)),
+                # t=t,
+                # eps_id=eps_id,
+                # agent_index=0,
+                obs=observation_obfuscation(prep.transform(obs)),
                 actions=repair_action,
-                action_prob=1.0,  # put the true action probability here
-                action_logp=0.0,
-                rewards=-rew,
-                prev_actions=prev_action,
-                prev_rewards=prev_reward,
-                terminateds=terminated,
-                truncateds=truncated,
-                infos=info,
-                new_obs=dummify_observation(prep.transform(new_obs)),
+                # action_prob=1.0,  # put the true action probability here
+                # action_logp=0.0,
+                # rewards=-rew,
+                # prev_actions=prev_action,
+                # prev_rewards=prev_reward,
+                # terminateds=terminated,
+                # truncateds=truncated,
+                # infos=info,
+                # new_obs=dummify_observation(prep.transform(new_obs)),
             )
             obs = new_obs
             prev_action = repair_action
@@ -139,10 +145,13 @@ def main(cfg: Config):
             t += 1
         writer.write(batch_builder.build_and_reset())
 
-        eps_id = (eps_id + 1) % len(goal_levels)
+        map_id = (eps_id + 1) % len(goal_levels)
 
-def dummify_observation(obs):
-    breakpoint()
+def observation_obfuscation(obs):
+    """Remove everything but the padding. Fill the map with some tile."""
+    obs_int = obs.argmax(-1)
+    obs_int = np.where(obs_int != 0, 1, obs_int)
+    obs = np.eye(obs.shape[-1])[obs_int]
     return obs
 
 

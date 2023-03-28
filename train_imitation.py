@@ -11,11 +11,14 @@ from control_pcgrl.configs.config import Config, PoDConfig
 from control_pcgrl.rl.envs import make_env
 from control_pcgrl.rl.models import CustomFeedForwardModel
 from control_pcgrl.rl.utils import validate_config
+from gen_trajectories import observation_obfuscation
 
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
 def main(cfg: PoDConfig):
     validate_config(cfg)
+
+    traj_dir = os.path.join(cfg.log_dir, "repair-paths")
 
     register_env('pcgrl', make_env)
     model_cls = CustomFeedForwardModel
@@ -39,7 +42,7 @@ def main(cfg: PoDConfig):
     )
 
     # Get all json files in the directory
-    traj_glob = os.path.join(cfg.log_dir, "demo-out", "*.json")
+    traj_glob = os.path.join(traj_dir, "*.json")
 
     # Set the config object's data path.
     # Run this from the ray directory root.
@@ -90,6 +93,7 @@ def main(cfg: PoDConfig):
         best_result = tuner.get_results().get_best_result()
         ckpt = best_result.best_checkpoints[0][0]
         bc_model = BC.from_checkpoint(ckpt)
+        print(f"Restored from checkpoint {ckpt}")
         # bc_model.evaluate()
 
         env = make_env(cfg)
@@ -98,7 +102,8 @@ def main(cfg: PoDConfig):
             obs, info = env.reset()
             done, truncated = False, False
             while not done and not truncated:
-                action = bc_model.compute_single_action(obs, explore=False)
+                # action = bc_model.compute_single_action(dummify_observation(obs), explore=False)
+                action = bc_model.compute_single_action(observation_obfuscation(obs))
                 obs, reward, done, truncated, info = env.step(action)
                 env.render()
 
