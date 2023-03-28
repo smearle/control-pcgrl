@@ -1,9 +1,6 @@
 defaults:
-  - train  # This points to `ControlPCGRLConfig` class in `config.py`
+  - pod_base
   - _self_
-
-  # Why can't we override this on the command line?
-  # - override hydra/sweeper: optuna
 
   - override hydra/launcher: submitit_local
   # - override hydra/launcher: submitit_slurm

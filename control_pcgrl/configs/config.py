@@ -341,7 +341,15 @@ class CrossEvalConfig(EvalConfig):
 
 @dataclass
 class PoDConfig(Config):
-    pass
+    defaults: List[Any] = field(default_factory=lambda: [
+        {'task': 'zelda_small'},
+        {'hardware': 'remote'},
+        # TODO: Picking the default should happen here, in the configs, instead of in the main code, perhaps.
+        {'model': 'default_model'},
+        {'multiagent': 'single_agent'},
+        '_self_',
+    ])
+    max_board_scans: int = 1
 
 
 cs = ConfigStore.instance()
@@ -350,6 +358,7 @@ cs.store(name="train", node=Config)
 cs.store(name="enjoy", node=EnjoyConfig)
 cs.store(name="eval_pcgrl", node=EvalConfig)
 cs.store(name="cross_eval_pcgrl", node=CrossEvalConfig)
+cs.store(name="pod_base", node=PoDConfig)
 
 cs.store(name="local", group="hardware", node=LocalHardwareConfig)
 cs.store(name="remote", group="hardware", node=RemoteHardwareConfig)

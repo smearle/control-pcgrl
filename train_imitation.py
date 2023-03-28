@@ -2,8 +2,8 @@ import glob
 import os
 import shutil
 import hydra
-from ray import tune
-from ray.rllib.algorithms.bc import BCConfig
+from ray import air, tune
+from ray.rllib.algorithms.bc import BCConfig, BC
 from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env
 
@@ -13,7 +13,7 @@ from control_pcgrl.rl.models import CustomFeedForwardModel
 from control_pcgrl.rl.utils import validate_config
 
 
-@hydra.main(config_path="control_pcgrl/configs", config_name="config")
+@hydra.main(config_path="control_pcgrl/configs", config_name="pod")
 def main(cfg: PoDConfig):
     validate_config(cfg)
 
@@ -21,7 +21,8 @@ def main(cfg: PoDConfig):
     model_cls = CustomFeedForwardModel
     ModelCatalog.register_custom_model("custom_model", model_cls)
 
-    bc_config = BCConfig()
+    bc_config = BCConfig(
+    )
 
     bc_config.model = {
         'custom_model': 'custom_model',
@@ -56,12 +57,24 @@ def main(cfg: PoDConfig):
 
     bc_config.framework("torch")
 
-    exp_dir = "il_logs/BC"
+    il_log_dir = "il_logs"
+    exp_name = "BC"
+
+    exp_dir = os.path.join(il_log_dir, exp_name)
 
     if not cfg.overwrite and os.path.exists(exp_dir):
         tuner = tune.Tuner.restore(exp_dir)
     else:
         shutil.rmtree(exp_dir, ignore_errors=True)
+
+        run_config = air.RunConfig(
+            checkpoint_config=air.CheckpointConfig(
+                checkpoint_at_end=True,
+                checkpoint_frequency=10,
+                num_to_keep=2,
+            ),
+            local_dir=il_log_dir,
+        )
 
         tuner = tune.Tuner(
             "BC",
@@ -70,15 +83,29 @@ def main(cfg: PoDConfig):
                 metric="info/learner/default_policy/learner_stats/policy_loss",
                 mode="min",
             ),
+            run_config=run_config,
         )
 
     if cfg.infer:
         best_result = tuner.get_results().get_best_result()
-        breakpoint()
+        ckpt = best_result.best_checkpoints[0][0]
+        bc_model = BC.from_checkpoint(ckpt)
+        # bc_model.evaluate()
 
-    # Use to_dict() to get the old-style python config dict
-    # when running with tune.
-    result = tuner.fit()
+        env = make_env(cfg)
+
+        while True:
+            obs, info = env.reset()
+            done, truncated = False, False
+            while not done and not truncated:
+                action = bc_model.compute_single_action(obs, explore=False)
+                obs, reward, done, truncated, info = env.step(action)
+                env.render()
+
+    else:
+        # Use to_dict() to get the old-style python config dict
+        # when running with tune.
+        result = tuner.fit()
 
 
 if __name__ == "__main__":

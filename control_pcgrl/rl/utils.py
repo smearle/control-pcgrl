@@ -446,6 +446,8 @@ def parse_ppo_config(
         # 'record_env': log_dir,
         # 'stfu': True,
         'disable_env_checking': True,
+
+        'train_batch_size': 10_000,
     }
 
 

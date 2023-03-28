@@ -6,6 +6,7 @@
 */train.sh
 */eval.sh
 .idea/*
+il_logs
 
 
 # Byte-compiled / optimized / DLL files

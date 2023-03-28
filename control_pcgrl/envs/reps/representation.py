@@ -22,7 +22,6 @@ class Representation(ABC):
     """
     def __init__(self, cfg, border_tile_index=1, empty_tile_index=0, wall_tile_index=1):
         self.cfg = cfg
-        self._random_start: bool = True
         # self._map: List[List[int]] = None
         self._map: np.ndarray = None
         self._bordered_map: List[List[int]] = None
@@ -186,6 +185,7 @@ class EgocentricRepresentation(Representation):
         self._pos: np.ndarray = None
 
     def set_agent_positions(self, agent_positions):
+        """Record positions of agents in multi-agent settings."""
         self.agent_positions = agent_positions
 
     def get_valid_agent_coords(self):

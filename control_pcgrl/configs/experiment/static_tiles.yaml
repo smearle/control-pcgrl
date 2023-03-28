@@ -1,0 +1,14 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      # exp_id: 0, 1, 2
+      exp_id: 0
+      # exp_id: 1, 2
+
+      model: seqnca
+      learning_rate: 5e-6
+
+      static_prob: 0.1, 0.3, 0.5
+      n_static_walls: 3, 5, 7
+

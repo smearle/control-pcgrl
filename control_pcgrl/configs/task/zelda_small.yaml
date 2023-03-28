@@ -1,0 +1,17 @@
+defaults:
+  - base_task
+
+map_shape: [7, 11]
+obs_window: [22, 22]
+
+name: zelda_small
+problem: zelda
+weights:
+  player: 3
+  key: 3
+  door: 3
+  regions: 5
+  enemies: 1
+  nearest-enemy: 2
+  path-length: 1
+  

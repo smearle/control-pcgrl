@@ -307,7 +307,6 @@ class StaticTileRepresentation(RepresentationWrapper):
         return obs
 
     def render(self, lvl_image, tile_size, border_size=None):
-        lvl_image = super().render(lvl_image, tile_size, border_size)
         im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
         clr = (255, 0, 0, 255)
         im_arr[(0, 1, -1, -2), :, :] = im_arr[:, (0, 1, -1, -2), :] = clr
@@ -317,6 +316,8 @@ class StaticTileRepresentation(RepresentationWrapper):
             y, x = y + 1, x + 1  # ignoring the border
             lvl_image.paste(x_graphics, ((x+border_size[0]-1)*tile_size, (y+border_size[1]-1)*tile_size,
                                             (x+border_size[0])*tile_size,(y+border_size[1])*tile_size), x_graphics)
+
+        lvl_image = super().render(lvl_image, tile_size, border_size)
 
         # if not hasattr(self, 'window'):
             # self.window = cv2.namedWindow('static builds', cv2.WINDOW_NORMAL)
@@ -328,25 +329,23 @@ class StaticTileRepresentation(RepresentationWrapper):
 
         return lvl_image
 
-    # update = {
-        # CARepresentationHoley: update_ca_holey,
-    # }[rep_cls]
-
     def update(self, action, pos=None):
         old_state = self.unwrapped._bordered_map.copy()
         change, new_pos = super().update(action, pos=copy.copy(pos))
         new_state = self.unwrapped._bordered_map
 
-        # Undo invalid changes
-        self.unwrapped._bordered_map = np.where(self.static_tiles < 1, new_state, old_state)
-        self.unwrapped._map = self.unwrapped._bordered_map[
-            tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])]
+        # Undo invalid builds.
+        if change > 0:
+            self.unwrapped._bordered_map = np.where(self.static_tiles < 1, new_state, old_state)
+            self.unwrapped._map = self.unwrapped._bordered_map[
+                tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])]
 
-        # Prevent the agent from moving into a static tile
-        if self.static_tiles[new_pos[0]+1, new_pos[1]+1] == 1:
-            new_pos = pos
+            change = np.any(old_state != new_state)
 
-        change = np.any(old_state != new_state)
+            # Prevent the agent from moving into a static tile (bug: only multiagent)
+            # if self.static_tiles[new_pos[0]+1, new_pos[1]+1] == 1:
+            #     new_pos = pos
+
         return change, new_pos
 
 
