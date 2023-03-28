@@ -78,7 +78,7 @@ def to_2d_array_level(file_name):
         level.append(new_row)
     return level
 
-n_eps = 2
+n_train_samples = 1_000_000
 
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
@@ -111,24 +111,28 @@ def main(cfg: Config):
 
     map_id = 0
 
+    n_eps = n_train_samples // env.unwrapped._max_iterations
+
     for eps_id in range(n_eps):
-        env.queue_goal_map(goal_levels[map_id])
+        # env.queue_goal_map(goal_levels[map_id])
 
         obs, info = env.reset()
-        prev_action = np.zeros_like(env.action_space.sample())
-        prev_reward = 0
+        # prev_action = np.zeros_like(env.action_space.sample())
+        # prev_reward = 0
         terminated = truncated = False
         t = 0
         while not terminated and not truncated:
-            action = env.action_space.sample()
-            repair_action = env.get_repair_action()
+            # action = env.action_space.sample()
+            action = goal_levels[map_id][tuple(env.rep.unwrapped._pos)]
+
+            # repair_action = env.get_repair_action()
             new_obs, rew, terminated, truncated, info = env.step(action)
             batch_builder.add_values(
                 # t=t,
                 # eps_id=eps_id,
                 # agent_index=0,
-                obs=observation_obfuscation(prep.transform(obs)),
-                actions=repair_action,
+                obs=prep.transform(obs),
+                actions=action,
                 # action_prob=1.0,  # put the true action probability here
                 # action_logp=0.0,
                 # rewards=-rew,
@@ -140,19 +144,12 @@ def main(cfg: Config):
                 # new_obs=dummify_observation(prep.transform(new_obs)),
             )
             obs = new_obs
-            prev_action = repair_action
-            prev_reward = -rew
+            # prev_action = action
+            # prev_reward = -rew
             t += 1
         writer.write(batch_builder.build_and_reset())
 
         map_id = (eps_id + 1) % len(goal_levels)
-
-def observation_obfuscation(obs):
-    """Remove everything but the padding. Fill the map with some tile."""
-    obs_int = obs.argmax(-1)
-    obs_int = np.where(obs_int != 0, 1, obs_int)
-    obs = np.eye(obs.shape[-1])[obs_int]
-    return obs
 
 
 if __name__ == "__main__":

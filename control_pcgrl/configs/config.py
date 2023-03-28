@@ -351,6 +351,10 @@ class PoDConfig(Config):
     ])
     max_board_scans: int = 1
 
+    # All tiles in the map are turned into wall (or some particular tile). Assuming enough padding, the agent can infer
+    # its position, and nothing else.
+    obfuscate_observation: bool = False
+
 
 cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`

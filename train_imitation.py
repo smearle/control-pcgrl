@@ -8,10 +8,11 @@ from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env
 
 from control_pcgrl.configs.config import Config, PoDConfig
+from control_pcgrl.il.utils import make_pod_env
+from control_pcgrl.il.wrappers import obfuscate_observation
 from control_pcgrl.rl.envs import make_env
 from control_pcgrl.rl.models import CustomFeedForwardModel
 from control_pcgrl.rl.utils import validate_config
-from gen_trajectories import observation_obfuscation
 
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
@@ -38,7 +39,8 @@ def main(cfg: PoDConfig):
 
     # Update the config object.
     bc_config.training(  
-        lr=tune.grid_search([0.001, 0.0001]), beta=0.0
+        # lr=tune.grid_search([0.001, 0.0001]), beta=0.0
+        lr=0.001,
     )
 
     # Get all json files in the directory
@@ -55,8 +57,6 @@ def main(cfg: PoDConfig):
     # Set the config object's env, used for evaluation.
     bc_config.environment(env='pcgrl')  
     bc_config.env_config = {**cfg}
-
-    bc_config.checkpoint_freq = 1
 
     bc_config.framework("torch")
 
@@ -96,14 +96,14 @@ def main(cfg: PoDConfig):
         print(f"Restored from checkpoint {ckpt}")
         # bc_model.evaluate()
 
-        env = make_env(cfg)
+        env = make_pod_env(cfg)
 
         while True:
             obs, info = env.reset()
             done, truncated = False, False
             while not done and not truncated:
-                # action = bc_model.compute_single_action(dummify_observation(obs), explore=False)
-                action = bc_model.compute_single_action(observation_obfuscation(obs))
+                # action = bc_model.compute_single_action(obfuscate_observation(obs), explore=False)
+                action = bc_model.compute_single_action((obs))
                 obs, reward, done, truncated, info = env.step(action)
                 env.render()
 
