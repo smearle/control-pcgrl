@@ -1,27 +1,32 @@
-import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.pyplot as plt
-import copy
 import argparse
-import numpy as np
-from pathlib import Path
-import uuid
-from tqdm import tqdm
-from pathlib import Path
+import copy
 import json
+import uuid
+
+from pathlib import Path
+
 import imageio
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import ray.rllib.agents.ppo as ppo
+from tqdm import tqdm
+
 import gymnasium as gym
 from gymnasium.spaces import Tuple
-import ray.rllib.algorithms.qmix as qmix
-from ray.tune.registry import register_env
-from ray.rllib.policy.policy import PolicySpec
+
+from ray import air, tune
+from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.algorithms.qmix import QMix
 from ray.rllib.models import ModelCatalog
+from ray.rllib.policy.policy import PolicySpec
+from ray.tune.registry import register_env
+
+from control_pcgrl.configs.config import Config
+from control_pcgrl import wrappers
 from control_pcgrl.rl import models
 from control_pcgrl.rl.envs import make_env
 from control_pcgrl.rl.rllib_utils import ControllableTrainerFactory as trainer_factory
-from control_pcgrl import wrappers
+
 
 def load_config(experiment_path):
     with open(Path(experiment_path, 'params.json'), 'r') as f:
@@ -96,7 +101,7 @@ def get_best_checkpoint(experiment_path, config):
     max_checkpoint_name = None
     for checkpoint in checkpoints_iter(experiment_path):
         # get number after underscore in checkpoint
-        trainer = restore_trainer(Path(checkpoint), config)
+        trainer = restore_best_ckpt(config)
         iteration = trainer._iteration
         # look up iteration in progress dataframe
         trainer_performance = progress.loc[progress['training_iteration'] == iteration]
@@ -109,22 +114,20 @@ def get_best_checkpoint(experiment_path, config):
     print(f'Loaded from checkpoint: {max_checkpoint_name}')
     return max_checkpoint
 
-def restore_trainer(checkpoint_path, config):
-    config.pop('checkpoint_path_file') # huh?
-    if config['env_config']['algorithm'] == 'QMIX':
-        trainer = qmix.QMix(config=config)
-    else:
-        trainer = ppo.PPOTrainer(config=config)
-    print(checkpoint_path)
-    trainer.restore(str(checkpoint_path))
-    return trainer
+
+def restore_best_ckpt(cfg: Config):
+    tuner = tune.Tuner.restore(cfg)
+    best_result = tuner.get_results().get_best_result()
+    ckpt = best_result.best_checkpoints[0][0]
+    return ckpt
+
 
 def init_trainer(config):
     config.pop('checkpoint_path_file') # huh?
     if config['env_config']['algorithm'] == 'QMIX':
-        trainer = qmix.QMix(config=config)
+        trainer = QMix(config=config)
     else:
-        trainer = ppo.PPOTrainer(config=config)
+        trainer = PPOTrainer(config=config)
     return trainer
 
 def register_model(config):
@@ -174,7 +177,6 @@ def rollout(env_config, trainer, policy_mapping_fn=None, seed=None):
         if isinstance(done, dict):
             done = done['__all__']
     
-    #import pdb; pdb.set_trace()
     return {
         'actions': acts,
         'rewards': rews,

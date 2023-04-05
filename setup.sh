@@ -1,4 +1,4 @@
-python -m pip install -r requirements.txt
+python -m pip install -r requirements_latest.txt
 python -m pip install -e .
 # python -m pip install -e gym_pcgrl
 

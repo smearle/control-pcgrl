@@ -54,6 +54,7 @@ evo_runs*/*
 control_pcgrl/evo_runs/*
 !evo_runs/.gitkeep
 rl_runs/*
+rl_runs*
 configs/evo/auto/settings_*.json
 configs/rl/auto/settings_*.json
 evopcgrl*.out

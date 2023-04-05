@@ -44,13 +44,13 @@ from control_pcgrl.rl.models import (NCA, ConvDeconv2d,  # noqa : F401
                        WideModel3DSkip)
 from control_pcgrl.rl.utils import IdxCounter, get_env_name, get_log_dir, get_map_width, TrainerConfigParsers, validate_config
 from control_pcgrl.rl.rllib_utils import ControllableTrainerFactory
-from control_pcgrl.configs.config import Config
+from control_pcgrl.configs.config import Config, EvalConfig
 import control_pcgrl
 from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
-from rllib_inference import get_best_checkpoint, init_trainer, restore_trainer
+from rllib_inference import init_trainer, restore_best_ckpt
 
 # Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
 MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
@@ -262,6 +262,7 @@ def main(cfg: Config) -> None:
 
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer or cfg.evaluate:
+        cfg: EvalConfig = cfg
         # trainer_config.update({
             # FIXME: The name of this config arg seems to have changed in rllib?
             # 'record_env': log_dir if cfg.record_env else None,
@@ -270,28 +271,7 @@ def main(cfg: Config) -> None:
             print("WARNING: Evaluating random policy.")
             trainer = init_trainer(trainer_config)
         else:
-            with open(checkpoint_path_file, 'r') as f:
-                checkpoint_path = f.read()
-            trainer = restore_trainer(checkpoint_path, trainer_config)
-
-        # trainer = PPOTrainer(env='pcgrl', config=trainer_config)
-        # trainer = get_best_checkpoint(cfg.log_dir, cfg)
-
-        # if cfg.load:
-        #     with open(checkpoint_path_file, 'r') as f:
-        #         checkpoint_path = f.read()
-        
-        #     # HACK (should probably be logging relative paths in the first place?)
-        #     checkpoint_path = checkpoint_path.split('control-pcgrl/')[-1]
-        
-        #     # HACK wtf (if u edit the checkpoint path some funkiness lol)
-        #     if not os.path.exists(checkpoint_path):
-        #         assert os.path.exists(checkpoint_path[:-1]), f"Checkpoint path does not exist: {checkpoint_path}."
-        #         checkpoint_path = checkpoint_path[:-1]
-
-        #     # trainer.load_checkpoint(checkpoint_path=checkpoint_path)
-        #     trainer.restore(checkpoint_path=checkpoint_path)
-        #     print(f"Loaded checkpoint from {checkpoint_path}.")
+            trainer = restore_best_ckpt(trainer_config)
 
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)

@@ -14,7 +14,7 @@ hydra:
     params:
       #exp_id: 0, 1, 2
       # learning_rate: 5e-5
-      learning_rate: 1e-4, 1e-5, 5e-5
+      learning_rate: 5e-6
 
   launcher:
     tasks_per_node: 1
