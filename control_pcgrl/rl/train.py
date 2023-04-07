@@ -339,7 +339,7 @@ def main(cfg: Config) -> None:
         stop={"timesteps_total": cfg.timesteps_total},
         local_dir=cfg.log_dir,
         **callbacks_dict,
-        verbose=0,
+        verbose=1,
         progress_reporter=reporter,
     )
 

@@ -9,7 +9,7 @@ from ray.rllib.models.preprocessors import get_preprocessor
 from ray.rllib.evaluation.sample_batch_builder import SampleBatchBuilder
 from ray.rllib.offline.json_writer import JsonWriter
 
-from control_pcgrl.configs.config import Config
+from control_pcgrl.configs.config import PoDConfig
 from control_pcgrl.il.utils import make_pod_env
 from control_pcgrl.rl.envs import make_env
 from control_pcgrl.rl.utils import validate_config
@@ -82,7 +82,7 @@ n_train_samples = 1_000_000
 
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
-def main(cfg: Config):
+def main(cfg: PoDConfig):
     validate_config(cfg)
 
     traj_dir = os.path.join(cfg.log_dir, "repair-paths")

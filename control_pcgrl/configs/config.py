@@ -333,6 +333,7 @@ class EvalConfig(Config):
     # Evaluate a fully random policy (do not load model)
     eval_random: bool = False
 
+
 @dataclass
 class CrossEvalConfig(EvalConfig):
     """Config for cross-evaluation."""
@@ -342,7 +343,7 @@ class CrossEvalConfig(EvalConfig):
 @dataclass
 class PoDConfig(Config):
     defaults: List[Any] = field(default_factory=lambda: [
-        {'task': 'zelda_small'},
+        {'task': 'zelda_control_small'},
         {'hardware': 'remote'},
         # TODO: Picking the default should happen here, in the configs, instead of in the main code, perhaps.
         {'model': 'default_model'},

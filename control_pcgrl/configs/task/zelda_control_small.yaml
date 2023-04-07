@@ -1,8 +1,8 @@
 defaults:
-  - zelda
+  - zelda_control
 
 map_shape: [7, 11]
 obs_window: [22, 22]
 
-name: zelda_small
+name: zelda_control_small
   

@@ -38,13 +38,6 @@ class ControlWrapper(gym.Wrapper):
         self.env = env
         super().__init__(self.env)
 
-        # controllable metrics
-        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else [] 
-        self.num_params = len(self.ctrl_metrics)
-
-        if self.render_mode == 'gtk':
-            self.win = self._init_gui()
-
         metric_weights = copy.copy(self.unwrapped._reward_weights)
         self.metric_weights = {k: 0 for k in metric_weights}
         config_weights = cfg.task.weights
@@ -69,6 +62,10 @@ class ControlWrapper(gym.Wrapper):
         self.cond_bounds = self.unwrapped.cond_bounds
         self.param_ranges = {}
 
+        # controllable metrics
+        self.ctrl_metrics = ctrl_metrics if ctrl_metrics is not None else [] 
+        self.n_ctrl_metrics = len(self.ctrl_metrics)
+
         for k in self.ctrl_metrics:
             v = self.cond_bounds[k]
             improvement = abs(v[1] - v[0])
@@ -84,8 +81,7 @@ class ControlWrapper(gym.Wrapper):
         self.all_metrics.update(ctrl_loss_metrics)  # probably some overlap here
         self.all_metrics.update(self.static_metric_names)
 
-        for k in self.all_metrics:
-            v = self.metrics[k]
+        self.n_metrics = len(self.all_metrics)
 
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
@@ -121,9 +117,13 @@ class ControlWrapper(gym.Wrapper):
         self.ctrl_loss_metrics = ctrl_loss_metrics
         self.max_loss = self.get_max_loss(ctrl_metrics=ctrl_loss_metrics)
 
+        if self.render_mode == 'gtk':
+            self.win = self._init_gui()
+
+
     def _init_gui(self):
         screen_width = 200
-        screen_height = 100 * self.num_params
+        screen_height = 100 * self.n_metrics
         from control_pcgrl.gtk_gui import GtkGUI
 
         if not hasattr(self.unwrapped._prob, "_graphics"):
@@ -180,8 +180,8 @@ class ControlWrapper(gym.Wrapper):
         if self.controllable:
             ob = self.observe_metric_trgs(ob)
         self.last_metrics = copy.deepcopy(self.metrics)
-        if self.unwrapped._get_stats_on_step:
-            self.last_loss = self.get_loss()
+        # if self.unwrapped._get_stats_on_step:
+        self.last_loss = self.get_loss()
         self.n_step = 0
 
         return ob, info
@@ -223,7 +223,10 @@ class ControlWrapper(gym.Wrapper):
             ob = self.observe_metric_trgs(ob)
 
         # Provide reward only at the last step
-        reward = self.get_reward()  # if done else 0
+
+        loss = self.get_loss()
+        reward = loss - self.last_loss
+        self.last_loss = loss
 
         self.last_metrics = self.metrics
         self.last_metrics = copy.deepcopy(self.metrics)
@@ -331,7 +334,6 @@ class ControlWrapper(gym.Wrapper):
 
         return loss
 
-
     def get_max_loss(self, ctrl_metrics=[]):
         '''Upper bound on distance of level from static targets.
         
@@ -350,6 +352,7 @@ class ControlWrapper(gym.Wrapper):
         return net_max_loss
 
     def get_ctrl_loss(self):
+        """How far away (L1) from we from our vector of control targets?"""
         loss = 0
 
         for metric in self.ctrl_loss_metrics:
@@ -363,15 +366,6 @@ class ControlWrapper(gym.Wrapper):
             loss += loss_m
 
         return loss
-
-    def get_reward(self):
-        # FIXME: why do we do this?
-        loss = self.get_ctrl_loss()
-
-        reward = loss - self.last_loss
-        self.last_loss = loss
-
-        return reward
 
     # def get_done(self):
     #     done = True
