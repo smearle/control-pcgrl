@@ -368,7 +368,7 @@ def parse_ppo_config(
     log_dir,
     logger_type,
     stats_callbacks,
-    checkpoint_path_file,
+    # checkpoint_path_file,
     model_cfg,
     multiagent_config={},
     **kwargs
@@ -442,7 +442,7 @@ def parse_ppo_config(
         # 'action_space': dummy_env.action_space,
 
         # 'create_env_on_driver': True,
-        'checkpoint_path_file': checkpoint_path_file,
+        # 'checkpoint_path_file': checkpoint_path_file,
         # 'record_env': log_dir,
         # 'stfu': True,
         'disable_env_checking': True,
@@ -473,7 +473,7 @@ def parse_qmix_config(
     log_dir,
     logger_type,
     stats_callbacks,
-    checkpoint_path_file,
+    # checkpoint_path_file,
     model_cfg,
     multiagent_config={},
     **kwargs
@@ -548,7 +548,7 @@ def parse_qmix_config(
         # 'action_space': dummy_env.action_space,
 
         # 'create_env_on_driver': True,
-        'checkpoint_path_file': checkpoint_path_file,
+        # 'checkpoint_path_file': checkpoint_path_file,
         # 'record_env': log_dir,
         # 'stfu': True,
         'disable_env_checking': True,

@@ -4,8 +4,8 @@ defaults:
 name: binary
 problem: binary
 weights:
-  path-length: 100
-  regions: 100
+  path-length: 1
+  regions: 1
 
 map_shape: [16, 16]
 obs_window: [32, 32]

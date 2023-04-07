@@ -17,35 +17,33 @@ import torch as th
 #         done = np.any(self.num_timesteps > old_num_timesteps)
 #         return done
 
-def ControllableTrainerFactory(trainer):
-    if isinstance(trainer, str):
-        if trainer.lower() == 'ppo':
-            trainer = RlLibPPOTrainer
-        elif trainer == 'QMIX':
-            trainer = RlLibQMIXTrainer
-        else:
-            raise ValueError(
-                'Unsupported trainer type. ' + \
-                'Acceptable arguments are {PPO, QMIX}. '+ \
-                'For custom trainers, pass a trainer object as a parameter')
+def ControllableTrainerFactory(trainer_cls):
+    # if isinstance(trainer, str):
+    if trainer_cls.lower() == 'ppo':
+        trainer_cls = RlLibPPOTrainer
+    elif trainer_cls == 'QMIX':
+        trainer_cls = RlLibQMIXTrainer
+    else:
+        raise ValueError(
+            'Unsupported trainer type. ' + \
+            'Acceptable arguments are {PPO, QMIX}. '+ \
+            'For custom trainers, pass a trainer object as a parameter')
 
     """
     Wrap trainer object with extra logging and custom metric checkpointing
     """
-    class Trainer(trainer):
+    class Trainer(trainer_cls):
         log_keys = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean']
 
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
             # wandb.init(**self.config['wandb'])
-            self.checkpoint_path_file = kwargs['config']['checkpoint_path_file']
             self.ctrl_metrics = self.config['env_config']['controls']
             self.ctrl_metrics = {} if self.ctrl_metrics is None else self.ctrl_metrics
             # cbs = self.workers.foreach_env(lambda env: env._unwrapped.cond_bounds if hasattr(env, '_unwrapped') else env.unwrapped.cond_bounds)
             # cbs = [cb for worker_cbs in cbs for cb in worker_cbs if cb is not None]
             # cond_bounds = cbs[0]
             self.metric_ranges = None
-             #self.checkpoint_path_file = checkpoint_path_file
             self.train_reward_model = False
 
         def setup(self, config):
@@ -81,26 +79,26 @@ def ControllableTrainerFactory(trainer):
             return ret
 
 
-        @classmethod
-        def get_default_config(cls):
-            # def_cfg = super().get_default_config()
-            def_cfg = trainer.get_default_config()
-            def_cfg.update_from_dict({             # note: for ray earlier than 2.1.0, def_cfg is a dictionary, please use def_cfg.update(); 
-                                            #    for ray starting from 2.2.0, def_cfg is a ray config, please use def_cfg.update_from_dict() instead.                                             
-                'checkpoint_path_file': None,
-                'wandb': {
-                    'project': 'PCGRL',
-                    'name': 'default_name',
-                    'id': 'default_id',
-                },
-            })
-            return def_cfg
+        # @classmethod
+        # def get_default_config(cls):
+        #     # def_cfg = super().get_default_config()
+        #     def_cfg = trainer_cls.get_default_config()
+        #     # def_cfg.update_from_dict({             # note: for ray earlier than 2.1.0, def_cfg is a dictionary, please use def_cfg.update(); 
+        #     #                                 #    for ray starting from 2.2.0, def_cfg is a ray config, please use def_cfg.update_from_dict() instead.                                             
+        #     #     # 'checkpoint_path_file': None,
+        #     #     'wandb': {
+        #     #         'project': 'PCGRL',
+        #     #         'name': 'default_name',
+        #     #         'id': 'default_id',
+        #     #     },
+        #     # })
+        #     return def_cfg
 
-        def save(self, *args, **kwargs):
-            ckp_path = super().save(*args, **kwargs)
-            with open(self.checkpoint_path_file, 'w+') as f:
-                f.write(ckp_path)
-            return ckp_path
+        # def save(self, *args, **kwargs):
+        #     ckp_path = super().save(*args, **kwargs)
+        #     with open(self.checkpoint_path_file, 'w+') as f:
+        #         f.write(ckp_path)
+        #     return ckp_path
 
         # @wandb_mixin
         def train(self, *args, **kwargs):

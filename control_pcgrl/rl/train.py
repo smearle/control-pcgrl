@@ -21,7 +21,7 @@ import ray
 import torch as th
 import wandb
 from matplotlib import pyplot as plt
-from ray import tune
+from ray import tune, air
 from ray.rllib import MultiAgentEnv
 from ray.rllib.algorithms import ppo
 # from ray.rllib.algorithms.a3c import A2CTrainer
@@ -185,7 +185,7 @@ def main(cfg: Config) -> None:
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()
 
-    checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
+    # checkpoint_path_file = os.path.join(log_dir, 'checkpoint_path.txt')
     # FIXME: nope
     num_envs_per_worker = cfg.hardware.n_envs_per_worker if not cfg.infer else 1
     logger_type = {"type": "ray.tune.logger.TBXLogger"} if not (cfg.infer or cfg.evaluate) else {}
@@ -242,7 +242,7 @@ def main(cfg: Config) -> None:
                         log_dir,
                         logger_type,
                         stats_callbacks,
-                        checkpoint_path_file,
+                        # checkpoint_path_file,
                         model_cfg,
                         multiagent_config,
                         num_workers=num_workers,
@@ -271,7 +271,7 @@ def main(cfg: Config) -> None:
             print("WARNING: Evaluating random policy.")
             trainer = init_trainer(trainer_config)
         else:
-            trainer = restore_best_ckpt(trainer_config)
+            trainer = restore_best_ckpt(os.path.join(str(cfg.log_dir)))
 
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)
@@ -328,33 +328,45 @@ def main(cfg: Config) -> None:
         id=log_dir,
     )]} if cfg.wandb else {}
 
+    run_config = air.RunConfig(
+        checkpoint_config=air.CheckpointConfig(
+            checkpoint_at_end=True,
+            checkpoint_frequency=10,
+            num_to_keep=3,
+            checkpoint_score_attribute='episode_reward_mean',
+            checkpoint_score_order='max',
+        ),
+        stop={"timesteps_total": cfg.timesteps_total},
+        local_dir=cfg.log_dir,
+        **callbacks_dict,
+        verbose=0,
+        progress_reporter=reporter,
+    )
+
+    tune_config = tune.TuneConfig(
+        mode='max',
+        metric='episode_reward_mean',
+    )
+    
+    if not cfg.overwrite and os.path.exists(cfg.log_dir):
+        tuner = tune.Tuner.restore(cfg.log_dir)
+    else:
+        tuner = tune.Tuner(
+            "CustomTrainer",
+            param_space=trainer_config,
+            tune_config=tune_config,
+            run_config= run_config,
+        )
+
     try:
         # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
-        analysis = tune.run(
-            "CustomTrainer",
-            resume="AUTO" if (cfg.load and not cfg.overwrite) else False,
-            config={
-                **trainer_config,
-            },
-            # checkpoint_score_attr="episode_reward_mean",
-            # TODO: makes timestep total input by user.(n_frame)
-            stop={"timesteps_total": cfg.timesteps_total},
-            mode='max',
-            checkpoint_score_attr='episode_reward_mean',
-            checkpoint_at_end=True,
-            checkpoint_freq=1,
-            keep_checkpoints_num=2,
-            local_dir=log_dir,
-            verbose=1,
-            # loggers=DEFAULT_LOGGERS + (WandbLogger, ),
-            # **loggers_dict,
-            **callbacks_dict,
-            progress_reporter=reporter,
-        )
+        analysis = tuner.fit()
         # TODO: Get stats from analysis and return for optuna in hydra 
         # breakpoint()
     except KeyboardInterrupt:
         ray.shutdown()
+    
+    return print("Yay! Experiment finished!")
 
 
 def map_to_default_policy(agent_id, *args, **kwargs):

@@ -1,6 +1,10 @@
+'''
+Mostly deprecated, just use some of the fitness functions inside
+'''
 import argparse
 import copy
 import json
+import os
 import uuid
 
 from pathlib import Path
@@ -47,6 +51,7 @@ def load_config(experiment_path):
     
     env_name = config['env_config']['env_name']
     return config
+
 
 def setup_multiagent_config(config, model_cfg):
     dummy_env = make_env(config)
@@ -101,7 +106,7 @@ def get_best_checkpoint(experiment_path, config):
     max_checkpoint_name = None
     for checkpoint in checkpoints_iter(experiment_path):
         # get number after underscore in checkpoint
-        trainer = restore_best_ckpt(config)
+        trainer = restore_best_ckpt(log_dir)
         iteration = trainer._iteration
         # look up iteration in progress dataframe
         trainer_performance = progress.loc[progress['training_iteration'] == iteration]
@@ -115,8 +120,8 @@ def get_best_checkpoint(experiment_path, config):
     return max_checkpoint
 
 
-def restore_best_ckpt(cfg: Config):
-    tuner = tune.Tuner.restore(cfg)
+def restore_best_ckpt(log_dir):
+    tuner = tune.Tuner.restore(log_dir)
     best_result = tuner.get_results().get_best_result()
     ckpt = best_result.best_checkpoints[0][0]
     return ckpt
@@ -129,6 +134,7 @@ def init_trainer(config):
     else:
         trainer = PPOTrainer(config=config)
     return trainer
+
 
 def register_model(config):
     MODELS = {"NCA": models.NCA, "DenseNCA": models.DenseNCA, "SeqNCA": models.SeqNCA, "SeqNCA3D": models.SeqNCA3D}
@@ -145,6 +151,7 @@ def register_model(config):
     else:
         model_cls = MODELS[model_config['name']]
     ModelCatalog.register_custom_model('custom_model', model_cls)
+
 
 def rollout(env_config, trainer, policy_mapping_fn=None, seed=None):
     env = make_env(env_config)
@@ -185,6 +192,7 @@ def rollout(env_config, trainer, policy_mapping_fn=None, seed=None):
         'success': env.unwrapped._prob.get_episode_over(env.unwrapped._rep_stats, None),
         'heatmaps': env.unwrapped._rep.heatmaps
     }
+
 
 def save_trial_metrics(metrics, logdir):
     # save initial frame, final frame, and gif of frames
