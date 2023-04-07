@@ -20,6 +20,7 @@ from gymnasium.spaces import Tuple
 
 from ray import air, tune
 from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.qmix import QMix
 from ray.rllib.models import ModelCatalog
 from ray.rllib.policy.policy import PolicySpec
@@ -124,7 +125,8 @@ def restore_best_ckpt(log_dir):
     tuner = tune.Tuner.restore(log_dir)
     best_result = tuner.get_results().get_best_result()
     ckpt = best_result.best_checkpoints[0][0]
-    return ckpt
+    trainer = Algorithm.from_checkpoint(ckpt)
+    return trainer
 
 
 def init_trainer(config):

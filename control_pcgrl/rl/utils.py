@@ -444,7 +444,6 @@ def parse_ppo_config(
         # 'create_env_on_driver': True,
         # 'checkpoint_path_file': checkpoint_path_file,
         # 'record_env': log_dir,
-        # 'stfu': True,
         'disable_env_checking': True,
 
         'train_batch_size': cfg.train_batch_size,

@@ -271,7 +271,7 @@ def main(cfg: Config) -> None:
             print("WARNING: Evaluating random policy.")
             trainer = init_trainer(trainer_config)
         else:
-            trainer = restore_best_ckpt(os.path.join(str(cfg.log_dir)))
+            trainer = restore_best_ckpt(os.path.join(str(cfg.log_dir), "CustomTrainer"))
 
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)
@@ -281,16 +281,16 @@ def main(cfg: Config) -> None:
         elif cfg.infer:
             while True:
                 # Does not work for some reason? Rllib ignoring `trainer.config.evaluation_config['render_env']`
-                eval_stats = trainer.evaluate()
-                print(eval_stats)
+                # eval_stats = trainer.evaluate()
+                # print(eval_stats)
 
                 # For now we do it the old fashioned way.
-                # done = False
-                # obs, info = env.reset()
-                # while not done:
-                #     action = trainer.compute_single_action(obs)
-                #     obs, reward, done, truncated, info = env.step(action)
-                #     env.render()
+                done = False
+                obs, info = env.reset()
+                while not done:
+                    action = trainer.compute_single_action(obs)
+                    obs, reward, done, truncated, info = env.step(action)
+                    env.render()
 
         # Quit the program before agent starts training.
         sys.exit()
