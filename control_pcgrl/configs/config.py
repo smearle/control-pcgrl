@@ -265,6 +265,7 @@ class Config:
     multiagent: MultiagentConfig = MISSING
     task: TaskConfig = MISSING
     train_reward_model: bool = False
+    train_batch_size: int = 10_000
 
     algorithm: str = 'PPO'
     debug: bool = False

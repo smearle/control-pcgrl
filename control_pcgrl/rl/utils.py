@@ -363,7 +363,7 @@ def max_exp_idx(exp_name):
 
 
 def parse_ppo_config(
-    cfg,
+    cfg: Config,
     agent_obs_space,
     log_dir,
     logger_type,
@@ -447,7 +447,7 @@ def parse_ppo_config(
         # 'stfu': True,
         'disable_env_checking': True,
 
-        'train_batch_size': 10_000,
+        'train_batch_size': cfg.train_batch_size,
     }
 
 
