@@ -6,10 +6,10 @@ hydra:
       task: binary
       representation: narrow
       # learning_rate: 1e-4, 5e-5, 1e-5, 5e-5, 1e-6
-      # task.obs_window: "[5,5],[8,8],[16,16],[32,32]"
-      model: seqnca, default_model
+      # task.obs_window: "[3,3],[5,5],[8,8],[16,16],[32,32]"
+      model: seqnca #default_model
       # act_window: "[3,3],[5,5],[8,8],[16,16]"
-      act_window: "[16,1],[1, 16],[8,1],[4,1],[2,1],[1,1]"
+      # act_window: "[16,1],[1, 16],[8,1],[4,1],[2,1],[1,1]"
       # model.fc_size: 128 #, 256
       # model.conv_filters: 128, 256
       # model.patch_width: 3 , 5  #, 7, -1

@@ -2,12 +2,9 @@
 hydra:
   sweeper:
     params:
-      # multiagent.n_agents: 1, 2, 3, 4
+      exp_id: 0, 1, 2
+      multiagent.n_agents: 1, 2, 3
       representation: turtle
-
-      # Aha, this should work to address proble below, right?
       multiagent: shared_policy
-
-      multiagent.n_agents: 2, 3
       show_agents: True, False
 

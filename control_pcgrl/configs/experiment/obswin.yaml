@@ -1,0 +1,11 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      exp_id: 0, 1, 2
+      model: seqnca, default_model
+      task.obs_window: "[3,3],[5,5],[8,8],[16,16],[32,32]"
+
+
+# for obs window experiments, comparing seqnca and default_model to see how the obs size affect
+# value branch (is it really using that infomation?)
