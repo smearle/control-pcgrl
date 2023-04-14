@@ -123,14 +123,18 @@ def get_best_checkpoint(experiment_path, config):
 
 def restore_best_ckpt(log_dir):
     tuner = tune.Tuner.restore(log_dir)
-    best_result = tuner.get_results().get_best_result()
+    best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
     ckpt = best_result.best_checkpoints[0][0]
     trainer = Algorithm.from_checkpoint(ckpt)
+    # ZJ: this(above) is not a good way to restore the trainer, because it will read the path from the checkpoint file,
+    # (see state.get("config") if you stop at the breakpoint in the ray.rllib.algorithms.algorithm, it will load from 
+    # 'log_dir': /scratch/zj2086/... when I sync the experiment from HPC. As a result, it will fail to load the trainer 
+    # from ckpt because the ckpt itself still use the path of hpc. Is there a way to fix this? Maybe try Predictor API?
     return trainer
 
 
 def init_trainer(config):
-    config.pop('checkpoint_path_file') # huh?
+    # config.pop('checkpoint_path_file') # huh?
     if config['env_config']['algorithm'] == 'QMIX':
         trainer = QMix(config=config)
     else:

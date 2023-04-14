@@ -507,11 +507,11 @@ class MultiActionRepresentation(RepresentationWrapper):
         im_arr[:, (0, 1, -1, -2), :] = clr
         x_graphics = Image.fromarray(im_arr)
         # Paste our border image into the level image at the agent's position
-        lvl_image.paste(x_graphics, (
+        lvl_image.paste(x_graphics, ( # need to shift by 1 because we render one more row for border to display the path length
             # Left corner of the image we're pasting in
-            (x+border_size[1]-self.inner_l_pads[1])*tile_size, (y+border_size[0]-self.inner_l_pads[0])*tile_size,
+            (x+border_size[1]-self.inner_l_pads[1]-1)*tile_size, (y+border_size[0]-self.inner_l_pads[0]+1)*tile_size,
             # Right corner
-            (x+border_size[1]+self.inner_r_pads[1]+1)*tile_size, (y+border_size[0]+self.inner_r_pads[0]+1)*tile_size), x_graphics)
+            (x+border_size[1]+self.inner_r_pads[1])*tile_size, (y+border_size[0]+self.inner_r_pads[0]+2)*tile_size), x_graphics)
         return super().render(lvl_image, tile_size, border_size)
 
 
