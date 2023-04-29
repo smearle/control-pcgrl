@@ -308,6 +308,7 @@ class Config:
     evaluation_env: Optional[bool] = None
 
     n_eval_episodes: int = 1
+    infer_n_episodes: int = 3
 
 
 @dataclass

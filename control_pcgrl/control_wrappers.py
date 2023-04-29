@@ -237,7 +237,7 @@ class ControlWrapper(gym.Wrapper):
             done = False
             truncated = False
 
-        if self.render_mode in {'human', 'gtk'}:
+        if self.render_mode in {'human', 'gtk', 'save_gif'}:
             self.render()
 
         # print("step: ", self.n_step, " done: ", done, " reward: ", reward, " action: ", action, " metrics: ", self.metrics)
@@ -279,6 +279,10 @@ class ControlWrapper(gym.Wrapper):
 
             if self.win._paused:
                 self.render()
+
+        elif self.render_mode == 'save_gif':
+            img = super().render()
+            return img
 
         else:
             ### PROFILING ###

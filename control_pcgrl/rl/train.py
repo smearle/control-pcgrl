@@ -11,6 +11,7 @@ from pdb import set_trace as TT
 from typing import Dict
 
 import gymnasium as gym
+import imageio
 from tqdm import tqdm
 import hydra
 import matplotlib
@@ -279,18 +280,29 @@ def main(cfg: Config) -> None:
             return eval_stats, print("Yay!")
 
         elif cfg.infer:
+            epi_index = 0
             while True:
                 # Does not work for some reason? Rllib ignoring `trainer.config.evaluation_config['render_env']`
                 # eval_stats = trainer.evaluate()
                 # print(eval_stats)
 
                 # For now we do it the old fashioned way.
+                render_frames = []
                 done = False
                 obs, info = env.reset()
+                render_frames.append(env.render())
                 while not done:
                     action = trainer.compute_single_action(obs)
                     obs, reward, done, truncated, info = env.step(action)
-                    env.render()
+                    render_frames.append(env.render())
+                
+                if cfg.render_mode == "save_gif":
+                    # Save the rendered frames as a gif.
+                    imageio.mimsave(os.path.join(log_dir, f'render_{epi_index}.gif'), render_frames, duration=20)
+                    epi_index += 1
+                    if epi_index >= cfg.infer_n_episodes:
+                        print(f"Saved {epi_index} episodes to {log_dir}.")
+                        break
 
         # Quit the program before agent starts training.
         sys.exit()

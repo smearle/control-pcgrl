@@ -7,7 +7,7 @@ dm-tree        # rllib dependency
 einops
 graphviz
 gym
-gymnasium[all]
+gymnasium     # gymnasium[all] will cause some box2d gcc beef
 # gym==0.19.0     # minerl will require 0.19.0
 hydra-core
 hydra-submitit-launcher

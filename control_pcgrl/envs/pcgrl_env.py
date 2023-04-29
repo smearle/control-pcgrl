@@ -359,7 +359,7 @@ class PcgrlEnv(gym.Env):
         # img = img.transpose(PIL.Image.TRANSPOSE)
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
 
-        if self.render_mode == 'rgb_array' or self.render_mode == 'gtk':
+        if self.render_mode == 'rgb_array' or self.render_mode == 'gtk' or self.render_mode == 'save_gif':
             return np.array(img)
         elif self.render_mode == 'image':
             return img
