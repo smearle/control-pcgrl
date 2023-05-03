@@ -292,8 +292,18 @@ def main(cfg: Config) -> None:
                 obs, info = env.reset()
                 render_frames.append(env.render())
                 while not done:
-                    action = trainer.compute_single_action(obs)
+                    if cfg.multiagent.n_agents != 0:
+                        action_dict = {}
+                        for agent_id in range(cfg.multiagent.n_agents):
+                            action_dict[f'agent_{agent_id}'] = trainer.compute_single_action(obs[f'agent_{agent_id}'])
+                        action = action_dict
+                    else:
+                        action = trainer.compute_single_action(obs)
                     obs, reward, done, truncated, info = env.step(action)
+
+                    if isinstance(done, dict):
+                        done = done['__all__']
+
                     render_frames.append(env.render())
                 
                 if cfg.render_mode == "save_gif":
