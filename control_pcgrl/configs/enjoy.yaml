@@ -1,5 +1,5 @@
 defaults:
-  - train  # This points to `Config` class in `config.py`
+  - enjoy_pcgrl # This points to `EnjoyConfig` class in `config.py`
   - _self_
 
   # Why can't we override this on the command line?
@@ -8,22 +8,21 @@ defaults:
   - override hydra/launcher: submitit_local
   # - override hydra/launcher: submitit_slurm
 
+
+render_mode: save_gif
+
+
 hydra:
   verbose: true
-  sweeper:
-    params:
-      #exp_id: 0, 1, 2
-      # learning_rate: 5e-5
-      learning_rate: 5e-6
 
   launcher:
     tasks_per_node: 1
 
     #FIXME: Can't set this to 1 or 2 even when only asking from 1 ("0") worker from ray...
-    cpus_per_task: 10 
+    cpus_per_task: 1
 
     gpus_per_node: 1
-    timeout_min: 1440 # 1 days of training
+    timeout_min: 60
     mem_gb: 30
     # Emails maybe?
 
