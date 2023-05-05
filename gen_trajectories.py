@@ -83,7 +83,9 @@ n_train_samples = 1_000_000
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
 def main(cfg: PoDConfig):
-    validate_config(cfg)
+    if not validate_config(cfg):
+        print("Invalid config!")
+        return
 
     traj_dir = os.path.join(cfg.log_dir, "repair-paths")
 

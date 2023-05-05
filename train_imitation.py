@@ -17,7 +17,10 @@ from control_pcgrl.rl.utils import validate_config
 
 @hydra.main(config_path="control_pcgrl/configs", config_name="pod")
 def main(cfg: PoDConfig):
-    validate_config(cfg)
+    cfg = validate_config(cfg)
+    if cfg is False:
+        print("Invalid config!")
+        return
 
     traj_dir = os.path.join(cfg.log_dir, "repair-paths")
 

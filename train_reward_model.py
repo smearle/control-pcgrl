@@ -18,7 +18,9 @@ def main(cfg: Config):
     """Train a model to predict relevant metrics in a PCGRL env. Generate data with random actions 
     (i.e. random map edits).
     """
-    validate_config(cfg)
+    if not validate_config(cfg):
+        print("Invalid config!")
+        return
 
     log_dir = 'logs_reward_model'
     log_dir = os.path.join(hydra.utils.get_original_cwd(), log_dir)

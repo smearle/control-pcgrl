@@ -73,7 +73,10 @@ best_mean_reward, n_steps = -np.inf, 0
 
 @hydra.main(version_base=None, config_path='../configs', config_name='config')
 def main(cfg: Config) -> None:
-    validate_config(cfg)
+    cfg = validate_config(cfg)
+    if cfg is False:
+        print("Invalid config!")
+        return
     print("OmegaConf.to_yaml(cfg)")
     print(OmegaConf.to_yaml(cfg))
     print("Current working directory:", os.getcwd())
@@ -371,7 +374,7 @@ def main(cfg: Config) -> None:
     )
     
     if not cfg.overwrite and os.path.exists(cfg.log_dir):
-        tuner = tune.Tuner.restore(cfg.log_dir)
+        tuner = tune.Tuner.restore(str(cfg.log_dir))
     else:
         tuner = tune.Tuner(
             "CustomTrainer",

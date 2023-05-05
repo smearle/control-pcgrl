@@ -4,7 +4,9 @@ defaults:
 
   # - override hydra/launcher: submitit_local
   # - override hydra/launcher: submitit_slurm
-  - override hydra/launcher: basic
+  - override hydra/launcher: drill_local
+  # - override hydra/launcher: drill_slurm
+  # - override hydra/launcher: basic
 
 hydra:
   verbose: true

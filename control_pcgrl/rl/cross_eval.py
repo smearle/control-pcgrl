@@ -156,12 +156,12 @@ def flatten_dict(d, parent_key='', sep='_'):
 def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
     """Collect results generated when evaluating trained models under different conditions.
     Args:
-        config (CrossEvalConfig): The cross-evaluation config
+        cross_eval_config (CrossEvalConfig): The cross-evaluation config
         sweep_configs (List[EvalConfig]): EvalConfigs corresponding to evaluations
         sweep_params (Dict[str, str]): The eval/train hyperparameters being swept over in the cross-evaluation
     """
-    validate_config(cross_eval_config)
-    [validate_config(c) for c in sweep_configs]
+    # validate_config(cross_eval_config)
+    # [validate_config(c) for c in sweep_configs]
 
     experiment_0 = sweep_configs[0]
 

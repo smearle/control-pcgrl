@@ -299,7 +299,10 @@ def get_log_dir(cfg: Config):
 
 
 def validate_config(cfg: Config):
-    """Set up the experiment name, and raise errors if the config has invalid combinations of hyperparameters (TODO)."""
+    """Set up the experiment name, and raise errors if the config has invalid combinations of hyperparameters (TODO).
+
+    NOTE: This function `validate_config(validate_config(cfg)) == validate_config(cfg) ...`
+    """
 
     cfg.static_tile_wrapper = cfg.static_prob is not None or cfg.n_static_walls is not None
 
@@ -314,6 +317,15 @@ def validate_config(cfg: Config):
     cfg.env_name = get_env_name(cfg.task.problem, cfg.representation)
     print('env name: ', cfg.env_name)
     cfg.log_dir = get_log_dir(cfg)
+
+    if cfg.show_agents and cfg.multiagent.n_agents < 2:
+        return False
+
+    if cfg.model.name == 'seqnca' and np.any(cfg.model.patch_width > cfg.task.obs_window):
+        return False
+
+    return cfg
+    
 
 # def load_model(log_dir, n_tools=None, load_best=False):
 #     if load_best:

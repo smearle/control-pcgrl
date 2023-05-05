@@ -363,18 +363,28 @@ class PcgrlEnv(gym.Env):
             return np.array(img)
         elif self.render_mode == 'image':
             return img
-        elif self.render_mode == 'human':
+        # elif self.render_mode == 'human':
 
-            if self.viewer is None:
-                from gym.envs.classic_control import rendering
-                self.viewer = rendering.SimpleImageViewer()
-                # self.viewer = GUI()
+        #     if self.viewer is None:
+        #         from gym.envs.classic_control import rendering
+        #         self.viewer = rendering.SimpleImageViewer()
+        #         # self.viewer = GUI()
 
-            if not hasattr(img, 'shape'):
-                img = np.array(img)
-            self.viewer.imshow(img)
+        #     if not hasattr(img, 'shape'):
+        #         img = np.array(img)
+        #     self.viewer.imshow(img)
 
-            return self.viewer.isopen
+        #     return self.view
+        #     if self.viewer is None:
+        #         from gym.envs.classic_control import rendering
+        #         self.viewer = rendering.SimpleImageViewer()
+        #         # self.viewer = GUI()
+
+        #     if not hasattr(img, 'shape'):
+        #         img = np.array(img)
+        #     self.viewer.imshow(img)
+
+        #     return self.viewer.isopen
 
         else:
             raise Exception(f"No render_mode: {self.render_mode}")
