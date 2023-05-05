@@ -275,7 +275,8 @@ def main(cfg: Config) -> None:
             print("WARNING: Evaluating random policy.")
             trainer = init_trainer(trainer_config)
         else:
-            trainer = restore_best_ckpt(os.path.join(str(cfg.log_dir), "CustomTrainer"))
+            trainer = init_trainer(trainer_config)
+            trainer = restore_best_ckpt(trainer, os.path.join(str(cfg.log_dir), "CustomTrainer"))
 
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)
@@ -356,7 +357,7 @@ def main(cfg: Config) -> None:
     run_config = air.RunConfig(
         checkpoint_config=air.CheckpointConfig(
             checkpoint_at_end=True,
-            checkpoint_frequency=10,
+            checkpoint_frequency=cfg.checkpoint_freq,
             num_to_keep=3,
             checkpoint_score_attribute='episode_reward_mean',
             checkpoint_score_order='max',

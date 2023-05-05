@@ -314,6 +314,8 @@ class Config:
     n_eval_episodes: int = 1
     infer_n_episodes: int = 3
 
+    checkpoint_freq: int = 10
+
 
 @dataclass
 class EnjoyConfig(Config):
@@ -361,6 +363,8 @@ class PoDConfig(Config):
     # All tiles in the map are turned into wall (or some particular tile). Assuming enough padding, the agent can infer
     # its position, and nothing else.
     obfuscate_observation: bool = False
+
+    offline_algo: str = "BC"
 
 
 cs = ConfigStore.instance()

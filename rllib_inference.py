@@ -19,7 +19,7 @@ import gymnasium as gym
 from gymnasium.spaces import Tuple
 
 from ray import air, tune
-from ray.rllib.agents.ppo import PPOTrainer
+from ray.rllib.algorithms.ppo import PPO as PPOTrainer
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.qmix import QMix
 from ray.rllib.models import ModelCatalog
@@ -98,34 +98,37 @@ def checkpoints_iter(experiment_path):
     return filter(lambda f: 'checkpoint' in f.name, experiment_path.iterdir())
 
 
-def get_best_checkpoint(experiment_path, config):
-    # load progress.csv
-    progress = pd.read_csv(Path(experiment_path, 'progress.csv'))
+# NOTE: DEPRECATED
+# def get_best_checkpoint(experiment_path, config):
+#     # load progress.csv
+#     progress = pd.read_csv(Path(experiment_path, 'progress.csv'))
 
-    max_episode_reward = float('-inf')
-    max_checkpoint = None
-    max_checkpoint_name = None
-    for checkpoint in checkpoints_iter(experiment_path):
-        # get number after underscore in checkpoint
-        trainer = restore_best_ckpt(log_dir)
-        iteration = trainer._iteration
-        # look up iteration in progress dataframe
-        trainer_performance = progress.loc[progress['training_iteration'] == iteration]
-        trainer_reward = trainer_performance['episode_reward_mean'].values[0]
-        # sometimes the first checkpoint has a nan reward
-        if np.isnan(trainer_reward) or trainer_reward > max_episode_reward:
-            max_episode_reward = float('-inf') if np.isnan(trainer_reward) else trainer_reward
-            max_checkpoint = trainer
-            max_checkpoint_name = checkpoint
-    print(f'Loaded from checkpoint: {max_checkpoint_name}')
-    return max_checkpoint
+#     max_episode_reward = float('-inf')
+#     max_checkpoint = None
+#     max_checkpoint_name = None
+#     for checkpoint in checkpoints_iter(experiment_path):
+#         # get number after underscore in checkpoint
+#         trainer = restore_best_ckpt(log_dir)
+#         iteration = trainer._iteration
+#         # look up iteration in progress dataframe
+#         trainer_performance = progress.loc[progress['training_iteration'] == iteration]
+#         trainer_reward = trainer_performance['episode_reward_mean'].values[0]
+#         # sometimes the first checkpoint has a nan reward
+#         if np.isnan(trainer_reward) or trainer_reward > max_episode_reward:
+#             max_episode_reward = float('-inf') if np.isnan(trainer_reward) else trainer_reward
+#             max_checkpoint = trainer
+#             max_checkpoint_name = checkpoint
+#     print(f'Loaded from checkpoint: {max_checkpoint_name}')
+#     return max_checkpoint
 
 
-def restore_best_ckpt(log_dir):
+def restore_best_ckpt(trainer, log_dir):
     tuner = tune.Tuner.restore(log_dir)
     best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
     ckpt = best_result.best_checkpoints[0][0]
-    trainer = Algorithm.from_checkpoint(ckpt)
+    # trainer = Algorithm.from_checkpoint(ckpt)
+    trainer.restore(ckpt)
+
     # ZJ: this(above) is not a good way to restore the trainer, because it will read the path from the checkpoint file,
     # (see state.get("config") if you stop at the breakpoint in the ray.rllib.algorithms.algorithm, it will load from 
     # 'log_dir': /scratch/zj2086/... when I sync the experiment from HPC. As a result, it will fail to load the trainer 
@@ -264,64 +267,64 @@ def make_grouped_env(config):
     )
 
 # run evals with the checkpoint
-def evaluate(experiment_path):
-    # load and setup config
-    config = load_config(experiment_path)
-    if 'multiagent' in config:
-        config['multiagent'] = setup_multiagent_config(config['env_config'], config['env_config']['model'])
-    # delete keys not recognized by rllib
-    del config['checkpoint_path_file']
-    del config['evaluation_env']
-    del config['callbacks']
-    del config['num_workers']
-    del config['num_envs_per_worker']
-    #del config['multiagent']
-    #import pdb; pdb.set_trace()
-    if config['env_config']['algorithm'] == 'PPO':
-        register_env('pcgrl', make_env)
-    else:
-        make_grouped_env(config['env_config'])
-        #register_env('grouped_pcgrl', make_grouped_env)
-    config['num_gpus'] = 0
-    register_model(config)
-    # load trainer from checkpoint
-    trainer = get_best_checkpoint(experiment_path, config)
-    # rollout the model for n trials
-    logdir = Path(experiment_path, f'eval_best_{uuid.uuid4()}')
-    logdir.mkdir()
+# def evaluate(experiment_path):
+#     # load and setup config
+#     config = load_config(experiment_path)
+#     if 'multiagent' in config:
+#         config['multiagent'] = setup_multiagent_config(config['env_config'], config['env_config']['model'])
+#     # delete keys not recognized by rllib
+#     del config['checkpoint_path_file']
+#     del config['evaluation_env']
+#     del config['callbacks']
+#     del config['num_workers']
+#     del config['num_envs_per_worker']
+#     #del config['multiagent']
+#     #import pdb; pdb.set_trace()
+#     if config['env_config']['algorithm'] == 'PPO':
+#         register_env('pcgrl', make_env)
+#     else:
+#         make_grouped_env(config['env_config'])
+#         #register_env('grouped_pcgrl', make_grouped_env)
+#     config['num_gpus'] = 0
+#     register_model(config)
+#     # load trainer from checkpoint
+#     trainer = get_best_checkpoint(experiment_path, config)
+#     # rollout the model for n trials
+#     logdir = Path(experiment_path, f'eval_best_{uuid.uuid4()}')
+#     logdir.mkdir()
 
-    try:
-        policy_mapping_fn = config['multiagent']['policy_mapping_fn']
-        breakpoint()
-    except KeyError:
-        policy_mapping_fn = None
+#     try:
+#         policy_mapping_fn = config['multiagent']['policy_mapping_fn']
+#         breakpoint()
+#     except KeyError:
+#         policy_mapping_fn = None
 
-    paths = []
-    max_changes = 0
-    for trial in tqdm(range(40)):
-        results = rollout(config['env_config'], trainer, policy_mapping_fn, seed=trial*100)
-        #results = rollout(config['env_config'], trainer, config['multiagent']['policy_mapping_fn'], seed=trial*100)
-        trial_log_dir = Path(logdir, f'{trial}')
-        trial_log_dir.mkdir()
-        paths.append(results['infos'][-1])
-        #changes.append(results['infos'][-1]['changes'] / results['infos'][-1]['iterations'])
-        save_trial_metrics(results, trial_log_dir)
+#     paths = []
+#     max_changes = 0
+#     for trial in tqdm(range(40)):
+#         results = rollout(config['env_config'], trainer, policy_mapping_fn, seed=trial*100)
+#         #results = rollout(config['env_config'], trainer, config['multiagent']['policy_mapping_fn'], seed=trial*100)
+#         trial_log_dir = Path(logdir, f'{trial}')
+#         trial_log_dir.mkdir()
+#         paths.append(results['infos'][-1])
+#         #changes.append(results['infos'][-1]['changes'] / results['infos'][-1]['iterations'])
+#         save_trial_metrics(results, trial_log_dir)
 
-    print(f'Wrote logs to: {logdir}')
-
-
+#     print(f'Wrote logs to: {logdir}')
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-            '--experiment_path',
-            '-e',
-            dest='experiment_path',
-            type=str,
-            required=True
-            )
+
+
+# if __name__ == '__main__':
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#             '--experiment_path',
+#             '-e',
+#             dest='experiment_path',
+#             type=str,
+#             required=True
+#             )
 
     #parser.add_argument('checkpoint_loader') # just load the best for now
-    args = parser.parse_args()
-    evaluate(Path(args.experiment_path))
+    # args = parser.parse_args()
+    # evaluate(Path(args.experiment_path))

@@ -58,7 +58,6 @@ def evaluate(trainer: Algorithm, env, cfg):
         
 
 def general_eval(trainer: Algorithm, env, cfg):
-    # breakpoint()
     stats = trainer.evaluate()
     print("Evaluation stats:", stats)
     eval_stats = stats['evaluation']

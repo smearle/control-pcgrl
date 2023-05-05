@@ -4,6 +4,7 @@ import shutil
 import hydra
 from ray import air, tune
 from ray.rllib.algorithms.bc import BCConfig, BC
+from ray.rllib.algorithms.marwil import MARWILConfig, MARWIL
 from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env
 
@@ -28,20 +29,26 @@ def main(cfg: PoDConfig):
     model_cls = CustomFeedForwardModel
     ModelCatalog.register_custom_model("custom_model", model_cls)
 
-    bc_config = BCConfig(
-    )
+    if cfg.offline_algo == "BC":
+        algo_config = BCConfig(
+        )
+    elif cfg.offline_algo == "MARWIL":
+        algo_config = MARWILConfig(
+        )
+    else:
+        raise ValueError(f"Invalid offline algorithm: {cfg.offline_algo}")
 
-    bc_config.model = {
+    algo_config.model = {
         'custom_model': 'custom_model',
         'custom_model_config': {
         },
     }
 
     # Print out some default values.
-    print(bc_config.beta)  
+    print(algo_config.beta)  
 
     # Update the config object.
-    bc_config.training(  
+    algo_config.training(  
         # lr=tune.grid_search([0.001, 0.0001]), beta=0.0
         lr=0.001,
     )
@@ -51,20 +58,20 @@ def main(cfg: PoDConfig):
 
     # Set the config object's data path.
     # Run this from the ray directory root.
-    bc_config.offline_data(  
+    algo_config.offline_data(  
         # input_="./tmp/demo-out/output-2023-0"
         # input_=os.path.join(cfg.log_dir, "demo-out")
         input_=traj_glob,
     )
 
     # Set the config object's env, used for evaluation.
-    bc_config.environment(env='pcgrl')  
-    bc_config.env_config = {**cfg}
+    algo_config.environment(env='pcgrl')  
+    algo_config.env_config = {**cfg}
 
-    bc_config.framework("torch")
+    algo_config.framework("torch")
 
     il_log_dir = "il_logs"
-    exp_name = "BC"
+    exp_name = cfg.offline_algo
 
     exp_dir = os.path.join(il_log_dir, exp_name)
 
@@ -83,8 +90,9 @@ def main(cfg: PoDConfig):
         )
 
         tuner = tune.Tuner(
-            "BC",
-            param_space=bc_config.to_dict(),
+            cfg.offline_algo,
+            # "BC",
+            param_space=algo_config.to_dict(),
             tune_config = tune.TuneConfig(
                 metric="info/learner/default_policy/learner_stats/policy_loss",
                 mode="min",
@@ -93,9 +101,10 @@ def main(cfg: PoDConfig):
         )
 
     if cfg.infer:
+        algo_cls = BC if cfg.offline_algo == "BC" else MARWIL
         best_result = tuner.get_results().get_best_result()
         ckpt = best_result.best_checkpoints[0][0]
-        bc_model = BC.from_checkpoint(ckpt)
+        bc_model = algo_cls.from_checkpoint(ckpt)
         print(f"Restored from checkpoint {ckpt}")
         # bc_model.evaluate()
 
@@ -106,7 +115,7 @@ def main(cfg: PoDConfig):
             done, truncated = False, False
             while not done and not truncated:
                 # action = bc_model.compute_single_action(obfuscate_observation(obs), explore=False)
-                action = bc_model.compute_single_action((obs))
+                action = bc_model.compute_single_action((obs), explore=True)
                 obs, reward, done, truncated, info = env.step(action)
                 env.render()
 

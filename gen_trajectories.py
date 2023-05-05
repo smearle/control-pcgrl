@@ -119,8 +119,8 @@ def main(cfg: PoDConfig):
         # env.queue_goal_map(goal_levels[map_id])
 
         obs, info = env.reset()
-        # prev_action = np.zeros_like(env.action_space.sample())
-        # prev_reward = 0
+        prev_action = np.zeros_like(env.action_space.sample())
+        prev_reward = 0
         terminated = truncated = False
         t = 0
         while not terminated and not truncated:
@@ -137,17 +137,17 @@ def main(cfg: PoDConfig):
                 actions=action,
                 # action_prob=1.0,  # put the true action probability here
                 # action_logp=0.0,
-                # rewards=-rew,
-                # prev_actions=prev_action,
-                # prev_rewards=prev_reward,
-                # terminateds=terminated,
+                rewards=-rew,
+                prev_actions=prev_action,
+                prev_rewards=prev_reward,
+                terminateds=terminated,
                 # truncateds=truncated,
                 # infos=info,
                 # new_obs=dummify_observation(prep.transform(new_obs)),
             )
             obs = new_obs
-            # prev_action = action
-            # prev_reward = -rew
+            prev_action = action
+            prev_reward = -rew
             t += 1
         writer.write(batch_builder.build_and_reset())
 
