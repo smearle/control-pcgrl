@@ -8,5 +8,5 @@ hydra:
   verbose: true
   sweeper:
     params:
-      learning_rate: 1e-4, 1e-5, 5e-5
+      # learning_rate: 1e-4, 1e-5, 5e-5
 

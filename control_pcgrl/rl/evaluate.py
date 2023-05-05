@@ -47,6 +47,7 @@ def evaluate(trainer: Algorithm, env, cfg):
     # TODO: If 2 controls, test 2 controls at once. Also test each control independently.
 
     if GENERAL_EVAL:
+        # in case n_eval_episodes is not the same as when we init the trainer during training
         general_stats = general_eval(trainer, env, cfg)
         eval_stats.update(general_stats)
 
@@ -56,7 +57,8 @@ def evaluate(trainer: Algorithm, env, cfg):
     # pickle.dump(stats, open(os.path.join(cfg.log_dir, 'eval_stats.pkl'), 'wb'))
         
 
-def general_eval(trainer, env, cfg):
+def general_eval(trainer: Algorithm, env, cfg):
+    # breakpoint()
     stats = trainer.evaluate()
     print("Evaluation stats:", stats)
     eval_stats = stats['evaluation']

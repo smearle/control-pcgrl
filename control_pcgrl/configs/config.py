@@ -206,6 +206,7 @@ class MinecraftMazeControlConfig(MinecraftConfig):
 
 @dataclass
 class MultiagentConfig:
+    name: str = MISSING
     n_agents: int = MISSING
     # valid values: (shared, independent, JSON string)
     policies: str = "centralized"  # use shared weights by default
@@ -214,17 +215,20 @@ class MultiagentConfig:
 @dataclass
 class SingleAgentConfig(MultiagentConfig):
     """Single agent environment etc."""
+    name: str = 'single_agent'
     n_agents: int = 0
 
 
 @dataclass
 class SingleAgentDummyMultiConfig(MultiagentConfig):
     """Multi-agent env and wrappers. Use this to validate our multiagent implementation."""
+    name: str = 'single_agent_dummy'
     n_agents: int = 1
 
 
 @dataclass
 class SharedPolicyConfig(MultiagentConfig):
+    name: str = 'shared_policy'
     n_agents: int = 2
 
 
@@ -339,7 +343,7 @@ class EvalConfig(Config):
 @dataclass
 class CrossEvalConfig(EvalConfig):
     """Config for cross-evaluation."""
-    name: str = "lr_sweep"
+    name: str = "cross_eval"
 
 
 @dataclass

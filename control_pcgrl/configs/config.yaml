@@ -7,6 +7,7 @@ defaults:
 
   - override hydra/launcher: submitit_local
   # - override hydra/launcher: submitit_slurm
+  # - override hydra/launcher: basic              # launch sequentially
 
 hydra:
   verbose: true
