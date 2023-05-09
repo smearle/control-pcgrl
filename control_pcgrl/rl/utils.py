@@ -315,7 +315,7 @@ def validate_config(cfg: Config):
         cfg.task.obs_window = obs_window
 
     cfg.env_name = get_env_name(cfg.task.problem, cfg.representation)
-    print('env name: ', cfg.env_name)
+    # print('env name: ', cfg.env_name)
     cfg.log_dir = get_log_dir(cfg)
 
     if cfg.show_agents and cfg.multiagent.n_agents < 2:
@@ -323,6 +323,11 @@ def validate_config(cfg: Config):
 
     if cfg.model.name == 'seqnca' and np.any(cfg.model.patch_width > cfg.task.obs_window):
         return False
+
+    # TODO: Only QMIX when multagent.
+
+    # TODO: Potentially make sure that action space does not correspond to a level patch that is bigger than the 
+    # observation.
 
     return cfg
     
@@ -390,76 +395,141 @@ def parse_ppo_config(
     # eval_num_workers = kwargs.get('num_workers', 0)
     eval_num_workers = num_workers if cfg.evaluate else 0
 
-    return {
-        'env': 'pcgrl',
-        **multiagent_config,
-        'framework': 'torch',
-        'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
-        'num_gpus': cfg.hardware.n_gpu,
-        'env_config': {
+    ppo_config = PPOConfig(
+    )
+    ppo_config.environment(env='pcgrl', 
+        render_env=cfg.render,
+        env_config={
             **cfg,  # Maybe env should get its own config? (A subset of the original?)
             "evaluation_env": False,
         },
-        'num_envs_per_worker': num_envs_per_worker,
-        'render_env': cfg.render,
-        'lr': cfg.learning_rate,
-        'gamma': cfg.gamma,
-        'model': {
+        env_task_fn=set_map_fn,
+        disable_env_checking=True,
+    )
+    ppo_config.framework('torch')
+    ppo_config.rollouts(
+        num_rollout_workers=num_workers,
+        num_envs_per_worker=num_envs_per_worker,
+    )
+    ppo_config.training(
+        model={
             'custom_model': 'custom_model',
             'custom_model_config': {
                 "dummy_env_obs_space": copy.copy(agent_obs_space),
             **model_cfg,
             },
         },
-        # When training, eval for 1 episode every 100 train steps. If evaluating, evaluate for 100 episodes.
-        "evaluation_interval": 1 if not cfg.evaluate else cfg.n_eval_episodes,  # meaningless if evaluating pre-trained agent (?)
-        "evaluation_duration_unit": "episodes",
-        "evaluation_duration": cfg.n_eval_episodes if cfg.evaluate else max(1, eval_num_workers),
-        "evaluation_num_workers": eval_num_workers,
-        "env_task_fn": set_map_fn,
-        "evaluation_config": {
+        lr=cfg.learning_rate,
+        gamma=cfg.gamma,
+        train_batch_size=cfg.train_batch_size,
+    )
+    # ppo_config.model(
+    #     custom_model='custom_model',
+    #     custom_model_config={
+    #         "dummy_env_obs_space": copy.copy(agent_obs_space),
+    #         **model_cfg,
+    #     },
+    # )
+    ppo_config.evaluation(
+        evaluation_interval=1 if not cfg.evaluate else cfg.n_eval_episodes,  # meaningless if evaluating pre-trained agent (?)
+        evaluation_duration_unit='episodes',
+        evaluation_duration=cfg.n_eval_episodes if cfg.evaluate else max(1, eval_num_workers),
+        evaluation_num_workers=eval_num_workers,
+        evaluation_config={
             "env_config": {
                 **cfg,
                 "evaluation_env": True,
                 "num_eval_envs": num_envs_per_worker * eval_num_workers,
             },
-            "explore": True if cfg.infer else False,
-            "render_env": cfg.render,
         },
-        "logger_config": {
-                # "wandb": {
-                    # "project": "PCGRL",
-                    # "name": exp_name_id,
-                    # "id": exp_name_id,
-                    # "api_key_file": "~/.wandb_api_key"
-            # },
+    )
+    ppo_config.debugging(
+        logger_config={
             **logger_type,
-            # Optional: Custom logdir (do not define this here
-            # for using ~/ray_results/...).
             "logdir": log_dir,
         },
-#       "exploration_config": {
-#           "type": "Curiosity",
-#       }
-#       "log_level": "INFO",
-        # "train_batch_size": 50,
-        # "sgd_minibatch_size": 50,
-        'callbacks': stats_callbacks,
+    )
+    ppo_config.callbacks(
+        stats_callbacks,
+    )
+    ppo_config.exploration(
+        explore=True,
+    )
+    ppo_config.resources(
+        num_gpus=cfg.hardware.n_gpu
+    )
 
-        # To take random actions while changing all tiles at once seems to invite too much chaos.
-        'explore': True,
+#     ppo_config = {
+#         'env': 'pcgrl',
+#         **multiagent_config,
+#         'framework': 'torch',
+#         'num_workers': num_workers if not (cfg.evaluate or cfg.infer) else 0,
+#         'num_gpus': cfg.hardware.n_gpu,
+#         'env_config': {
+#             **cfg,  # Maybe env should get its own config? (A subset of the original?)
+#             "evaluation_env": False,
+#         },
+#         'num_envs_per_worker': num_envs_per_worker,
+#         'render_env': cfg.render,
+#         'lr': cfg.learning_rate,
+#         'gamma': cfg.gamma,
+#         'model': {
+#             'custom_model': 'custom_model',
+#             'custom_model_config': {
+#                 "dummy_env_obs_space": copy.copy(agent_obs_space),
+#             **model_cfg,
+#             },
+#         },
+#         # When training, eval for 1 episode every 100 train steps. If evaluating, evaluate for 100 episodes.
+#         "evaluation_interval": 1 if not cfg.evaluate else cfg.n_eval_episodes,  # meaningless if evaluating pre-trained agent (?)
+#         "evaluation_duration_unit": "episodes",
+#         "evaluation_duration": cfg.n_eval_episodes if cfg.evaluate else max(1, eval_num_workers),
+#         "evaluation_num_workers": eval_num_workers,
+#         "env_task_fn": set_map_fn,
+#         "evaluation_config": {
+#             "env_config": {
+#                 **cfg,
+#                 "evaluation_env": True,
+#                 "num_eval_envs": num_envs_per_worker * eval_num_workers,
+#             },
+#             "explore": True if cfg.infer else False,
+#             "render_env": cfg.render,
+#         },
+#         "logger_config": {
+#                 # "wandb": {
+#                     # "project": "PCGRL",
+#                     # "name": exp_name_id,
+#                     # "id": exp_name_id,
+#                     # "api_key_file": "~/.wandb_api_key"
+#             # },
+#             **logger_type,
+#             # Optional: Custom logdir (do not define this here
+#             # for using ~/ray_results/...).
+#             "logdir": log_dir,
+#         },
+# #       "exploration_config": {
+# #           "type": "Curiosity",
+# #       }
+# #       "log_level": "INFO",
+#         # "train_batch_size": 50,
+#         # "sgd_minibatch_size": 50,
+#         'callbacks': stats_callbacks,
 
-        # `ray.tune` seems to need these spaces specified here.
-        # 'observation_space': dummy_env.observation_space,
-        # 'action_space': dummy_env.action_space,
+#         # To take random actions while changing all tiles at once seems to invite too much chaos.
+#         'explore': True,
 
-        # 'create_env_on_driver': True,
-        # 'checkpoint_path_file': checkpoint_path_file,
-        # 'record_env': log_dir,
-        'disable_env_checking': True,
+#         # `ray.tune` seems to need these spaces specified here.
+#         # 'observation_space': dummy_env.observation_space,
+#         # 'action_space': dummy_env.action_space,
 
-        'train_batch_size': cfg.train_batch_size,
-    }
+#         # 'create_env_on_driver': True,
+#         # 'checkpoint_path_file': checkpoint_path_file,
+#         # 'record_env': log_dir,
+#         'disable_env_checking': True,
+
+#         'train_batch_size': cfg.train_batch_size,
+#     }
+    return ppo_config
 
 
 def make_grouped_env(config):

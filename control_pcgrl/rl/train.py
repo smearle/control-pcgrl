@@ -71,7 +71,7 @@ best_mean_reward, n_steps = -np.inf, 0
 #                 wandb.log({k: v}, step=result['training_iteration'])
 
 
-@hydra.main(version_base=None, config_path='../configs', config_name='config')
+@hydra.main(version_base=None, config_path='../configs', config_name='train')
 def main(cfg: Config) -> None:
     cfg = validate_config(cfg)
     if cfg is False:
@@ -262,7 +262,7 @@ def main(cfg: Config) -> None:
     # trainer_config_loggable.pop('action_space')
     # trainer_config_loggable.pop('multiagent')
     print(f'Loading trainer with config:')
-    print(pretty_print(trainer_config_loggable))
+    print(pretty_print(trainer_config_loggable.to_dict()))
 
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer or cfg.evaluate:
@@ -318,8 +318,8 @@ def main(cfg: Config) -> None:
                         print(f"Saved {epi_index} episodes to {log_dir}.")
                         break
 
+        ray.shutdown()
         # Quit the program before agent starts training.
-        sys.exit()
         return
 
     #tune.register_trainable("CustomPPO", PPOTrainer)
@@ -392,6 +392,7 @@ def main(cfg: Config) -> None:
     except KeyboardInterrupt:
         ray.shutdown()
     
+    ray.shutdown()
     return print("Yay! Experiment finished!")
 
 

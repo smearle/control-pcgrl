@@ -2,9 +2,9 @@
 hydra:
   sweeper:
     params:
-      exp_id: 0, 1, 2
-      multiagent.n_agents: 1, 2, 3
+      multiagent.n_agents: 1, 2
       representation: turtle
-      multiagent: shared_policy
       show_agents: True, False
+
+checkpoint_freq: 1
 

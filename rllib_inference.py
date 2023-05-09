@@ -19,6 +19,7 @@ import gymnasium as gym
 from gymnasium.spaces import Tuple
 
 from ray import air, tune
+from ray.rllib.algorithms import AlgorithmConfig
 from ray.rllib.algorithms.ppo import PPO as PPOTrainer
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.qmix import QMix
@@ -136,12 +137,13 @@ def restore_best_ckpt(trainer, log_dir):
     return trainer
 
 
-def init_trainer(config):
+def init_trainer(config: AlgorithmConfig):
     # config.pop('checkpoint_path_file') # huh?
-    if config['env_config']['algorithm'] == 'QMIX':
-        trainer = QMix(config=config)
-    else:
-        trainer = PPOTrainer(config=config)
+    trainer = config.build()
+    # if config['env_config']['algorithm'] == 'QMIX':
+    #     trainer = QMix(config=config)
+    # else:
+    #     trainer = PPOTrainer(config=config)
     return trainer
 
 

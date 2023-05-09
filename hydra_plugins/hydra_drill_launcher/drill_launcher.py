@@ -2,10 +2,11 @@
 import logging
 import os
 from pathlib import Path
+import time
 from typing import Any, Dict, List, Optional, Sequence
 
 from hydra.core.singleton import Singleton
-from hydra.core.utils import JobReturn, filter_overrides, run_job, setup_globals
+from hydra.core.utils import JobReturn, JobStatus, filter_overrides, run_job, setup_globals
 from hydra.plugins.launcher import Launcher
 from hydra.types import HydraContext, TaskFunction
 from omegaconf import DictConfig, OmegaConf, open_dict
@@ -108,26 +109,28 @@ class BaseDrillLauncher(Launcher):
             }
         )
         init_keys = specific_init_keys | {"submitit_folder"}
-        executor = submitit.AutoExecutor(cluster=self._EXECUTOR, **init_params)
 
-        # specify resources/parameters
-        baseparams = set(OmegaConf.structured(BaseQueueConf).keys())
-        params = {
-            x if x in baseparams else f"{self._EXECUTOR}_{x}": y
-            for x, y in params.items()
-            if x not in init_keys
-        }
-        executor.update_parameters(**params)
+        if self._EXECUTOR != 'cross-eval':
+            executor = submitit.AutoExecutor(cluster=self._EXECUTOR, **init_params)
 
-        log.info(
-            f"Submitit '{self._EXECUTOR}' sweep output dir : "
-            f"{self.config.hydra.sweep.dir}"
-        )
-        sweep_dir = Path(str(self.config.hydra.sweep.dir))
-        sweep_dir.mkdir(parents=True, exist_ok=True)
-        if "mode" in self.config.hydra.sweep:
-            mode = int(str(self.config.hydra.sweep.mode), 8)
-            os.chmod(sweep_dir, mode=mode)
+            # specify resources/parameters
+            baseparams = set(OmegaConf.structured(BaseQueueConf).keys())
+            params = {
+                x if x in baseparams else f"{self._EXECUTOR}_{x}": y
+                for x, y in params.items()
+                if x not in init_keys
+            }
+            executor.update_parameters(**params)
+
+            log.info(
+                f"Submitit '{self._EXECUTOR}' sweep output dir : "
+                f"{self.config.hydra.sweep.dir}"
+            )
+            sweep_dir = Path(str(self.config.hydra.sweep.dir))
+            sweep_dir.mkdir(parents=True, exist_ok=True)
+            if "mode" in self.config.hydra.sweep:
+                mode = int(str(self.config.hydra.sweep.mode), 8)
+                os.chmod(sweep_dir, mode=mode)
 
         sweep_configs: List[Any] = []
         job_params: List[Any] = []
@@ -159,9 +162,25 @@ class BaseDrillLauncher(Launcher):
         job_params = [j for i, j in enumerate(job_params) if sweep_configs[i] is not False]
         # End custom drill bit.
 
+        if self._EXECUTOR == 'cross-eval':
+            setup_globals()
+            sweep_configs = [c for c in sweep_configs if c is not False]
+
+            # NOTE: We're only able to get the sweeper params when they're in the yaml (not command line).
+            sweep_params = self.config.hydra.sweeper.params
+        
+            from control_pcgrl.rl.cross_eval import cross_evaluate
+            cross_evaluate(self.config, sweep_configs, sweep_params)
+
+            # Just a dummy to placate hydra.
+            return [JobReturn(_return_value=None, status=JobStatus.COMPLETED) for j in sweep_configs]
+
         jobs = executor.map_array(self, *zip(*job_params))
         return [j.results()[0] for j in jobs]
 
+
+class BasicLauncher(BaseDrillLauncher):
+    _EXECUTOR = "debug"
 
 class LocalLauncher(BaseDrillLauncher):
     _EXECUTOR = "local"

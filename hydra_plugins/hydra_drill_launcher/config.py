@@ -76,6 +76,12 @@ class SlurmQueueConf(BaseQueueConf):
 
 
 @dataclass
+class DrillBaseQueueConf(BaseQueueConf):
+    _target_: str = (
+        "hydra_plugins.hydra_drill_launcher.drill_launcher.BasicLauncher"
+    )
+
+@dataclass
 class LocalQueueConf(BaseQueueConf):
     _target_: str = (
         "hydra_plugins.hydra_drill_launcher.drill_launcher.LocalLauncher"
@@ -88,25 +94,31 @@ class CrossEvalQueueConf(BaseQueueConf):
     )
 
 
-# finally, register two different choices:
+# finally, register the several different choices
+ConfigStore.instance().store(
+    group="hydra/launcher",
+    name="drill_basic",
+    node=DrillBaseQueueConf(),
+    provider="drill_launcher",
+)
+
 ConfigStore.instance().store(
     group="hydra/launcher",
     name="drill_local",
     node=LocalQueueConf(),
-    provider="submitit_launcher",
+    provider="drill_launcher",
 )
-
 
 ConfigStore.instance().store(
     group="hydra/launcher",
     name="drill_slurm",
     node=SlurmQueueConf(),
-    provider="submitit_launcher",
+    provider="drill_launcher",
 )
 
 ConfigStore.instance().store(
     group="hydra/launcher",
     name="drill_cross_eval",
     node=CrossEvalQueueConf(),
-    provider="submitit_launcher",
+    provider="drill_launcher",
 )

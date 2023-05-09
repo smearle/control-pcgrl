@@ -2,11 +2,11 @@ defaults:
   - cross_eval_pcgrl
   - _self_
 
-  - override hydra/launcher: cross-eval
+  - override hydra/launcher: drill_cross_eval
 
 hydra:
   verbose: true
   sweeper:
     params:
-      # learning_rate: 1e-4, 1e-5, 5e-5
+      learning_rate: 1e-3, 1e-4
 

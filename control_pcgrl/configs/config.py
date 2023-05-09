@@ -369,7 +369,7 @@ class PoDConfig(Config):
 
 cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`
-cs.store(name="train", node=Config)
+cs.store(name="train_pcgrl", node=Config)
 cs.store(name="enjoy_pcgrl", node=EnjoyConfig)
 cs.store(name="eval_pcgrl", node=EvalConfig)
 cs.store(name="cross_eval_pcgrl", node=CrossEvalConfig)
