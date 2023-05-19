@@ -373,12 +373,13 @@ def main(cfg: Config) -> None:
         mode='max',
         metric='episode_reward_mean',
     )
+    trainer_name = "CustomTrainer"
     
     if not cfg.overwrite and os.path.exists(cfg.log_dir):
-        tuner = tune.Tuner.restore(str(cfg.log_dir))
+        tuner = tune.Tuner.restore(str(os.path.join(cfg.log_dir, trainer_name)))
     else:
         tuner = tune.Tuner(
-            "CustomTrainer",
+            trainer_name,
             param_space=trainer_config,
             tune_config=tune_config,
             run_config= run_config,

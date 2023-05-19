@@ -336,7 +336,7 @@ class EvalConfig(Config):
     # Indicate that we cannot overwrite this
     evaluate: bool = True
 
-    n_eval_episodes: int = 1
+    n_eval_episodes: int = 10
 
     # Evaluate a fully random policy (do not load model)
     eval_random: bool = False

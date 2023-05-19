@@ -1,0 +1,9 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      exp_id: 0, 1, 2
+      model: default_model, seqnca
+      act_window: "[16,16],[8,8],[6,6],[4,4],[2,2],[1,1]"
+
+# for squeegee experiments

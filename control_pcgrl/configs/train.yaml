@@ -7,8 +7,8 @@ defaults:
 
   # Replicates respective submitit plugins and filters out invalid experiments
   # - override hydra/launcher: drill_basic
-  - override hydra/launcher: drill_local
-  # - override hydra/launcher: drill_slurm
+  # - override hydra/launcher: drill_local
+  - override hydra/launcher: drill_slurm
 
   # - override hydra/launcher: basic              # launch sequentially
   # - override hydra/launcher: submitit_local
@@ -20,20 +20,20 @@ hydra:
     params:
       #exp_id: 0, 1, 2
       # learning_rate: 5e-5
-      learning_rate: 5e-6
+      # learning_rate: 5e-6
 
-  # launcher:
-  #   tasks_per_node: 1
+  launcher:
+    tasks_per_node: 1
 
-  #   #FIXME: Can't set this to 1 or 2 even when only asking from 1 ("0") worker from ray...
-  #   cpus_per_task: 13
+    #FIXME: Can't set this to 1 or 2 even when only asking from 1 ("0") worker from ray...
+    cpus_per_task: 13
 
-  #   gpus_per_node: 1
-  #   timeout_min: 1440 # 1 days of training
-  #   mem_gb: 30
-  #   # Emails maybe?
+    gpus_per_node: 1
+    timeout_min: 1440 # 1 days of training
+    mem_gb: 30
+    # Emails maybe?
 
-  #   array_parallelism: 1
+    # array_parallelism: 1
 
   job:
     chdir: False
