@@ -376,7 +376,8 @@ def main(cfg: Config) -> None:
     trainer_name = "CustomTrainer"
     
     if not cfg.overwrite and os.path.exists(cfg.log_dir):
-        tuner = tune.Tuner.restore(str(os.path.join(cfg.log_dir, trainer_name)))
+        tuner = tune.Tuner.restore(str(os.path.join(cfg.log_dir, trainer_name)), trainable=trainer_name)
+        # tuner = tune.Tuner.restore(str(cfg.log_dir))
     else:
         tuner = tune.Tuner(
             trainer_name,

@@ -58,6 +58,7 @@ def evaluate(trainer: Algorithm, env, cfg):
         
 
 def general_eval(trainer: Algorithm, env, cfg):
+    total_steps = trainer.config.train_batch_size * trainer.get_state()['iteration']
     stats = trainer.evaluate()
     print("Evaluation stats:", stats)
     eval_stats = stats['evaluation']
@@ -69,6 +70,10 @@ def general_eval(trainer: Algorithm, env, cfg):
     eval_stats.pop('custom_metrics')
     eval_stats.update(custom_stats)
     eval_stats = {k: int(v) if isinstance(v, np.int64) else v for k, v in eval_stats.items()}
+
+    # HACK: Trainer state does not include timesteps total? Hehe rllib.
+    eval_stats['total_steps'] = total_steps
+
     return eval_stats
 
 

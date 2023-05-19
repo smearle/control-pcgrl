@@ -165,7 +165,8 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
 
     experiment_0 = sweep_configs[0]
 
-    col_headers = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean', 'episodes_this_iter']
+    col_headers = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean', 
+                   'episodes_this_iter', 'total_steps']
     row_headers = [k for k in sweep_params.keys()]
 
     rows = []
