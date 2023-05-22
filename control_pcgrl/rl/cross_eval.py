@@ -167,7 +167,14 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
 
     col_headers = ['episode_reward_max', 'episode_reward_mean', 'episode_reward_min', 'episode_len_mean', 
                    'episodes_this_iter', 'total_steps']
+    # TODO: Automate these!
+    col_headers += ['path-length_max', 'path-length_mean', 'path-length_min']
     row_headers = [k for k in sweep_params.keys()]
+
+    # row_headers_sorted = ['model', 'act_window', 'exp_id']
+    # sort_map = {k: i for i, k in enumerate(row_headers_sorted)}
+
+    # row_headers = sorted(row_headers, key=sort_map.__getitem__)
 
     rows = []
     vals = []
@@ -176,11 +183,18 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
         print(type(experiment))
         exp_path = experiment.log_dir
         path = os.path.join(exp_path, "eval_stats.json")
+
+        if not os.path.isfile(path):
+            print(f"No eval_stats.json found in {path}")
+            continue
+            
+        print(f"Loading eval stats from {path}")
+
         with open(path, "r") as f:
             stats = json.load(f)
             # stats = flatten_stats(stats)
             stats = flatten_dict(stats)
-
+     
         row = []
 
         for k in row_headers:
@@ -196,7 +210,7 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
 
         rows.append(row)
 
-        exp_stats = [stats[k] for k in col_headers]
+        exp_stats = [stats[k] for k in col_headers if k in stats]
         vals.append(exp_stats)
 
     # iterate col_headers and replace "_" with " " to avoid latex errors
@@ -590,8 +604,14 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
 
     # latex = df_table.to_latex(escape=escape, index=index, column_format=cols, header=header, multicolumn=multicolumn,
     #                           **kwargs)
-    latex = df_table.style.to_latex(column_format=cols,
-                              **kwargs)
+
+    # s = df_table.style.highlight_max(
+    #     props='cellcolor:[HTML]{FFFF00}; color:{red}; itshape:; bfseries:;'
+    # )
+
+    s = df_table.style.format('{:,.2f}')
+
+    latex = s.to_latex(column_format=cols, **kwargs)
 
 
     with open(latex_file, 'w') as f:

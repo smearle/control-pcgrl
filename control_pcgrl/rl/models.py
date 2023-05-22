@@ -30,9 +30,10 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
         nn.Module.__init__(self)
         super().__init__(obs_space, action_space, num_outputs, model_config,
                          name)
-
         # self.obs_size = get_preprocessor(obs_space)(obs_space).size
-        obs_shape = obs_space.shape
+        # obs_shape = obs_space.shape
+        obs_shape = kwargs['dummy_env_obs_space'].shape
+
         self.img_shape = obs_shape
         obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
         self.fc_size = fc_size
@@ -180,7 +181,15 @@ class SeqNCA(TorchModelV2, nn.Module):
         # self.pre_fc_size = math.prod([obs_shape[-2-i] for i in range(dim)]) * conv_filters
 
         self.patch_width = model_config['custom_model_config']['patch_width']
-        pw = self.patch_width if self.patch_width is not None else 3
+
+        if self.patch_width is None:
+            # Default to 3x3 patches.
+            pw = 3
+        elif self.patch_width == -1:
+            # Do not carve out any patch (basically the default model)
+            pw = self.obs_shape[0]  # NOTE: Assuming the observation is square/cube.
+        else:
+            pw = self.patch_width
 
         self.fc_1 = SlimFC(self.pre_fc_size, self.fc_size)
 
@@ -247,6 +256,7 @@ class SeqNCA(TorchModelV2, nn.Module):
         # x_act = th.cat((x[:, :, x.shape[2] // 2 - 1:x.shape[2] // 2 + 2, x.shape[3] // 2 - 1:x.shape[3] // 2 + 2].reshape(x.size(0), -1), ctrl_metrics), dim=1)
         # x = th.cat((x.reshape(x.size(0), -1), ctrl_metrics), dim=1)
         self._features = x
+
         action_out = self.action_branch(x_act)
 
         return action_out, []

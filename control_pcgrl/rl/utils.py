@@ -319,6 +319,7 @@ def validate_config(cfg: Config):
     cfg.log_dir = get_log_dir(cfg)
 
     if cfg.show_agents and cfg.multiagent.n_agents < 2:
+        # Just broken (nothing wrong in theory)
         return False
 
     if cfg.model.name == 'seqnca' and np.any(cfg.model.patch_width > cfg.task.obs_window):
