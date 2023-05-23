@@ -280,7 +280,7 @@ class Config:
     load: bool = True
     overwrite: bool = False
     wandb: bool = False
-    timesteps_total: int = int(1e10)
+    timesteps_total: int = int(2e7)
 
     exp_id: str = '0'
     representation: str = 'narrow'

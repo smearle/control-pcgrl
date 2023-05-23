@@ -1,0 +1,6 @@
+defaults:
+  - zelda
+
+name: zelda_big
+map_shape: [32, 32]
+obs_window: [64, 64]

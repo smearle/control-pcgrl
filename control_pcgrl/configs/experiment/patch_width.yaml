@@ -2,8 +2,8 @@
 hydra:
   sweeper:
     params:
-      exp_id: 0, 1, 2
       model: seqnca
-      model.patch_width: 3, 5, 7, 9, 11, -1
+      model.patch_width: 5, 7, 9, 11
+      exp_id: 0, 1, 2
 
 # for patch width experiments, seqnca only

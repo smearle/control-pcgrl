@@ -1,0 +1,6 @@
+defaults:
+  - binary
+
+name: binary_bigger
+map_shape: [64, 64]
+obs_window: [128, 128]

@@ -3,7 +3,8 @@ hydra:
   sweeper:
     params:
       model: default_model, seqnca
-      act_window: "[16,16],[8,8],[6,6],[4,4],[2,2],[1,1]"
+      task: binary_big, binary_bigger, zelda, zelda_big, zelda_bigger
       exp_id: 0, 1, 2
-
-# for squeegee experiments
+  
+  launcher:
+    mem_gb: 70

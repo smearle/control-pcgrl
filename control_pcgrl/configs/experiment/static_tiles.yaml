@@ -2,8 +2,8 @@
 hydra:
   sweeper:
     params:
-      exp_id: 0, 1, 2
       model: seqnca
       static_prob: 0, 0.1, 0.3, 0.5
       n_static_walls: 0, 3, 5, 7
+      exp_id: 0, 1, 2
 
