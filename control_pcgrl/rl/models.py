@@ -38,7 +38,7 @@ class CustomFeedForwardModel(TorchModelV2, nn.Module):
         obs_shape = (obs_shape[2], obs_shape[0], obs_shape[1])
         self.fc_size = fc_size
 
-        self.conv_1 = nn.Conv2d(obs_space.shape[-1], out_channels=conv_filters, kernel_size=7, stride=2, padding=3)
+        self.conv_1 = nn.Conv2d(obs_shape[0], out_channels=conv_filters, kernel_size=7, stride=2, padding=3)
         self.conv_2 = nn.Conv2d(conv_filters, out_channels=conv_filters, kernel_size=7, stride=2, padding=3)
 
         self.pre_fc_size = self.conv_2(self.conv_1(th.zeros(1, *obs_shape))).reshape(1, -1).shape[-1]

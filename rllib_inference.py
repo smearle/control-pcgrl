@@ -137,14 +137,14 @@ def restore_best_ckpt(trainer, log_dir):
     return trainer
 
 
-def init_trainer(config: AlgorithmConfig):
-    # config.pop('checkpoint_path_file') # huh?
-    trainer = config.build()
-    # if config['env_config']['algorithm'] == 'QMIX':
-    #     trainer = QMix(config=config)
-    # else:
-    #     trainer = PPOTrainer(config=config)
-    return trainer
+# def init_trainer(config: AlgorithmConfig):
+#     # config.pop('checkpoint_path_file') # huh?
+#     trainer = config.build()
+#     # if config['env_config']['algorithm'] == 'QMIX':
+#     #     trainer = QMix(config=config)
+#     # else:
+#     #     trainer = PPOTrainer(config=config)
+#     return trainer
 
 
 def register_model(config):

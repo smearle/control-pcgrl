@@ -51,7 +51,7 @@ from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
-from rllib_inference import init_trainer, restore_best_ckpt
+from rllib_inference import restore_best_ckpt
 
 # Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
 MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
@@ -264,6 +264,8 @@ def main(cfg: Config) -> None:
     print(f'Loading trainer with config:')
     print(pretty_print(trainer_config_loggable.to_dict()))
 
+    trainer_name = "CustomTrainer"
+
     # Do inference, i.e., observe agent behavior for many episodes.
     if cfg.infer or cfg.evaluate:
         cfg: EvalConfig = cfg
@@ -273,10 +275,10 @@ def main(cfg: Config) -> None:
         # })
         if cfg.eval_random:
             print("WARNING: Evaluating random policy.")
-            trainer = init_trainer(trainer_config)
+            trainer = trainer_config.build()
         else:
-            trainer = init_trainer(trainer_config)
-            trainer = restore_best_ckpt(trainer, os.path.join(str(cfg.log_dir), "CustomTrainer"))
+            trainer = trainer_config.build()
+            trainer = restore_best_ckpt(trainer, os.path.join(str(cfg.log_dir), trainer_name))
 
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)
@@ -373,11 +375,12 @@ def main(cfg: Config) -> None:
         mode='max',
         metric='episode_reward_mean',
     )
-    trainer_name = "CustomTrainer"
     
     if not cfg.overwrite and os.path.exists(cfg.log_dir):
-        tuner = tune.Tuner.restore(str(os.path.join(cfg.log_dir, trainer_name)), trainable=trainer_name)
-        # tuner = tune.Tuner.restore(str(cfg.log_dir))
+        tuner = tune.Tuner.restore(
+            str(os.path.join(cfg.log_dir, trainer_name)), 
+            trainable=trainer_name,
+        )
     else:
         tuner = tune.Tuner(
             trainer_name,

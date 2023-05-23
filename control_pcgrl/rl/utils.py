@@ -17,6 +17,7 @@ from gymnasium.spaces import Tuple
 # from stable_baselines import PPO2
 # from stable_baselines.bench import Monitor
 #from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
+import torch
 
 from control_pcgrl.configs.config import Config, EvalConfig
 from control_pcgrl import wrappers
@@ -641,3 +642,13 @@ TrainerConfigParsers = {
    'PPO': parse_ppo_config,
    'QMIX': parse_qmix_config 
 }
+
+def which_device():
+    """ Returns the device on which to run the model """
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    return device

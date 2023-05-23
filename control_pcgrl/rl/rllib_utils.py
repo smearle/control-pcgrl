@@ -75,7 +75,9 @@ def ControllableTrainerFactory(trainer_cls):
             print("=============")
             # torchinfo summaries are very confusing at the moment
             torchinfo.summary(model, input_data={
-               "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}})
+               "input_dict": {"obs": th.zeros((1, *self.config['model']['custom_model_config']['dummy_env_obs_space'].shape))}},
+               device='cuda' if config.env_config['hardware']['n_gpu'] > 0 else 'cpu',
+            )
             return ret
 
 
