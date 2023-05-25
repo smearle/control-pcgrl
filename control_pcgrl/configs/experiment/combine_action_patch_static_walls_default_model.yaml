@@ -1,0 +1,11 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      model: default_model
+      act_window: "[4,4],[2,2]"
+      n_static_walls: 3, 5, 7
+      static_prob: 0, 0.1
+      exp_id: 0, 1, 2
+
+# for combined experiments
