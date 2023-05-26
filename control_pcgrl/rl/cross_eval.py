@@ -11,7 +11,7 @@ import hydra
 
 import numpy as np
 from matplotlib import pyplot as plt
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 import pandas as pd
 from control_pcgrl.configs.config import Config, CrossEvalConfig
 
@@ -203,10 +203,20 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
 
             # If a subconfig, take its name(?? HACK)
             if isinstance(v, DictConfig):
-                row.append(v.name)
+                v_name = v.name
+                if v_name is None:
+                    if k == 'model':
+                        v_name = 'Default'
+                    row.append(v_name)
+                else:
+                    row.append(v.name.replace('_', ' '))
+
+            elif isinstance(v, ListConfig):
+                # Important that we turn this into a string lest terrible weirdness ensue.
+                row.append(str(tuple([vi for vi in v])))
 
             else:
-                row.append(v)
+                row.append(str(v))
 
         rows.append(row)
 
@@ -232,46 +242,98 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
     # # And in the values, format to 2 decimal places
     # df = df.applymap(lambda x: "{:.2f}".format(x))
 
-    # Save the dataframe
-    df.to_csv(os.path.join(EVAL_DIR, "cross_eval.csv"))
+    def write_data(df, tex_name):
 
-    # Save the df as latex
-    # df = df.applymap(bold_extreme_values)
-    # df = df.applymap(lambda x: "{:.2f}".format(x))
+        # Save the dataframe
+        df.to_csv(os.path.join(EVAL_DIR, f"{tex_name}.csv"))
 
-    tex_name = cross_eval_config.name
+        # Save the df as latex
+        # df = df.applymap(bold_extreme_values)
+        # df = df.applymap(lambda x: "{:.2f}".format(x))
 
-    # Save the df as latex
-    # df.to_latex(
-    #     os.path.join(EVAL_DIR, "cross_eval.tex"),
-    #     column_format="l" + "c" * len(col_headers),
-    #     multirow=True,
-    #     escape=False,
-    # )
-    pandas_to_latex(
-        df, 
-        os.path.join(EVAL_DIR, tex_name + '.tex'),
-        # multirow=True, 
-        index=True, 
-        header=True,
-        vertical_bars=True,
-        # columns=col_indices, 
-        multicolumn=True, 
-        # multicolumn_format='c|',
-        right_align_first_column=False,
-        # bold_rows=True,
-    )
+        # tex_name = cross_eval_config.name
 
-    tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
+        # Save the df as latex
+        # df.to_latex(
+        #     os.path.join(EVAL_DIR, "cross_eval.tex"),
+        #     column_format="l" + "c" * len(col_headers),
+        #     multirow=True,
+        #     escape=False,
+        # )
+        pandas_to_latex(
+            df, 
+            os.path.join(EVAL_DIR, tex_name + '.tex'),
+            # multirow=True, 
+            index=True, 
+            header=True,
+            vertical_bars=True,
+            # columns=col_indices, 
+            multicolumn=True, 
+            # multicolumn_format='c|',
+            right_align_first_column=False,
+            # bold_rows=True,
+        )
 
-    # Replace the line in `tables.tex` that says `\input{.*}` with `\input{tables_tex_fname.tex}` with regex
-    re.sub(r"\\input{.*}", "poo", os.path.join(EVAL_DIR, "tables.tex"))
+        tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
 
-    os.system(f"pdflatex {tables_tex_fname}")
+        # Replace the line in `tables.tex` that says `\input{.*}` with `\input{tables_tex_fname.tex}` with regex
+        re.sub(r"\\input{.*}", "poo", os.path.join(EVAL_DIR, "tables.tex"))
 
-    # Move the output pdf int rl_eval
-    # os.system(f"mv {tables_tex_fname.replace('.tex', '.pdf')} {EVAL_DIR}")
+        os.system(f"pdflatex {tables_tex_fname}")
 
+        # Move the output pdf int rl_eval
+        # os.system(f"mv {tables_tex_fname.replace('.tex', '.pdf')} {EVAL_DIR}")
+
+        return
+
+    write_data(df, 'cross_eval')
+
+    row_headers.remove('exp id')
+
+    # Average over exp_id (no cooperating currently)
+    # df = df.groupby(row_headers).mean(numeric_only=True).reset_index()
+    # TODO: standard deviation
+
+    # Average/stds the ugly manual way
+    new_rows = []
+    new_row_names = []
+    for i in range(df.shape[0]):
+        row = df.iloc[i]
+        name = row.name
+        if name[:-1] in new_row_names:
+            continue
+        new_row_names.append(name[:-1])
+
+        # For some reason this is necessary even though we've already done this when processing row headers above?
+        # new_name = []
+        # for ni in name:
+        #     if isinstance(ni, ListConfig):
+        #         ni = tuple([nii for nii in ni])
+        #     new_name.append(ni)
+        # name = new_name
+
+        repeat_exps = df.loc[name[:-1]]
+        # eval_qd_scores.append(repeat_exps[('Evaluation', 'QD score')].to_numpy())
+        mean_exp = repeat_exps.mean(axis=0)
+        std_exp = repeat_exps.std(axis=0)
+        mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
+        new_rows.append(mean_exp)
+
+    index = pd.MultiIndex.from_tuples(new_row_names, names=row_headers)
+    columns = df.columns
+    ndf = pd.DataFrame(new_rows, index=index, columns=col_headers)
+    # ndf = ndf.append(new_rows)
+    # new_col_indices = pd.MultiIndex.from_tuples(df.columns)
+    # new_row_indices = pd.MultiIndex.from_tuples(new_row_names)
+    # ndf.index = new_row_indices
+    # ndf.columns = new_col_indices
+    # ndf.index.names = df.index.names[:-1]
+    ndf = ndf
+
+    drop_cols = ['total steps', 'episode len mean', 'episodes this iter']
+    ndf = ndf.drop(columns=drop_cols)
+
+    write_data(ndf, 'cross_eval_aggregate')
     return
 
     # batch_exp_name = settings_list[0]["exp_id"]
@@ -609,13 +671,34 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
     #     props='cellcolor:[HTML]{FFFF00}; color:{red}; itshape:; bfseries:;'
     # )
 
-    s = df_table.style.format('{:,.2f}')
+    s = df_table.style.format(format_vals)
+    # s = s.highlight_max(axis=None, props='font-weight:bold')
+    # s = df_table.style.format(format_vals)
+    #                        props='cellcolor:{red}; bfseries: ;')
 
-    latex = s.to_latex(column_format=cols, **kwargs)
+    latex = s.to_latex(column_format=cols, **kwargs,
+        hrules=True,
+        clines='skip-last;data',
+        )
 
 
     with open(latex_file, 'w') as f:
         f.write(latex)
+
+
+def format_vals(val, *args, **kwargs):
+    breakpoint()
+    if isinstance(val, float):
+        return '{:,.2f}'.format(val)
+
+    elif isinstance(val, tuple):
+        # Assume first entry is mean, second is std
+        return '{:,.2f} ± {:,.2f}'.format(val[0], val[1])
+
+    elif isinstance(val, int):
+        return '{:,}'.format(val)
+
+    return val
 
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="cross_eval")

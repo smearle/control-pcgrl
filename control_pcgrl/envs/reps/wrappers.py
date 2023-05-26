@@ -409,9 +409,10 @@ class MultiActionRepresentation(RepresentationWrapper):
             f"Action size ({len(self.action_size)}) should be the same dimension as the map size ({self.map_dim})"
         # Check whether we have a valid action size and stride
         for i in range(self.map_dim):
-            logging.warning(f"Not validating your action size ({self.action_size}) and stride ({self.strides}, w.r.t." +
-                " the map size ({self.map_size}). If these are mismatches, the agent may not be able to edit the bottom" +
-                    " right/far edges of the map.")
+            pass
+            # logging.warning(f"Not validating your action size ({self.action_size}) and stride ({self.strides}, w.r.t." +
+            #     " the map size ({self.map_size}). If these are mismatches, the agent may not be able to edit the bottom" +
+            #         " right/far edges of the map.")
             # FIXME: below assertion is thrown whenever stride = 1 and action_size > 1. But these are valid settings.
             # assert self.map_size[i] - self.action_size[i] + self.strides[i] == self.map_size[i] * self.strides[i], \
             #     "Please make sure that the action size and stride are valid for the map size."

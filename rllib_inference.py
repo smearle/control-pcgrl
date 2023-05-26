@@ -129,11 +129,6 @@ def restore_best_ckpt(trainer, log_dir):
     ckpt = best_result.best_checkpoints[0][0]
     # trainer = Algorithm.from_checkpoint(ckpt)
     trainer.restore(ckpt)
-
-    # ZJ: this(above) is not a good way to restore the trainer, because it will read the path from the checkpoint file,
-    # (see state.get("config") if you stop at the breakpoint in the ray.rllib.algorithms.algorithm, it will load from 
-    # 'log_dir': /scratch/zj2086/... when I sync the experiment from HPC. As a result, it will fail to load the trainer 
-    # from ckpt because the ckpt itself still use the path of hpc. Is there a way to fix this? Maybe try Predictor API?
     return trainer
 
 
