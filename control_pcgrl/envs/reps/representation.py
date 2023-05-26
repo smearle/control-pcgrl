@@ -20,7 +20,7 @@ class Representation(ABC):
     """
     The base constructor where all the representation variable are defined with default values
     """
-    def __init__(self, cfg, border_tile_index=1, empty_tile_index=0, wall_tile_index=1):
+    def __init__(self, cfg: Config, border_tile_index=1, empty_tile_index=0, wall_tile_index=1):
         self.cfg = cfg
         # self._map: List[List[int]] = None
         self._map: np.ndarray = None
@@ -172,6 +172,9 @@ class Representation(ABC):
         """
         return self
 
+    def is_wrapped_by(self, wrapper_cls):
+        return False
+
 
 class EgocentricRepresentation(Representation):
     """Representation in which the generator-agent occupies a particular position, i.e. (x, y) coordinate, on the map
@@ -183,6 +186,9 @@ class EgocentricRepresentation(Representation):
         self._random_tile: bool = False
         # An x, y, (z) position
         self._pos: np.ndarray = None
+
+        # HACK HACK
+        self._render_agent_loc = self.cfg.multiagent.n_agents == 0 and (self.cfg.act_window is None or self.cfg.act_window == [1, 1])
 
     def set_agent_positions(self, agent_positions):
         """Record positions of agents in multi-agent settings."""
@@ -234,8 +240,7 @@ class EgocentricRepresentation(Representation):
         img: the modified level image
     """
     def render(self, lvl_image, tile_size=16, border_size=None):
-        # HACK
-        if self.cfg.multiagent.n_agents == 0:
+        if self._render_agent_loc:
             y, x = self._pos
             im_arr = np.zeros((tile_size, tile_size, 4), dtype=np.uint8)
             clr = (255, 255, 255, 255)

@@ -60,6 +60,17 @@ class RepresentationWrapper():
     def render(self, *args, **kwargs):
         return self.rep.render(*args, **kwargs)
 
+    def is_wrapped_by(self, wrapper_cls):
+        if isinstance(self, wrapper_cls):
+            # Return True if this wrapper is the correct class.
+            return True
+        elif issubclass(type(self.rep), RepresentationWrapper):
+            # If there is another wrapper below us, then recurse.
+            return self.rep.is_wrapped_by(wrapper_cls)
+        else:
+            # If this is the final wrapper (and not the right class), return False.
+            return False
+
     def _update_bordered_map(self):
         return self.rep._update_bordered_map()
 
@@ -499,8 +510,8 @@ class MultiActionRepresentation(RepresentationWrapper):
         y, x = self.get_pos()
         # This is a little image with our border in it
         im_arr = np.zeros((tile_size * self.action_size[0], tile_size * self.action_size[1], 4), dtype=np.uint8)
-        # Grey color
-        clr = np.array([128, 128, 128, 255], dtype=np.uint8)
+        # White color
+        clr = np.array([255, 255, 255, 255], dtype=np.uint8)
         # Two pixels on each side for column
         im_arr[(0, 1, -1, -2), :, :] = clr
         # Two pixels on each side for row

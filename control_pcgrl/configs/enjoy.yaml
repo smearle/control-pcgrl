@@ -5,8 +5,9 @@ defaults:
   # Why can't we override this on the command line?
   # - override hydra/sweeper: optuna
 
-  - override hydra/launcher: submitit_local
-  # - override hydra/launcher: submitit_slurm
+  - override hydra/launcher: drill_basic
+  # - override hydra/launcher: drill_local
+  # - override hydra/launcher: drill_slurm
 
 
 render_mode: save_gif
