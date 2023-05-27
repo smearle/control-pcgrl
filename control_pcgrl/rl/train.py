@@ -283,6 +283,7 @@ def main(cfg: Config) -> None:
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)
             # sys.exit()
+            ray.shutdown()
             return eval_stats, print("Yay!")
 
         elif cfg.infer:
@@ -377,11 +378,41 @@ def main(cfg: Config) -> None:
     )
     
     if not cfg.overwrite and os.path.exists(cfg.log_dir):
-        tuner = tune.Tuner.restore(
-            str(os.path.join(cfg.log_dir, trainer_name)), 
-            trainable=trainer_name,
+        # trainer = trainer_config.build()
+        tuner = tune.Tuner.restore(os.path.join(str(log_dir), trainer_name))
+        # Note that the `best_result` must always refer to the single experiment, as we are not sweeping over hyperparameters
+        # with ray.tune.fit.
+        best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
+        steps_trained = best_result.metrics['timesteps_total']
+        if steps_trained >= cfg.timesteps_total:
+            ray.shutdown()
+            return print(f"No need to reload, already trained {steps_trained} of {cfg.timesteps_total} steps.")
+            
+        # This is the latest checkpoint (not necessarily the best one).
+        ckpt = best_result.checkpoint
+        # ckpt = best_result.best_checkpoints[0][0]
+        tune.run(
+            run_or_experiment=trainer_name, 
+            restore=ckpt.to_directory(), 
+            config=trainer_config,
+            stop=run_config.stop,
+            checkpoint_at_end=run_config.checkpoint_config.checkpoint_at_end,
+            checkpoint_freq=run_config.checkpoint_config.checkpoint_frequency,
+            local_dir=run_config.local_dir,
+            verbose=1,
+            progress_reporter=reporter,
+            keep_checkpoints_num=run_config.checkpoint_config.num_to_keep,
+            resume=False,
         )
+        # tuner = tune.Tuner.restore(
+        #     str(os.path.join(cfg.log_dir, trainer_name)), 
+        #     trainable=trainer_name,
+        #     resume_errored=True,
+        #     resume_unfinished=True,
+        # )
+        # tuner._local_tuner._run_config = run_config
     else:
+        # Note that we could just use `tune.run` here, as above, since we are not sweeping over hyperparameters here.
         tuner = tune.Tuner(
             trainer_name,
             param_space=trainer_config,
@@ -389,13 +420,11 @@ def main(cfg: Config) -> None:
             run_config= run_config,
         )
 
-    try:
-        # TODO: ray overwrites the current config with the re-loaded one. How to avoid this?
-        analysis = tuner.fit()
-        # TODO: Get stats from analysis and return for optuna in hydra 
-        # breakpoint()
-    except KeyboardInterrupt:
-        ray.shutdown()
+        try:
+            analysis = tuner.fit()
+            # TODO: Get stats from analysis and return for optuna in hydra ?
+        except KeyboardInterrupt:
+            ray.shutdown()
     
     ray.shutdown()
     return print("Yay! Experiment finished!")
