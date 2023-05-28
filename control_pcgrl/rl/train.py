@@ -184,7 +184,7 @@ def main(cfg: Config) -> None:
         mean_ep_time /= n_eps
         print(f'Average episode time: {mean_ep_time} seconds.')
         print(f'Average FPS: {n_step / mean_ep_time}.')
-            
+
             #import pdb; pdb.set_trace()
         print('DEBUG: Congratulations! You can now use the environment.')
         sys.exit()
@@ -234,7 +234,7 @@ def main(cfg: Config) -> None:
 
         multiagent_config['count_steps_by'] = 'agent_steps'
         multiagent_config = {"multiagent": multiagent_config}
-        
+
     else:
         multiagent_config = {}
 
@@ -312,7 +312,7 @@ def main(cfg: Config) -> None:
                         done = done['__all__']
 
                     render_frames.append(env.render())
-                
+
                 if cfg.render_mode == "save_gif":
                     # Save the rendered frames as a gif.
                     imageio.mimsave(os.path.join(log_dir, f'render_{epi_index}.gif'), render_frames, duration=20)
@@ -345,7 +345,7 @@ def main(cfg: Config) -> None:
     # Note that this must be a metric that is returned in your training results.
     # reporter.add_metric_column("custom_metrics/path-length_mean")
     # reporter.add_metric_column("episode_reward_mean")
-    
+
     ray.init()
     # loggers_dict = {'loggers': [WandbLoggerCallback]} if cfg.wandb else {}
     # loggers_dict = {'loggers': [CustomWandbLogger]} if cfg.wandb else {}
@@ -376,7 +376,7 @@ def main(cfg: Config) -> None:
         mode='max',
         metric='episode_reward_mean',
     )
-    
+
     if not cfg.overwrite and os.path.exists(cfg.log_dir):
         # trainer = trainer_config.build()
         tuner = tune.Tuner.restore(os.path.join(str(log_dir), trainer_name))
@@ -387,30 +387,46 @@ def main(cfg: Config) -> None:
         if steps_trained >= cfg.timesteps_total:
             ray.shutdown()
             return print(f"No need to reload, already trained {steps_trained} of {cfg.timesteps_total} steps.")
-            
+
         # This is the latest checkpoint (not necessarily the best one).
         ckpt = best_result.checkpoint
         # ckpt = best_result.best_checkpoints[0][0]
-        tune.run(
-            run_or_experiment=trainer_name, 
-            restore=ckpt.to_directory(), 
-            config=trainer_config,
-            stop=run_config.stop,
-            checkpoint_at_end=run_config.checkpoint_config.checkpoint_at_end,
-            checkpoint_freq=run_config.checkpoint_config.checkpoint_frequency,
-            local_dir=run_config.local_dir,
-            verbose=1,
-            progress_reporter=reporter,
-            keep_checkpoints_num=run_config.checkpoint_config.num_to_keep,
-            resume=False,
-        )
-        # tuner = tune.Tuner.restore(
-        #     str(os.path.join(cfg.log_dir, trainer_name)), 
-        #     trainable=trainer_name,
-        #     resume_errored=True,
-        #     resume_unfinished=True,
-        # )
-        # tuner._local_tuner._run_config = run_config
+        def launch_run(resume):
+            return tune.run(
+                run_or_experiment=trainer_name, 
+                restore=ckpt.to_directory(), 
+                config=trainer_config,
+                stop=run_config.stop,
+                checkpoint_at_end=run_config.checkpoint_config.checkpoint_at_end,
+                checkpoint_freq=run_config.checkpoint_config.checkpoint_frequency,
+                local_dir=run_config.local_dir,
+                verbose=1,
+                progress_reporter=reporter,
+                keep_checkpoints_num=run_config.checkpoint_config.num_to_keep,
+                resume=resume,
+            )
+
+        # Try to resume without creating extra unnecessary experiment folder.
+        run_result = launch_run(resume=True)
+        # If the experiment has not run to completion, try again but allow for a new experiment folder to be created.
+        tuner = tune.Tuner.restore(os.path.join(str(log_dir), trainer_name))
+        best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
+        steps_trained_new = best_result.metrics['timesteps_total']
+        if steps_trained_new == steps_trained:
+            # NOTE: If we keyboard interrupt before more steps are trained on, we will end up here, because `tune.run` 
+            #   will exit gracefully.
+            print(
+                'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
+            )
+            launch_run(resume=False)
+            
+            # tuner = tune.Tuner.restore(
+            #     str(os.path.join(cfg.log_dir, trainer_name)), 
+            #     trainable=trainer_name,
+            #     resume_errored=True,
+            #     resume_unfinished=True,
+            # )
+            # tuner._local_tuner._run_config = run_config
     else:
         # Note that we could just use `tune.run` here, as above, since we are not sweeping over hyperparameters here.
         tuner = tune.Tuner(
@@ -425,7 +441,7 @@ def main(cfg: Config) -> None:
             # TODO: Get stats from analysis and return for optuna in hydra ?
         except KeyboardInterrupt:
             ray.shutdown()
-    
+
     ray.shutdown()
     return print("Yay! Experiment finished!")
 

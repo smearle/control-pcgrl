@@ -180,7 +180,6 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
     vals = []
 
     for experiment in sweep_configs:
-        print(type(experiment))
         exp_path = experiment.log_dir
         path = os.path.join(exp_path, "eval_stats.json")
 
@@ -329,6 +328,8 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
     # ndf.columns = new_col_indices
     # ndf.index.names = df.index.names[:-1]
     ndf = ndf
+
+    write_data(ndf, 'cross_eval_aggregate_raw')
 
     drop_cols = ['total steps', 'episode len mean', 'episodes this iter']
     ndf = ndf.drop(columns=drop_cols)
@@ -687,7 +688,6 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
 
 
 def format_vals(val, *args, **kwargs):
-    breakpoint()
     if isinstance(val, float):
         return '{:,.2f}'.format(val)
 
