@@ -25,70 +25,6 @@ from tex_formatting import newline, pandas_to_latex
 RUNS_DIR = os.path.join(Path(__file__).parent.parent.parent, 'rl_runs')
 EVAL_DIR = os.path.join(Path(__file__).parent.parent.parent, 'rl_eval')
 
-keys = [
-    "task", 
-    "representation", 
-    "model",
-    "n_aux_tiles",
-    "max_board_scans",
-    "controls",
-    "lr",
-    "exp_id",
-    # "controls", 
-    # "alp_gmm", 
-    # "change_percentage"
-]
-
-local_controls = {
-    "binary_ctrl": [
-        ["regions", "path-length"],
-        ["regions"],
-        ["path-length"],
-        # ['emptiness', 'path-length'],
-        # ["symmetry", "path-length"]
-    ],
-    "zelda_ctrl": [
-        ["nearest-enemy", "path-length"],
-        ["nearest-enemy"],
-        ["path-length"],
-        # ["emptiness", "path-length"],
-        # ["symmetry", "path-length"],
-    ],
-    "sokoban_ctrl": [
-        # ["crate"],
-        ["crate", "sol-length"],
-        ["sol-length"],
-        # ["emptiness", "sol-length"],
-        # ["symmetry", "sol-length"],
-    ],
-    "smb_ctrl": [
-        # ['enemies', 'jumps'],
-        # ["emptiness", "jumps"],
-        # ["symmetry", "jumps"],
-    ],
-    "RCT": [
-        # ['income'],
-    ],
-}
-
-header_text = {
-    "zelda_ctrl": "zelda",
-    "binary_ctrl": "binary",
-    "sokoban_ctrl": "sokoban",
-    "NONE": "---",
-    "change_percentage": newline("change", "percentage"), 
-#   'net_score (mean)': newline('target', 'progress'),
-    'net_score (mean)': 'pct. targets reached ',
-#   '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
-    "diversity_score (mean)": "diversity",
-#   "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
-#   'ctrl_score (mean)': newline('control', 'success'),
-    'ctrl_score (mean)': 'pct. targets reached',
-#   '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
-#   "alp_gmm": newline("ALP", "GMM"),
-    "alp_gmm": newline("control", "regime"),
-    "controls": newline("learned", " controls"),
-}
 
 # flatten the dictionary here
 
@@ -153,7 +89,7 @@ def flatten_dict(d, parent_key='', sep='_'):
     return dict(items)
 
 
-def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
+def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
     """Collect results generated when evaluating trained models under different conditions.
     Args:
         cross_eval_config (CrossEvalConfig): The cross-evaluation config
@@ -162,6 +98,82 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
     """
     # validate_config(cross_eval_config)
     # [validate_config(c) for c in sweep_configs]
+
+    keys = [
+        "task", 
+        "representation", 
+        "model",
+        "n_aux_tiles",
+        "max_board_scans",
+        "controls",
+        "lr",
+        "exp_id",
+        # "controls", 
+        # "alp_gmm", 
+        # "change_percentage"
+    ]
+
+    local_controls = {
+        "binary_ctrl": [
+            ["regions", "path-length"],
+            ["regions"],
+            ["path-length"],
+            # ['emptiness', 'path-length'],
+            # ["symmetry", "path-length"]
+        ],
+        "zelda_ctrl": [
+            ["nearest-enemy", "path-length"],
+            ["nearest-enemy"],
+            ["path-length"],
+            # ["emptiness", "path-length"],
+            # ["symmetry", "path-length"],
+        ],
+        "sokoban_ctrl": [
+            # ["crate"],
+            ["crate", "sol-length"],
+            ["sol-length"],
+            # ["emptiness", "sol-length"],
+            # ["symmetry", "sol-length"],
+        ],
+        "smb_ctrl": [
+            # ['enemies', 'jumps'],
+            # ["emptiness", "jumps"],
+            # ["symmetry", "jumps"],
+        ],
+        "RCT": [
+            # ['income'],
+        ],
+    }
+
+    row_header_text = {
+        'n_static_walls': 'freezies'
+    }
+
+    if cross_eval_cfg.name == 'squeegee':
+        row_header_text.update({
+            'act_window': 'squeegee',
+        }
+
+        )
+
+    row_index_text = {
+        "zelda_ctrl": "zelda",
+        "binary_ctrl": "binary",
+        "sokoban_ctrl": "sokoban",
+        "NONE": "---",
+        "change_percentage": newline("change", "percentage"), 
+    #   'net_score (mean)': newline('target', 'progress'),
+        'net_score (mean)': 'pct. targets reached ',
+    #   '(controls) net_score (mean)': newline('\\textit{control}', 'net score'),
+        "diversity_score (mean)": "diversity",
+    #   "(controls) diversity_score (mean)": newline('\\textit{control}', 'diversity'),
+    #   'ctrl_score (mean)': newline('control', 'success'),
+        'ctrl_score (mean)': 'pct. targets reached',
+    #   '(controls) fixed_score (mean)': newline('\\textit{control}', 'static score'),
+    #   "alp_gmm": newline("ALP", "GMM"),
+        "alp_gmm": newline("control", "regime"),
+        "controls": newline("learned", " controls"),
+    }
 
     experiment_0 = sweep_configs[0]
 
@@ -222,6 +234,9 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
         exp_stats = [stats[k] for k in col_headers if k in stats]
         vals.append(exp_stats)
 
+    # Rename row_headers
+    row_headers = [row_header_text[h] if h in row_header_text else h for h in row_headers]
+
     # iterate col_headers and replace "_" with " " to avoid latex errors
     col_headers = [h.replace("_", " ") for h in col_headers]
     col_headers = [h.replace(".", " ") for h in col_headers]
@@ -243,8 +258,13 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
 
     def write_data(df, tex_name):
 
-        # Save the dataframe
+        # Save the dataframe to csv
         df.to_csv(os.path.join(EVAL_DIR, f"{tex_name}.csv"))
+
+        df = df.style.format(format_vals)
+
+        # Save the df to html
+        df.to_html(os.path.join(EVAL_DIR, f"{tex_name}.html"))
 
         # Save the df as latex
         # df = df.applymap(bold_extreme_values)
@@ -259,19 +279,40 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
         #     multirow=True,
         #     escape=False,
         # )
-        pandas_to_latex(
-            df, 
-            os.path.join(EVAL_DIR, tex_name + '.tex'),
-            # multirow=True, 
-            index=True, 
-            header=True,
-            vertical_bars=True,
-            # columns=col_indices, 
-            multicolumn=True, 
-            # multicolumn_format='c|',
-            right_align_first_column=False,
-            # bold_rows=True,
-        )
+
+        if isinstance(df.index[0], tuple):
+            n_col_indices = len(df.index[0])
+        else:
+            n_col_indices = 1
+        n = len(df.columns) + n_col_indices
+
+        cols = 'c' + 'c' * (n - 1)
+
+        # Add the vertical lines
+        cols = '|' + '|'.join(cols) + '|'
+
+        latex = df.to_latex(
+            column_format=cols,
+            hrules=True,
+            clines='skip-last;data',
+            )
+
+        with open(os.path.join(EVAL_DIR, f"{tex_name}.tex"), "w") as f:
+            f.write(latex)
+
+        # pandas_to_latex(
+        #     df, 
+        #     os.path.join(EVAL_DIR, tex_name + '.tex'),
+        #     # multirow=True, 
+        #     index=True, 
+        #     header=True,
+        #     vertical_bars=True,
+        #     # columns=col_indices, 
+        #     multicolumn=True, 
+        #     # multicolumn_format='c|',
+        #     right_align_first_column=False,
+        #     # bold_rows=True,
+        # )
 
         tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
 
@@ -285,7 +326,7 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
 
         return
 
-    write_data(df, 'cross_eval')
+    write_data(df, cross_eval_cfg.name)
 
     row_headers.remove('exp id')
 
@@ -329,12 +370,12 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
     # ndf.index.names = df.index.names[:-1]
     ndf = ndf
 
-    write_data(ndf, 'cross_eval_aggregate_raw')
+    write_data(ndf, f'{cross_eval_cfg.name}_aggregate_raw')
 
     drop_cols = ['total steps', 'episode len mean', 'episodes this iter']
     ndf = ndf.drop(columns=drop_cols)
 
-    write_data(ndf, 'cross_eval_aggregate')
+    write_data(ndf, f'{cross_eval_cfg.name}_aggregate')
     return
 
     # batch_exp_name = settings_list[0]["exp_id"]
@@ -459,16 +500,16 @@ def cross_evaluate(cross_eval_config: Config, sweep_configs: List[Config], sweep
     #         tuples[i] = tpl
 
     for k in keys:
-        if k in header_text:
-            k = header_text[k]
+        if k in row_index_text:
+            k = row_index_text[k]
         k = k.replace("_", " ")
         new_keys.append(k)
     
     for (i, lst) in enumerate(tuples):
         new_lst = []
         for v in lst:
-            if v in header_text:
-                new_lst.append(header_text[v])
+            if v in row_index_text:
+                new_lst.append(row_index_text[v])
             else:
                 new_lst.append(v)
         tuples[i] = new_lst
@@ -672,12 +713,12 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
     #     props='cellcolor:[HTML]{FFFF00}; color:{red}; itshape:; bfseries:;'
     # )
 
-    s = df_table.style.format(format_vals)
+    # s = df_table.style.format(format_vals)
     # s = s.highlight_max(axis=None, props='font-weight:bold')
     # s = df_table.style.format(format_vals)
     #                        props='cellcolor:{red}; bfseries: ;')
 
-    latex = s.to_latex(column_format=cols, **kwargs,
+    latex = df_table.to_latex(column_format=cols, **kwargs,
         hrules=True,
         clines='skip-last;data',
         )

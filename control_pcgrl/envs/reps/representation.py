@@ -195,8 +195,7 @@ class EgocentricRepresentation(Representation):
         self.agent_positions = agent_positions
 
     def get_valid_agent_coords(self):
-        valid_agent_coords = np.argwhere(np.ones(self._map.shape))
-        return valid_agent_coords
+        return np.argwhere(np.ones(self._map.shape))
 
     """
     Resets the current representation where it resets the parent and the current

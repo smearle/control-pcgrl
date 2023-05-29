@@ -241,6 +241,10 @@ class StaticTileRepresentation(RepresentationWrapper):
         self.n_aux_tiles = cfg.n_aux_tiles
         self.n_static_walls = cfg.n_static_walls if cfg.n_static_walls is not None else 0
 
+        # If we're evaluating, fix the static tile probability at a specific value instead of treating the value as an
+        # upper bound and sampling uniformly for the epiusode's static tile probability from within that bound.
+        self._eval_mode = False
+
     # def adjust_param(self, **kwargs):
         # self.prob_static = kwargs.get('static_prob')
         # self.n_aux_tiles = kwargs.get('n_aux_tiles')
@@ -257,13 +261,25 @@ class StaticTileRepresentation(RepresentationWrapper):
 
         return valid_agent_positions
 
+    def set_eval_mode(self, eval_mode: bool):
+        self._eval_mode = eval_mode
+
+    def set_n_static_walls(self, n_static_walls):
+        self.n_static_walls = n_static_walls
+
+    def set_static_prob(self, static_prob):
+        self.static_prob = static_prob
+
     def reset(self, *args, **kwargs):
         ret = super().reset(*args, **kwargs)
         self.static_tiles = np.zeros(self.unwrapped._bordered_map.shape).astype(np.uint8)
 
         if self.static_prob > 0:
-            # Uniformly sample a probability of static builds from within the range [0, self.prob_static]
-            prob_static = self.unwrapped._random.random() * self.static_prob
+            if not self._eval_mode:
+                # Uniformly sample a probability of static builds from within the range [0, self.prob_static]
+                prob_static = self.unwrapped._random.random() * self.static_prob
+            else:
+                prob_static = self.static_prob
 
             # TODO: take into account validity constraints on number of certain tiles
             # self.static_builds = (self.unwrapped._random.random(self.unwrapped._bordered_map.shape) < prob_static).astype(np.uint8)
@@ -480,9 +496,9 @@ class MultiActionRepresentation(RepresentationWrapper):
         ### Some checks for safety (could comment these out later). ###
         # Check that the action patch is within the map.
         assert np.all(top_left >= 0), \
-            f"Action patch is outside the map. Top left corner: {top_left}"
+                f"Action patch is outside the map. Top left corner: {top_left}"
         assert np.all(bottom_right < self.map_size[:-1]), \
-            f"Action patch is outside the map. Bottom right corner: {bottom_right}"
+                f"Action patch is outside the map. Bottom right corner: {bottom_right}"
         ################################################################
 
         self.unwrapped._map[tuple(slices)] = action
@@ -501,7 +517,9 @@ class MultiActionRepresentation(RepresentationWrapper):
         self._set_pos(self.get_pos_at_step(self.n_step))
         self.unwrapped.n_step += 1
 
-        self.unwrapped._bordered_map[tuple([slice(1, -1) for _ in range(len(self.unwrapped._map.shape))])] = self.unwrapped._map
+        self.unwrapped._bordered_map[
+            tuple(slice(1, -1) for _ in range(len(self.unwrapped._map.shape)))
+        ] = self.unwrapped._map
 
         change = np.any(old_state != new_state)
 

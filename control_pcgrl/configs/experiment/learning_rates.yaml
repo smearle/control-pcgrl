@@ -3,3 +3,5 @@ hydra:
   sweeper:
     params:
       learning_rate: interval(1e-5, 1e-3)
+
+name: learning_rates

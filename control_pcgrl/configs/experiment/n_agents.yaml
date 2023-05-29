@@ -2,8 +2,13 @@
 hydra:
   sweeper:
     params:
-      multiagent.n_agents: 1, 2, 3
-      representation: turtle
       multiagent: shared_policy
       show_agents: True, False
+      multiagent.n_agents: 1, 2, 3
       exp_id: 0, 1, 2
+
+representation: turtle
+
+timesteps_total: 55000000
+
+name: n_agents

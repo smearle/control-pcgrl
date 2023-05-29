@@ -5,7 +5,6 @@ defaults:
   # - override hydra/launcher: drill_local
   # - override hydra/launcher: drill_slurm
   - override hydra/launcher: drill_basic
-  # - override hydra/launcher: basic
 
 hydra:
   verbose: true
@@ -22,7 +21,7 @@ hydra:
     cpus_per_task: 13
 
     gpus_per_node: 1
-    timeout_min: 1440 # 1 days of training
+    timeout_min: 60 # 1 day of training
     mem_gb: 30
 
     # array_parallelism: 3

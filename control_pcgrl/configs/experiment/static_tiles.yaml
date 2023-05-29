@@ -7,3 +7,4 @@ hydra:
       n_static_walls: 0, 3, 5, 7
       exp_id: 0, 1, 2
 
+name: static_tiles

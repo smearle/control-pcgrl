@@ -6,6 +6,7 @@ hydra:
       task.obs_window: "[4,4],[6,6],[8,8],[16,16]"
       exp_id: 0, 1, 2
 
+name: obs_window
 
 # for obs window experiments, comparing seqnca and default_model to see how the obs size affect
 # value branch (is it really using that infomation?)

@@ -1,0 +1,11 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      exp_id: 0
+      multiagent.n_agents: 2
+      representation: turtle
+      multiagent: shared_policy
+      show_agents: True
+
+name: debug

@@ -8,3 +8,5 @@ hydra:
   
   launcher:
     mem_gb: 70
+
+name: different_task_and_size

@@ -8,4 +8,4 @@ hydra:
       static_prob: 0, 0.1
       exp_id: 0, 1, 2
 
-# for combined experiments
+name: combine_action_patch_static_walls_default_model

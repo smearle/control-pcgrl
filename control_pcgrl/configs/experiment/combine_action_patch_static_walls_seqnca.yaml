@@ -9,4 +9,4 @@ hydra:
       model.patch_width: 3, 5
       exp_id: 0, 1, 2
 
-# for combined experiments
+name: combine_action_patch_static_walls_seqnca

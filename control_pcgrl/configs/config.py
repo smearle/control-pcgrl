@@ -316,6 +316,9 @@ class Config:
 
     checkpoint_freq: int = 10
 
+    # Does nothing here (for cross-eval)
+    name: str = "train"
+
 
 @dataclass
 class EnjoyConfig(Config):
@@ -329,6 +332,9 @@ class EnjoyConfig(Config):
 
     eval_random: bool = False
 
+    # Does nothing here (for cross-eval)
+    name: str = "enjoy"
+
 
 @dataclass
 class EvalConfig(Config):
@@ -336,15 +342,20 @@ class EvalConfig(Config):
     # Indicate that we cannot overwrite this
     evaluate: bool = True
 
-    n_eval_episodes: int = 10
+    n_eval_episodes: int = 100
 
     # Evaluate a fully random policy (do not load model)
     eval_random: bool = False
+
+    # Does nothing here (for cross-eval)
+    name: str = "eval"
 
 
 @dataclass
 class CrossEvalConfig(EvalConfig):
     """Config for cross-evaluation."""
+
+    # Name of the *sweep*, for naming cross-eval outputs.
     name: str = "cross_eval"
 
 

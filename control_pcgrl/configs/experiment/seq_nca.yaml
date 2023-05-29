@@ -19,3 +19,5 @@ hydra:
 # exp_id: 0
 # multiagent:
 #   n_agents: 0
+
+name: seqnca_narrow_binary
