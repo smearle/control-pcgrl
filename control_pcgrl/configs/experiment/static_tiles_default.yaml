@@ -1,0 +1,9 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      model: default_model
+      static_prob: 0, 0.1, 0.3
+      n_static_walls: 0, 3, 5
+      exp_id: 0, 1, 2
+

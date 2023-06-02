@@ -377,57 +377,70 @@ def main(cfg: Config) -> None:
         metric='episode_reward_mean',
     )
 
-    if not cfg.overwrite and os.path.exists(cfg.log_dir):
+    if not cfg.overwrite and os.path.exists(cfg.log_dir): # if loading from previous checkpoint
         # trainer = trainer_config.build()
         tuner = tune.Tuner.restore(os.path.join(str(log_dir), trainer_name))
         # Note that the `best_result` must always refer to the single experiment, as we are not sweeping over hyperparameters
         # with ray.tune.fit.
-        best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
-        steps_trained = best_result.metrics['timesteps_total']
-        if steps_trained >= cfg.timesteps_total:
-            ray.shutdown()
-            return print(f"No need to reload, already trained {steps_trained} of {cfg.timesteps_total} steps.")
+        start_new_run = False
+        try:
+            results = tuner.get_results()    
+        except RuntimeError:
+            # Assume this is because we haven't trained/checkpointed at all. if no result in .pkl file
+            start_new_run = True
+        if not start_new_run:
+            # Note that this `best_result` just points us to the single experiment (not loading earlier checkpoint here).
+            best_result = results.get_best_result(metric="episode_reward_mean", mode="max")
+            steps_trained = best_result.metrics['timesteps_total']
+            if steps_trained >= cfg.timesteps_total:
+                ray.shutdown()
+                return print(f"No need to reload, already trained {steps_trained} of {cfg.timesteps_total} steps.")
 
-        # This is the latest checkpoint (not necessarily the best one).
-        ckpt = best_result.checkpoint
-        # ckpt = best_result.best_checkpoints[0][0]
-        def launch_run(resume):
-            return tune.run(
-                run_or_experiment=trainer_name, 
-                restore=ckpt.to_directory(), 
-                config=trainer_config,
-                stop=run_config.stop,
-                checkpoint_at_end=run_config.checkpoint_config.checkpoint_at_end,
-                checkpoint_freq=run_config.checkpoint_config.checkpoint_frequency,
-                local_dir=run_config.local_dir,
-                verbose=1,
-                progress_reporter=reporter,
-                keep_checkpoints_num=run_config.checkpoint_config.num_to_keep,
-                resume=resume,
-            )
+            if best_result.checkpoint is None:  # if no checkpoint
+                start_new_run = True
+        if not start_new_run: 
+            # This is the latest checkpoint (not necessarily the best one).
+            ckpt = best_result.checkpoint
+            # ckpt = best_result.best_checkpoints[0][0]
+            def launch_run(resume):
+                return tune.run(
+                    run_or_experiment=trainer_name, 
+                    restore=ckpt.to_directory(), 
+                    config=trainer_config,
+                    stop=run_config.stop,
+                    checkpoint_at_end=run_config.checkpoint_config.checkpoint_at_end,
+                    checkpoint_freq=run_config.checkpoint_config.checkpoint_frequency,
+                    local_dir=run_config.local_dir,
+                    verbose=1,
+                    progress_reporter=reporter,
+                    keep_checkpoints_num=run_config.checkpoint_config.num_to_keep,
+                    resume=resume,
+                )
 
-        # Try to resume without creating extra unnecessary experiment folder.
-        run_result = launch_run(resume=True)
-        # If the experiment has not run to completion, try again but allow for a new experiment folder to be created.
-        tuner = tune.Tuner.restore(os.path.join(str(log_dir), trainer_name))
-        best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
-        steps_trained_new = best_result.metrics['timesteps_total']
-        if steps_trained_new == steps_trained:
-            # NOTE: If we keyboard interrupt before more steps are trained on, we will end up here, because `tune.run` 
-            #   will exit gracefully.
-            print(
-                'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
-            )
-            launch_run(resume=False)
-            
-            # tuner = tune.Tuner.restore(
-            #     str(os.path.join(cfg.log_dir, trainer_name)), 
-            #     trainable=trainer_name,
-            #     resume_errored=True,
-            #     resume_unfinished=True,
-            # )
-            # tuner._local_tuner._run_config = run_config
+            # Try to resume without creating extra unnecessary experiment folder.
+            run_result = launch_run(resume=True)
+            # If the experiment has not run to completion, try again but allow for a new experiment folder to be created.
+            tuner = tune.Tuner.restore(os.path.join(str(log_dir), trainer_name))
+            best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
+            steps_trained_new = best_result.metrics['timesteps_total']
+            if steps_trained_new == steps_trained:
+                # NOTE: If we keyboard interrupt before more steps are trained on, we will end up here, because `tune.run` 
+                #   will exit gracefully.
+                print(
+                    'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
+                )
+                launch_run(resume=False)
+                
+                # tuner = tune.Tuner.restore(
+                #     str(os.path.join(cfg.log_dir, trainer_name)), 
+                #     trainable=trainer_name,
+                #     resume_errored=True,
+                #     resume_unfinished=True,
+                # )
+                # tuner._local_tuner._run_config = run_config
     else:
+        start_new_run = True
+    if start_new_run:
         # Note that we could just use `tune.run` here, as above, since we are not sweeping over hyperparameters here.
         tuner = tune.Tuner(
             trainer_name,
