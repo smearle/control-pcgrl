@@ -23,7 +23,7 @@ class CARepresentation(Representation):
         each tile-coordinate in the level.
     """
     def get_action_space(self, dims, num_tiles):
-        return self.get_observation_space(dims, num_tiles)
+        return self.get_observation_space(dims, dims, num_tiles)
 
     """
     Update the cellular representation with the input action
@@ -35,10 +35,7 @@ class CARepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action: np.ndarray, continuous=False):
-        if not continuous:
-            next_map = action.argmax(axis=0)
-        else:
-            next_map = action
+        next_map = action.argmax(axis=0) if not continuous else action
         if self._map is None:
             # This is the case when using an actual latent seed (so we do only one pass through the generator and have
             # no need to set an initial map in the environment).

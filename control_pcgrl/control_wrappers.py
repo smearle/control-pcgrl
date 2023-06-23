@@ -318,7 +318,13 @@ class ControlWrapper(gym.Wrapper):
     def get_loss(self):
         """Get the distance between the current values of the metrics and their targets. Note that this means we need
         to fix finite bounds on the values of all metrics."""
+
         loss = 0
+
+        # HACK: Happens during evolution, where we want to compute this only terminally, outside of the environment.
+        # TODO: Just add a ``terminal'' option here.
+        if self.metrics is None:
+            return loss
 
         for metric in self.all_metrics:
             if metric in self.metric_trgs:

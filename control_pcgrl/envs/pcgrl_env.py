@@ -361,7 +361,7 @@ class PcgrlEnv(gym.Env):
 
         if self.render_mode == 'rgb_array' or self.render_mode == 'gtk' or self.render_mode == 'save_gif':
             return np.array(img)
-        elif self.render_mode == 'image':
+        elif self.render_mode == 'image' or self.render_mode is None:
             return img
         # elif self.render_mode == 'human':
 

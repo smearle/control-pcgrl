@@ -3,8 +3,11 @@ hydra:
   sweeper:
     params:
       model: seqnca, default_model
-      task.obs_window: "[4,4],[6,6],[8,8],[16,16]"
+      # model: default_model
+      task.obs_window: "[4,4],[6,6],[8,8],[16,16],[32,32]"
+      # task.obs_window: "[32,32]"
       exp_id: 0, 1, 2
+      # exp_id: 0
 
 name: obs_window
 

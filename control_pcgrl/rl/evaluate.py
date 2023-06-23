@@ -76,8 +76,16 @@ def evaluate_static(trainer: Algorithm, env, cfg):
     trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(True))
     for static_prob, n_static_walls in static_sweep:
         eval_stats = {}
-        trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_static_prob(static_prob))
-        trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_n_static_walls(n_static_walls))
+        # Hackinmuhfuckaroo
+        trainer_cfg = trainer.config
+        trainer_cfg.env_config['static_prob'] = static_prob
+        trainer_cfg.env_config['n_static_walls'] = n_static_walls
+        trainer = trainer_cfg.build()
+        print(f'static probs: {trainer.workers.foreach_env(lambda env: env.unwrapped._rep.static_prob)}')
+        print(f'static walls: {trainer.workers.foreach_env(lambda env: env.unwrapped._rep.n_static_walls)}')
+        # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_static_prob(static_prob))
+        # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_n_static_walls(n_static_walls))
+        # trainer.workers.foreach_env(lambda env: env.reset())
         eval_stats |= general_eval(trainer, env, cfg)
         with open(os.path.join(cfg.log_dir, f'static-prob-{static_prob}_static-walls-{n_static_walls}_eval_stats.json'), 'w') as f:
             json.dump(eval_stats, f, indent=4)
@@ -87,7 +95,7 @@ def evaluate_static(trainer: Algorithm, env, cfg):
 def general_eval(trainer: Algorithm, env, cfg):
     total_steps = trainer.config.train_batch_size * trainer.get_state()['iteration']
     stats = trainer.evaluate()
-    print("General valuation stats:", pprint(stats))
+    print("General evaluation stats:", pprint(stats))
     eval_stats = stats['evaluation']
     hist_stats = eval_stats['hist_stats']
     eval_stats.pop('hist_stats')
@@ -346,45 +354,10 @@ def _extracted_from_test_doors_(ax, i):
 def test_control(trainer, env, cfg):
     ctrl_metrics = env.ctrl_metrics
     ctrl = ctrl_metrics[0]
-    ctrl_bounds = env.unwrapped.cond_bounds[ctrl]
     if LOAD_STATS:
         ctrl_stats = pickle.load(open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'rb'))
     else:
-        # all_trgs = [i for i in range(int(ctrl_bounds[0]), int(ctrl_bounds[1]))]
-        all_trg_ints = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
-        all_trgs = [{ctrl: v} for v in all_trg_ints]
-        # Repeat certain targets so we can take the average over noisy behavior (we're assuming that eval explore=True here)
-        all_trgs = all_trgs * 5
-        # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
-        n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
-        idx_counter = IdxCounter.options(name='idx_counter').remote()
-        idx_counter.set_keys.remote(all_trgs)
-        hashes = trainer.evaluation_workers.foreach_env(lambda env: hash(env))
-        hashes = [hash for worker_hash in hashes for hash in worker_hash]
-        # hashes = [hash(env.unwrapped._prob) for env in envs]
-        idx_counter.set_hashes.remote(hashes)
-        # FIXME: Sometimes hash-to-idx dict is not set by the above call?
-        ret = ray.get(idx_counter.scratch.remote())
-        # Assign envs to worlds
-        # trainer.workers.foreach_worker(
-            # lambda worker: worker.foreach_env(lambda env: env.queue_worlds(worlds=eval_mazes, idx_counter=idx_counter, load_now=True)))
-
-        ctrl_stats = {v: [] for v in all_trg_ints}
-        trainer.evaluation_workers.foreach_env(lambda env: env.queue_control_trgs(idx_counter))
-
-        n_eps = 0
-        while n_eps < len(all_trgs):
-            result = trainer.evaluate()
-            hist_stats = result['evaluation']['hist_stats']
-            print(result)
-            if f'{ctrl}-trg' in hist_stats:
-                for ctrl_trg, ctrl_val in zip(hist_stats[f'{ctrl}-trg'], hist_stats[f'{ctrl}-val']):
-                    ctrl_stats[ctrl_trg] += [ctrl_val]
-                    n_eps += 1
-                print(f"{n_eps} out of {len(all_trgs)} ctrl stats collected")
-                # print(hole_stats)
-                pickle.dump(ctrl_stats, open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'wb'))
-
+        ctrl_stats = _extracted_from_test_control_4(env, ctrl, cfg, trainer)
     mean_ctrl_stats = {k: np.mean(v) for k, v in ctrl_stats.items()}
     fig, ax = plt.subplots(1, 1)
     xs = list(ctrl_stats.keys())
@@ -396,6 +369,43 @@ def test_control(trainer, env, cfg):
     ax.set_xlabel(f'{ctrl} targets')
     ax.set_ylabel(f'{ctrl} values')
     plt.savefig(os.path.join(cfg.log_dir, f'{ctrl}_scatter.png'))
+
+
+# TODO Rename this here and in `test_control`
+def _extracted_from_test_control_4(env, ctrl, cfg, trainer):
+    ctrl_bounds = env.unwrapped.cond_bounds[ctrl]
+    # all_trgs = [i for i in range(int(ctrl_bounds[0]), int(ctrl_bounds[1]))]
+    all_trg_ints = np.arange(ctrl_bounds[0], ctrl_bounds[1], 1)
+    all_trgs = [{ctrl: v} for v in all_trg_ints]
+        # Repeat certain targets so we can take the average over noisy behavior (we're assuming that eval explore=True here)
+    all_trgs *= 5
+    # holes_tpl = [tuple([tuple([coord for coord in hole]) for hole in hole_pair]) for hole_pair in all_holes]
+    n_envs = max(1, cfg.num_workers) * cfg.num_envs_per_worker
+    idx_counter = IdxCounter.options(name='idx_counter').remote()
+    idx_counter.set_keys.remote(all_trgs)
+    hashes = trainer.evaluation_workers.foreach_env(lambda env: hash(env))
+    hashes = [hash for worker_hash in hashes for hash in worker_hash]
+    # hashes = [hash(env.unwrapped._prob) for env in envs]
+    idx_counter.set_hashes.remote(hashes)
+    # FIXME: Sometimes hash-to-idx dict is not set by the above call?
+    ret = ray.get(idx_counter.scratch.remote())
+    result = {v: [] for v in all_trg_ints}
+    trainer.evaluation_workers.foreach_env(lambda env: env.queue_control_trgs(idx_counter))
+
+    n_eps = 0
+    while n_eps < len(all_trgs):
+        result = trainer.evaluate()
+        hist_stats = result['evaluation']['hist_stats']
+        print(result)
+        if f'{ctrl}-trg' in hist_stats:
+            for ctrl_trg, ctrl_val in zip(hist_stats[f'{ctrl}-trg'], hist_stats[f'{ctrl}-val']):
+                result[ctrl_trg] += [ctrl_val]
+                n_eps += 1
+            print(f"{n_eps} out of {len(all_trgs)} ctrl stats collected")
+                # print(hole_stats)
+            pickle.dump(result, open(f'{cfg.log_dir}/ctrl-{ctrl}_stats.pkl', 'wb'))
+
+    return result
 
     # fig, ax = plt.subplots(1, 1)
     # ctrl_range = ctrl_bounds[1] - ctrl_bounds[0]

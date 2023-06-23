@@ -6,10 +6,10 @@ hydra:
       model: default_model, seqnca
       # task: binary_big, binary_bigger, zelda, zelda_big, zelda_bigger
       # task: binary_big, zelda, zelda_big
-      task: binary_big
+      task: zelda
       exp_id: 0, 1, 2
   
-  launcher:
-    mem_gb: 70
+  # launcher:
+  #   mem_gb: 70
 
-name: different_task_and_size
+name: zelda

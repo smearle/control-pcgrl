@@ -6,9 +6,9 @@ defaults:
   # - override hydra/sweeper: optuna
 
   # Replicates respective submitit plugins and filters out invalid experiments
-  # - override hydra/launcher: drill_basic
+  - override hydra/launcher: drill_basic
   # - override hydra/launcher: drill_local
-  - override hydra/launcher: drill_slurm
+  # - override hydra/launcher: drill_slurm
 
   # - override hydra/launcher: basic              # launch sequentially
   # - override hydra/launcher: submitit_local

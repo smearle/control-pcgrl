@@ -183,9 +183,9 @@ def get_args(load_args=None):
     arg_dict = vars(args)
 
     if load_args is not None:
-        arg_dict.update(load_args)  
+        arg_dict |= load_args
     if args.load_args is not None:
-        with open("configs/evo/auto/settings_{}.json".format(args.load_args)) as f:
+        with open(f"configs/evo/auto/settings_{args.load_args}.json") as f:
             new_arg_dict = json.load(f)
             arg_dict.update(new_arg_dict)
 
@@ -193,7 +193,9 @@ def get_args(load_args=None):
 
 
 # TODO: Clean this up. Unnecessary globals etc. Have evolve.py use it as well.
-def get_exp_name(args=None, arg_dict={}):
+def get_exp_name(args=None, arg_dict=None):
+    if arg_dict is None:
+        arg_dict = {}
     global INFER
     global EVO_DIR
     global CUDA
@@ -261,9 +263,7 @@ def get_exp_name(args=None, arg_dict={}):
     exp_name = ""
     if arg_dict['algo'] == "ME":
         exp_name += "ME_"
-    exp_name += "{}-{}_{}_{}_{}-batch_{}-pass".format(
-        PROBLEM, REPRESENTATION, MODEL, BCS, N_INIT_STATES, N_STEPS
-    )
+    exp_name += f"{PROBLEM}-{REPRESENTATION}_{MODEL}_{BCS}_{N_INIT_STATES}-batch_{N_STEPS}-pass"
 
     # TODO: remove this! Ad hoc, for backward compatibility.
     if arg_dict["algo"] == "CMAME" and arg_dict["step_size"] != 1 or arg_dict["algo"] == "ME" and arg_dict["step_size"] != 0.01:
@@ -281,13 +281,9 @@ def get_exp_name(args=None, arg_dict={}):
     if arg_dict['n_aux_chan'] > 0:
         exp_name += f"_{arg_dict['n_aux_chan']}-aux"
 
-    # if arg_dict['mega']:
-        # exp_name += "_MEGA"
     exp_name += "_" + arg_dict["exp_name"]
     return exp_name
 
 def get_exp_dir(exp_name):
     evo_runs_dir = os.path.join(pathlib.Path(__file__).parent.parent.resolve(), 'evo_runs')
-    SAVE_PATH = os.path.join(evo_runs_dir, exp_name)
-
-    return SAVE_PATH
+    return os.path.join(evo_runs_dir, exp_name)

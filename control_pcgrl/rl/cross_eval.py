@@ -30,6 +30,7 @@ EVAL_DIR = os.path.join(Path(__file__).parent.parent.parent, 'rl_eval')
 
 
 def bold_extreme_values(data, data_max=-1):
+    # breakpoint()
     data_max = data_max
     data = int(data)
 #   print(data)
@@ -88,6 +89,37 @@ def flatten_dict(d, parent_key='', sep='_'):
             items.append((new_key, v))
     return dict(items)
 
+    
+def cross_evaluate_static(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
+    static_trains_to_eval_stats = {}
+    for exp_cfg in sweep_configs:
+        exp_path = exp_cfg.log_dir
+        exp_tpl = (exp_cfg.static_prob, exp_cfg.n_static_walls)
+        static_trains_to_eval_stats[exp_tpl] = {}
+        eval_stat_files = [f for f in os.listdir(exp_path) if f.startswith('static') and f.endswith('.json')]
+        for eval_stat_file in eval_stat_files:
+            # Use regular expression to get floats `static-prob-{0}_static-walls-{1}_eval_stats.json`
+            groups = re.findall(r'static-prob-(.+)_static-walls-(\d+)_eval_stats.json', eval_stat_file)
+            static_prob, static_walls = float(groups[0][0]), int(groups[0][1])
+            with open(os.path.join(exp_path, eval_stat_file), 'r') as f:
+                eval_stats = json.load(f)
+            eval_tpl = (static_prob, static_walls)
+            if eval_tpl in static_trains_to_eval_stats[exp_tpl]:
+                static_trains_to_eval_stats[exp_tpl][eval_tpl].append(eval_stats['episode_reward_mean'])
+            else:
+                static_trains_to_eval_stats[exp_tpl][eval_tpl] = [eval_stats['episode_reward_mean']]
+    static_trains_to_agg_stats = {
+        exp_tpl: {k: (np.mean(v), np.std(v)) for k, v in eval_stats.items()}
+        for exp_tpl, eval_stats in static_trains_to_eval_stats.items()
+    }
+    # Convert dict to pandas dataframe
+    df = pd.DataFrame.from_dict(static_trains_to_agg_stats, orient='index')
+    # Sort columns
+    df = df.reindex(sorted(df.columns), axis=1)
+    breakpoint()
+
+    
+
 
 def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
     """Collect results generated when evaluating trained models under different conditions.
@@ -98,6 +130,9 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
     """
     # validate_config(cross_eval_config)
     # [validate_config(c) for c in sweep_configs]
+
+    # if cross_eval_cfg.name == 'static_tiles':
+    #     cross_evaluate_static(cross_eval_cfg, sweep_configs, sweep_params)
 
     keys = [
         "task", 
@@ -146,15 +181,12 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
     }
 
     row_header_text = {
-        'n_static_walls': 'freezies'
+        'n_static_walls': 'freezies',
+        'multiagent.n_agents': 'n. agents',
     }
 
     if cross_eval_cfg.name == 'squeegee':
-        row_header_text.update({
-            'act_window': 'squeegee',
-        }
-
-        )
+        row_header_text['act_window'] = 'squeegee'
 
     row_index_text = {
         "zelda_ctrl": "zelda",
@@ -181,7 +213,7 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
                    'episodes_this_iter', 'total_steps']
     # TODO: Automate these!
     col_headers += ['path-length_max', 'path-length_mean', 'path-length_min']
-    row_headers = [k for k in sweep_params.keys()]
+    row_headers = list(sweep_params.keys())
 
     # row_headers_sorted = ['model', 'act_window', 'exp_id']
     # sort_map = {k: i for i, k in enumerate(row_headers_sorted)}
@@ -198,14 +230,14 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
         if not os.path.isfile(path):
             print(f"No eval_stats.json found in {path}")
             continue
-            
+
         print(f"Loading eval stats from {path}")
 
         with open(path, "r") as f:
             stats = json.load(f)
             # stats = flatten_stats(stats)
             stats = flatten_dict(stats)
-     
+
         row = []
 
         for k in row_headers:
@@ -224,7 +256,7 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
 
             elif isinstance(v, ListConfig):
                 # Important that we turn this into a string lest terrible weirdness ensue.
-                row.append(str(tuple([vi for vi in v])))
+                row.append(str(tuple(list(v))))
 
             else:
                 row.append(str(v))
@@ -261,13 +293,15 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
         # Save the dataframe to csv
         df.to_csv(os.path.join(EVAL_DIR, f"{tex_name}.csv"))
 
-        df = df.style.format(format_vals)
+        # df = df.applymap(bold_extreme_values)
+        # df = df.style.highlight_max(axis=0, color="lightgreen")
+        df = df.style.apply(highlight_max)
+        df.format(format_vals)
 
         # Save the df to html
         df.to_html(os.path.join(EVAL_DIR, f"{tex_name}.html"))
 
         # Save the df as latex
-        # df = df.applymap(bold_extreme_values)
         # df = df.applymap(lambda x: "{:.2f}".format(x))
 
         # tex_name = cross_eval_config.name
@@ -280,10 +314,7 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
         #     escape=False,
         # )
 
-        if isinstance(df.index[0], tuple):
-            n_col_indices = len(df.index[0])
-        else:
-            n_col_indices = 1
+        n_col_indices = len(df.index[0]) if isinstance(df.index[0], tuple) else 1
         n = len(df.columns) + n_col_indices
 
         cols = 'c' + 'c' * (n - 1)
@@ -356,7 +387,7 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
         # eval_qd_scores.append(repeat_exps[('Evaluation', 'QD score')].to_numpy())
         mean_exp = repeat_exps.mean(axis=0)
         std_exp = repeat_exps.std(axis=0)
-        mean_exp = [(i, e) for i, e in zip(mean_exp, std_exp)]
+        mean_exp = list(zip(mean_exp, std_exp))
         new_rows.append(mean_exp)
 
     index = pd.MultiIndex.from_tuples(new_row_names, names=row_headers)
@@ -376,6 +407,11 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
     ndf = ndf.drop(columns=drop_cols)
 
     write_data(ndf, f'{cross_eval_cfg.name}_aggregate')
+
+    keep_cols = ['episode reward max', 'episode reward mean']
+    ndf = ndf[keep_cols]
+    write_data(ndf, f'{cross_eval_cfg.name}_aggregate_condensed')
+
     return
 
     # batch_exp_name = settings_list[0]["exp_id"]
@@ -504,7 +540,7 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
             k = row_index_text[k]
         k = k.replace("_", " ")
         new_keys.append(k)
-    
+
     for (i, lst) in enumerate(tuples):
         new_lst = []
         for v in lst:
@@ -728,18 +764,22 @@ def pandas_to_latex(df_table, latex_file, vertical_bars=False, right_align_first
         f.write(latex)
 
 
-def format_vals(val, *args, **kwargs):
+def highlight_max(series, *args, **kwargs):
+    is_max = series == series.max()
+    return ['bfseries:' if v else '' for v in is_max] 
+    
+def format_vals(val):
     if isinstance(val, float):
-        return '{:,.2f}'.format(val)
+        val_str = '{:,.2f}'.format(val)
 
     elif isinstance(val, tuple):
         # Assume first entry is mean, second is std
-        return '{:,.2f} ± {:,.2f}'.format(val[0], val[1])
+        val_str = '{:,.2f} ± {:,.2f}'.format(val[0], val[1])
 
     elif isinstance(val, int):
-        return '{:,}'.format(val)
+        val_str = '{:,}'.format(val)
 
-    return val
+    return val_str
 
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="cross_eval")

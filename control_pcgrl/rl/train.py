@@ -261,8 +261,7 @@ def main(cfg: Config) -> None:
     # trainer_config_loggable.pop('observation_space')
     # trainer_config_loggable.pop('action_space')
     # trainer_config_loggable.pop('multiagent')
-    print(f'Loading trainer with config:')
-    print(pretty_print(trainer_config_loggable.to_dict()))
+    print(f'Loading trainer with config: {pretty_print(trainer_config_loggable.to_dict())}')
 
     trainer_name = "CustomTrainer"
 
@@ -295,9 +294,12 @@ def main(cfg: Config) -> None:
 
                 # For now we do it the old fashioned way.
                 render_frames = []
+                int_maps = []
                 done = False
                 obs, info = env.reset()
                 render_frames.append(env.render())
+                int_map = env.unwrapped._rep.unwrapped._map
+                int_maps.append(int_map.tolist())
                 while not done:
                     if cfg.multiagent.n_agents != 0:
                         action_dict = {}
@@ -307,6 +309,8 @@ def main(cfg: Config) -> None:
                     else:
                         action = trainer.compute_single_action(obs)
                     obs, reward, done, truncated, info = env.step(action)
+                    int_map = env.unwrapped._rep.unwrapped._map
+                    int_maps.append(int_map.tolist())
 
                     if isinstance(done, dict):
                         done = done['__all__']
@@ -316,6 +320,9 @@ def main(cfg: Config) -> None:
                 if cfg.render_mode == "save_gif":
                     # Save the rendered frames as a gif.
                     imageio.mimsave(os.path.join(log_dir, f'render_{epi_index}.gif'), render_frames, duration=20)
+                    # Save the list of integer maps as a json.
+                    with open(os.path.join(log_dir, f'int_maps_{epi_index}.json'), 'w') as f:
+                        json.dump(int_maps, f) 
                     epi_index += 1
                     if epi_index >= cfg.infer_n_episodes:
                         print(f"Saved {epi_index} episodes to {log_dir}.")

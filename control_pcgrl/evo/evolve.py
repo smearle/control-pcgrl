@@ -1292,6 +1292,7 @@ def simulate(
 
 class EvoPCGRL:
     def __init__(self, args):
+        map_shape = (16, 16)
         # This is a HACK to feed the environment the config it expects. The RL code has been updated to use these nested hydra configs.
         # We should probably have this evo code use a similar hydra config setup (rl and evo could even share, e.g. problem configs)
         self._config = Config(
@@ -1302,7 +1303,11 @@ class EvoPCGRL:
             evaluation_env=False,
             task=TaskConfig(
                 name=args.problem,
+                problem=args.problem,
                 weights={k: 1 for k in args.behavior_characteristics},
+                map_shape=map_shape,
+                obs_window=map_shape,
+                controls=[],
             ),
             multiagent=MultiagentConfig( # Dummy. Not doing evo + multiagent.
                 n_agents=0,

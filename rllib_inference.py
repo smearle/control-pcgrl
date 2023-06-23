@@ -126,6 +126,7 @@ def checkpoints_iter(experiment_path):
 def restore_best_ckpt(trainer, log_dir):
     tuner = tune.Tuner.restore(log_dir)
     best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
+    # breakpoint()
     ckpt = best_result.best_checkpoints[0][0]
     # trainer = Algorithm.from_checkpoint(ckpt)
     trainer.restore(ckpt)
