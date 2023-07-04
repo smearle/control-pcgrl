@@ -287,11 +287,11 @@ def main(cfg: Config) -> None:
 
         elif cfg.infer:
             epi_index = 0
-            while True:
+
+            def manual_infer():
                 # Does not work for some reason? Rllib ignoring `trainer.config.evaluation_config['render_env']`
                 # eval_stats = trainer.evaluate()
                 # print(eval_stats)
-
                 # For now we do it the old fashioned way.
                 render_frames = []
                 int_maps = []
@@ -317,16 +317,54 @@ def main(cfg: Config) -> None:
 
                     render_frames.append(env.render())
 
-                if cfg.render_mode == "save_gif":
+                return render_frames, int_maps
+
+            ep_names, ep_render_frames, ep_int_maps = [], [], []
+            if cfg.static_prob is None:
+                ep_names = [f'ep_{i}' for i in range(cfg.infer_n_episodes)]
+                for epi_index in range(cfg.infer_n_episodes):
+                    render_frames, int_maps = manual_infer()
+                    ep_render_frames.append(render_frames)
+                    ep_int_maps.append(int_maps)
+            else:
+                static_prob_vals = [0, 0.7]
+                static_wall_vals = [0]
+                static_sweep = [(static_prob, static_wall) for static_prob in static_prob_vals for static_wall in static_wall_vals]
+                # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(True))
+                env.unwrapped._rep.set_eval_mode(True)
+                for static_prob, n_static_walls in static_sweep:
+                    env.unwrapped._rep.set_static_prob(static_prob)
+                    env.unwrapped._rep.set_n_static_walls(n_static_walls)
+                    for epi_index in range(cfg.infer_n_episodes):
+                        ep_names.append(f'static_prob_{static_prob}_n_static_walls_{n_static_walls}_ep_{epi_index}')
+                        render_frames, int_maps = manual_infer()
+                        ep_render_frames.append(render_frames)
+                        ep_int_maps.append(int_maps)
+
+                    # eval_stats = {}
+
+                    # Quite a slow hack. We need to rebuild the trainer to ensure the environment has the correct static tile 
+                    # parameters.
+                    # trainer_cfg = trainer.config
+                    # trainer_cfg.env_config['static_prob'] = static_prob
+                    # trainer_cfg.env_config['n_static_walls'] = n_static_walls
+                    # trainer = trainer_cfg.build()
+
+                    # FIXME: We should be able to do something like this in theory. Why doesn't this work?
+                    # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_static_prob(static_prob))
+                    # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_n_static_walls(n_static_walls))
+                    # trainer.workers.foreach_env(lambda env: env.reset())
+
+                    print(f'static probs: {trainer.workers.foreach_env(lambda env: env.unwrapped._rep.static_prob)}')
+                    print(f'static walls: {trainer.workers.foreach_env(lambda env: env.unwrapped._rep.n_static_walls)}')
+
+            if cfg.render_mode == "save_gif":
+                for ep_name, render_frames, int_maps in zip(ep_names, ep_render_frames, ep_int_maps):
                     # Save the rendered frames as a gif.
-                    imageio.mimsave(os.path.join(log_dir, f'render_{epi_index}.gif'), render_frames, duration=20)
+                    imageio.mimsave(os.path.join(log_dir, f'{ep_name}.gif'), render_frames, duration=20)
                     # Save the list of integer maps as a json.
                     with open(os.path.join(log_dir, f'int_maps_{epi_index}.json'), 'w') as f:
                         json.dump(int_maps, f) 
-                    epi_index += 1
-                    if epi_index >= cfg.infer_n_episodes:
-                        print(f"Saved {epi_index} episodes to {log_dir}.")
-                        break
 
         ray.shutdown()
         # Quit the program before agent starts training.

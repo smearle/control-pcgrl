@@ -1,3 +1,4 @@
+import copy
 from http.cookiejar import FileCookieJar
 import json
 import math
@@ -61,35 +62,90 @@ def evaluate(trainer: Algorithm, env, cfg):
         json.dump(eval_stats, f, indent=4)
     # pickle.dump(stats, open(os.path.join(cfg.log_dir, 'eval_stats.pkl'), 'wb'))
 
+    # TODO: We're not resetting static tile parameters after this. So crucial that we don't do further evaluation with 
+    #  this trainer. Should fix this.
     if cfg.static_prob is not None:
         evaluate_static(trainer, env, cfg)    
 
     
 def evaluate_static(trainer: Algorithm, env, cfg):
+    eval_trainer = trainer
     # Hackishly sweep over different values for static_prob and n_static_walls. Hardcoded sweep here.
     static_prob_vals = [0, 0.1, 0.3, 0.5, 0.7]
     static_wall_vals = [0, 3, 5, 7]
-    # static_prob_vals = [0, 0.1]
+    # static_prob_vals = [0, 0.7]
     # static_wall_vals = [0]
     # Get a set of tuples of (static_prob, n_static_walls) to evaluate
     static_sweep = [(static_prob, static_wall) for static_prob in static_prob_vals for static_wall in static_wall_vals]
-    trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(True))
+
+    # Ensure that we will always use the upper bound static_prob (and not a random value within the range between it and
+    #  0)
+    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(True))
+
     for static_prob, n_static_walls in static_sweep:
         eval_stats = {}
-        # Hackinmuhfuckaroo
-        trainer_cfg = trainer.config
-        trainer_cfg.env_config['static_prob'] = static_prob
-        trainer_cfg.env_config['n_static_walls'] = n_static_walls
-        trainer = trainer_cfg.build()
-        print(f'static probs: {trainer.workers.foreach_env(lambda env: env.unwrapped._rep.static_prob)}')
-        print(f'static walls: {trainer.workers.foreach_env(lambda env: env.unwrapped._rep.n_static_walls)}')
-        # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_static_prob(static_prob))
-        # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_n_static_walls(n_static_walls))
-        # trainer.workers.foreach_env(lambda env: env.reset())
-        eval_stats |= general_eval(trainer, env, cfg)
+
+        # Quite a slow hack. We need to rebuild the trainer to ensure the environment has the correct static tile 
+        # parameters.
+        # trainer_cfg = copy.deepcopy(trainer.config)
+        # trainer_cfg.env_config['static_prob'] = static_prob
+        # trainer_cfg.env_config['n_static_walls'] = n_static_walls
+        # eval_trainer = trainer_cfg.build()
+        # eval_trainer.restore(trainer._checkpoint.value)
+        # eval_trainer.load_checkpoint
+
+        # FIXME: We should be able to do something like this in theory. Why doesn't this work?
+        eval_trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._rep.set_static_prob(static_prob))
+        eval_trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._rep.set_n_static_walls(n_static_walls))
+        # eval_trainer.workers.foreach_env(lambda env: env.reset())
+
+        print(f'static probs: {eval_trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._rep.static_prob)}')
+        print(f'static walls: {eval_trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._rep.n_static_walls)}')
+
+        eval_stats |= general_eval(eval_trainer, env, cfg)
+        # eval_stats |= manual_eval(eval_trainer, env, cfg)
+
         with open(os.path.join(cfg.log_dir, f'static-prob-{static_prob}_static-walls-{n_static_walls}_eval_stats.json'), 'w') as f:
             json.dump(eval_stats, f, indent=4)
-    trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(False))
+
+    trainer.evaluation_workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(False))
+
+
+def manual_eval(trainer: Algorithm, env, cfg):
+    hist_stats = {k: [] for k in env.metrics.keys()}
+    hist_stats['episode_reward'] = []
+    for ep_i in range(cfg.n_eval_episodes):
+        total_steps = trainer.config.train_batch_size * trainer.get_state()['iteration']
+            # Does not work for some reason? Rllib ignoring `trainer.config.evaluation_config['render_env']`
+        # eval_stats = trainer.evaluate()
+        # print(eval_stats)
+        # For now we do it the old fashioned way.
+        done = False
+        obs, info = env.reset()
+        ep_reward = 0
+        while not done:
+            if cfg.multiagent.n_agents != 0:
+                action_dict = {}
+                for agent_id in range(cfg.multiagent.n_agents):
+                    action_dict[f'agent_{agent_id}'] = trainer.compute_single_action(obs[f'agent_{agent_id}'])
+                action = action_dict
+            else:
+                action = trainer.compute_single_action(obs)
+            obs, reward, done, truncated, info = env.step(action)
+            ep_reward += reward
+
+            if isinstance(done, dict):
+                done = done['__all__']
+        
+        hist_stats['episode_reward'].append(ep_reward)
+        hist_stats |= {k: v for k, v in env.metrics.items() if k in hist_stats.keys()}
+
+    eval_stats = {f'{k}_mean': np.mean(v) for k, v in hist_stats.items()}
+    eval_stats |= {f'{k}_max': np.max(v) for k, v in hist_stats.items()}
+    eval_stats |= {f'{k}_min': np.min(v) for k, v in hist_stats.items()}
+    eval_stats['n_eval_eps'] = len(hist_stats['episode_lengths'])
+    
+    return eval_stats
         
 
 def general_eval(trainer: Algorithm, env, cfg):

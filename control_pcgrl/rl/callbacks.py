@@ -115,7 +115,6 @@ class StatsCallbacks(DefaultCallbacks):
                 continue
             episode.hist_data.update({f'{k}-val': [env.metrics[k]],})
 
-
         # episode.hist_data.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
         # episode.custom_metrics.update({k: [v] for k, v in episode_stats.items() if k in stats_list})
 
@@ -133,3 +132,13 @@ class StatsCallbacks(DefaultCallbacks):
                     'holes_start': [tuple(unwrapped._prob.entrance_coords[0])],
                     'holes_end': [tuple(unwrapped._prob.exit_coords[0])],
                 })
+
+        if hasattr(unwrapped._rep, 'static_prob'):
+            episode.hist_data.update({
+                'static_prob': [unwrapped._rep.static_prob],
+            })
+        
+        if hasattr(unwrapped._rep, 'n_static_walls'):
+            episode.hist_data.update({
+                'n_static_walls': [unwrapped._rep.n_static_walls],
+            })
