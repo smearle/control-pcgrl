@@ -13,10 +13,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from omegaconf import DictConfig, ListConfig
 import pandas as pd
-from control_pcgrl.configs.config import Config, CrossEvalConfig
+import seaborn as sns
 
+from control_pcgrl.configs.config import Config, CrossEvalConfig
 from control_pcgrl.rl.utils import get_log_dir, PROB_CONTROLS, validate_config
-from tex_formatting import newline, pandas_to_latex
+from tex_formatting import newline
 
 # OVERLEAF_DIR = "/home/sme/Dropbox/Apps/Overleaf/Evolving Diverse NCA Level Generators -- AIIDE '21/tables"
 
@@ -114,11 +115,31 @@ def cross_evaluate_static(cross_eval_cfg: Config, sweep_configs: List[Config], s
     }
     # Convert dict to pandas dataframe
     df = pd.DataFrame.from_dict(static_trains_to_agg_stats, orient='index')
+
     # Sort columns
     df = df.reindex(sorted(df.columns), axis=1)
-    breakpoint()
 
+    # Extract only the mean values from the dataframe
+    mean_df = df.applymap(lambda x: x[0])
+
+    # Create a heatmap
+    plt.figure(figsize=(15, 13))
+    sns.heatmap(mean_df, annot=True, fmt=".2f", cmap="YlGnBu", cbar=True)
+    plt.title("Static Tiles Heatmap---Mean Episode Reward")
+    plt.xlabel("Static Walls")
+    plt.ylabel("Static Probability")
+    plt.savefig(os.path.join(EVAL_DIR, "static_tiles_heatmap.png"))
+    plt.close()
+
+    # Save to csv
+    df.to_csv(os.path.join(EVAL_DIR, 'static_tiles.csv'))
     
+    # Convert to latex
+    # latex = pandas_to_latex(df, bold_extreme_values=bold_extreme_values, latex_file=os.path.join(EVAL_DIR, 'static_tiles.tex'))
+    # with open(os.path.join(EVAL_DIR, 'static_tiles.tex'), 'w') as f:
+    #     f.write(latex)
+
+    # tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
 
 
 def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
@@ -131,8 +152,8 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
     # validate_config(cross_eval_config)
     # [validate_config(c) for c in sweep_configs]
 
-    # if cross_eval_cfg.name == 'static_tiles':
-    #     cross_evaluate_static(cross_eval_cfg, sweep_configs, sweep_params)
+    if cross_eval_cfg.name == 'static_tiles':
+        cross_evaluate_static(cross_eval_cfg, sweep_configs, sweep_params)
 
     keys = [
         "task", 

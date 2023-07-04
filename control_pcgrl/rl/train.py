@@ -327,8 +327,10 @@ def main(cfg: Config) -> None:
                     ep_render_frames.append(render_frames)
                     ep_int_maps.append(int_maps)
             else:
-                static_prob_vals = [0, 0.7]
-                static_wall_vals = [0]
+                static_prob_vals = [0, 0.1, 0.3, 0.5, 0.7]
+                static_wall_vals = [0, 3, 5, 7]
+                # static_prob_vals = [0, 0.7]
+                # static_wall_vals = [0]
                 static_sweep = [(static_prob, static_wall) for static_prob in static_prob_vals for static_wall in static_wall_vals]
                 # trainer.workers.foreach_env(lambda env: env.unwrapped._rep.set_eval_mode(True))
                 env.unwrapped._rep.set_eval_mode(True)
