@@ -1,0 +1,12 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      task: zelda
+      model: seqnca
+      model.patch_width: 3, 5, 7, 9, 11, 16, 32
+      exp_id: 0, 1, 2
+
+name: patch_width_zelda
+
+# for patch width experiments, seqnca only

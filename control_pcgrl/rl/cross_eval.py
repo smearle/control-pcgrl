@@ -5,15 +5,16 @@ import os
 from pathlib import Path
 import re
 import csv
-from pdb import set_trace as TT
+import glob
 from typing import Dict, List
-import hydra
 
+import hydra
 import numpy as np
 from matplotlib import pyplot as plt
 from omegaconf import DictConfig, ListConfig
 import pandas as pd
 import seaborn as sns
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from control_pcgrl.configs.config import Config, CrossEvalConfig
 from control_pcgrl.rl.utils import get_log_dir, PROB_CONTROLS, validate_config
@@ -142,7 +143,7 @@ def cross_evaluate_static(cross_eval_cfg: Config, sweep_configs: List[Config], s
     # tables_tex_fname = os.path.join(EVAL_DIR, "tables.tex")
 
 
-def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_params: Dict[str, str]):
+def cross_evaluate(cross_eval_cfg: CrossEvalConfig, sweep_configs: List[Config], sweep_params: Dict[str, str]):
     """Collect results generated when evaluating trained models under different conditions.
     Args:
         cross_eval_config (CrossEvalConfig): The cross-evaluation config
@@ -151,6 +152,35 @@ def cross_evaluate(cross_eval_cfg: Config, sweep_configs: List[Config], sweep_pa
     """
     # validate_config(cross_eval_config)
     # [validate_config(c) for c in sweep_configs]
+    if cross_eval_cfg.plot_loss:
+        for cfg in sweep_configs:
+            tensorboard_dir = str(cfg.log_dir)
+            # Find all files names `progress.csv` stored in any child of this directory using glob
+            progress_files = glob.glob(os.path.join(tensorboard_dir, '**', 'progress.csv'), recursive=True)
+            loss_values = {}
+            df = None
+
+            for progress_file in progress_files:
+                # Load the progress.csv file
+                if df is None:
+                    df = pd.read_csv(progress_file)
+                else:
+                    # Concatenate the dataframes
+                    df = pd.concat([df, pd.read_csv(progress_file)])    
+
+            # Sort the dataframe by `timesteps_total`
+            df = df.sort_values(by=['timesteps_total'])
+            
+            # Plot the loss curve with `timesteps_total` on the x-axis and `episode_reward_mean` on the y-axis
+            plt.plot(df['timesteps_total'], df['episode_reward_mean'])
+            plt.xlabel('Timesteps')
+            plt.ylabel('Episode Reward')
+            plt.title('Training Reward Curve')
+            # plt.legend()
+            plt.savefig(os.path.join(cfg.log_dir, 'loss_curve.png'))
+            print(f"Saved loss curve to {cfg.log_dir}")
+            plt.close()
+
 
     if cross_eval_cfg.name == 'static_tiles':
         cross_evaluate_static(cross_eval_cfg, sweep_configs, sweep_params)

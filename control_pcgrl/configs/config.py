@@ -358,6 +358,8 @@ class CrossEvalConfig(EvalConfig):
     # Name of the *sweep*, for naming cross-eval outputs.
     name: str = "cross_eval"
 
+    plot_loss: bool = False
+
 
 @dataclass
 class PoDConfig(Config):

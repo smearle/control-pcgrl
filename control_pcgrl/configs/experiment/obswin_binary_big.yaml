@@ -1,0 +1,13 @@
+# @package _global_
+hydra:
+  sweeper:
+    params:
+      task: binary_big
+      model: seqnca
+      task.obs_window: "[4,4],[6,6],[8,8],[16,16]"
+      exp_id: 0, 1, 2
+
+timesteps_total: 20_000_000
+
+# zelda. for obs window experiments, comparing seqnca and default_model to see how the obs size affect
+# value branch (is it really using that infomation?)
