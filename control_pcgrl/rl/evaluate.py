@@ -24,8 +24,9 @@ CONTROLS = False
 GENERAL_EVAL = True
 
 
-def evaluate(trainer: Algorithm, env, cfg):
-    # Set controls
+def evaluate(trainer: Algorithm, env, cfg, timesteps_total):
+    if trainer._timesteps_total is None:
+        trainer._timesteps_total = timesteps_total
     eval_stats = {'timesteps_total': trainer._timesteps_total}
 
     # Get number of parameters in default model

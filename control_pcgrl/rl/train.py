@@ -281,7 +281,7 @@ def main(cfg: Config) -> None:
             trainer.restore(ckpt)
 
         if cfg.evaluate:
-            eval_stats = evaluate(trainer, env, cfg)
+            eval_stats = evaluate(trainer, env, cfg, timesteps_total=best_result.metrics['timesteps_total'])
             # sys.exit()
             ray.shutdown()
             return eval_stats, print("Yay!")
@@ -477,7 +477,7 @@ def main(cfg: Config) -> None:
                 # NOTE: If we keyboard interrupt before more steps are trained on, we will end up here, because `tune.run` 
                 #   will exit gracefully.
                 print(
-                    'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
+                  pace has an unconventional shape (neither an image, nor a 1D vector). We recommend flattening the observation to  'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
                 )
                 launch_run(resume=False)
                 
