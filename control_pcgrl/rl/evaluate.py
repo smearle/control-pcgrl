@@ -65,7 +65,7 @@ def evaluate(trainer: Algorithm, env, cfg):
     # TODO: We're not resetting static tile parameters after this. So crucial that we don't do further evaluation with 
     #  this trainer. Should fix this.
     if cfg.static_prob is not None:
-        evaluate_static(trainer, env, cfg)    
+        evaluate_static(trainer, env, cfg)
 
     
 def evaluate_static(trainer: Algorithm, env, cfg):

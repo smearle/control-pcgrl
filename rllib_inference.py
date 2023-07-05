@@ -19,6 +19,7 @@ import gymnasium as gym
 from gymnasium.spaces import Tuple
 
 from ray import air, tune
+from ray.air import Checkpoint
 from ray.rllib.algorithms import AlgorithmConfig
 from ray.rllib.algorithms.ppo import PPO as PPOTrainer
 from ray.rllib.algorithms.algorithm import Algorithm
@@ -121,6 +122,15 @@ def checkpoints_iter(experiment_path):
 #             max_checkpoint_name = checkpoint
 #     print(f'Loaded from checkpoint: {max_checkpoint_name}')
 #     return max_checkpoint
+
+
+def get_latest_ckpt(log_dir):
+    # Doing this hackishly because sometimes result.checkpoint is None (wtf?)
+    # Get all directories starting with `checkpoint` in log_dir
+    ckpt_paths = sorted([d for d in Path(log_dir).iterdir() if d.is_dir() and 'checkpoint' in d.name], key=lambda d: int(d.name.split('_')[-1]))
+    if len(ckpt_paths) == 0:
+        return None
+    return ckpt_paths[-1]
 
 
 def restore_best_ckpt(trainer, log_dir):

@@ -123,13 +123,17 @@ def cross_evaluate_static(cross_eval_cfg: Config, sweep_configs: List[Config], s
     # Extract only the mean values from the dataframe
     mean_df = df.applymap(lambda x: x[0])
 
+    # Convert the index labels to the desired format
+    mean_df.index = mean_df.index.map(lambda x: str(x))
+
     # Create a heatmap
     plt.figure(figsize=(15, 13))
     sns.heatmap(mean_df, annot=True, fmt=".2f", cmap="YlGnBu", cbar=True)
-    plt.title("Static Tiles Heatmap---Mean Episode Reward")
-    plt.xlabel("Static Walls")
-    plt.ylabel("Static Probability")
-    plt.savefig(os.path.join(EVAL_DIR, "static_tiles_heatmap.png"))
+    plt.title("Static Tiles Heatmap -- Mean Episode Reward")
+    plt.xlabel("Evaluation parameters (static tile probability, n. freezies)")
+    plt.ylabel("Training parameters (static tile probability, n. freezies)")
+    plt.savefig(os.path.join(EVAL_DIR, "static_tiles_heatmap.png"), bbox_inches='tight')
+    plt.tight_layout()
     plt.close()
 
     # Save to csv

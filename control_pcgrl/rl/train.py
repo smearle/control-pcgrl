@@ -51,7 +51,7 @@ from control_pcgrl.envs.probs import PROBLEMS
 from control_pcgrl.envs.probs.minecraft.minecraft_3D_holey_maze_prob import \
     Minecraft3DholeymazeProblem
 from control_pcgrl.task_assignment import set_map_fn
-from rllib_inference import restore_best_ckpt
+from rllib_inference import get_latest_ckpt
 
 # Annoying, but needed since we can't go through `globals()` from inside hydra SLURM job. Is there a better way?
 MODELS = {"NCA": NCA, "DenseNCA": DenseNCA, "SeqNCA": SeqNCA, "SeqNCA3D": SeqNCA3D}
@@ -88,18 +88,13 @@ def main(cfg: Config) -> None:
 
     log_dir = cfg.log_dir
 
-    if not cfg.load:
-
-        # New experiment, or automatically load
-        if not cfg.overwrite:
-            if os.path.isdir(log_dir):
-                print(f"Log directory {log_dir} already exists. Will attempt to load.")
-
-            else:
-                os.makedirs(log_dir)
-                print(f"Created new log directory {log_dir}")
-
-        # Try to overwrite the saved directory.
+    if not cfg.load and not cfg.overwrite:
+        if os.path.isdir(log_dir):
+            print(f"Log directory {log_dir} already exists. Will attempt to load.")
+    
+        else:
+            os.makedirs(log_dir)
+            print(f"Created new log directory {log_dir}")
     if cfg.overwrite:
         if not os.path.exists(log_dir):
             print(f"Log directory {log_dir} does not exist. Will create new directory.")
@@ -276,8 +271,14 @@ def main(cfg: Config) -> None:
             print("WARNING: Evaluating random policy.")
             trainer = trainer_config.build()
         else:
+            tuner = tune.Tuner.restore(os.path.join(log_dir, trainer_name))
+            best_result = tuner.get_results().get_best_result(metric="episode_reward_mean", mode="max") # best_result.config["env_config"]["log_dir"] is still wrong
+            ckpt = best_result.checkpoint
+            if ckpt is None:
+                ckpt = get_latest_ckpt(best_result.log_dir)
+
             trainer = trainer_config.build()
-            trainer = restore_best_ckpt(trainer, os.path.join(str(cfg.log_dir), trainer_name))
+            trainer.restore(ckpt)
 
         if cfg.evaluate:
             eval_stats = evaluate(trainer, env, cfg)
@@ -443,16 +444,18 @@ def main(cfg: Config) -> None:
                 ray.shutdown()
                 return print(f"No need to reload, already trained {steps_trained} of {cfg.timesteps_total} steps.")
 
-            if best_result.checkpoint is None:  # if no checkpoint
-                start_new_run = True
+            if best_result.checkpoint is None:
+                ckpt = get_latest_ckpt(log_dir=best_result.log_dir)
+                if ckpt is None:  # If no checkpoint.
+                    start_new_run = True
         if not start_new_run: 
             # This is the latest checkpoint (not necessarily the best one).
-            ckpt = best_result.checkpoint
+            # ckpt = best_result.checkpoint
             # ckpt = best_result.best_checkpoints[0][0]
             def launch_run(resume):
                 return tune.run(
                     run_or_experiment=trainer_name, 
-                    restore=ckpt.to_directory(), 
+                    restore=ckpt, 
                     config=trainer_config,
                     stop=run_config.stop,
                     checkpoint_at_end=run_config.checkpoint_config.checkpoint_at_end,
