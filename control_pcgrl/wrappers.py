@@ -358,11 +358,7 @@ class Cropped(TransformObs):
         ), "This wrapper only works on 2D or 3D arrays."
         self.name = name
         # self.show_agents = cfg.show_agents
-        map_shape = np.array(cfg.task.map_shape)
-        self.map_shape = map_shape
-        self.obs_window = np.array(obs_window)
-        pad_r = np.floor(self.obs_window / 2)
-        self.pad = np.stack((pad_r, pad_r), axis=1).astype(np.int8)
+        self.set_pad_size(cfg)
 
         obs_shape = tuple(self.obs_window)
         self.obs_shape = obs_shape
@@ -384,6 +380,16 @@ class Cropped(TransformObs):
         self.observation_space.spaces[name] = gym.spaces.Box(
             low=low_value, high=high_value, shape=tuple(self.obs_window), dtype=np.uint8
         )
+
+    def set_pad_size(self, cfg: Config):
+        map_shape = np.array(cfg.task.map_shape)
+        self.map_shape = map_shape
+        self.obs_window = np.array(cfg.task.obs_window)
+        pad_r = np.floor(self.obs_window / 2)
+        self.pad = np.stack((pad_r, pad_r), axis=1).astype(np.int8)
+
+    def adjust_param(self, cfg: Config):
+        self.env.adjust_param(cfg)
 
     def step(self, action, **kwargs):
         # action = get_action(action)

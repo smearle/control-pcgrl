@@ -1,4 +1,5 @@
 from pdb import set_trace as TT
+from control_pcgrl.configs.config import Config
 from control_pcgrl.envs.reps.representation import EgocentricRepresentation, Representation
 from PIL import Image
 from gymnasium import spaces
@@ -73,9 +74,9 @@ class NarrowRepresentation(EgocentricRepresentation):
     Parameters:
         random_tile (boolean): if the system will move between tiles random (true) or sequentially (false)
     """
-    def adjust_param(self, **kwargs):
-        super().adjust_param(**kwargs)
-        self._random_tile = kwargs.get('random_tile', self._random_tile)
+    def adjust_param(self, cfg: Config):
+        super().adjust_param(cfg=cfg)
+        self._act_coords = self.get_act_coords()
 
     """
     Update the narrow representation with the input action

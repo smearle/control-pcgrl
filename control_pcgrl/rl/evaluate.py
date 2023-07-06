@@ -15,6 +15,8 @@ import ray
 from ray.rllib.algorithms import Algorithm
 import seaborn as sns
 
+from control_pcgrl.configs.config import EvalConfig
+from control_pcgrl.envs.pcgrl_env import PcgrlEnv
 from control_pcgrl.rl.utils import IdxCounter
 
 
@@ -24,7 +26,7 @@ CONTROLS = False
 GENERAL_EVAL = True
 
 
-def evaluate(trainer: Algorithm, env, cfg, timesteps_total):
+def evaluate(trainer: Algorithm, env, cfg: EvalConfig, timesteps_total):
     if trainer._timesteps_total is None:
         trainer._timesteps_total = timesteps_total
     eval_stats = {'timesteps_total': trainer._timesteps_total}
@@ -53,6 +55,9 @@ def evaluate(trainer: Algorithm, env, cfg, timesteps_total):
 
     # TODO: If 2 controls, test 2 controls at once. Also test each control independently.
 
+    if cfg.vary_map_shapes:
+        evaluate_map_shapes(trainer, env, cfg)
+
     if GENERAL_EVAL:
         # in case n_eval_episodes is not the same as when we init the trainer during training
         general_stats = general_eval(trainer, env, cfg)
@@ -67,6 +72,30 @@ def evaluate(trainer: Algorithm, env, cfg, timesteps_total):
     #  this trainer. Should fix this.
     if cfg.static_prob is not None:
         evaluate_static(trainer, env, cfg)
+
+
+def evaluate_map_shapes(trainer: Algorithm, env: PcgrlEnv, cfg: EvalConfig):
+    eval_trainer = trainer
+    map_shapes = [(8,8), (16, 16), (32, 32), (64, 64)]
+    old_map_shape = cfg.task.map_shape
+
+    for map_shape in map_shapes:
+        eval_stats = {}
+
+        cfg.task.map_shape = map_shape
+
+        # FIXME: We should be able to do something like this in theory. Why doesn't this work?
+        eval_trainer.evaluation_workers.foreach_env(lambda env: env.adjust_param(cfg))
+        eval_trainer.evaluation_workers.foreach_env(lambda env: env.adjust_param(cfg))
+        eval_trainer.evaluation_workers.foreach_env(lambda env: env.reset())
+
+        eval_stats |= general_eval(eval_trainer, env, cfg)
+        # eval_stats |= manual_eval(eval_trainer, env, cfg)
+
+        with open(os.path.join(cfg.log_dir, f'map-shape-{map_shape}_eval_stats.json'), 'w') as f:
+            json.dump(eval_stats, f, indent=4)
+
+    cfg.task.map_shape = old_map_shape
 
     
 def evaluate_static(trainer: Algorithm, env, cfg):
@@ -152,7 +181,7 @@ def manual_eval(trainer: Algorithm, env, cfg):
 def general_eval(trainer: Algorithm, env, cfg):
     total_steps = trainer.config.train_batch_size * trainer.get_state()['iteration']
     stats = trainer.evaluate()
-    print("General evaluation stats:", pprint(stats))
+    print("General evaluation stats:", stats)
     eval_stats = stats['evaluation']
     hist_stats = eval_stats['hist_stats']
     eval_stats.pop('hist_stats')

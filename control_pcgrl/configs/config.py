@@ -335,6 +335,9 @@ class EnjoyConfig(Config):
     # Does nothing here (for cross-eval)
     name: str = "enjoy"
 
+    # If True, evaluate trained agents on a variety of map sizes.
+    vary_map_shapes: bool = False
+
 
 @dataclass
 class EvalConfig(Config):
@@ -349,6 +352,9 @@ class EvalConfig(Config):
 
     # Does nothing here (for cross-eval)
     name: str = "eval"
+
+    # If True, evaluate trained agents on a variety of map sizes.
+    vary_map_shapes: bool = False
 
 
 @dataclass

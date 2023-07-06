@@ -132,7 +132,6 @@ def main(cfg: Config) -> None:
     # dummy_cfg["render"] = False
     dummy_cfg.evaluation_env = False
     env = make_env(dummy_cfg)
-    check_env(env)
 
     if issubclass(type(env), MultiAgentEnv):
         agent_obs_space = env.observation_space["agent_0"]
@@ -321,6 +320,21 @@ def main(cfg: Config) -> None:
                 return render_frames, int_maps
 
             ep_names, ep_render_frames, ep_int_maps = [], [], []
+            if cfg.vary_map_shapes:
+                map_shapes = [(8,8), (16,16), (32,32), (64,64)]
+                old_map_shape = cfg.task.map_shape
+                for map_shape in map_shapes:
+                    cfg.task.map_shape = map_shape
+                    env.adjust_param(cfg=cfg)
+                    for epi_index in range(cfg.infer_n_episodes):
+                        render_frames, int_maps = manual_infer()
+                        ep_render_frames.append(render_frames)
+                        ep_int_maps.append(int_maps)
+                        ep_name = f'map_shape_{map_shape[0]}x{map_shape[1]}_ep_{epi_index}'
+                        ep_names.append(ep_name)
+                        imageio.mimsave(os.path.join(log_dir, f'{ep_name}.gif'), render_frames, duration=20)
+                cfg.task.map_shape = old_map_shape
+            # TODO: Eval different static tiles *and* map shapes.
             if cfg.static_prob is None:
                 ep_names = [f'ep_{i}' for i in range(cfg.infer_n_episodes)]
                 for epi_index in range(cfg.infer_n_episodes):
@@ -366,8 +380,8 @@ def main(cfg: Config) -> None:
                     # Save the rendered frames as a gif.
                     imageio.mimsave(os.path.join(log_dir, f'{ep_name}.gif'), render_frames, duration=20)
                     # Save the list of integer maps as a json.
-                    with open(os.path.join(log_dir, f'int_maps_{epi_index}.json'), 'w') as f:
-                        json.dump(int_maps, f) 
+                    # with open(os.path.join(log_dir, f'int_maps_{epi_index}.json'), 'w') as f:
+                    #     json.dump(int_maps, f) 
 
         ray.shutdown()
         # Quit the program before agent starts training.

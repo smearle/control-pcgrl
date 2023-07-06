@@ -117,10 +117,10 @@ class PcgrlEnv(gym.Env):
         return self._rep._map
 
     def get_map_dims(self):
-        return self._prob._map_shape + (self.get_num_tiles(),)
+        return self.map_shape + (self.get_num_tiles(),)
 
     def get_observable_map_dims(self):
-        return self._prob._map_shape + (self.get_num_observable_tiles(),)
+        return self.map_shape + (self.get_num_observable_tiles(),)
 
     def set_params(self, trgs):
         for k, v in trgs.items():
@@ -164,7 +164,7 @@ class PcgrlEnv(gym.Env):
             self._prob._prob = {tile: prob for tile, prob in zip(self._prob.get_tile_types(), probs)}
         if self.switch_env:
             # self._rep.reset(self.get_map_dims()[:-1], get_int_prob(self._prob._prob, self._prob.get_tile_types()),
-            self._rep.reset(self.obs_window, get_int_prob(self._prob._prob, self._prob.get_tile_types()),
+            self._rep.reset(self.map_shape, get_int_prob(self._prob._prob, self._prob.get_tile_types()),
                 next_map=self._prob.eval_maps[self.cur_map_idx])
             self.switch_env = False
         else:
@@ -219,6 +219,7 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, cfg: Config):
+        self.map_shape = cfg.task.map_shape
         self.evaluation_env = cfg.evaluation_env
         if self.evaluation_env:
             self.num_eval_envs = cfg.num_eval_envs

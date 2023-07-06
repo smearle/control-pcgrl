@@ -110,13 +110,14 @@ class Problem(ABC):
         probs (dict(string, float)): change the probability of each tile
         intiialization, the names are the same as the tile types from get_tile_types
     """
-    def adjust_param(self, **kwargs):
-        # self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        prob = kwargs.get('probs')
-        if prob is not None:
-            for t in prob:
-                if t in self._prob:
-                    self._prob[t] = prob[t]
+    def adjust_param(self, cfg: Config):
+        self._map_shape = tuple(cfg.task.map_shape)  # convert from omegaconf.listconfig.ListConfig to tuple
+        self._height, self._width = self._map_shape[0], self._map_shape[1]  # Will be overwritten if this is a 3D problem.
+        # prob = kwargs.get('probs')
+        # if prob is not None:
+        #     for t in prob:
+        #         if t in self._prob:
+        #             self._prob[t] = prob[t]
         if self.render_path:
             # Make room for displaying path length
             self._border_size = (1, 2)

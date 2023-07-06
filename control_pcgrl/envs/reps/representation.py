@@ -81,8 +81,8 @@ class Representation(ABC):
     Parameters:
         random_start (boolean): if the system will restart with a new map or the previous map
     """
-    def adjust_param(self, **kwargs):
-        self._random_start = kwargs.get('random_start', self._random_start)
+    def adjust_param(self, cfg: Config):
+        self._map_shape = cfg.task.map_shape
 
     """
     Gets the action space used by the representation
@@ -195,8 +195,8 @@ class EgocentricRepresentation(Representation):
         self.agent_positions = agent_positions
 
     def get_valid_agent_coords(self):
-        return np.argwhere(np.ones(self._map.shape))
-
+        return np.argwhere(np.ones(self._map_shape))
+    
     """
     Resets the current representation where it resets the parent and the current
     turtle location
