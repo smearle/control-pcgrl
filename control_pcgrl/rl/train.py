@@ -477,7 +477,7 @@ def main(cfg: Config) -> None:
                 # NOTE: If we keyboard interrupt before more steps are trained on, we will end up here, because `tune.run` 
                 #   will exit gracefully.
                 print(
-                  pace has an unconventional shape (neither an image, nor a 1D vector). We recommend flattening the observation to  'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
+                    'Experiment was not resumed successfully (because launched with `tuner.fit()`), restoring checkpoint without resuming, to create new experiment folder.'
                 )
                 launch_run(resume=False)
                 
