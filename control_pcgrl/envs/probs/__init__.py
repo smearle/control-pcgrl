@@ -16,6 +16,7 @@ from control_pcgrl.envs.probs.face_prob import FaceProblem
 from control_pcgrl.envs.probs.microstructure.microstructure_prob import MicroStructureProblem
 
 from control_pcgrl.envs.probs.minecraft.utils import patch_grpc_evocraft_imports
+from control_pcgrl.envs.probs.zelda2.zelda2_ctrl_prob import Zelda2CtrlProblem
 patch_grpc_evocraft_imports()
 
 from control_pcgrl.envs.probs.minecraft.minecraft_2D_maze_prob import Minecraft2DmazeProblem
@@ -43,6 +44,7 @@ PROBLEMS = {
     "mini": MiniZeldaProblem,
     "zeldaplay": ZeldaPlayProblem,
     "zelda": ZeldaCtrlProblem,
+    "zelda2": Zelda2CtrlProblem,
     "smb_ctrl": SMBCtrlProblem,
     "loderunner": LoderunnerCtrlProblem,
     "loderunner_ctrl": LoderunnerCtrlProblem,

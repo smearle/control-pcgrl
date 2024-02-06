@@ -201,16 +201,16 @@ For the full list of supported problems names check the [Supported Problems](htt
 To list all the registered environments, you can run the following code:
 ```python
 from gym import envs
-import gym_pcgrl
+import control_pcgrl
 
-[env.id for env in envs.registry.all() if "gym_pcgrl" in env.entry_point]
+[env.id for env in envs.registry.all() if "control_pcgrl" in env.entry_point]
 ```
 
 After installing the interface, you can use it like any other GYM interface. Here is a simple example on how to use the framework on the Sokoban environment with Narrow representation:
 
 ```python
 import gymnasium as gym
-import gym_pcgrl
+import control_pcgrl
 
 env = gym.make('sokoban-narrow-v0')
 obs = env.reset()
