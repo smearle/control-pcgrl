@@ -385,6 +385,14 @@ class PoDConfig(Config):
 
     offline_algo: str = "BC"
 
+@dataclass
+class ProfileEnvConfig(Config):
+    N_PROFILE_STEPS: int = 10
+    reevaluate: bool = False
+
+
+    
+
 
 cs = ConfigStore.instance()
 # Registering the Config class with the name `postgresql` with the config group `db`
@@ -423,3 +431,5 @@ cs.store(name="lego", group="task", node=LegoConfig)
 
 cs.store(name="default_model", group="model", node=ModelConfig)
 cs.store(name="seqnca", group="model", node=SeqNCAConfig)
+
+cs.store(name="profile_pcgrl", node=ProfileEnvConfig)
